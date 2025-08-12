@@ -1,17 +1,21 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from "@/lib/queryClient";
+import { useRoute, Link } from "wouter";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type Sentence, type WordClass, type GameProgress } from "@shared/schema";
 import GameHeader from "@/components/ui/game-header";
 import GameInstructions from "@/components/ui/game-instructions";
 import SentenceDisplay from "@/components/ui/sentence-display";
 import GameSidebar from "@/components/ui/game-sidebar";
 import FeedbackDisplay from "@/components/ui/feedback-display";
+import WordClassGuide from "@/components/ui/word-class-guide";
 
-export default function Game() {
+export default function Practice() {
+  const [match, params] = useRoute("/practice/:wordClass?");
+  const specificWordClass = params?.wordClass;
+  
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const [targetWordClass, setTargetWordClass] = useState<string>("verb");
+  const [targetWordClass, setTargetWordClass] = useState<string>("");
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | null;
     message: string;
@@ -21,7 +25,7 @@ export default function Game() {
   const [clickedWords, setClickedWords] = useState<Set<number>>(new Set());
 
   // Fetch game data
-  const { data: sentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
+  const { data: allSentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
     queryKey: ["/api/sentences"],
   });
 
@@ -32,6 +36,13 @@ export default function Game() {
   const { data: gameProgress, isLoading: progressLoading } = useQuery<GameProgress>({
     queryKey: ["/api/game-progress"],
   });
+
+  // Filter sentences based on specific word class if practicing individual class
+  const sentences = specificWordClass 
+    ? allSentences.filter(sentence => 
+        sentence.words.some(word => word.wordClass === specificWordClass && !word.isPunctuation)
+      )
+    : allSentences;
 
   // Update game progress mutation
   const updateProgressMutation = useMutation({
@@ -45,24 +56,31 @@ export default function Game() {
   });
 
   const currentSentence = sentences[currentSentenceIndex];
+  const currentWordClassData = wordClasses.find(wc => wc.name === targetWordClass);
 
-  // Generate random target word class for current sentence
+  // Generate target word class for current sentence
   useEffect(() => {
     if (currentSentence && wordClasses.length > 0) {
-      const availableWordClasses = Array.from(
-        new Set(
-          currentSentence.words
-            .filter(word => !word.isPunctuation)
-            .map(word => word.wordClass)
-        )
-      );
-      
-      if (availableWordClasses.length > 0) {
-        const randomClass = availableWordClasses[Math.floor(Math.random() * availableWordClasses.length)];
-        setTargetWordClass(randomClass);
+      if (specificWordClass) {
+        // For specific word class practice, always target that class
+        setTargetWordClass(specificWordClass);
+      } else {
+        // For general practice, pick randomly from available classes in sentence
+        const availableWordClasses = Array.from(
+          new Set(
+            currentSentence.words
+              .filter(word => !word.isPunctuation)
+              .map(word => word.wordClass)
+          )
+        );
+        
+        if (availableWordClasses.length > 0) {
+          const randomClass = availableWordClasses[Math.floor(Math.random() * availableWordClasses.length)];
+          setTargetWordClass(randomClass);
+        }
       }
     }
-  }, [currentSentenceIndex, currentSentence, wordClasses]);
+  }, [currentSentenceIndex, currentSentence, wordClasses, specificWordClass]);
 
   const handleWordClick = (wordIndex: number, wordClass: string) => {
     if (clickedWords.has(wordIndex) || showNextButton) return;
@@ -78,7 +96,6 @@ export default function Game() {
         message: "Rätt svar!",
       });
 
-      // Update score and correct answers
       if (gameProgress) {
         updateProgressMutation.mutate({
           score: gameProgress.score + 10,
@@ -93,7 +110,6 @@ export default function Game() {
         actualWordClass: actualWordClassData?.swedishName || wordClass,
       });
 
-      // Update wrong answers
       if (gameProgress) {
         updateProgressMutation.mutate({
           wrongAnswers: gameProgress.wrongAnswers + 1,
@@ -111,7 +127,6 @@ export default function Game() {
       setShowNextButton(false);
       setClickedWords(new Set());
 
-      // Update current sentence index in progress
       if (gameProgress) {
         updateProgressMutation.mutate({
           currentSentenceIndex: currentSentenceIndex + 1,
@@ -131,13 +146,22 @@ export default function Game() {
 
   if (!currentSentence) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Inga meningar tillgängliga</div>
+      <div className="min-h-screen flex items-center justify-center flex-col space-y-4">
+        <div className="text-lg text-gray-600">
+          {specificWordClass 
+            ? `Inga meningar tillgängliga för ${specificWordClass}`
+            : "Inga meningar tillgängliga"
+          }
+        </div>
+        <Link href="/">
+          <button className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90">
+            Tillbaka till meny
+          </button>
+        </Link>
       </div>
     );
   }
 
-  const targetWordClassData = wordClasses.find(wc => wc.name === targetWordClass);
   const progressPercentage = sentences.length > 0 ? (currentSentenceIndex / sentences.length) * 100 : 0;
 
   return (
@@ -148,9 +172,47 @@ export default function Game() {
       />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Back to menu button */}
+        <div className="mb-6">
+          <Link href="/">
+            <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+              <i className="fas fa-arrow-left"></i>
+              <span>Tillbaka till meny</span>
+            </button>
+          </Link>
+        </div>
+
+        {/* Show practice mode info */}
+        {specificWordClass && (
+          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="bg-primary/10 text-primary p-3 rounded-lg">
+                <i className="fas fa-target"></i>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Tränar: {wordClasses.find(wc => wc.name === specificWordClass)?.swedishName}
+                </h2>
+                <p className="text-gray-600">
+                  Fokusträning på {wordClasses.find(wc => wc.name === specificWordClass)?.description}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Word class guide */}
+        {currentWordClassData && (
+          <WordClassGuide 
+            wordClass={currentWordClassData}
+            isCorrect={feedback.type === "success"}
+            isWrong={feedback.type === "error"}
+          />
+        )}
+
         <GameInstructions 
-          targetWordClass={targetWordClassData?.swedishName || targetWordClass}
-          targetWordClassDescription={targetWordClassData?.description || ""}
+          targetWordClass={currentWordClassData?.swedishName || targetWordClass}
+          targetWordClassDescription={currentWordClassData?.description || ""}
         />
 
         <div className="grid lg:grid-cols-3 gap-8">

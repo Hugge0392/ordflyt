@@ -1,6 +1,6 @@
 # Overview
 
-This is a Swedish grammar learning game application that teaches word classes (ordklasser) through interactive sentence exercises. Players click on words in sentences to identify their grammatical categories (verb, noun, adjective, etc.). The application is built as a full-stack web application with a React frontend and Express backend, featuring a clean, educational interface with progress tracking and scoring.
+This is a comprehensive Swedish grammar learning game application that teaches word classes (ordklasser) through interactive sentence exercises. The application features a complete educational system with multiple game modes: individual word class practice, timed tests with scoring algorithms, and a comprehensive exam covering all word classes. Students can click on words in sentences to identify their grammatical categories (verb, noun, adjective, etc.), receive guidance from an animated character, and track their progress through various difficulty levels. The application is built as a full-stack web application with a React frontend and Express backend.
 
 # User Preferences
 
@@ -45,12 +45,31 @@ The server uses **Express.js** with TypeScript in ESM module format:
 
 ## Game Logic Architecture
 
-The core game mechanics implement a word classification learning system:
+The application now features a comprehensive educational system with multiple game modes:
 
+### Core Game Mechanics
 - **Random target selection** - Dynamically chooses word classes to identify from available sentence content
 - **Interactive sentence parsing** - Words are clickable with visual feedback for correct/incorrect selections
 - **Progress tracking** - Persistent scoring system with levels and completion statistics
 - **Feedback system** - Immediate visual and textual feedback for learning reinforcement
+
+### Educational Features (Added August 2025)
+- **Word Class Guide Character** - "Lilla Grammatik" animated character provides explanations and encouragement
+- **Multiple Practice Modes**:
+  - Individual word class practice (focus on specific grammar categories)
+  - Free practice (mixed word classes)
+  - Timed tests with scoring algorithms
+  - Comprehensive exam covering all word classes
+- **Advanced Scoring System**:
+  - Base points for correct answers
+  - Time-based bonus multipliers
+  - Exponential time penalties for wrong answers (5s, 10s, 20s, 40s...)
+  - Grade system (A-F) based on performance
+
+### Navigation and User Experience
+- **Main Menu System** - Choose between different practice modes and tests
+- **Specialized Test Interface** - Timer display, progress tracking, and performance analytics
+- **Character-Guided Learning** - Contextual explanations and mood-based feedback
 
 The game state is managed through React Query mutations for optimistic updates and automatic cache invalidation.
 
