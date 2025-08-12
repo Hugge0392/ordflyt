@@ -35,7 +35,7 @@ export default function MultipleChoiceSentence({
         return `${baseClasses} incorrect`; // Was selected but not correct
       }
     } else if (selectedWords.has(wordIndex)) {
-      return `${baseClasses} bg-blue-200 border-blue-400`;
+      return `${baseClasses} selected`;
     }
     
     return baseClasses;

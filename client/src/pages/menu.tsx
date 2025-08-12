@@ -207,20 +207,30 @@ export default function Menu() {
           </h2>
           
           <div className="max-w-2xl mx-auto">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl shadow-xl p-8">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-xl p-8">
               <div className="text-center">
                 <div className="text-6xl mb-4">🐉</div>
-                <h3 className="text-2xl font-bold mb-4">Dra och släpp spel</h3>
-                <p className="text-lg mb-6 opacity-90">
-                  Dra orden till rätt ordklass. Draken spottar tillbaka ord som hamnar fel!
+                <h3 className="text-2xl font-bold mb-4">Dra ord till rätt ordklass</h3>
+                <p className="text-lg opacity-90 mb-6">
+                  Dra ordet till rätt ordklass-låda. Draken spyr tillbaka fel ord!
                 </p>
                 
-                <Link href="/drag-drop" data-testid="drag-drop-game">
-                  <button className="bg-white text-purple-600 px-8 py-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all text-lg">
-                    <i className="fas fa-hand-rock mr-2"></i>
+                <Link href="/drag-drop-game">
+                  <button className="bg-white text-green-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg">
+                    <span className="mr-2">🎮</span>
                     Spela med draken
                   </button>
                 </Link>
+              </div>
+              
+              <div className="mt-6 bg-white/10 rounded-lg p-4">
+                <h4 className="font-semibold mb-2">Spelregler:</h4>
+                <ul className="text-sm space-y-1 opacity-90">
+                  <li>• Dra ord från meningen till rätt ordklass</li>
+                  <li>• Draken spyr tillbaka felaktigt placerade ord</li>
+                  <li>• Alla ord måste placeras för att vinna</li>
+                  <li>• Träna alla 9 svenska ordklasser</li>
+                </ul>
               </div>
             </div>
           </div>

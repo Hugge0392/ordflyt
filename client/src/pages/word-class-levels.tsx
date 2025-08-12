@@ -21,7 +21,7 @@ export default function WordClassLevels() {
     {
       level: 1,
       name: "Grundläggande",
-      description: "Enkla meningar med 3-4 ord",
+      description: "3-4 ord, ett rätt svar. Grön feedback direkt.",
       difficulty: "Lätt",
       color: "from-green-400 to-emerald-500",
       icon: "🌱"
@@ -29,7 +29,7 @@ export default function WordClassLevels() {
     {
       level: 2,
       name: "Medel",
-      description: "Flera ord av samma ordklass",
+      description: "5-7 ord, ett rätt svar. Grön feedback direkt.",
       difficulty: "Medel", 
       color: "from-yellow-400 to-orange-500",
       icon: "🌳"
@@ -37,16 +37,24 @@ export default function WordClassLevels() {
     {
       level: 3,
       name: "Avancerad",
-      description: "Längre meningar, ibland inga ord",
+      description: "5-8 ord, flera rätt svar. 'Gå vidare' knapp.",
       difficulty: "Svår",
-      color: "from-red-400 to-pink-500",
+      color: "from-orange-400 to-red-500",
       icon: "🏔️"
     },
     {
       level: 4,
+      name: "Expert",
+      description: "6-12 ord, flera svar eller inga ord. 'Gå vidare' knapp.",
+      difficulty: "Expert",
+      color: "from-red-500 to-pink-600",
+      icon: "🔥"
+    },
+    {
+      level: 5,
       name: "Slutprov",
-      description: "Tidsprov med alla svårighetsgrader",
-      difficulty: "Expertprov",
+      description: "Tidsprov med 5-stjärnig bedömning",
+      difficulty: "Slutprov",
       color: "from-purple-500 to-indigo-600",
       icon: "👑"
     }
@@ -179,8 +187,8 @@ export default function WordClassLevels() {
                   </div>
 
                   {/* Action button */}
-                  {level.level === 4 ? (
-                    // Test level
+                  {level.level === 5 ? (
+                    // Final test level (level 5)
                     <Link 
                       href={isLocked ? '#' : `/test/${wordClassName}`}
                       className={isLocked ? 'pointer-events-none' : ''}
@@ -236,12 +244,12 @@ export default function WordClassLevels() {
             <div className="w-full max-w-md">
               <div className="flex justify-between text-sm text-gray-600 mb-2">
                 <span>Framsteg</span>
-                <span>{completedLevel}/4 nivåer</span>
+                <span>{completedLevel}/5 nivåer</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
                   className="bg-gradient-to-r from-secondary to-emerald-400 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${(completedLevel / 4) * 100}%` }}
+                  style={{ width: `${(completedLevel / 5) * 100}%` }}
                 />
               </div>
             </div>
@@ -251,13 +259,13 @@ export default function WordClassLevels() {
             {completedLevel === 0 && (
               <p className="text-gray-600">Börja med Nivå 1 för att lära dig grunderna!</p>
             )}
-            {completedLevel > 0 && completedLevel < 4 && (
+            {completedLevel > 0 && completedLevel < 5 && (
               <p className="text-gray-600">
-                Bra jobbat! Du har klarat {completedLevel} av 4 nivåer. 
+                Bra jobbat! Du har klarat {completedLevel} av 5 nivåer. 
                 Fortsätt till nästa för att utvecklas mer!
               </p>
             )}
-            {completedLevel === 4 && (
+            {completedLevel === 5 && (
               <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-6 border border-green-200">
                 <p className="text-green-700 font-semibold">
                   🎉 Grattis! Du har klarnat alla nivåer för {currentWordClass.swedishName}!

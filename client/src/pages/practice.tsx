@@ -74,6 +74,44 @@ export default function Practice() {
   const handleWordClick = (wordIndex: number, wordClass: string) => {
     if (isSubmitted) return;
     
+    // For levels 1 and 2, auto-submit on single correct click
+    if (practiceLevel && (practiceLevel === 1 || practiceLevel === 2)) {
+      if (wordClass === currentTargetClass) {
+        // Correct answer - show green feedback and auto-advance
+        setSelectedWords(new Set([wordIndex]));
+        setCorrectWords(new Set([wordIndex]));
+        setIncorrectWords(new Set());
+        setIsSubmitted(true);
+        setFeedback({
+          type: 'correct',
+          message: `Rätt! "${currentSentence?.words[wordIndex]?.text}" är ${currentWordClass?.swedishName || currentTargetClass}.`
+        });
+        
+        // Auto-advance after 1.5 seconds
+        setTimeout(() => {
+          nextSentence();
+        }, 1500);
+        return;
+      } else {
+        // Wrong answer - show red feedback briefly then allow retry
+        setSelectedWords(new Set([wordIndex]));
+        setIncorrectWords(new Set([wordIndex]));
+        setFeedback({
+          type: 'incorrect',
+          message: `Fel! "${currentSentence?.words[wordIndex]?.text}" är inte ${currentWordClass?.swedishName || currentTargetClass}.`
+        });
+        
+        // Clear feedback after 1.5 seconds to allow retry
+        setTimeout(() => {
+          setSelectedWords(new Set());
+          setIncorrectWords(new Set());
+          setFeedback(null);
+        }, 1500);
+        return;
+      }
+    }
+    
+    // For levels 3+ allow multiple selection
     const newSelected = new Set(selectedWords);
     if (newSelected.has(wordIndex)) {
       newSelected.delete(wordIndex);
@@ -88,6 +126,29 @@ export default function Practice() {
     if (isSubmitted) return;
     setHasNoWords(true);
     checkAnswer(new Set(), true);
+  };
+
+  const nextSentence = () => {
+    if (currentSentenceIndex < sentences.length - 1) {
+      setCurrentSentenceIndex(currentSentenceIndex + 1);
+      setSelectedWords(new Set());
+      setFeedback(null);
+      setIsSubmitted(false);
+      setCorrectWords(new Set());
+      setIncorrectWords(new Set());
+      setHasNoWords(false);
+    } else {
+      // Level completed
+      setLevelCompleted(true);
+      if (practiceLevel && specificWordClass) {
+        updateProgressMutation.mutate({
+          completedLevels: {
+            ...gameProgress?.completedLevels,
+            [specificWordClass]: Math.max(gameProgress?.completedLevels?.[specificWordClass] || 0, practiceLevel)
+          }
+        });
+      }
+    }
   };
 
   const handleSubmit = () => {
@@ -337,7 +398,7 @@ export default function Practice() {
           targetWordClass={currentWordClass?.swedishName || currentTargetClass || ""}
           selectedWords={selectedWords}
           onWordClick={handleWordClick}
-          showNoWordsButton={!isSubmitted}
+          showNoWordsButton={practiceLevel ? practiceLevel >= 3 && !isSubmitted : !isSubmitted}
           onNoWords={handleNoWords}
           isSubmitted={isSubmitted}
           correctWords={correctWords}
@@ -346,16 +407,20 @@ export default function Practice() {
 
         {/* Controls */}
         <div className="text-center space-y-4">
-          {!isSubmitted && selectedWords.size > 0 && !hasNoWords && (
+          {/* For levels 3+, show "Gå vidare" button when selections are made */}
+          {!isSubmitted && practiceLevel && practiceLevel >= 3 && (selectedWords.size > 0 || hasNoWords) && (
             <button
               onClick={handleSubmit}
               className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors text-lg"
               data-testid="submit-button"
             >
-              <i className="fas fa-check mr-2"></i>
-              Kontrollera svar ({selectedWords.size} vald{selectedWords.size > 1 ? 'a' : ''})
+              <i className="fas fa-arrow-right mr-2"></i>
+              Gå vidare
+              {selectedWords.size > 0 && ` (${selectedWords.size} vald${selectedWords.size > 1 ? 'a' : ''})`}
             </button>
           )}
+          
+          {/* For levels 1-2, auto-submit is handled in handleWordClick, no button needed */}
 
           {feedback && (
             <div className={`p-4 rounded-xl ${
@@ -367,24 +432,45 @@ export default function Practice() {
             </div>
           )}
 
-          {isSubmitted && (
-            <button
-              onClick={handleNext}
-              className="bg-secondary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary/90 transition-colors text-lg"
-              data-testid="next-button"
-            >
-              {currentSentenceIndex >= sentences.length - 1 ? (
-                <>
-                  <i className="fas fa-flag-checkered mr-2"></i>
-                  Avsluta nivå
-                </>
+          {/* For levels 3+, show retry or next button after submission */}
+          {isSubmitted && practiceLevel && practiceLevel >= 3 && (
+            <>
+              {feedback?.type === 'incorrect' ? (
+                <button
+                  onClick={() => {
+                    setSelectedWords(new Set());
+                    setFeedback(null);
+                    setIsSubmitted(false);
+                    setCorrectWords(new Set());
+                    setIncorrectWords(new Set());
+                    setHasNoWords(false);
+                  }}
+                  className="bg-orange-500 text-white px-8 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors text-lg"
+                  data-testid="retry-button"
+                >
+                  <i className="fas fa-redo mr-2"></i>
+                  Försök igen
+                </button>
               ) : (
-                <>
-                  <i className="fas fa-arrow-right mr-2"></i>
-                  Nästa mening
-                </>
+                <button
+                  onClick={handleNext}
+                  className="bg-secondary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary/90 transition-colors text-lg"
+                  data-testid="next-button"
+                >
+                  {currentSentenceIndex >= sentences.length - 1 ? (
+                    <>
+                      <i className="fas fa-flag-checkered mr-2"></i>
+                      Avsluta nivå
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-arrow-right mr-2"></i>
+                      Nästa mening
+                    </>
+                  )}
+                </button>
               )}
-            </button>
+            </>
           )}
         </div>
       </main>
