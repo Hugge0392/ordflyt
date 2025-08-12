@@ -53,177 +53,380 @@ export class MemStorage implements IStorage {
 
     // Initialize sentences with different difficulty levels
     const sentencesData: Omit<Sentence, 'id'>[] = [
-      // ======= LEVEL 1 - GRUNDLÄGGANDE (Simple, 1 target word per sentence) =======
+      // ======= LEVEL 1 - GRUNDLÄGGANDE (Custom questions from PDF) =======
       
-      // Verb Level 1 - Simple sentences with 1 verb each
+      // Substantiv Nivå 1
       {
-        content: "Jag springer.",
+        content: "Hunden springer snabbt",
         level: 1,
-        wordClassType: "verb",
-        difficulty: 1,
-        words: [
-          { text: "Jag", wordClass: "pronoun" },
-          { text: "springer", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Hon läser.",
-        level: 1,
-        wordClassType: "verb",
-        difficulty: 1,
-        words: [
-          { text: "Hon", wordClass: "pronoun" },
-          { text: "läser", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Katten sover.",
-        level: 1,
-        wordClassType: "verb",
-        difficulty: 1,
-        words: [
-          { text: "Katten", wordClass: "noun" },
-          { text: "sover", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Vi äter.",
-        level: 1,
-        wordClassType: "verb",
-        difficulty: 1,
-        words: [
-          { text: "Vi", wordClass: "pronoun" },
-          { text: "äter", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Hunden hoppar.",
-        level: 1,
-        wordClassType: "verb",
+        wordClassType: "noun",
         difficulty: 1,
         words: [
           { text: "Hunden", wordClass: "noun" },
-          { text: "hoppar", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-
-      // Noun Level 1 - Simple sentences with 1 noun each
-      {
-        content: "Pojken springer.",
-        level: 1,
-        wordClassType: "noun",
-        difficulty: 1,
-        words: [
-          { text: "Pojken", wordClass: "noun" },
           { text: "springer", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "snabbt", wordClass: "adverb" },
         ],
       },
       {
-        content: "Du läser boken.",
+        content: "Hon köper äpple",
         level: 1,
         wordClassType: "noun",
         difficulty: 1,
         words: [
-          { text: "Du", wordClass: "pronoun" },
-          { text: "läser", wordClass: "verb" },
-          { text: "boken", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "köper", wordClass: "verb" },
+          { text: "äpple", wordClass: "noun" },
         ],
       },
       {
-        content: "Flickan dansar.",
+        content: "Boken ligger där",
         level: 1,
         wordClassType: "noun",
         difficulty: 1,
         words: [
-          { text: "Flickan", wordClass: "noun" },
-          { text: "dansar", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "Boken", wordClass: "noun" },
+          { text: "ligger", wordClass: "verb" },
+          { text: "där", wordClass: "adverb" },
         ],
       },
       {
-        content: "Vi ser katten.",
+        content: "Vi ser huset",
         level: 1,
         wordClassType: "noun",
         difficulty: 1,
         words: [
           { text: "Vi", wordClass: "pronoun" },
           { text: "ser", wordClass: "verb" },
-          { text: "katten", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "huset", wordClass: "noun" },
         ],
       },
       {
-        content: "Hunden leker.",
+        content: "Flickan har katt",
         level: 1,
         wordClassType: "noun",
         difficulty: 1,
         words: [
-          { text: "Hunden", wordClass: "noun" },
+          { text: "Flickan", wordClass: "noun" },
+          { text: "har", wordClass: "verb" },
+          { text: "katt", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Stolen är trasig",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Stolen", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "trasig", wordClass: "adjective" },
+        ],
+      },
+      {
+        content: "Jag gillar glass",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Jag", wordClass: "pronoun" },
+          { text: "gillar", wordClass: "verb" },
+          { text: "glass", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Pojken hittar boll",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Pojken", wordClass: "noun" },
+          { text: "hittar", wordClass: "verb" },
+          { text: "boll", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Bordet är stort",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Bordet", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "stort", wordClass: "adjective" },
+        ],
+      },
+      {
+        content: "Vi planterar träd",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Vi", wordClass: "pronoun" },
+          { text: "planterar", wordClass: "verb" },
+          { text: "träd", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Katten fångar mus",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Katten", wordClass: "noun" },
+          { text: "fångar", wordClass: "verb" },
+          { text: "mus", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "De bygger bro",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "De", wordClass: "pronoun" },
+          { text: "bygger", wordClass: "verb" },
+          { text: "bro", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Han köper tidning",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Han", wordClass: "pronoun" },
+          { text: "köper", wordClass: "verb" },
+          { text: "tidning", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Blomman doftar gott",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Blomman", wordClass: "noun" },
+          { text: "doftar", wordClass: "verb" },
+          { text: "gott", wordClass: "adverb" },
+        ],
+      },
+      {
+        content: "Jag äter banan",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Jag", wordClass: "pronoun" },
+          { text: "äter", wordClass: "verb" },
+          { text: "banan", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Fågeln flyger högt",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Fågeln", wordClass: "noun" },
+          { text: "flyger", wordClass: "verb" },
+          { text: "högt", wordClass: "adverb" },
+        ],
+      },
+      {
+        content: "Hon hittar nyckel",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "hittar", wordClass: "verb" },
+          { text: "nyckel", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Barnen leker boll",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Barnen", wordClass: "noun" },
           { text: "leker", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "boll", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Sängen är mjuk",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Sängen", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "mjuk", wordClass: "adjective" },
+        ],
+      },
+      {
+        content: "Vi ser fågel",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Vi", wordClass: "pronoun" },
+          { text: "ser", wordClass: "verb" },
+          { text: "fågel", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Han öppnar bok",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Han", wordClass: "pronoun" },
+          { text: "öppnar", wordClass: "verb" },
+          { text: "bok", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Flickan håller blomma",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Flickan", wordClass: "noun" },
+          { text: "håller", wordClass: "verb" },
+          { text: "blomma", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Pojken hittar sten",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Pojken", wordClass: "noun" },
+          { text: "hittar", wordClass: "verb" },
+          { text: "sten", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "De läser tidning",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "De", wordClass: "pronoun" },
+          { text: "läser", wordClass: "verb" },
+          { text: "tidning", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Vi köper kaffe",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Vi", wordClass: "pronoun" },
+          { text: "köper", wordClass: "verb" },
+          { text: "kaffe", wordClass: "noun" },
         ],
       },
 
-      // Adjective Level 1 - Simple sentences with 1 adjective each
+      // Verb Nivå 1
       {
-        content: "Bilen är röd.",
+        content: "Hunden jagar katten",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Hunden", wordClass: "noun" },
+          { text: "jagar", wordClass: "verb" },
+          { text: "katten", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Vi äter frukost",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Vi", wordClass: "pronoun" },
+          { text: "äter", wordClass: "verb" },
+          { text: "frukost", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Blommor doftar gott",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Blommor", wordClass: "noun" },
+          { text: "doftar", wordClass: "verb" },
+          { text: "gott", wordClass: "adverb" },
+        ],
+      },
+      {
+        content: "Hon läser böcker",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "läser", wordClass: "verb" },
+          { text: "böcker", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Pojken ritar hus",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Pojken", wordClass: "noun" },
+          { text: "ritar", wordClass: "verb" },
+          { text: "hus", wordClass: "noun" },
+        ],
+      },
+
+      // Adjektiv nivå 1
+      {
+        content: "Hunden är snabb",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "Hunden", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "snabb", wordClass: "adjective" },
+        ],
+      },
+      {
+        content: "Hon har röd",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "har", wordClass: "verb" },
+          { text: "röd", wordClass: "adjective" },
+        ],
+      },
+      {
+        content: "Bilen är stor",
         level: 1,
         wordClassType: "adjective",
         difficulty: 1,
         words: [
           { text: "Bilen", wordClass: "noun" },
           { text: "är", wordClass: "verb" },
-          { text: "röd", wordClass: "adjective" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Huset är stort.",
-        level: 1,
-        wordClassType: "adjective",
-        difficulty: 1,
-        words: [
-          { text: "Huset", wordClass: "noun" },
-          { text: "är", wordClass: "verb" },
-          { text: "stort", wordClass: "adjective" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Katten är liten.",
-        level: 1,
-        wordClassType: "adjective",
-        difficulty: 1,
-        words: [
-          { text: "Katten", wordClass: "noun" },
-          { text: "är", wordClass: "verb" },
-          { text: "liten", wordClass: "adjective" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "stor", wordClass: "adjective" },
         ],
       },
 
-      // Adverb Level 1 - Simple sentences with 1 adverb each
+      // Adverb nivå 1
       {
-        content: "Hon sjunger vackert.",
-        level: 1,
-        wordClassType: "adverb",
-        difficulty: 1,
-        words: [
-          { text: "Hon", wordClass: "pronoun" },
-          { text: "sjunger", wordClass: "verb" },
-          { text: "vackert", wordClass: "adverb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Han springer snabbt.",
+        content: "Han springer snabbt",
         level: 1,
         wordClassType: "adverb",
         difficulty: 1,
@@ -231,107 +434,119 @@ export class MemStorage implements IStorage {
           { text: "Han", wordClass: "pronoun" },
           { text: "springer", wordClass: "verb" },
           { text: "snabbt", wordClass: "adverb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
-
-      // Pronoun Level 1 - Simple sentences with 1 pronoun each
       {
-        content: "Hon läser boken.",
+        content: "Hon pratar högt",
         level: 1,
-        wordClassType: "pronoun",
+        wordClassType: "adverb",
         difficulty: 1,
         words: [
           { text: "Hon", wordClass: "pronoun" },
-          { text: "läser", wordClass: "verb" },
-          { text: "boken", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "pratar", wordClass: "verb" },
+          { text: "högt", wordClass: "adverb" },
         ],
       },
+
+      // Pronomen nivå 1
       {
-        content: "Du springer fort.",
+        content: "Han går hem",
         level: 1,
         wordClassType: "pronoun",
         difficulty: 1,
         words: [
-          { text: "Du", wordClass: "pronoun" },
-          { text: "springer", wordClass: "verb" },
-          { text: "fort", wordClass: "adverb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "Han", wordClass: "pronoun" },
+          { text: "går", wordClass: "verb" },
+          { text: "hem", wordClass: "adverb" },
+        ],
+      },
+      {
+        content: "Jag äter äpple",
+        level: 1,
+        wordClassType: "pronoun",
+        difficulty: 1,
+        words: [
+          { text: "Jag", wordClass: "pronoun" },
+          { text: "äter", wordClass: "verb" },
+          { text: "äpple", wordClass: "noun" },
         ],
       },
 
-      // Preposition Level 1 - Simple sentences with 1 preposition each
+      // Preposition nivå 1
       {
-        content: "Katten sitter på bordet.",
-        level: 1,
-        wordClassType: "preposition",
-        difficulty: 1,
-        words: [
-          { text: "Katten", wordClass: "noun" },
-          { text: "sitter", wordClass: "verb" },
-          { text: "på", wordClass: "preposition" },
-          { text: "bordet", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Boken ligger under stolen.",
+        content: "Boken ligger på bord",
         level: 1,
         wordClassType: "preposition",
         difficulty: 1,
         words: [
           { text: "Boken", wordClass: "noun" },
           { text: "ligger", wordClass: "verb" },
-          { text: "under", wordClass: "preposition" },
-          { text: "stolen", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "på", wordClass: "preposition" },
+          { text: "bord", wordClass: "noun" },
         ],
       },
-
-      // Conjunction Level 1 - Simple sentences with 1 conjunction each
       {
-        content: "Jag äter och dricker.",
+        content: "Katten sitter under stolen",
         level: 1,
-        wordClassType: "conjunction",
+        wordClassType: "preposition",
         difficulty: 1,
         words: [
-          { text: "Jag", wordClass: "pronoun" },
-          { text: "äter", wordClass: "verb" },
-          { text: "och", wordClass: "conjunction" },
-          { text: "dricker", wordClass: "verb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "Katten", wordClass: "noun" },
+          { text: "sitter", wordClass: "verb" },
+          { text: "under", wordClass: "preposition" },
+          { text: "stolen", wordClass: "noun" },
         ],
       },
 
-      // Interjection Level 1 - Simple sentences with 1 interjection each
+      // Interjektion nivå 1
       {
-        content: "Hej, jag heter Anna.",
+        content: "Hej, hur mår",
         level: 1,
         wordClassType: "interjection",
         difficulty: 1,
         words: [
           { text: "Hej", wordClass: "interjection" },
           { text: ",", isPunctuation: true, wordClass: "punctuation" },
-          { text: "jag", wordClass: "pronoun" },
-          { text: "heter", wordClass: "verb" },
-          { text: "Anna", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "hur", wordClass: "adverb" },
+          { text: "mår", wordClass: "verb" },
+        ],
+      },
+      {
+        content: "Oj, vad händer",
+        level: 1,
+        wordClassType: "interjection",
+        difficulty: 1,
+        words: [
+          { text: "Oj", wordClass: "interjection" },
+          { text: ",", isPunctuation: true, wordClass: "punctuation" },
+          { text: "vad", wordClass: "pronoun" },
+          { text: "händer", wordClass: "verb" },
         ],
       },
 
-      // Numeral Level 1 - Simple sentences with 1 numeral each
+      // Räkneord nivå 1
       {
-        content: "Jag ser tre hundar.",
+        content: "Jag har två äpplen",
         level: 1,
         wordClassType: "numeral",
         difficulty: 1,
         words: [
           { text: "Jag", wordClass: "pronoun" },
-          { text: "ser", wordClass: "verb" },
+          { text: "har", wordClass: "verb" },
+          { text: "två", wordClass: "numeral" },
+          { text: "äpplen", wordClass: "noun" },
+        ],
+      },
+      {
+        content: "Hon såg tre fåglar",
+        level: 1,
+        wordClassType: "numeral",
+        difficulty: 1,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "såg", wordClass: "verb" },
           { text: "tre", wordClass: "numeral" },
-          { text: "hundar", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+          { text: "fåglar", wordClass: "noun" },
         ],
       },
 
