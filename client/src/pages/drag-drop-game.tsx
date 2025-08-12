@@ -306,34 +306,34 @@ export default function DragDropGame() {
           </div>
         </div>
 
-        {/* Word class drop zones */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Word class drop zones - Compact grid */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {wordClasses.map((wordClass) => (
             <div
               key={wordClass.id}
-              className="bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors min-h-[200px]"
+              className="bg-white rounded-lg shadow-md border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors min-h-[140px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, wordClass.name)}
               data-testid={`drop-zone-${wordClass.name}`}
             >
-              <div className="p-6">
-                <div className="text-center mb-4">
+              <div className="p-3">
+                <div className="text-center mb-2">
                   <div 
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl mb-3 mx-auto"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg mb-2 mx-auto"
                     style={{ backgroundColor: wordClass.color }}
                   >
                     {getWordClassIcon(wordClass.name)}
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">{wordClass.swedishName}</h3>
-                  <p className="text-sm text-gray-600">{wordClass.description}</p>
+                  <h3 className="text-sm font-bold text-gray-900">{wordClass.swedishName}</h3>
+                  <p className="text-xs text-gray-600">{wordClass.description}</p>
                 </div>
 
                 {/* Dropped words */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {droppedWords[wordClass.name]?.map((word, index) => (
                     <div 
                       key={index}
-                      className="bg-green-100 border border-green-300 rounded-lg p-2 text-center text-green-700 font-medium"
+                      className="bg-green-100 border border-green-300 rounded px-2 py-1 text-center text-green-700 font-medium text-xs"
                       data-testid={`dropped-word-${word.originalIndex}`}
                     >
                       {word.text} ✓
@@ -382,7 +382,7 @@ export default function DragDropGame() {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes flyBack {
           0% { transform: translateX(0) translateY(0); }
           50% { transform: translateX(-100px) translateY(-50px) rotate(-15deg); }

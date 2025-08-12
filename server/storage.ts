@@ -445,6 +445,8 @@ export class MemStorage implements IStorage {
       {
         content: "Jag sprang snabbt till skolan igår.",
         level: 1,
+        wordClassType: null,
+        difficulty: 2,
         words: [
           { text: "Jag", wordClass: "pronoun" },
           { text: "sprang", wordClass: "verb" },
@@ -458,6 +460,8 @@ export class MemStorage implements IStorage {
       {
         content: "Oj, den stora röda bilen kör fort och högt!",
         level: 2,
+        wordClassType: null,
+        difficulty: 3,
         words: [
           { text: "Oj", wordClass: "interjection" },
           { text: ",", isPunctuation: true, wordClass: "punctuation" },
@@ -470,6 +474,242 @@ export class MemStorage implements IStorage {
           { text: "och", wordClass: "conjunction" },
           { text: "högt", wordClass: "adverb" },
           { text: "!", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Additional comprehensive sentences for all word classes and levels
+      // Noun Level 1 - More sentences
+      {
+        content: "Pojken spelar fotboll.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Pojken", wordClass: "noun" },
+          { text: "spelar", wordClass: "verb" },
+          { text: "fotboll", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "Bilen kör på vägen.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Bilen", wordClass: "noun" },
+          { text: "kör", wordClass: "verb" },
+          { text: "på", wordClass: "preposition" },
+          { text: "vägen", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "Flickan har en docka.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Flickan", wordClass: "noun" },
+          { text: "har", wordClass: "verb" },
+          { text: "en", wordClass: "article" },
+          { text: "docka", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Noun Level 2 - More complex
+      {
+        content: "Läraren och eleverna studerar böcker.",
+        level: 2,
+        wordClassType: "noun",
+        difficulty: 2,
+        words: [
+          { text: "Läraren", wordClass: "noun" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "eleverna", wordClass: "noun" },
+          { text: "studerar", wordClass: "verb" },
+          { text: "böcker", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Noun Level 3 - No nouns
+      {
+        content: "Han springer snabbt.",
+        level: 3,
+        wordClassType: "noun",
+        difficulty: 3,
+        words: [
+          { text: "Han", wordClass: "pronoun" },
+          { text: "springer", wordClass: "verb" },
+          { text: "snabbt", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Verb Level 2 - More sentences
+      {
+        content: "Jag läser och skriver hemma.",
+        level: 2,
+        wordClassType: "verb",
+        difficulty: 2,
+        words: [
+          { text: "Jag", wordClass: "pronoun" },
+          { text: "läser", wordClass: "verb" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "skriver", wordClass: "verb" },
+          { text: "hemma", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "Hon cyklar och promenerar dagligen.",
+        level: 2,
+        wordClassType: "verb",
+        difficulty: 2,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "cyklar", wordClass: "verb" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "promenerar", wordClass: "verb" },
+          { text: "dagligen", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Verb Level 3 - No verbs
+      {
+        content: "Den röda boken.",
+        level: 3,
+        wordClassType: "verb",
+        difficulty: 3,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "röda", wordClass: "adjective" },
+          { text: "boken", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Adjective Level 1 - More sentences
+      {
+        content: "Det gula huset är stort.",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "Det", wordClass: "pronoun" },
+          { text: "gula", wordClass: "adjective" },
+          { text: "huset", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "stort", wordClass: "adjective" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "En liten katt är söt.",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "En", wordClass: "article" },
+          { text: "liten", wordClass: "adjective" },
+          { text: "katt", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "söt", wordClass: "adjective" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Adverb Level 3 - No adverbs
+      {
+        content: "Den stora bilen.",
+        level: 3,
+        wordClassType: "adverb",
+        difficulty: 3,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "stora", wordClass: "adjective" },
+          { text: "bilen", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Pronoun Level 3 - No pronouns
+      {
+        content: "Den gröna boken ligger på bordet.",
+        level: 3,
+        wordClassType: "pronoun",
+        difficulty: 3,
+        words: [
+          { text: "Den", wordClass: "article" },
+          { text: "gröna", wordClass: "adjective" },
+          { text: "boken", wordClass: "noun" },
+          { text: "ligger", wordClass: "verb" },
+          { text: "på", wordClass: "preposition" },
+          { text: "bordet", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Preposition Level 3 - No prepositions
+      {
+        content: "Barnen leker glatt.",
+        level: 3,
+        wordClassType: "preposition",
+        difficulty: 3,
+        words: [
+          { text: "Barnen", wordClass: "noun" },
+          { text: "leker", wordClass: "verb" },
+          { text: "glatt", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Conjunction Level 3 - No conjunctions
+      {
+        content: "Den snabba hunden springer.",
+        level: 3,
+        wordClassType: "conjunction",
+        difficulty: 3,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "snabba", wordClass: "adjective" },
+          { text: "hunden", wordClass: "noun" },
+          { text: "springer", wordClass: "verb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Interjection Level 3 - No interjections
+      {
+        content: "Katten sitter på mattan.",
+        level: 3,
+        wordClassType: "interjection",
+        difficulty: 3,
+        words: [
+          { text: "Katten", wordClass: "noun" },
+          { text: "sitter", wordClass: "verb" },
+          { text: "på", wordClass: "preposition" },
+          { text: "mattan", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Numeral Level 3 - No numerals
+      {
+        content: "Den gula blomman är vacker.",
+        level: 3,
+        wordClassType: "numeral",
+        difficulty: 3,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "gula", wordClass: "adjective" },
+          { text: "blomman", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "vacker", wordClass: "adjective" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
     ];
