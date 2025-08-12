@@ -30,14 +30,21 @@ export default function Menu() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b-2 border-primary/10">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg">
+        <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="text-center">
-            <div className="bg-primary text-white p-4 rounded-xl inline-block mb-4">
-              <i className="fas fa-graduation-cap text-3xl"></i>
+            <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl inline-block mb-6">
+              <i className="fas fa-graduation-cap text-4xl"></i>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Ordklasser</h1>
-            <p className="text-xl text-gray-600">Välj vad du vill träna på idag!</p>
+            <h1 className="text-5xl font-bold mb-4">Välkommen till Ordklasser!</h1>
+            <p className="text-xl mb-4">Lär dig svenska grammatik genom roliga spel och övningar</p>
+            <div className="bg-white/10 rounded-xl p-4 max-w-2xl mx-auto">
+              <p className="text-lg">
+                <i className="fas fa-lightbulb mr-2"></i>
+                Klicka på ord i meningar för att hitta rätt ordklass. 
+                Börja med enskilda ordklasser eller testa alla på en gång!
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -53,7 +60,7 @@ export default function Menu() {
             {wordClasses.map((wordClass) => (
               <Link
                 key={wordClass.id}
-                href={`/practice/${wordClass.name}`}
+                href={`/wordclass/${wordClass.name}`}
                 className="group"
                 data-testid={`practice-${wordClass.name}`}
               >

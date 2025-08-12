@@ -47,6 +47,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get sentences by word class and level
+  app.get("/api/sentences/wordclass/:wordClass/level/:level", async (req, res) => {
+    try {
+      const { wordClass } = req.params;
+      const level = parseInt(req.params.level);
+      if (isNaN(level)) {
+        return res.status(400).json({ message: "Invalid level parameter" });
+      }
+      const sentences = await storage.getSentencesByWordClassAndLevel(wordClass, level);
+      res.json(sentences);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch sentences by word class and level" });
+    }
+  });
+
   // Get game progress
   app.get("/api/game-progress", async (req, res) => {
     try {

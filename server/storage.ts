@@ -5,6 +5,7 @@ export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
   getSentences(): Promise<Sentence[]>;
   getSentencesByLevel(level: number): Promise<Sentence[]>;
+  getSentencesByWordClassAndLevel(wordClass: string, level: number): Promise<Sentence[]>;
   getGameProgress(): Promise<GameProgress>;
   updateGameProgress(progress: Partial<GameProgress>): Promise<GameProgress>;
   resetGameProgress(): Promise<GameProgress>;
@@ -26,6 +27,7 @@ export class MemStorage implements IStorage {
       wrongAnswers: 0,
       currentSentenceIndex: 0,
       completedSentences: [],
+      completedLevels: {},
     };
     this.initializeData();
   }
@@ -46,8 +48,133 @@ export class MemStorage implements IStorage {
       this.wordClasses.set(id, { ...data, id });
     });
 
-    // Initialize sentences
+    // Initialize sentences with different difficulty levels
     const sentencesData: Omit<Sentence, 'id'>[] = [
+      // Verb Level 1 - Simple sentences with 3-4 words
+      {
+        content: "Jag springer.",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Jag", wordClass: "pronoun" },
+          { text: "springer", wordClass: "verb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "Hon läser boken.",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 1,
+        words: [
+          { text: "Hon", wordClass: "pronoun" },
+          { text: "läser", wordClass: "verb" },
+          { text: "boken", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      // Verb Level 2 - Medium sentences with multiple verbs
+      {
+        content: "Barnen leker och skrattar.",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 2,
+        words: [
+          { text: "Barnen", wordClass: "noun" },
+          { text: "leker", wordClass: "verb" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "skrattar", wordClass: "verb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      // Verb Level 3 - Complex sentences with no verbs (test case)
+      {
+        content: "En stor grön bok.",
+        level: 1,
+        wordClassType: "verb",
+        difficulty: 3,
+        words: [
+          { text: "En", wordClass: "article" },
+          { text: "stor", wordClass: "adjective" },
+          { text: "grön", wordClass: "adjective" },
+          { text: "bok", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Noun Level 1 - Simple sentences with clear nouns
+      {
+        content: "Katten sover.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Katten", wordClass: "noun" },
+          { text: "sover", wordClass: "verb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      {
+        content: "Boken är blå.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 1,
+        words: [
+          { text: "Boken", wordClass: "noun" },
+          { text: "är", wordClass: "verb" },
+          { text: "blå", wordClass: "adjective" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      // Noun Level 2 - Multiple nouns
+      {
+        content: "Hunden jagar katten genom trädgården.",
+        level: 1,
+        wordClassType: "noun",
+        difficulty: 2,
+        words: [
+          { text: "Hunden", wordClass: "noun" },
+          { text: "jagar", wordClass: "verb" },
+          { text: "katten", wordClass: "noun" },
+          { text: "genom", wordClass: "preposition" },
+          { text: "trädgården", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Adjective Level 1 - Simple adjectives
+      {
+        content: "Den blå himlen.",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "blå", wordClass: "adjective" },
+          { text: "himlen", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      // Adjective Level 2 - Multiple adjectives
+      {
+        content: "En stor, grön och vacker trädgård.",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 2,
+        words: [
+          { text: "En", wordClass: "article" },
+          { text: "stor", wordClass: "adjective" },
+          { text: ",", isPunctuation: true, wordClass: "punctuation" },
+          { text: "grön", wordClass: "adjective" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "vacker", wordClass: "adjective" },
+          { text: "trädgård", wordClass: "noun" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Mixed levels for general practice
       {
         content: "Jag sprang snabbt till skolan igår.",
         level: 1,
@@ -58,62 +185,6 @@ export class MemStorage implements IStorage {
           { text: "till", wordClass: "preposition" },
           { text: "skolan", wordClass: "noun" },
           { text: "igår", wordClass: "adverb" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Den gröna bilen står utanför huset.",
-        level: 1,
-        words: [
-          { text: "Den", wordClass: "pronoun" },
-          { text: "gröna", wordClass: "adjective" },
-          { text: "bilen", wordClass: "noun" },
-          { text: "står", wordClass: "verb" },
-          { text: "utanför", wordClass: "preposition" },
-          { text: "huset", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Hon läser en intressant bok varje kväll.",
-        level: 1,
-        words: [
-          { text: "Hon", wordClass: "pronoun" },
-          { text: "läser", wordClass: "verb" },
-          { text: "en", wordClass: "pronoun" },
-          { text: "intressant", wordClass: "adjective" },
-          { text: "bok", wordClass: "noun" },
-          { text: "varje", wordClass: "adjective" },
-          { text: "kväll", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Barnen leker glatt på den stora gården.",
-        level: 2,
-        words: [
-          { text: "Barnen", wordClass: "noun" },
-          { text: "leker", wordClass: "verb" },
-          { text: "glatt", wordClass: "adverb" },
-          { text: "på", wordClass: "preposition" },
-          { text: "den", wordClass: "pronoun" },
-          { text: "stora", wordClass: "adjective" },
-          { text: "gården", wordClass: "noun" },
-          { text: ".", isPunctuation: true, wordClass: "punctuation" },
-        ],
-      },
-      {
-        content: "Vi åker snabbt med det blå tåget imorgon.",
-        level: 2,
-        words: [
-          { text: "Vi", wordClass: "pronoun" },
-          { text: "åker", wordClass: "verb" },
-          { text: "snabbt", wordClass: "adverb" },
-          { text: "med", wordClass: "preposition" },
-          { text: "det", wordClass: "pronoun" },
-          { text: "blå", wordClass: "adjective" },
-          { text: "tåget", wordClass: "noun" },
-          { text: "imorgon", wordClass: "adverb" },
           { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
@@ -137,6 +208,12 @@ export class MemStorage implements IStorage {
     return Array.from(this.sentences.values()).filter(sentence => sentence.level === level);
   }
 
+  async getSentencesByWordClassAndLevel(wordClass: string, level: number): Promise<Sentence[]> {
+    return Array.from(this.sentences.values()).filter(sentence => 
+      sentence.wordClassType === wordClass && sentence.difficulty === level
+    );
+  }
+
   async getGameProgress(): Promise<GameProgress> {
     return { ...this.gameProgress };
   }
@@ -155,6 +232,7 @@ export class MemStorage implements IStorage {
       wrongAnswers: 0,
       currentSentenceIndex: 0,
       completedSentences: [],
+      completedLevels: {},
     };
     return { ...this.gameProgress };
   }

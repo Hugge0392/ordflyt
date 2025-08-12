@@ -3,30 +3,33 @@ import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type Sentence, type WordClass, type GameProgress } from "@shared/schema";
-import GameHeader from "@/components/ui/game-header";
-import GameInstructions from "@/components/ui/game-instructions";
-import SentenceDisplay from "@/components/ui/sentence-display";
-import GameSidebar from "@/components/ui/game-sidebar";
-import FeedbackDisplay from "@/components/ui/feedback-display";
+import MultipleChoiceSentence from "@/components/ui/multiple-choice-sentence";
 import WordClassGuide from "@/components/ui/word-class-guide";
 
 export default function Practice() {
-  const [match, params] = useRoute("/practice/:wordClass?");
-  const specificWordClass = params?.wordClass;
+  const [matchLevel, paramsLevel] = useRoute("/practice/:wordClass/level/:level");
+  const [matchGeneral, paramsGeneral] = useRoute("/practice/:wordClass?");
+  
+  const specificWordClass = paramsLevel?.wordClass || paramsGeneral?.wordClass;
+  const practiceLevel = paramsLevel?.level ? parseInt(paramsLevel.level) : null;
   
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const [targetWordClass, setTargetWordClass] = useState<string>("");
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error" | null;
-    message: string;
-    actualWordClass?: string;
-  }>({ type: null, message: "" });
-  const [showNextButton, setShowNextButton] = useState(false);
-  const [clickedWords, setClickedWords] = useState<Set<number>>(new Set());
+  const [selectedWords, setSelectedWords] = useState<Set<number>>(new Set());
+  const [feedback, setFeedback] = useState<{ type: 'correct' | 'incorrect'; message: string } | null>(null);
+  const [currentTargetClass, setCurrentTargetClass] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideWordClass, setGuideWordClass] = useState<string | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [correctWords, setCorrectWords] = useState<Set<number>>(new Set());
+  const [incorrectWords, setIncorrectWords] = useState<Set<number>>(new Set());
+  const [hasNoWords, setHasNoWords] = useState(false);
+  const [levelCompleted, setLevelCompleted] = useState(false);
 
-  // Fetch game data
-  const { data: allSentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
-    queryKey: ["/api/sentences"],
+  // Fetch appropriate sentences based on level
+  const { data: sentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
+    queryKey: practiceLevel 
+      ? [`/api/sentences/wordclass/${specificWordClass}/level/${practiceLevel}`]
+      : ["/api/sentences"],
   });
 
   const { data: wordClasses = [], isLoading: wordClassesLoading } = useQuery<WordClass[]>({
@@ -36,13 +39,6 @@ export default function Practice() {
   const { data: gameProgress, isLoading: progressLoading } = useQuery<GameProgress>({
     queryKey: ["/api/game-progress"],
   });
-
-  // Filter sentences based on specific word class if practicing individual class
-  const sentences = specificWordClass 
-    ? allSentences.filter(sentence => 
-        sentence.words.some(word => word.wordClass === specificWordClass && !word.isPunctuation)
-      )
-    : allSentences;
 
   // Update game progress mutation
   const updateProgressMutation = useMutation({
@@ -56,206 +52,352 @@ export default function Practice() {
   });
 
   const currentSentence = sentences[currentSentenceIndex];
-  const currentWordClassData = wordClasses.find(wc => wc.name === targetWordClass);
+  const currentWordClass = wordClasses.find(wc => wc.name === currentTargetClass);
 
-  // Generate target word class for current sentence
+  // Set target word class for the current sentence
   useEffect(() => {
-    if (currentSentence && wordClasses.length > 0) {
-      if (specificWordClass) {
-        // For specific word class practice, always target that class
-        setTargetWordClass(specificWordClass);
-      } else {
-        // For general practice, pick randomly from available classes in sentence
-        const availableWordClasses = Array.from(
-          new Set(
-            currentSentence.words
-              .filter(word => !word.isPunctuation)
-              .map(word => word.wordClass)
-          )
-        );
-        
-        if (availableWordClasses.length > 0) {
-          const randomClass = availableWordClasses[Math.floor(Math.random() * availableWordClasses.length)];
-          setTargetWordClass(randomClass);
-        }
+    if (specificWordClass) {
+      setCurrentTargetClass(specificWordClass);
+    } else if (currentSentence) {
+      // For general practice, pick a random word class from the sentence
+      const availableClasses = [...new Set(
+        currentSentence.words
+          .filter(word => !word.isPunctuation)
+          .map(word => word.wordClass)
+      )];
+      if (availableClasses.length > 0) {
+        setCurrentTargetClass(availableClasses[Math.floor(Math.random() * availableClasses.length)]);
       }
     }
-  }, [currentSentenceIndex, currentSentence, wordClasses, specificWordClass]);
+  }, [currentSentence, specificWordClass]);
 
   const handleWordClick = (wordIndex: number, wordClass: string) => {
-    if (clickedWords.has(wordIndex) || showNextButton) return;
-
-    setClickedWords(prev => new Set(prev).add(wordIndex));
-
-    const isCorrect = wordClass === targetWordClass;
-    const targetWordClassData = wordClasses.find(wc => wc.name === targetWordClass);
-
-    if (isCorrect) {
-      setFeedback({
-        type: "success",
-        message: "Rätt svar!",
-      });
-
-      if (gameProgress) {
-        updateProgressMutation.mutate({
-          score: gameProgress.score + 10,
-          correctAnswers: gameProgress.correctAnswers + 1,
-        });
-      }
+    if (isSubmitted) return;
+    
+    const newSelected = new Set(selectedWords);
+    if (newSelected.has(wordIndex)) {
+      newSelected.delete(wordIndex);
     } else {
-      const actualWordClassData = wordClasses.find(wc => wc.name === wordClass);
-      setFeedback({
-        type: "error",
-        message: "Fel svar",
-        actualWordClass: actualWordClassData?.swedishName || wordClass,
-      });
-
-      if (gameProgress) {
-        updateProgressMutation.mutate({
-          wrongAnswers: gameProgress.wrongAnswers + 1,
-        });
-      }
+      newSelected.add(wordIndex);
     }
-
-    setShowNextButton(true);
+    setSelectedWords(newSelected);
+    setFeedback(null);
   };
 
-  const handleNextQuestion = () => {
-    if (currentSentenceIndex < sentences.length - 1) {
-      setCurrentSentenceIndex(prev => prev + 1);
-      setFeedback({ type: null, message: "" });
-      setShowNextButton(false);
-      setClickedWords(new Set());
+  const handleNoWords = () => {
+    if (isSubmitted) return;
+    setHasNoWords(true);
+    checkAnswer(new Set(), true);
+  };
 
-      if (gameProgress) {
-        updateProgressMutation.mutate({
-          currentSentenceIndex: currentSentenceIndex + 1,
-          completedSentences: [...gameProgress.completedSentences, currentSentence?.id || ""],
+  const handleSubmit = () => {
+    if (isSubmitted) return;
+    checkAnswer(selectedWords, hasNoWords);
+  };
+
+  const checkAnswer = (selected: Set<number>, noWords: boolean) => {
+    if (!currentSentence || !currentTargetClass) return;
+
+    const correctIndices = new Set<number>();
+    const incorrectIndices = new Set<number>();
+
+    // Find all words that match the target class
+    currentSentence.words.forEach((word, index) => {
+      if (!word.isPunctuation && word.wordClass === currentTargetClass) {
+        correctIndices.add(index);
+      }
+    });
+
+    const hasCorrectWords = correctIndices.size > 0;
+    let isCorrect = false;
+
+    if (noWords && !hasCorrectWords) {
+      // Correctly identified that there are no words of this class
+      isCorrect = true;
+      setFeedback({
+        type: 'correct',
+        message: `Rätt! Det finns inga ${currentWordClass?.swedishName || currentTargetClass} i denna mening.`
+      });
+    } else if (noWords && hasCorrectWords) {
+      // Incorrectly said there are no words
+      isCorrect = false;
+      setFeedback({
+        type: 'incorrect',
+        message: `Fel! Det finns ${currentWordClass?.swedishName || currentTargetClass} i denna mening.`
+      });
+    } else {
+      // Check if selected words match correct words
+      const selectedArray = Array.from(selected);
+      const correctArray = Array.from(correctIndices);
+      
+      // Mark incorrect selections
+      selectedArray.forEach(index => {
+        if (!correctIndices.has(index)) {
+          incorrectIndices.add(index);
+        }
+      });
+
+      isCorrect = selectedArray.length === correctArray.length && 
+                 selectedArray.every(index => correctIndices.has(index));
+
+      if (isCorrect) {
+        setFeedback({
+          type: 'correct',
+          message: correctArray.length === 1 
+            ? `Rätt! Du hittade ${currentWordClass?.swedishName || currentTargetClass}.`
+            : `Rätt! Du hittade alla ${correctArray.length} ${currentWordClass?.swedishName || currentTargetClass}.`
+        });
+      } else {
+        setFeedback({
+          type: 'incorrect',
+          message: `Inte riktigt. ${correctArray.length === 1 
+            ? `Det finns ${correctArray.length} ${currentWordClass?.swedishName || currentTargetClass} i meningen.`
+            : `Det finns ${correctArray.length} ${currentWordClass?.swedishName || currentTargetClass} i meningen.`
+          }`
         });
       }
     }
+
+    setIsSubmitted(true);
+    setCorrectWords(correctIndices);
+    setIncorrectWords(incorrectIndices);
+
+    // Update progress
+    if (gameProgress) {
+      updateProgressMutation.mutate({
+        score: gameProgress.score + (isCorrect ? 10 : 0),
+        correctAnswers: gameProgress.correctAnswers + (isCorrect ? 1 : 0),
+        wrongAnswers: gameProgress.wrongAnswers + (isCorrect ? 0 : 1),
+      });
+    }
+  };
+
+  const handleNext = () => {
+    if (currentSentenceIndex >= sentences.length - 1) {
+      // Level completed
+      if (practiceLevel && specificWordClass && gameProgress) {
+        const newCompletedLevels = { ...gameProgress.completedLevels };
+        newCompletedLevels[specificWordClass] = Math.max(
+          newCompletedLevels[specificWordClass] || 0,
+          practiceLevel
+        );
+        
+        updateProgressMutation.mutate({
+          completedLevels: newCompletedLevels
+        });
+        
+        setLevelCompleted(true);
+      }
+      return;
+    }
+
+    // Reset for next sentence
+    setCurrentSentenceIndex(currentSentenceIndex + 1);
+    setSelectedWords(new Set());
+    setFeedback(null);
+    setIsSubmitted(false);
+    setCorrectWords(new Set());
+    setIncorrectWords(new Set());
+    setHasNoWords(false);
+  };
+
+  const openGuide = (wordClass: string) => {
+    setGuideWordClass(wordClass);
+    setShowGuide(true);
   };
 
   if (sentencesLoading || wordClassesLoading || progressLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Laddar spelet...</div>
+        <div className="text-lg">Laddar...</div>
       </div>
     );
   }
 
-  if (!currentSentence) {
+  if (sentences.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col space-y-4">
-        <div className="text-lg text-gray-600">
-          {specificWordClass 
-            ? `Inga meningar tillgängliga för ${specificWordClass}`
-            : "Inga meningar tillgängliga"
-          }
-        </div>
-        <Link href="/">
+        <div className="text-lg text-gray-600">Inga meningar hittades för denna nivå</div>
+        <Link href={practiceLevel ? `/wordclass/${specificWordClass}` : "/"}>
           <button className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90">
-            Tillbaka till meny
+            Tillbaka
           </button>
         </Link>
       </div>
     );
   }
 
-  const progressPercentage = sentences.length > 0 ? (currentSentenceIndex / sentences.length) * 100 : 0;
+  if (levelCompleted) {
+    const nextLevel = practiceLevel ? practiceLevel + 1 : null;
+    const canContinue = nextLevel && nextLevel <= 4;
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-12 text-center max-w-md">
+          <div className="text-6xl mb-6">🎉</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Bra jobbat!</h1>
+          <p className="text-gray-600 mb-8">
+            Du har klarat nivå {practiceLevel} för {currentWordClass?.swedishName || specificWordClass}!
+          </p>
+          
+          <div className="space-y-4">
+            {canContinue ? (
+              <Link href={`/practice/${specificWordClass}/level/${nextLevel}`}>
+                <button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
+                  Fortsätt till Nivå {nextLevel}
+                </button>
+              </Link>
+            ) : nextLevel === 5 ? (
+              <Link href={`/test/${specificWordClass}`}>
+                <button className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
+                  Gör Slutprovet
+                </button>
+              </Link>
+            ) : null}
+            
+            <Link href={`/wordclass/${specificWordClass}`}>
+              <button className="w-full bg-gray-500 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition-colors">
+                Tillbaka till nivåer
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentSentence) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Laddar mening...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
-      <GameHeader 
-        score={gameProgress?.score || 0}
-        level={gameProgress?.level || 1}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b-2 border-primary/10">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href={practiceLevel ? `/wordclass/${specificWordClass}` : "/"}>
+              <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+                <i className="fas fa-arrow-left"></i>
+                <span>Tillbaka</span>
+              </button>
+            </Link>
+            
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {practiceLevel ? `Nivå ${practiceLevel}` : "Fri träning"}
+                {specificWordClass && ` - ${currentWordClass?.swedishName || specificWordClass}`}
+              </h1>
+              <p className="text-gray-600">
+                Mening {currentSentenceIndex + 1} av {sentences.length}
+              </p>
+            </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back to menu button */}
-        <div className="mb-6">
-          <Link href="/">
-            <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
-              <i className="fas fa-arrow-left"></i>
-              <span>Tillbaka till meny</span>
-            </button>
-          </Link>
-        </div>
-
-        {/* Show practice mode info */}
-        {specificWordClass && (
-          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100">
-            <div className="flex items-center space-x-3">
-              <div className="bg-primary/10 text-primary p-3 rounded-lg">
-                <i className="fas fa-target"></i>
+            <div className="text-right">
+              <div className="text-lg font-bold text-primary">
+                Poäng: {gameProgress?.score || 0}
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Tränar: {wordClasses.find(wc => wc.name === specificWordClass)?.swedishName}
-                </h2>
-                <p className="text-gray-600">
-                  Fokusträning på {wordClasses.find(wc => wc.name === specificWordClass)?.description}
-                </p>
+              <div className="text-sm text-gray-600">
+                {gameProgress?.correctAnswers || 0} rätt, {gameProgress?.wrongAnswers || 0} fel
               </div>
             </div>
           </div>
-        )}
+        </div>
+      </header>
 
-        {/* Word class guide */}
-        {currentWordClassData && (
-          <WordClassGuide 
-            wordClass={currentWordClassData}
-            isCorrect={feedback.type === "success"}
-            isWrong={feedback.type === "error"}
-          />
-        )}
+      {/* Main content */}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Instructions */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Hitta alla: {currentWordClass?.swedishName || currentTargetClass}
+              </h2>
+              <p className="text-gray-600">
+                {currentWordClass?.description || "Klicka på orden som tillhör denna ordklass"}
+              </p>
+            </div>
+            
+            <button
+              onClick={() => currentTargetClass && openGuide(currentTargetClass)}
+              className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+            >
+              <i className="fas fa-question-circle mr-2"></i>
+              Hjälp
+            </button>
+          </div>
+        </div>
 
-        <GameInstructions 
-          targetWordClass={currentWordClassData?.swedishName || targetWordClass}
-          targetWordClassDescription={currentWordClassData?.description || ""}
+        {/* Sentence */}
+        <MultipleChoiceSentence
+          sentence={currentSentence}
+          targetWordClass={currentWordClass?.swedishName || currentTargetClass || ""}
+          selectedWords={selectedWords}
+          onWordClick={handleWordClick}
+          showNoWordsButton={!isSubmitted}
+          onNoWords={handleNoWords}
+          isSubmitted={isSubmitted}
+          correctWords={correctWords}
+          incorrectWords={incorrectWords}
         />
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Mening att analysera</h3>
-                <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
-                  <i className="fas fa-clock text-gray-500 text-sm"></i>
-                  <span className="text-sm text-gray-600">
-                    Fråga {currentSentenceIndex + 1} av {sentences.length}
-                  </span>
-                </div>
-              </div>
+        {/* Controls */}
+        <div className="text-center space-y-4">
+          {!isSubmitted && selectedWords.size > 0 && !hasNoWords && (
+            <button
+              onClick={handleSubmit}
+              className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors text-lg"
+              data-testid="submit-button"
+            >
+              <i className="fas fa-check mr-2"></i>
+              Kontrollera svar ({selectedWords.size} vald{selectedWords.size > 1 ? 'a' : ''})
+            </button>
+          )}
 
-              <SentenceDisplay
-                sentence={currentSentence}
-                targetWordClass={targetWordClass}
-                onWordClick={handleWordClick}
-                clickedWords={clickedWords}
-                feedback={feedback}
-                data-testid="sentence-display"
-              />
-
-              <FeedbackDisplay
-                feedback={feedback}
-                onNextQuestion={handleNextQuestion}
-                showNextButton={showNextButton}
-                isLastQuestion={currentSentenceIndex >= sentences.length - 1}
-              />
+          {feedback && (
+            <div className={`p-4 rounded-xl ${
+              feedback.type === 'correct' 
+                ? 'bg-green-100 border border-green-200 text-green-700' 
+                : 'bg-red-100 border border-red-200 text-red-700'
+            }`}>
+              <p className="font-medium">{feedback.message}</p>
             </div>
-          </div>
+          )}
 
-          <GameSidebar
-            currentProgress={currentSentenceIndex + 1}
-            totalQuestions={sentences.length}
-            progressPercentage={progressPercentage}
-            correctAnswers={gameProgress?.correctAnswers || 0}
-            wrongAnswers={gameProgress?.wrongAnswers || 0}
-            wordClasses={wordClasses}
-          />
+          {isSubmitted && (
+            <button
+              onClick={handleNext}
+              className="bg-secondary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary/90 transition-colors text-lg"
+              data-testid="next-button"
+            >
+              {currentSentenceIndex >= sentences.length - 1 ? (
+                <>
+                  <i className="fas fa-flag-checkered mr-2"></i>
+                  Avsluta nivå
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-arrow-right mr-2"></i>
+                  Nästa mening
+                </>
+              )}
+            </button>
+          )}
         </div>
       </main>
+
+      {/* Guide */}
+      {showGuide && guideWordClass && (
+        <WordClassGuide
+          wordClass={guideWordClass}
+          onClose={() => setShowGuide(false)}
+        />
+      )}
     </div>
   );
 }
