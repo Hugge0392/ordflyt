@@ -28,6 +28,7 @@ export class MemStorage implements IStorage {
       currentSentenceIndex: 0,
       completedSentences: [],
       completedLevels: {},
+      correctAnswersByWordClass: {},
     };
     this.initializeData();
   }
@@ -2155,9 +2156,28 @@ export class MemStorage implements IStorage {
   }
 
   async getSentencesByWordClassAndLevel(wordClass: string, level: number): Promise<Sentence[]> {
-    return Array.from(this.sentences.values()).filter(sentence => 
+    let filteredSentences = Array.from(this.sentences.values()).filter(sentence => 
       sentence.wordClassType === wordClass && sentence.difficulty === level
     );
+    
+    // Shuffle the sentences for random order
+    filteredSentences = this.shuffleArray(filteredSentences);
+    
+    // For level 1, limit to 10 questions
+    if (level === 1) {
+      filteredSentences = filteredSentences.slice(0, 10);
+    }
+    
+    return filteredSentences;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   async getGameProgress(): Promise<GameProgress> {
@@ -2179,6 +2199,7 @@ export class MemStorage implements IStorage {
       currentSentenceIndex: 0,
       completedSentences: [],
       completedLevels: {},
+      correctAnswersByWordClass: {},
     };
     return { ...this.gameProgress };
   }

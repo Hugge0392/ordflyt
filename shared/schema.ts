@@ -29,6 +29,7 @@ export const gameProgresses = pgTable("game_progresses", {
   currentSentenceIndex: integer("current_sentence_index").notNull().default(0),
   completedSentences: jsonb("completed_sentences").notNull().$type<string[]>().default([]),
   completedLevels: jsonb("completed_levels").notNull().$type<{[wordClass: string]: number}>().default({}),
+  correctAnswersByWordClass: jsonb("correct_answers_by_word_class").notNull().$type<{[wordClass: string]: number}>().default({}),
 });
 
 export interface Word {

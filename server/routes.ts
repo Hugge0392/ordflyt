@@ -11,6 +11,7 @@ const updateProgressSchema = z.object({
   currentSentenceIndex: z.number().optional(),
   completedSentences: z.array(z.string()).optional(),
   completedLevels: z.record(z.string(), z.number()).optional(),
+  correctAnswersByWordClass: z.record(z.string(), z.number()).optional(),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -103,6 +104,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         for (const [wordClass, newLevel] of Object.entries(validatedData.completedLevels)) {
           const currentLevel = currentProgress.completedLevels?.[wordClass] || 0;
+          const correctAnswers = currentProgress.correctAnswersByWordClass?.[wordClass] || 0;
+          
+          // Special validation for level 1 -> 2: Require 10 correct answers
+          if (currentLevel === 1 && newLevel === 2 && correctAnswers < 10) {
+            console.log(`🎯 DEBUG: Not enough correct answers for level 2 access: ${correctAnswers}/10`);
+            return res.status(400).json({ 
+              message: `Du behöver ${10 - correctAnswers} till korrekta svar på nivå 1 innan du kan gå vidare till nivå 2.`,
+              wordClass,
+              currentLevel,
+              correctAnswers,
+              requiredAnswers: 10
+            });
+          }
           
           // Only allow progression to next level or maintaining current level
           if (newLevel > currentLevel + 1) {

@@ -225,11 +225,17 @@ export default function Practice() {
     setIncorrectWords(incorrectIndices);
 
     // Update progress
-    if (gameProgress) {
+    if (gameProgress && specificWordClass) {
+      const currentWordClassCorrectAnswers = gameProgress.correctAnswersByWordClass?.[specificWordClass] || 0;
+      
       updateProgressMutation.mutate({
         score: gameProgress.score + (isCorrect ? 10 : 0),
         correctAnswers: gameProgress.correctAnswers + (isCorrect ? 1 : 0),
         wrongAnswers: gameProgress.wrongAnswers + (isCorrect ? 0 : 1),
+        correctAnswersByWordClass: {
+          ...gameProgress.correctAnswersByWordClass,
+          [specificWordClass]: currentWordClassCorrectAnswers + (isCorrect ? 1 : 0)
+        }
       });
     }
   };
@@ -415,6 +421,12 @@ export default function Practice() {
               <div className="text-sm text-gray-600">
                 {gameProgress?.correctAnswers || 0} rätt, {gameProgress?.wrongAnswers || 0} fel
               </div>
+              {/* Show progress towards 10 correct answers for level 1 */}
+              {practiceLevel === 1 && specificWordClass && (
+                <div className="text-xs text-blue-600 mt-1">
+                  Framsteg: {gameProgress?.correctAnswersByWordClass?.[specificWordClass] || 0}/10
+                </div>
+              )}
             </div>
           </div>
         </div>
