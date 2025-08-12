@@ -360,33 +360,18 @@ export default function Practice() {
             Du har klarat nivå {practiceLevel} för {currentWordClass?.swedishName || specificWordClass}!
           </p>
           
-          {canContinue && countdown > 0 && (
-            <p className="text-lg text-gray-600 mb-4">
-              Går automatiskt till nästa nivå om <span className="font-bold text-2xl text-green-600">{countdown}</span> sekunder...
-            </p>
+          {countdown > 0 && (
+            <div className="text-center">
+              <p className="text-lg text-gray-600 mb-2">
+                {canContinue ? 'Går automatiskt till nästa nivå om' : 
+                 nextLevel === 5 ? 'Går automatiskt till slutprovet om' : 
+                 'Går automatiskt tillbaka till nivåer om'}
+              </p>
+              <div className="text-6xl font-bold text-green-600 mb-4">
+                {countdown}
+              </div>
+            </div>
           )}
-          
-          <div className="space-y-4">
-            {canContinue ? (
-              <Link href={`/practice/${specificWordClass}/level/${nextLevel}`}>
-                <button className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
-                  Fortsätt till Nivå {nextLevel}
-                </button>
-              </Link>
-            ) : nextLevel === 5 ? (
-              <Link href={`/test/${specificWordClass}`}>
-                <button className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all">
-                  Gör Slutprovet
-                </button>
-              </Link>
-            ) : null}
-            
-            <Link href={`/wordclass/${specificWordClass}`}>
-              <button className="w-full bg-gray-500 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition-colors">
-                Tillbaka till nivåer
-              </button>
-            </Link>
-          </div>
         </div>
       </div>
     );
