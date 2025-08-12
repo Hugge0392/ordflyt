@@ -24,6 +24,7 @@ export default function Practice() {
   const [incorrectWords, setIncorrectWords] = useState<Set<number>>(new Set());
   const [hasNoWords, setHasNoWords] = useState(false);
   const [levelCompleted, setLevelCompleted] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   // Fetch appropriate sentences based on level
   const { data: sentences = [], isLoading: sentencesLoading, error: sentencesError } = useQuery<Sentence[]>({
@@ -318,14 +319,49 @@ export default function Practice() {
     const nextLevel = practiceLevel ? practiceLevel + 1 : null;
     const canContinue = nextLevel && nextLevel <= 4;
     
+    // Auto-navigate to next level with countdown
+    useEffect(() => {
+      if (levelCompleted) {
+        setCountdown(3);
+        
+        const countdownInterval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              if (canContinue) {
+                // Navigate to next level
+                window.location.href = `/practice/${specificWordClass}/level/${nextLevel}`;
+              } else if (nextLevel === 5) {
+                // Navigate to final test
+                window.location.href = `/test/${specificWordClass}`;
+              } else {
+                // Navigate back to level selection
+                window.location.href = `/wordclass/${specificWordClass}`;
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        return () => clearInterval(countdownInterval);
+      }
+    }, [levelCompleted, canContinue, nextLevel, specificWordClass]);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-12 text-center max-w-md">
           <div className="text-6xl mb-6">🎉</div>
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Bra jobbat!</h1>
-          <p className="text-gray-600 mb-8">
+          <p className="text-gray-600 mb-6">
             Du har klarat nivå {practiceLevel} för {currentWordClass?.swedishName || specificWordClass}!
           </p>
+          
+          {canContinue && countdown > 0 && (
+            <p className="text-lg text-gray-600 mb-4">
+              Går automatiskt till nästa nivå om <span className="font-bold text-2xl text-green-600">{countdown}</span> sekunder...
+            </p>
+          )}
           
           <div className="space-y-4">
             {canContinue ? (
