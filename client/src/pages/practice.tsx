@@ -273,6 +273,38 @@ export default function Practice() {
     setShowGuide(true);
   };
 
+  // Auto-navigate to next level with countdown
+  useEffect(() => {
+    if (levelCompleted) {
+      setCountdown(3);
+      
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            const nextLevel = practiceLevel ? practiceLevel + 1 : null;
+            const canContinue = nextLevel && nextLevel <= 4;
+            
+            if (canContinue) {
+              // Navigate to next level
+              window.location.href = `/practice/${specificWordClass}/level/${nextLevel}`;
+            } else if (nextLevel === 5) {
+              // Navigate to final test
+              window.location.href = `/test/${specificWordClass}`;
+            } else {
+              // Navigate back to level selection
+              window.location.href = `/wordclass/${specificWordClass}`;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownInterval);
+    }
+  }, [levelCompleted, practiceLevel, specificWordClass]);
+
   if (sentencesLoading || wordClassesLoading || progressLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -318,35 +350,6 @@ export default function Practice() {
   if (levelCompleted) {
     const nextLevel = practiceLevel ? practiceLevel + 1 : null;
     const canContinue = nextLevel && nextLevel <= 4;
-    
-    // Auto-navigate to next level with countdown
-    useEffect(() => {
-      if (levelCompleted) {
-        setCountdown(3);
-        
-        const countdownInterval = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              if (canContinue) {
-                // Navigate to next level
-                window.location.href = `/practice/${specificWordClass}/level/${nextLevel}`;
-              } else if (nextLevel === 5) {
-                // Navigate to final test
-                window.location.href = `/test/${specificWordClass}`;
-              } else {
-                // Navigate back to level selection
-                window.location.href = `/wordclass/${specificWordClass}`;
-              }
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-
-        return () => clearInterval(countdownInterval);
-      }
-    }, [levelCompleted, canContinue, nextLevel, specificWordClass]);
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
