@@ -1098,23 +1098,60 @@ export class MemStorage implements IStorage {
         level: 3,
         wordClassType: "pronoun",
         difficulty: 3,
-          { text: "grön", wordClass: "adjective" },
-          { text: "och", wordClass: "conjunction" },
-          { text: "vacker", wordClass: "adjective" },
-          { text: "trädgård", wordClass: "noun" },
+        words: [
+          { text: "Vi", wordClass: "pronoun" },
+          { text: "som", wordClass: "pronoun" },
+          { text: "bor", wordClass: "verb" },
+          { text: "här", wordClass: "adverb" },
+          { text: "vet", wordClass: "verb" },
+          { text: "att", wordClass: "conjunction" },
+          { text: "de", wordClass: "pronoun" },
+          { text: "som", wordClass: "pronoun" },
+          { text: "kommer", wordClass: "verb" },
+          { text: "dit", wordClass: "adverb" },
+          { text: "måste", wordClass: "verb" },
+          { text: "ta", wordClass: "verb" },
+          { text: "med", wordClass: "preposition" },
+          { text: "sig", wordClass: "pronoun" },
+          { text: "detta", wordClass: "pronoun" },
           { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
-      // Adjective Level 3 - No adjectives
+      // Adjective Level 3 - Complex adjectives
       {
-        content: "Hunden springer fort.",
-        level: 1,
+        content: "Den gamla, krokiga trädet med sina långa, mörka grenar såg mystiskt ut.",
+        level: 3,
         wordClassType: "adjective",
         difficulty: 3,
         words: [
-          { text: "Hunden", wordClass: "noun" },
-          { text: "springer", wordClass: "verb" },
-          { text: "fort", wordClass: "adverb" },
+          { text: "Den", wordClass: "pronoun" },
+          { text: "gamla", wordClass: "adjective" },
+          { text: ",", isPunctuation: true, wordClass: "punctuation" },
+          { text: "krokiga", wordClass: "adjective" },
+          { text: "trädet", wordClass: "noun" },
+          { text: "med", wordClass: "preposition" },
+          { text: "sina", wordClass: "pronoun" },
+          { text: "långa", wordClass: "adjective" },
+          { text: ",", isPunctuation: true, wordClass: "punctuation" },
+          { text: "mörka", wordClass: "adjective" },
+          { text: "grenar", wordClass: "noun" },
+          { text: "såg", wordClass: "verb" },
+          { text: "mystiskt", wordClass: "adjective" },
+          { text: "ut", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+
+      // Additional Adjective Level 1
+      {
+        content: "Den stora hunden.",
+        level: 1,
+        wordClassType: "adjective",
+        difficulty: 1,
+        words: [
+          { text: "Den", wordClass: "pronoun" },
+          { text: "stora", wordClass: "adjective" },
+          { text: "hunden", wordClass: "noun" },
           { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
@@ -1147,8 +1184,8 @@ export class MemStorage implements IStorage {
       },
       // Adverb Level 2 - Multiple adverbs
       {
-        content: "Barnen leker glatt utomhus igår.",
-        level: 1,
+        content: "Barnen leker glatt utomhus idag.",
+        level: 2,
         wordClassType: "adverb",
         difficulty: 2,
         words: [
@@ -1156,7 +1193,29 @@ export class MemStorage implements IStorage {
           { text: "leker", wordClass: "verb" },
           { text: "glatt", wordClass: "adverb" },
           { text: "utomhus", wordClass: "adverb" },
-          { text: "igår", wordClass: "adverb" },
+          { text: "idag", wordClass: "adverb" },
+          { text: ".", isPunctuation: true, wordClass: "punctuation" },
+        ],
+      },
+      
+      // Adverb Level 3 - Complex adverbs
+      {
+        content: "Flickan dansade graciöst medan pojken sjöng vackert och alla applåderade högt.",
+        level: 3,
+        wordClassType: "adverb",
+        difficulty: 3,
+        words: [
+          { text: "Flickan", wordClass: "noun" },
+          { text: "dansade", wordClass: "verb" },
+          { text: "graciöst", wordClass: "adverb" },
+          { text: "medan", wordClass: "conjunction" },
+          { text: "pojken", wordClass: "noun" },
+          { text: "sjöng", wordClass: "verb" },
+          { text: "vackert", wordClass: "adverb" },
+          { text: "och", wordClass: "conjunction" },
+          { text: "alla", wordClass: "pronoun" },
+          { text: "applåderade", wordClass: "verb" },
+          { text: "högt", wordClass: "adverb" },
           { text: ".", isPunctuation: true, wordClass: "punctuation" },
         ],
       },
@@ -1189,7 +1248,7 @@ export class MemStorage implements IStorage {
       // Pronoun Level 2 - Multiple pronouns
       {
         content: "Vi ser dem när de kommer.",
-        level: 1,
+        level: 2,
         wordClassType: "pronoun",
         difficulty: 2,
         words: [
@@ -1233,7 +1292,7 @@ export class MemStorage implements IStorage {
       // Preposition Level 2 - Multiple prepositions
       {
         content: "Katten hoppar från stolen till sängen.",
-        level: 1,
+        level: 2,
         wordClassType: "preposition",
         difficulty: 2,
         words: [
@@ -1277,7 +1336,7 @@ export class MemStorage implements IStorage {
       // Conjunction Level 2 - Multiple conjunctions
       {
         content: "Vi kan gå eller stanna, men inte både och.",
-        level: 1,
+        level: 2,
         wordClassType: "conjunction",
         difficulty: 2,
         words: [
@@ -1355,7 +1414,7 @@ export class MemStorage implements IStorage {
       // Numeral Level 2 - Multiple numerals
       {
         content: "Det första, andra och tredje priset.",
-        level: 1,
+        level: 2,
         wordClassType: "numeral",
         difficulty: 2,
         words: [
