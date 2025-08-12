@@ -91,12 +91,15 @@ export default function WordClassLevels() {
                 className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl mb-3 mx-auto"
                 style={{ backgroundColor: currentWordClass.color }}
               >
-                {currentWordClass.name === 'verb' && '🏃‍♂️'}
                 {currentWordClass.name === 'noun' && '📚'}
+                {currentWordClass.name === 'verb' && '🏃‍♂️'}
                 {currentWordClass.name === 'adjective' && '🎨'}
                 {currentWordClass.name === 'adverb' && '⚡'}
                 {currentWordClass.name === 'pronoun' && '👥'}
                 {currentWordClass.name === 'preposition' && '📍'}
+                {currentWordClass.name === 'conjunction' && '🔗'}
+                {currentWordClass.name === 'interjection' && '💬'}
+                {currentWordClass.name === 'numeral' && '🔢'}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{currentWordClass.swedishName}</h1>
               <p className="text-gray-600">{currentWordClass.description}</p>

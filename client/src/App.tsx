@@ -8,6 +8,7 @@ import Menu from "@/pages/menu";
 import Practice from "@/pages/practice";
 import Test from "@/pages/test";
 import WordClassLevels from "@/pages/word-class-levels";
+import DragDropGame from "@/pages/drag-drop-game";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/practice/:wordClass/level/:level" component={Practice} />
       <Route path="/practice/:wordClass?" component={Practice} />
       <Route path="/test/:testType" component={Test} />
+      <Route path="/drag-drop" component={DragDropGame} />
       <Route component={NotFound} />
     </Switch>
   );

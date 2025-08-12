@@ -177,10 +177,8 @@ export default function Practice() {
       // Level completed
       if (practiceLevel && specificWordClass && gameProgress) {
         const newCompletedLevels = { ...gameProgress.completedLevels };
-        newCompletedLevels[specificWordClass] = Math.max(
-          newCompletedLevels[specificWordClass] || 0,
-          practiceLevel
-        );
+        const currentLevel = newCompletedLevels[specificWordClass] || 0;
+        newCompletedLevels[specificWordClass] = Math.max(currentLevel, practiceLevel);
         
         updateProgressMutation.mutate({
           completedLevels: newCompletedLevels

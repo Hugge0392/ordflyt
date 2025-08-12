@@ -67,12 +67,15 @@ export default function Menu() {
                 <div className={`bg-gradient-to-r ${getColorForWordClass(wordClass.name)} text-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300`}>
                   <div className="text-center">
                     <div className="text-4xl mb-4">
-                      {wordClass.name === 'verb' && '🏃‍♂️'}
                       {wordClass.name === 'noun' && '📚'}
+                      {wordClass.name === 'verb' && '🏃‍♂️'}
                       {wordClass.name === 'adjective' && '🎨'}
                       {wordClass.name === 'adverb' && '⚡'}
                       {wordClass.name === 'pronoun' && '👥'}
                       {wordClass.name === 'preposition' && '📍'}
+                      {wordClass.name === 'conjunction' && '🔗'}
+                      {wordClass.name === 'interjection' && '💬'}
+                      {wordClass.name === 'numeral' && '🔢'}
                     </div>
                     <h3 className="text-2xl font-bold mb-2">{wordClass.swedishName}</h3>
                     <p className="text-lg opacity-90 mb-4">{wordClass.description}</p>
@@ -156,6 +159,32 @@ export default function Menu() {
                   <li>• Tidstillägg för fel svar</li>
                   <li>• Slutbetyg och ranking</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Dragon Game */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            🐉 Ordklassdraken
+          </h2>
+          
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl shadow-xl p-8">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🐉</div>
+                <h3 className="text-2xl font-bold mb-4">Dra och släpp spel</h3>
+                <p className="text-lg mb-6 opacity-90">
+                  Dra orden till rätt ordklass. Draken spottar tillbaka ord som hamnar fel!
+                </p>
+                
+                <Link href="/drag-drop" data-testid="drag-drop-game">
+                  <button className="bg-white text-purple-600 px-8 py-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all text-lg">
+                    <i className="fas fa-hand-rock mr-2"></i>
+                    Spela med draken
+                  </button>
+                </Link>
               </div>
             </div>
           </div>
