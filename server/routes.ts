@@ -10,6 +10,7 @@ const updateProgressSchema = z.object({
   wrongAnswers: z.number().optional(),
   currentSentenceIndex: z.number().optional(),
   completedSentences: z.array(z.string()).optional(),
+  completedLevels: z.record(z.string(), z.number()).optional(),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -55,9 +56,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(level)) {
         return res.status(400).json({ message: "Invalid level parameter" });
       }
-      const sentences = await storage.getSentencesByWordClassAndLevel(wordClass, level);
-      res.json(sentences);
+      
+      // Add level access validation
+      const gameProgress = await storage.getGameProgress();
+      const completedLevel = gameProgress.completedLevels?.[wordClass] || 0;
+      
+      console.log(`🎯 DEBUG: Requested ${wordClass} level ${level}. Completed level: ${completedLevel}`);
+      
+      // Allow access to level 1 always, or if previous level is completed
+      if (level === 1 || level <= completedLevel + 1) {
+        const sentences = await storage.getSentencesByWordClassAndLevel(wordClass, level);
+        console.log(`🎯 DEBUG: Access granted to level ${level}. Found ${sentences.length} sentences.`);
+        res.json(sentences);
+      } else {
+        console.log(`🎯 DEBUG: Access denied to level ${level}. Must complete level ${level - 1} first.`);
+        res.status(403).json({ 
+          message: `Du måste klara nivå ${level - 1} först innan du kan spela nivå ${level}`,
+          requiredLevel: level - 1,
+          currentLevel: completedLevel
+        });
+      }
     } catch (error) {
+      console.error(`🎯 DEBUG: Error fetching sentences:`, error);
       res.status(500).json({ message: "Failed to fetch sentences by word class and level" });
     }
   });
@@ -76,12 +96,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/game-progress", async (req, res) => {
     try {
       const validatedData = updateProgressSchema.parse(req.body);
+      
+      // Validate completed levels to prevent cheating
+      if (validatedData.completedLevels) {
+        const currentProgress = await storage.getGameProgress();
+        
+        for (const [wordClass, newLevel] of Object.entries(validatedData.completedLevels)) {
+          const currentLevel = currentProgress.completedLevels?.[wordClass] || 0;
+          
+          // Only allow progression to next level or maintaining current level
+          if (newLevel > currentLevel + 1) {
+            console.log(`🎯 DEBUG: Invalid level progression attempt for ${wordClass}: ${currentLevel} -> ${newLevel}`);
+            return res.status(400).json({ 
+              message: `Du kan inte hoppa från nivå ${currentLevel} till nivå ${newLevel}. Du måste klara nivå ${currentLevel + 1} först.`,
+              wordClass,
+              currentLevel,
+              attemptedLevel: newLevel
+            });
+          }
+          
+          console.log(`🎯 DEBUG: Level progression validated for ${wordClass}: ${currentLevel} -> ${newLevel}`);
+        }
+      }
+      
       const progress = await storage.updateGameProgress(validatedData);
+      console.log(`🎯 DEBUG: Progress updated successfully:`, progress.completedLevels);
       res.json(progress);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid progress data", errors: error.errors });
       }
+      console.error(`🎯 DEBUG: Error updating progress:`, error);
       res.status(500).json({ message: "Failed to update game progress" });
     }
   });

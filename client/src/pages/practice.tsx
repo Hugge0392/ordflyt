@@ -26,7 +26,7 @@ export default function Practice() {
   const [levelCompleted, setLevelCompleted] = useState(false);
 
   // Fetch appropriate sentences based on level
-  const { data: sentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
+  const { data: sentences = [], isLoading: sentencesLoading, error: sentencesError } = useQuery<Sentence[]>({
     queryKey: practiceLevel 
       ? [`/api/sentences/wordclass/${specificWordClass}/level/${practiceLevel}`]
       : ["/api/sentences"],
@@ -239,11 +239,18 @@ export default function Practice() {
       if (practiceLevel && specificWordClass && gameProgress) {
         const newCompletedLevels = { ...gameProgress.completedLevels };
         const currentLevel = newCompletedLevels[specificWordClass] || 0;
-        newCompletedLevels[specificWordClass] = Math.max(currentLevel, practiceLevel);
         
-        updateProgressMutation.mutate({
-          completedLevels: newCompletedLevels
-        });
+        // Only update if this level is actually higher than current completed level
+        if (practiceLevel > currentLevel) {
+          newCompletedLevels[specificWordClass] = practiceLevel;
+          console.log(`🎯 DEBUG: Level completed! ${specificWordClass} level ${practiceLevel}. Previous: ${currentLevel}, New: ${practiceLevel}`);
+          
+          updateProgressMutation.mutate({
+            completedLevels: newCompletedLevels
+          });
+        } else {
+          console.log(`🎯 DEBUG: Level ${practiceLevel} already completed for ${specificWordClass} (current: ${currentLevel})`);
+        }
         
         setLevelCompleted(true);
       }
@@ -273,7 +280,28 @@ export default function Practice() {
     );
   }
 
-  if (sentences.length === 0) {
+  // Handle level access errors
+  if (sentencesError) {
+    const errorResponse = (sentencesError as any)?.response;
+    if (errorResponse?.status === 403) {
+      return (
+        <div className="min-h-screen flex items-center justify-center flex-col space-y-4">
+          <div className="text-6xl mb-4">🔒</div>
+          <div className="text-xl font-bold text-gray-800">Nivå låst</div>
+          <div className="text-lg text-gray-600 text-center max-w-md">
+            Du måste klara nivå {(errorResponse.data as any)?.requiredLevel || practiceLevel! - 1} först innan du kan spela nivå {practiceLevel}
+          </div>
+          <Link href={`/wordclass/${specificWordClass}`}>
+            <button className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90">
+              Tillbaka till nivåer
+            </button>
+          </Link>
+        </div>
+      );
+    }
+  }
+
+  if (sentences.length === 0 && !sentencesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col space-y-4">
         <div className="text-lg text-gray-600">Inga meningar hittades för denna nivå</div>
