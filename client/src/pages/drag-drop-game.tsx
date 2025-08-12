@@ -325,7 +325,6 @@ export default function DragDropGame() {
                     {getWordClassIcon(wordClass.name)}
                   </div>
                   <h3 className="text-sm font-bold text-gray-900">{wordClass.swedishName}</h3>
-                  <p className="text-xs text-gray-600">{wordClass.description}</p>
                 </div>
 
                 {/* Dropped words */}
