@@ -257,38 +257,145 @@ export default function Admin() {
       'hatar': 'verb', 'hatade': 'verb', 'hatat': 'verb', 'hata': 'verb', 'gillar': 'verb', 'gillade': 'verb', 'gillat': 'verb', 'gilla': 'verb',
       'tror': 'verb', 'trodde': 'verb', 'trott': 'verb', 'tro': 'verb', 'vet': 'verb', 'visste': 'verb', 'vetat': 'verb', 'veta': 'verb',
       
-      // Prepositioner
+      // Prepositioner (utökad lista)
       'på': 'preposition', 'i': 'preposition', 'till': 'preposition', 'från': 'preposition', 'med': 'preposition', 
-      'av': 'preposition', 'över': 'preposition', 'under': 'preposition', 'mellan': 'preposition',
-      'genom': 'preposition', 'mot': 'preposition', 'hos': 'preposition', 'vid': 'preposition',
-      'efter': 'preposition', 'före': 'preposition', 'bakom': 'preposition', 'framför': 'preposition',
+      'av': 'preposition', 'för': 'preposition', 'utan': 'preposition', 'över': 'preposition', 'under': 'preposition', 
+      'mellan': 'preposition', 'genom': 'preposition', 'mot': 'preposition', 'hos': 'preposition', 'vid': 'preposition',
+      'efter': 'preposition', 'före': 'preposition', 'innan': 'preposition', 'bakom': 'preposition', 'framför': 'preposition',
+      'bredvid': 'preposition', 'utanför': 'preposition', 'inuti': 'preposition', 'omkring': 'preposition', 'runt': 'preposition',
+      'längs': 'preposition', 'uppför': 'preposition', 'nerför': 'preposition', 'utmed': 'preposition', 'enligt': 'preposition',
+      'trots': 'preposition', 'angående': 'preposition', 'beträffande': 'preposition', 'gällande': 'preposition',
       
-      // Konjunktioner
-      'och': 'conjunction', 'eller': 'conjunction', 'men': 'conjunction', 
-      'att': 'conjunction', 'om': 'conjunction', 'när': 'conjunction', 'eftersom': 'conjunction', 'därför': 'conjunction',
+      // Konjunktioner (utökad lista)
+      'och': 'conjunction', 'eller': 'conjunction', 'men': 'conjunction', 'utan': 'conjunction', 'för': 'conjunction',
+      'att': 'conjunction', 'om': 'conjunction', 'när': 'conjunction', 'medan': 'conjunction', 'eftersom': 'conjunction', 
+      'därför': 'conjunction', 'så': 'conjunction', 'fast': 'conjunction', 'fastän': 'conjunction', 'även': 'conjunction',
+      'dock': 'conjunction', 'samt': 'conjunction', 'plus': 'conjunction', 'minus': 'conjunction', 'varken': 'conjunction',
+      'både': 'conjunction', 'antingen': 'conjunction', 'innan': 'conjunction', 'sedan': 'conjunction', 'tills': 'conjunction',
+      'där': 'conjunction', 'som': 'conjunction', 'vilket': 'conjunction', 'vilken': 'conjunction', 'vars': 'conjunction',
       
-      // Adverb
-      'inte': 'adverb', 'aldrig': 'adverb', 'alltid': 'adverb', 'ofta': 'adverb', 'sällan': 'adverb',
-      'här': 'adverb', 'där': 'adverb', 'hem': 'adverb', 'bort': 'adverb', 'upp': 'adverb', 'ner': 'adverb',
-      'snabbt': 'adverb', 'långsamt': 'adverb', 'högt': 'adverb', 'lågt': 'adverb', 'mycket': 'adverb', 'lite': 'adverb',
-      'väldigt': 'adverb', 'ganska': 'adverb', 'riktigt': 'adverb', 'bara': 'adverb', 'endast': 'adverb',
+      // Adverb (kraftigt utökad lista)
+      // Nekation och frekvens
+      'inte': 'adverb', 'ej': 'adverb', 'icke': 'adverb', 'aldrig': 'adverb', 'alltid': 'adverb', 'ofta': 'adverb', 'sällan': 'adverb',
+      'ibland': 'adverb', 'stundom': 'adverb', 'ständigt': 'adverb', 'vanligtvis': 'adverb', 'normalt': 'adverb', 'brukar': 'adverb',
       
-      // Adjektiv (grundform)
-      'stor': 'adjective', 'stort': 'adjective', 'stora': 'adjective', 'liten': 'adjective', 'litet': 'adjective', 'små': 'adjective',
-      'god': 'adjective', 'gott': 'adjective', 'goda': 'adjective', 'dålig': 'adjective', 'dåligt': 'adjective', 'dåliga': 'adjective',
-      'ny': 'adjective', 'nytt': 'adjective', 'nya': 'adjective', 'gammal': 'adjective', 'gammalt': 'adjective', 'gamla': 'adjective',
-      'vacker': 'adjective', 'vackert': 'adjective', 'vackra': 'adjective', 'ful': 'adjective', 'fult': 'adjective', 'fula': 'adjective',
-      'röd': 'adjective', 'rött': 'adjective', 'röda': 'adjective', 'blå': 'adjective', 'blått': 'adjective', 'blåa': 'adjective',
-      'grön': 'adjective', 'grönt': 'adjective', 'gröna': 'adjective', 'gul': 'adjective', 'gult': 'adjective', 'gula': 'adjective',
+      // Plats och riktning
+      'här': 'adverb', 'där': 'adverb', 'var': 'adverb', 'varsomhelst': 'adverb', 'någonstans': 'adverb', 'ingenstans': 'adverb',
+      'överallt': 'adverb', 'hem': 'adverb', 'hemifrån': 'adverb', 'dit': 'adverb', 'därifrån': 'adverb', 'härifrån': 'adverb',
+      'bort': 'adverb', 'fram': 'adverb', 'tillbaka': 'adverb', 'upp': 'adverb', 'ner': 'adverb', 'ned': 'adverb',
+      'in': 'adverb', 'ut': 'adverb', 'inne': 'adverb', 'ute': 'adverb', 'uppe': 'adverb', 'nere': 'adverb',
       
-      // Räkneord
-      'en': 'numeral', 'ett': 'numeral', 'två': 'numeral', 'tre': 'numeral', 'fyra': 'numeral', 'fem': 'numeral',
-      'sex': 'numeral', 'sju': 'numeral', 'åtta': 'numeral', 'nio': 'numeral', 'tio': 'numeral',
-      'första': 'numeral', 'andra': 'numeral', 'tredje': 'numeral', 'fjärde': 'numeral', 'femte': 'numeral',
+      // Tid
+      'nu': 'adverb', 'då': 'adverb', 'igår': 'adverb', 'idag': 'adverb', 'imorgon': 'adverb', 'förut': 'adverb', 'tidigare': 'adverb',
+      'senare': 'adverb', 'snart': 'adverb', 'genast': 'adverb', 'direkt': 'adverb', 'omedelbart': 'adverb', 'strax': 'adverb',
+      'redan': 'adverb', 'ännu': 'adverb', 'fortfarande': 'adverb', 'nyss': 'adverb', 'precis': 'adverb',
       
-      // Interjektioner
-      'oj': 'interjection', 'ah': 'interjection', 'oh': 'interjection', 'hej': 'interjection', 'hejdå': 'interjection',
-      'tack': 'interjection', 'ursäkta': 'interjection', 'förlåt': 'interjection'
+      // Sätt och grad
+      'snabbt': 'adverb', 'långsamt': 'adverb', 'fort': 'adverb', 'sakta': 'adverb', 'tyst': 'adverb', 'högt': 'adverb', 'lågt': 'adverb',
+      'mjukt': 'adverb', 'hårt': 'adverb', 'försiktigt': 'adverb', 'varsamt': 'adverb', 'kraftigt': 'adverb', 'lätt': 'adverb',
+      'mycket': 'adverb', 'lite': 'adverb', 'litet': 'adverb', 'mer': 'adverb', 'mest': 'adverb', 'mindre': 'adverb', 'minst': 'adverb',
+      'väldigt': 'adverb', 'ganska': 'adverb', 'riktigt': 'adverb', 'rätt': 'adverb', 'ziemligt': 'adverb', 'extremt': 'adverb',
+      'helt': 'adverb', 'delvis': 'adverb', 'nästan': 'adverb', 'ungefär': 'adverb', 'cirka': 'adverb', 'omkring': 'adverb',
+      
+      // Begränsning och fokus
+      'bara': 'adverb', 'endast': 'adverb', 'blott': 'adverb', 'just': 'adverb', 'faktiskt': 'adverb', 'verkligen': 'adverb',
+      'naturligtvis': 'adverb', 'självklart': 'adverb', 'givetvis': 'adverb', 'förstås': 'adverb', 'tydligen': 'adverb',
+      'uppenbarligen': 'adverb', 'kanske': 'adverb', 'möjligen': 'adverb', 'troligen': 'adverb', 'säkert': 'adverb',
+      
+      // Adjektiv (kraftigt utökad lista med böjningar)
+      // Storlek
+      'stor': 'adjective', 'stort': 'adjective', 'stora': 'adjective', 'större': 'adjective', 'störst': 'adjective', 'största': 'adjective',
+      'liten': 'adjective', 'litet': 'adjective', 'lilla': 'adjective', 'små': 'adjective', 'mindre': 'adjective', 'minst': 'adjective', 'minsta': 'adjective',
+      'hög': 'adjective', 'högt': 'adjective', 'höga': 'adjective', 'högre': 'adjective', 'högst': 'adjective', 'högsta': 'adjective',
+      'låg': 'adjective', 'lågt': 'adjective', 'låga': 'adjective', 'lägre': 'adjective', 'lägst': 'adjective', 'lägsta': 'adjective',
+      'bred': 'adjective', 'brett': 'adjective', 'breda': 'adjective', 'bredare': 'adjective', 'bredast': 'adjective',
+      'smal': 'adjective', 'smalt': 'adjective', 'smala': 'adjective', 'smalare': 'adjective', 'smalast': 'adjective',
+      'tjock': 'adjective', 'tjockt': 'adjective', 'tjocka': 'adjective', 'tjockare': 'adjective', 'tjockast': 'adjective',
+      'tunn': 'adjective', 'tunt': 'adjective', 'tunna': 'adjective', 'tunnare': 'adjective', 'tunnast': 'adjective',
+      
+      // Kvalitet och värdering
+      'bra': 'adjective', 'god': 'adjective', 'gott': 'adjective', 'goda': 'adjective', 'bättre': 'adjective', 'bäst': 'adjective', 'bästa': 'adjective',
+      'dålig': 'adjective', 'dåligt': 'adjective', 'dåliga': 'adjective', 'sämre': 'adjective', 'sämst': 'adjective', 'sämsta': 'adjective',
+      'fin': 'adjective', 'fint': 'adjective', 'fina': 'adjective', 'finare': 'adjective', 'finast': 'adjective',
+      'ful': 'adjective', 'fult': 'adjective', 'fula': 'adjective', 'fulare': 'adjective', 'fulast': 'adjective',
+      'vacker': 'adjective', 'vackert': 'adjective', 'vackra': 'adjective', 'vackrare': 'adjective', 'vackrast': 'adjective',
+      'rik': 'adjective', 'rikt': 'adjective', 'rika': 'adjective', 'rikare': 'adjective', 'rikast': 'adjective',
+      'fattig': 'adjective', 'fattigt': 'adjective', 'fattiga': 'adjective', 'fattigare': 'adjective', 'fattigast': 'adjective',
+      
+      // Ålder och tid
+      'ny': 'adjective', 'nytt': 'adjective', 'nya': 'adjective', 'nyare': 'adjective', 'nyast': 'adjective',
+      'gammal': 'adjective', 'gammalt': 'adjective', 'gamla': 'adjective', 'äldre': 'adjective', 'äldst': 'adjective', 'äldsta': 'adjective',
+      'ung': 'adjective', 'ungt': 'adjective', 'unga': 'adjective', 'yngre': 'adjective', 'yngst': 'adjective',
+      'färsk': 'adjective', 'färskt': 'adjective', 'färska': 'adjective', 'färskare': 'adjective', 'färskast': 'adjective',
+      
+      // Färger
+      'röd': 'adjective', 'rött': 'adjective', 'röda': 'adjective', 'rödare': 'adjective', 'rödast': 'adjective',
+      'blå': 'adjective', 'blått': 'adjective', 'blåa': 'adjective', 'blåare': 'adjective', 'blåast': 'adjective',
+      'grön': 'adjective', 'grönt': 'adjective', 'gröna': 'adjective', 'grönare': 'adjective', 'grönast': 'adjective',
+      'gul': 'adjective', 'gult': 'adjective', 'gula': 'adjective', 'gulare': 'adjective', 'gulast': 'adjective',
+      'svart': 'adjective', 'svarta': 'adjective', 'svartare': 'adjective', 'svartast': 'adjective',
+      'vit': 'adjective', 'vitt': 'adjective', 'vita': 'adjective', 'vitare': 'adjective', 'vitast': 'adjective',
+      'grå': 'adjective', 'grått': 'adjective', 'grå': 'adjective', 'gråare': 'adjective', 'gråast': 'adjective',
+      'orange': 'adjective', 'lila': 'adjective', 'rosa': 'adjective', 'brun': 'adjective', 'brunt': 'adjective', 'bruna': 'adjective',
+      
+      // Känslor och tillstånd
+      'glad': 'adjective', 'glatt': 'adjective', 'glada': 'adjective', 'gladare': 'adjective', 'gladast': 'adjective',
+      'ledsen': 'adjective', 'ledset': 'adjective', 'ledsna': 'adjective', 'ledsnare': 'adjective', 'ledsnast': 'adjective',
+      'arg': 'adjective', 'argt': 'adjective', 'arga': 'adjective', 'argare': 'adjective', 'argast': 'adjective',
+      'rädd': 'adjective', 'rätt': 'adjective', 'rädda': 'adjective', 'räddare': 'adjective', 'räddast': 'adjective',
+      'trött': 'adjective', 'trötta': 'adjective', 'tröttare': 'adjective', 'tröttast': 'adjective',
+      'pigg': 'adjective', 'piggt': 'adjective', 'pigga': 'adjective', 'piggare': 'adjective', 'piggast': 'adjective',
+      
+      // Fysiska egenskaper
+      'varm': 'adjective', 'varmt': 'adjective', 'varma': 'adjective', 'varmare': 'adjective', 'varmast': 'adjective',
+      'kall': 'adjective', 'kallt': 'adjective', 'kalla': 'adjective', 'kallare': 'adjective', 'kallast': 'adjective',
+      'het': 'adjective', 'hett': 'adjective', 'heta': 'adjective', 'hetare': 'adjective', 'hetast': 'adjective',
+      'sval': 'adjective', 'svalt': 'adjective', 'svala': 'adjective', 'svalare': 'adjective', 'svalast': 'adjective',
+      'mjuk': 'adjective', 'mjukt': 'adjective', 'mjuka': 'adjective', 'mjukare': 'adjective', 'mjukast': 'adjective',
+      'hård': 'adjective', 'hårt': 'adjective', 'hårda': 'adjective', 'hårdare': 'adjective', 'hårdast': 'adjective',
+      'våt': 'adjective', 'vått': 'adjective', 'våta': 'adjective', 'våtare': 'adjective', 'våtast': 'adjective',
+      'torr': 'adjective', 'torrt': 'adjective', 'torra': 'adjective', 'torrare': 'adjective', 'torrast': 'adjective',
+      
+      // Räkneord (utökad lista)
+      // Grundtal
+      'noll': 'numeral', 'en': 'numeral', 'ett': 'numeral', 'två': 'numeral', 'tre': 'numeral', 'fyra': 'numeral', 'fem': 'numeral',
+      'sex': 'numeral', 'sju': 'numeral', 'åtta': 'numeral', 'nio': 'numeral', 'tio': 'numeral', 'elva': 'numeral', 'tolv': 'numeral',
+      'tretton': 'numeral', 'fjorton': 'numeral', 'femton': 'numeral', 'sexton': 'numeral', 'sjutton': 'numeral', 'arton': 'numeral',
+      'nitton': 'numeral', 'tjugo': 'numeral', 'trettio': 'numeral', 'fyrtio': 'numeral', 'femtio': 'numeral',
+      'sextio': 'numeral', 'sjuttio': 'numeral', 'åttio': 'numeral', 'nittio': 'numeral', 'hundra': 'numeral', 'tusen': 'numeral',
+      
+      // Ordningstal
+      'första': 'numeral', 'andra': 'numeral', 'tredje': 'numeral', 'fjärde': 'numeral', 'femte': 'numeral', 'sjätte': 'numeral',
+      'sjunde': 'numeral', 'åttonde': 'numeral', 'nionde': 'numeral', 'tionde': 'numeral', 'elfte': 'numeral', 'tolfte': 'numeral',
+      'sista': 'numeral', 'nästa': 'numeral', 'förra': 'numeral',
+      
+      // Mängdord
+      'många': 'numeral', 'få': 'numeral', 'flera': 'numeral', 'alla': 'numeral', 'inga': 'numeral', 'några': 'numeral',
+      'båda': 'numeral', 'hälften': 'numeral', 'dubbel': 'numeral', 'dubbelt': 'numeral', 'tredubbel': 'numeral',
+      
+      // Interjektioner (utökad lista)
+      // Hälsningar
+      'hej': 'interjection', 'hejdå': 'interjection', 'adjö': 'interjection', 'ha': 'interjection', 'hallå': 'interjection',
+      'tjena': 'interjection', 'tjo': 'interjection', 'tjabba': 'interjection', 'morsning': 'interjection',
+      
+      // Känslor och reaktioner
+      'oj': 'interjection', 'ah': 'interjection', 'åh': 'interjection', 'oh': 'interjection', 'aha': 'interjection',
+      'wow': 'interjection', 'uff': 'interjection', 'puh': 'interjection', 'fyyy': 'interjection', 'usch': 'interjection',
+      'ack': 'interjection', 'aj': 'interjection', 'au': 'interjection', 'ow': 'interjection', 'ouch': 'interjection',
+      
+      // Artighet och kommunikation
+      'tack': 'interjection', 'tackar': 'interjection', 'tusen': 'interjection', 'ursäkta': 'interjection', 'förlåt': 'interjection',
+      'beklagar': 'interjection', 'pardon': 'interjection', 'snälla': 'interjection', 'varsågod': 'interjection',
+      
+      // Uppmuntran och bekräftelse
+      'ja': 'interjection', 'nej': 'interjection', 'jo': 'interjection', 'okej': 'interjection', 'ok': 'interjection',
+      'bra': 'interjection', 'super': 'interjection', 'toppen': 'interjection', 'fantastiskt': 'interjection',
+      'bravo': 'interjection', 'hurra': 'interjection', 'jippi': 'interjection',
+      
+      // Djurläten och ljud
+      'vov': 'interjection', 'miau': 'interjection', 'mu': 'interjection', 'bää': 'interjection', 'oinkoink': 'interjection',
+      'tick': 'interjection', 'tack': 'interjection', 'pang': 'interjection', 'bang': 'interjection', 'bom': 'interjection',
+      'plask': 'interjection', 'plums': 'interjection', 'puff': 'interjection'
     };
 
     const words = content.split(' ').map(text => {
