@@ -21,10 +21,16 @@ interface EditingSentence {
   words: Word[];
 }
 
+interface BulkSentence {
+  content: string;
+  words: Word[];
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isBulkCreating, setIsBulkCreating] = useState(false);
   const [editingData, setEditingData] = useState<EditingSentence>({
     content: "",
     level: 1,
@@ -32,6 +38,13 @@ export default function Admin() {
     difficulty: 1,
     words: []
   });
+  const [bulkData, setBulkData] = useState({
+    sentences: [] as BulkSentence[],
+    level: 1,
+    wordClassType: "noun",
+    difficulty: 1,
+  });
+  const [bulkText, setBulkText] = useState("");
   const [filterWordClass, setFilterWordClass] = useState<string>("all");
   const [filterLevel, setFilterLevel] = useState<string>("all");
 
@@ -57,6 +70,28 @@ export default function Admin() {
     },
     onError: () => {
       toast({ title: "Fel", description: "Kunde inte skapa mening", variant: "destructive" });
+    }
+  });
+
+  // Bulk create sentences mutation
+  const bulkCreateMutation = useMutation({
+    mutationFn: async (sentences: Omit<EditingSentence, 'id'>[]) => {
+      const results = await Promise.all(
+        sentences.map(sentence => 
+          apiRequest("POST", "/api/admin/sentences", sentence).then(r => r.json())
+        )
+      );
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sentences"] });
+      toast({ title: "Framgång", description: `${results.length} meningar skapade!` });
+      setIsBulkCreating(false);
+      setBulkText("");
+      setBulkData(prev => ({ ...prev, sentences: [] }));
+    },
+    onError: () => {
+      toast({ title: "Fel", description: "Kunde inte skapa meningar", variant: "destructive" });
     }
   });
 
@@ -117,35 +152,106 @@ export default function Admin() {
     resetEditingData();
   };
 
-  const parseWordsFromContent = (content: string, wordClassType: string) => {
-    // Simple parsing - split by spaces and assume one word of target class
-    const words = content.split(' ').map(text => ({
-      text,
-      wordClass: text.toLowerCase() === 'och' ? 'conjunction' : 
-                 text.toLowerCase() === 'på' ? 'preposition' :
-                 text.toLowerCase() === 'är' ? 'verb' :
-                 text.toLowerCase() === 'har' ? 'verb' :
-                 text.toLowerCase() === 'ser' ? 'verb' :
-                 text.toLowerCase() === 'ligger' ? 'verb' :
-                 text.toLowerCase() === 'köper' ? 'verb' :
-                 text.toLowerCase() === 'hon' ? 'pronoun' :
-                 text.toLowerCase() === 'han' ? 'pronoun' :
-                 text.toLowerCase() === 'jag' ? 'pronoun' :
-                 text.toLowerCase() === 'vi' ? 'pronoun' :
-                 text.toLowerCase() === 'de' ? 'pronoun' :
-                 text.toLowerCase() === 'snabbt' ? 'adverb' :
-                 text.toLowerCase() === 'högt' ? 'adverb' :
-                 text.toLowerCase() === 'där' ? 'adverb' :
-                 text.toLowerCase() === 'hem' ? 'adverb' :
-                 text.toLowerCase() === 'gott' ? 'adverb' :
-                 text.toLowerCase() === 'stor' ? 'adjective' :
-                 text.toLowerCase() === 'stort' ? 'adjective' :
-                 text.toLowerCase() === 'röd' ? 'adjective' :
-                 text.toLowerCase() === 'snabb' ? 'adjective' :
-                 text.toLowerCase() === 'trasig' ? 'adjective' :
-                 text.toLowerCase() === 'mjuk' ? 'adjective' :
-                 'noun' // Default to noun for most words
+  const startBulkCreating = () => {
+    setIsBulkCreating(true);
+    setBulkText("");
+    setBulkData(prev => ({ ...prev, sentences: [] }));
+  };
+
+  const processBulkText = () => {
+    const lines = bulkText.split('\n').filter(line => line.trim() !== '');
+    const sentences = lines.map(line => ({
+      content: line.trim(),
+      words: parseWordsFromContent(line.trim(), bulkData.wordClassType)
     }));
+    setBulkData(prev => ({ ...prev, sentences }));
+  };
+
+  const updateWordClass = (sentenceIndex: number, wordIndex: number, newWordClass: string) => {
+    if (isBulkCreating) {
+      setBulkData(prev => ({
+        ...prev,
+        sentences: prev.sentences.map((sentence, sIdx) => 
+          sIdx === sentenceIndex 
+            ? {
+                ...sentence,
+                words: sentence.words.map((word, wIdx) => 
+                  wIdx === wordIndex ? { ...word, wordClass: newWordClass } : word
+                )
+              }
+            : sentence
+        )
+      }));
+    } else {
+      setEditingData(prev => ({
+        ...prev,
+        words: prev.words.map((word, wIdx) => 
+          wIdx === wordIndex ? { ...word, wordClass: newWordClass } : word
+        )
+      }));
+    }
+  };
+
+  const parseWordsFromContent = (content: string, wordClassType: string) => {
+    // Enhanced parsing with better Swedish word recognition
+    const commonWords: Record<string, string> = {
+      // Pronomen
+      'jag': 'pronoun', 'du': 'pronoun', 'han': 'pronoun', 'hon': 'pronoun', 'det': 'pronoun', 'den': 'pronoun',
+      'vi': 'pronoun', 'ni': 'pronoun', 'de': 'pronoun', 'dem': 'pronoun', 'denna': 'pronoun', 'detta': 'pronoun',
+      'min': 'pronoun', 'mitt': 'pronoun', 'mina': 'pronoun', 'din': 'pronoun', 'ditt': 'pronoun', 'dina': 'pronoun',
+      'sin': 'pronoun', 'sitt': 'pronoun', 'sina': 'pronoun', 'vår': 'pronoun', 'vårt': 'pronoun', 'våra': 'pronoun',
+      'er': 'pronoun', 'ert': 'pronoun', 'era': 'pronoun', 'deras': 'pronoun',
+      
+      // Verb (vanliga)
+      'är': 'verb', 'var': 'verb', 'blir': 'verb', 'blev': 'verb', 'har': 'verb', 'hade': 'verb', 'kommer': 'verb', 'kom': 'verb',
+      'går': 'verb', 'gick': 'verb', 'ser': 'verb', 'såg': 'verb', 'hör': 'verb', 'hörde': 'verb', 'säger': 'verb', 'sa': 'verb',
+      'gör': 'verb', 'gjorde': 'verb', 'tar': 'verb', 'tog': 'verb', 'ger': 'verb', 'gav': 'verb', 'får': 'verb', 'fick': 'verb',
+      'vill': 'verb', 'ville': 'verb', 'kan': 'verb', 'kunde': 'verb', 'ska': 'verb', 'skulle': 'verb', 'måste': 'verb',
+      'bor': 'verb', 'bodde': 'verb', 'arbetar': 'verb', 'arbetade': 'verb', 'studerar': 'verb', 'studerade': 'verb',
+      'äter': 'verb', 'åt': 'verb', 'dricker': 'verb', 'drack': 'verb', 'sover': 'verb', 'sov': 'verb',
+      'springer': 'verb', 'sprang': 'verb', 'hoppar': 'verb', 'hoppade': 'verb', 'läser': 'verb', 'läste': 'verb',
+      
+      // Prepositioner
+      'på': 'preposition', 'i': 'preposition', 'till': 'preposition', 'från': 'preposition', 'med': 'preposition', 
+      'av': 'preposition', 'över': 'preposition', 'under': 'preposition', 'mellan': 'preposition',
+      'genom': 'preposition', 'mot': 'preposition', 'hos': 'preposition', 'vid': 'preposition',
+      'efter': 'preposition', 'före': 'preposition', 'bakom': 'preposition', 'framför': 'preposition',
+      
+      // Konjunktioner
+      'och': 'conjunction', 'eller': 'conjunction', 'men': 'conjunction', 
+      'att': 'conjunction', 'om': 'conjunction', 'när': 'conjunction', 'eftersom': 'conjunction', 'därför': 'conjunction',
+      
+      // Adverb
+      'inte': 'adverb', 'aldrig': 'adverb', 'alltid': 'adverb', 'ofta': 'adverb', 'sällan': 'adverb',
+      'här': 'adverb', 'där': 'adverb', 'hem': 'adverb', 'bort': 'adverb', 'upp': 'adverb', 'ner': 'adverb',
+      'snabbt': 'adverb', 'långsamt': 'adverb', 'högt': 'adverb', 'lågt': 'adverb', 'mycket': 'adverb', 'lite': 'adverb',
+      'väldigt': 'adverb', 'ganska': 'adverb', 'riktigt': 'adverb', 'bara': 'adverb', 'endast': 'adverb',
+      
+      // Adjektiv (grundform)
+      'stor': 'adjective', 'stort': 'adjective', 'stora': 'adjective', 'liten': 'adjective', 'litet': 'adjective', 'små': 'adjective',
+      'god': 'adjective', 'gott': 'adjective', 'goda': 'adjective', 'dålig': 'adjective', 'dåligt': 'adjective', 'dåliga': 'adjective',
+      'ny': 'adjective', 'nytt': 'adjective', 'nya': 'adjective', 'gammal': 'adjective', 'gammalt': 'adjective', 'gamla': 'adjective',
+      'vacker': 'adjective', 'vackert': 'adjective', 'vackra': 'adjective', 'ful': 'adjective', 'fult': 'adjective', 'fula': 'adjective',
+      'röd': 'adjective', 'rött': 'adjective', 'röda': 'adjective', 'blå': 'adjective', 'blått': 'adjective', 'blåa': 'adjective',
+      'grön': 'adjective', 'grönt': 'adjective', 'gröna': 'adjective', 'gul': 'adjective', 'gult': 'adjective', 'gula': 'adjective',
+      
+      // Räkneord
+      'en': 'numeral', 'ett': 'numeral', 'två': 'numeral', 'tre': 'numeral', 'fyra': 'numeral', 'fem': 'numeral',
+      'sex': 'numeral', 'sju': 'numeral', 'åtta': 'numeral', 'nio': 'numeral', 'tio': 'numeral',
+      'första': 'numeral', 'andra': 'numeral', 'tredje': 'numeral', 'fjärde': 'numeral', 'femte': 'numeral',
+      
+      // Interjektioner
+      'oj': 'interjection', 'ah': 'interjection', 'oh': 'interjection', 'hej': 'interjection', 'hejdå': 'interjection',
+      'tack': 'interjection', 'ursäkta': 'interjection', 'förlåt': 'interjection'
+    };
+
+    const words = content.split(' ').map(text => {
+      const cleanText = text.toLowerCase().replace(/[.,!?;:]/g, '');
+      return {
+        text,
+        wordClass: commonWords[cleanText] || 'noun' // Default to noun
+      };
+    });
 
     return words;
   };
@@ -164,6 +270,17 @@ export default function Admin() {
     } else if (editingId) {
       updateSentenceMutation.mutate({ id: editingId, sentence: editingData });
     }
+  };
+
+  const handleBulkSave = () => {
+    const sentences = bulkData.sentences.map(sentence => ({
+      content: sentence.content,
+      words: sentence.words,
+      level: bulkData.level,
+      wordClassType: bulkData.wordClassType,
+      difficulty: bulkData.difficulty
+    }));
+    bulkCreateMutation.mutate(sentences);
   };
 
   const filteredSentences = sentences.filter(sentence => {
@@ -206,10 +323,16 @@ export default function Admin() {
             
             <h1 className="text-3xl font-bold text-gray-900">Adminpanel</h1>
             
-            <Button onClick={startCreating} className="bg-green-600 hover:bg-green-700">
-              <i className="fas fa-plus mr-2"></i>
-              Ny mening
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={startCreating} className="bg-green-600 hover:bg-green-700">
+                <i className="fas fa-plus mr-2"></i>
+                Ny mening
+              </Button>
+              <Button onClick={startBulkCreating} className="bg-blue-600 hover:bg-blue-700">
+                <i className="fas fa-list mr-2"></i>
+                Flera meningar
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -426,16 +549,29 @@ export default function Admin() {
             </div>
             
             <div>
-              <Label>Förhandsvisning av ord</Label>
-              <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-gray-50 min-h-[50px]">
+              <Label>Ordklasser för varje ord</Label>
+              <div className="grid gap-2 p-3 border rounded-lg bg-gray-50 max-h-40 overflow-y-auto">
                 {editingData.words.map((word, index) => (
-                  <Badge key={index} variant="outline">
-                    {word.text} ({word.wordClass})
-                  </Badge>
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="min-w-[100px] font-medium">{word.text}</span>
+                    <Select 
+                      value={word.wordClass} 
+                      onValueChange={(value) => updateWordClass(-1, index, value)}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {wordClasses.map(wc => (
+                          <SelectItem key={wc.name} value={wc.name}>{wc.swedishName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 ))}
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                Ord parsas automatiskt när du skriver meningen. Kontrollera att ordklasserna stämmer.
+                Ord parsas automatiskt, men du kan ändra ordklasserna manuellt ovan.
               </p>
             </div>
           </div>
@@ -456,6 +592,160 @@ export default function Admin() {
               disabled={!editingData.content || createSentenceMutation.isPending || updateSentenceMutation.isPending}
             >
               {isCreating ? "Skapa" : "Spara"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Create Dialog */}
+      <Dialog open={isBulkCreating} onOpenChange={(open) => {
+        if (!open) {
+          setIsBulkCreating(false);
+          setBulkText("");
+          setBulkData(prev => ({ ...prev, sentences: [] }));
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Skapa flera meningar samtidigt</DialogTitle>
+            <DialogDescription>
+              Skriv en mening per rad. Du kan sedan redigera ordklasserna för varje ord.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            {/* Global settings */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="bulkWordClassType">Ordklass</Label>
+                <Select 
+                  value={bulkData.wordClassType} 
+                  onValueChange={(value) => setBulkData(prev => ({ ...prev, wordClassType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wordClasses.map(wc => (
+                      <SelectItem key={wc.name} value={wc.name}>{wc.swedishName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="bulkLevel">Nivå</Label>
+                <Select 
+                  value={bulkData.level.toString()} 
+                  onValueChange={(value) => setBulkData(prev => ({ ...prev, level: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Nivå 1</SelectItem>
+                    <SelectItem value="2">Nivå 2</SelectItem>
+                    <SelectItem value="3">Nivå 3</SelectItem>
+                    <SelectItem value="4">Nivå 4</SelectItem>
+                    <SelectItem value="5">Nivå 5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="bulkDifficulty">Svårighet</Label>
+                <Select 
+                  value={bulkData.difficulty.toString()} 
+                  onValueChange={(value) => setBulkData(prev => ({ ...prev, difficulty: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Text input */}
+            <div>
+              <Label htmlFor="bulkText">Meningar (en per rad)</Label>
+              <Textarea
+                id="bulkText"
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder="Skriv en mening per rad här..."
+                className="min-h-[120px]"
+              />
+              <div className="flex gap-2 mt-2">
+                <Button onClick={processBulkText} variant="outline" size="sm">
+                  <i className="fas fa-cogs mr-2"></i>
+                  Parsa meningar
+                </Button>
+                <span className="text-sm text-gray-500 self-center">
+                  {bulkText.split('\n').filter(line => line.trim() !== '').length} meningar
+                </span>
+              </div>
+            </div>
+
+            {/* Parsed sentences with editable word classes */}
+            {bulkData.sentences.length > 0 && (
+              <div>
+                <Label>Ordklasser per mening</Label>
+                <div className="space-y-4 max-h-60 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                  {bulkData.sentences.map((sentence, sentenceIndex) => (
+                    <div key={sentenceIndex} className="bg-white p-3 rounded border">
+                      <div className="font-medium text-sm mb-2 text-gray-700">
+                        {sentenceIndex + 1}. {sentence.content}
+                      </div>
+                      <div className="grid gap-2">
+                        {sentence.words.map((word, wordIndex) => (
+                          <div key={wordIndex} className="flex items-center gap-2">
+                            <span className="min-w-[80px] text-sm">{word.text}</span>
+                            <Select 
+                              value={word.wordClass} 
+                              onValueChange={(value) => updateWordClass(sentenceIndex, wordIndex, value)}
+                            >
+                              <SelectTrigger className="w-40 h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {wordClasses.map(wc => (
+                                  <SelectItem key={wc.name} value={wc.name}>{wc.swedishName}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setIsBulkCreating(false);
+                setBulkText("");
+                setBulkData(prev => ({ ...prev, sentences: [] }));
+              }}
+              variant="outline"
+            >
+              Avbryt
+            </Button>
+            <Button 
+              onClick={handleBulkSave}
+              disabled={bulkData.sentences.length === 0 || bulkCreateMutation.isPending}
+            >
+              Skapa {bulkData.sentences.length} meningar
             </Button>
           </DialogFooter>
         </DialogContent>
