@@ -83,22 +83,40 @@ export default function Admin() {
   // Bulk create sentences mutation
   const bulkCreateMutation = useMutation({
     mutationFn: async (sentences: Omit<EditingSentence, 'id'>[]) => {
+      // Check for existing sentences to prevent duplicates
+      const existingSentences = await apiRequest("GET", "/api/admin/sentences").then(r => r.json());
+      const existingContents = new Set(existingSentences.map((s: Sentence) => s.content.toLowerCase()));
+      
+      // Filter out sentences that already exist
+      const newSentences = sentences.filter(sentence => 
+        !existingContents.has(sentence.content.toLowerCase())
+      );
+      
+      if (newSentences.length === 0) {
+        throw new Error("Alla meningar finns redan i databasen");
+      }
+      
       const results = await Promise.all(
-        sentences.map(sentence => 
+        newSentences.map(sentence => 
           apiRequest("POST", "/api/admin/sentences", sentence).then(r => r.json())
         )
       );
-      return results;
+      return { created: results, skipped: sentences.length - newSentences.length };
     },
     onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/sentences"] });
-      toast({ title: "Framgång", description: `${results.length} meningar skapade!` });
+      const message = results.skipped > 0 
+        ? `${results.created.length} nya meningar skapade! ${results.skipped} dubbletter hoppades över.`
+        : `${results.created.length} meningar skapade!`;
+      toast({ title: "Framgång", description: message });
       setIsBulkCreating(false);
       setBulkText("");
+      setQuickCodeText("");
       setBulkData(prev => ({ ...prev, sentences: [] }));
     },
-    onError: () => {
-      toast({ title: "Fel", description: "Kunde inte skapa meningar", variant: "destructive" });
+    onError: (error: any) => {
+      const message = error.message || "Kunde inte skapa meningar";
+      toast({ title: "Fel", description: message, variant: "destructive" });
     }
   });
 
@@ -578,6 +596,27 @@ export default function Admin() {
               <Button onClick={startBulkCreating} className="bg-blue-600 hover:bg-blue-700">
                 <i className="fas fa-list mr-2"></i>
                 Flera meningar
+              </Button>
+              <Button 
+                onClick={() => {
+                  const duplicateCount = sentences.filter((s, i, arr) => 
+                    arr.findIndex(other => other.content.toLowerCase() === s.content.toLowerCase() && other.wordClassType === s.wordClassType) !== i
+                  ).length;
+                  if (duplicateCount > 0) {
+                    toast({ 
+                      title: "Dubbletter hittade", 
+                      description: `${duplicateCount} dubbletter identifierade. Kontrollera databasen manuellt.`,
+                      variant: "destructive" 
+                    });
+                  } else {
+                    toast({ title: "Inga dubbletter", description: "Inga dubbletter hittades!" });
+                  }
+                }}
+                variant="outline" 
+                className="bg-orange-50 hover:bg-orange-100 border-orange-200"
+              >
+                <i className="fas fa-search mr-2"></i>
+                Sök dubbletter
               </Button>
             </div>
           </div>

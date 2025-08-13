@@ -2,6 +2,11 @@
 
 This is a comprehensive Swedish grammar learning game application that teaches word classes (ordklasser) through interactive sentence exercises. The application features a complete educational system with multiple game modes: individual word class practice, timed tests with scoring algorithms, and a comprehensive exam covering all word classes. Students can click on words in sentences to identify their grammatical categories (verb, noun, adjective, etc.), receive guidance from an animated character, and track their progress through various difficulty levels. The application is built as a full-stack web application with a React frontend and Express backend.
 
+## Recent Issues Resolved (August 2025)
+- **Database Query Bug**: Fixed critical issue where Drizzle-ORM queries returned wrong word class sentences due to incorrect `.where()` chaining, resolved by using `and()` operator
+- **Duplicate Sentence Prevention**: Enhanced bulk creation functionality with duplicate detection and prevention to avoid unintended sentence multiplication
+- **Admin Duplicate Detection**: Added "Sök dubbletter" button in admin panel for manual duplicate identification
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
