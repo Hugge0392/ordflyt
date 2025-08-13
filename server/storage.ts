@@ -1,5 +1,8 @@
-import { type WordClass, type Sentence, type GameProgress, type Word } from "@shared/schema";
+import { type WordClass, type Sentence, type GameProgress, type Word, type InsertSentence, type InsertWordClass, type InsertGameProgress } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { wordClasses, sentences, gameProgresses } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -9,6 +12,12 @@ export interface IStorage {
   getGameProgress(): Promise<GameProgress>;
   updateGameProgress(progress: Partial<GameProgress>): Promise<GameProgress>;
   resetGameProgress(): Promise<GameProgress>;
+  
+  // Admin methods
+  createSentence(sentence: InsertSentence): Promise<Sentence>;
+  updateSentence(id: string, sentence: Partial<InsertSentence>): Promise<Sentence>;
+  deleteSentence(id: string): Promise<void>;
+  getSentenceById(id: string): Promise<Sentence | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -2205,4 +2214,113 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// New DatabaseStorage implementation
+export class DatabaseStorage implements IStorage {
+  async getWordClasses(): Promise<WordClass[]> {
+    const result = await db.select().from(wordClasses);
+    return result;
+  }
+
+  async getSentences(): Promise<Sentence[]> {
+    const result = await db.select().from(sentences);
+    return result;
+  }
+
+  async getSentencesByLevel(level: number): Promise<Sentence[]> {
+    const result = await db.select().from(sentences).where(eq(sentences.level, level));
+    return result;
+  }
+
+  async getSentencesByWordClassAndLevel(wordClass: string, level: number): Promise<Sentence[]> {
+    let result = await db.select().from(sentences)
+      .where(eq(sentences.wordClassType, wordClass))
+      .where(eq(sentences.difficulty, level));
+    
+    // Shuffle the sentences for random order
+    result = this.shuffleArray(result);
+    
+    // For level 1, limit to 10 questions
+    if (level === 1) {
+      result = result.slice(0, 10);
+    }
+    
+    return result;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  async getGameProgress(): Promise<GameProgress> {
+    const result = await db.select().from(gameProgresses).limit(1);
+    if (result.length === 0) {
+      // Create initial progress
+      const newProgress = await db.insert(gameProgresses).values({
+        score: 0,
+        level: 1,
+        correctAnswers: 0,
+        wrongAnswers: 0,
+        currentSentenceIndex: 0,
+        completedSentences: [],
+        completedLevels: {},
+        correctAnswersByWordClass: {},
+      }).returning();
+      return newProgress[0];
+    }
+    return result[0];
+  }
+
+  async updateGameProgress(progress: Partial<GameProgress>): Promise<GameProgress> {
+    const current = await this.getGameProgress();
+    const updated = await db.update(gameProgresses)
+      .set(progress)
+      .where(eq(gameProgresses.id, current.id))
+      .returning();
+    return updated[0];
+  }
+
+  async resetGameProgress(): Promise<GameProgress> {
+    await db.delete(gameProgresses);
+    const newProgress = await db.insert(gameProgresses).values({
+      score: 0,
+      level: 1,
+      correctAnswers: 0,
+      wrongAnswers: 0,
+      currentSentenceIndex: 0,
+      completedSentences: [],
+      completedLevels: {},
+      correctAnswersByWordClass: {},
+    }).returning();
+    return newProgress[0];
+  }
+
+  // Admin methods
+  async createSentence(sentence: InsertSentence): Promise<Sentence> {
+    const result = await db.insert(sentences).values(sentence).returning();
+    return result[0];
+  }
+
+  async updateSentence(id: string, sentence: Partial<InsertSentence>): Promise<Sentence> {
+    const result = await db.update(sentences)
+      .set(sentence)
+      .where(eq(sentences.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteSentence(id: string): Promise<void> {
+    await db.delete(sentences).where(eq(sentences.id, id));
+  }
+
+  async getSentenceById(id: string): Promise<Sentence | undefined> {
+    const result = await db.select().from(sentences).where(eq(sentences.id, id));
+    return result[0];
+  }
+}
+
+export const storage = new DatabaseStorage();

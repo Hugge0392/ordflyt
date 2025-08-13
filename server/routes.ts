@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import { insertSentenceSchema } from "@shared/schema";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -152,6 +153,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(progress);
     } catch (error) {
       res.status(500).json({ message: "Failed to reset game progress" });
+    }
+  });
+
+  // ===== ADMIN ENDPOINTS =====
+  
+  // Get all sentences for admin
+  app.get("/api/admin/sentences", async (req, res) => {
+    try {
+      const sentences = await storage.getSentences();
+      res.json(sentences);
+    } catch (error) {
+      console.error("Error fetching admin sentences:", error);
+      res.status(500).json({ message: "Failed to fetch sentences" });
+    }
+  });
+
+  // Get single sentence for editing
+  app.get("/api/admin/sentences/:id", async (req, res) => {
+    try {
+      const sentence = await storage.getSentenceById(req.params.id);
+      if (!sentence) {
+        return res.status(404).json({ message: "Sentence not found" });
+      }
+      res.json(sentence);
+    } catch (error) {
+      console.error("Error fetching sentence:", error);
+      res.status(500).json({ message: "Failed to fetch sentence" });
+    }
+  });
+
+  // Create new sentence
+  app.post("/api/admin/sentences", async (req, res) => {
+    try {
+      const validatedData = insertSentenceSchema.parse(req.body);
+      const sentence = await storage.createSentence(validatedData);
+      res.status(201).json(sentence);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sentence data", errors: error.errors });
+      }
+      console.error("Error creating sentence:", error);
+      res.status(500).json({ message: "Failed to create sentence" });
+    }
+  });
+
+  // Update sentence
+  app.put("/api/admin/sentences/:id", async (req, res) => {
+    try {
+      const validatedData = insertSentenceSchema.partial().parse(req.body);
+      const sentence = await storage.updateSentence(req.params.id, validatedData);
+      res.json(sentence);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sentence data", errors: error.errors });
+      }
+      console.error("Error updating sentence:", error);
+      res.status(500).json({ message: "Failed to update sentence" });
+    }
+  });
+
+  // Delete sentence
+  app.delete("/api/admin/sentences/:id", async (req, res) => {
+    try {
+      await storage.deleteSentence(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting sentence:", error);
+      res.status(500).json({ message: "Failed to delete sentence" });
     }
   });
 
