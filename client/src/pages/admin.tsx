@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { type Sentence, type WordClass, type Word } from "@shared/schema";
+import { type Sentence, type WordClass, type Word, type ErrorReport } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +54,10 @@ export default function Admin() {
 
   const { data: wordClasses = [] } = useQuery<WordClass[]>({
     queryKey: ["/api/word-classes"],
+  });
+
+  const { data: errorReports = [], isLoading: errorReportsLoading } = useQuery<ErrorReport[]>({
+    queryKey: ["/api/admin/error-reports"],
   });
 
   // Create sentence mutation
@@ -123,6 +127,34 @@ export default function Admin() {
     },
     onError: () => {
       toast({ title: "Fel", description: "Kunde inte ta bort mening", variant: "destructive" });
+    }
+  });
+
+  // Error report mutations
+  const updateErrorReportMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: Partial<ErrorReport> }) => {
+      const response = await apiRequest("PATCH", `/api/admin/error-reports/${id}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-reports"] });
+      toast({ title: "Framgång", description: "Felrapport uppdaterad!" });
+    },
+    onError: () => {
+      toast({ title: "Fel", description: "Kunde inte uppdatera felrapport", variant: "destructive" });
+    }
+  });
+
+  const deleteErrorReportMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/error-reports/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/error-reports"] });
+      toast({ title: "Framgång", description: "Felrapport borttagen!" });
+    },
+    onError: () => {
+      toast({ title: "Fel", description: "Kunde inte ta bort felrapport", variant: "destructive" });
     }
   });
 
@@ -530,7 +562,7 @@ export default function Admin() {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Totalt antal meningar</CardTitle>
@@ -555,7 +587,92 @@ export default function Admin() {
               <div className="text-3xl font-bold text-accent">{filteredSentences.length}</div>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Felrapporter</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-600">{errorReports.length}</div>
+              <div className="text-sm text-gray-500">
+                {errorReports.filter(r => r.status === 'pending').length} väntande
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Error Reports Section */}
+        {errorReports.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Felrapporter</CardTitle>
+              <CardDescription>Rapporter från spelare om problem i spelet</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {errorReports.map((report) => (
+                  <div key={report.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant={report.status === 'pending' ? 'default' : 
+                                         report.status === 'resolved' ? 'secondary' : 'destructive'}>
+                            {report.status === 'pending' ? 'Väntande' :
+                             report.status === 'resolved' ? 'Löst' : 'Under granskning'}
+                          </Badge>
+                          <span className="text-sm text-gray-500">
+                            {report.reportType === 'wrong_word_class' ? 'Fel ordklass' :
+                             report.reportType === 'missing_word' ? 'Saknat ord' :
+                             report.reportType === 'spelling_error' ? 'Stavfel' : 'Annat'}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(report.createdAt).toLocaleDateString('sv-SE')}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium mb-1">
+                          Mening: "{report.sentenceText}"
+                        </div>
+                        {report.reportedWord && (
+                          <div className="text-sm text-blue-600 mb-1">
+                            Rapporterat ord: "{report.reportedWord}"
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-700 mb-2">
+                          {report.description}
+                        </div>
+                        {report.playerEmail && (
+                          <div className="text-xs text-gray-500">
+                            Kontakt: {report.playerEmail}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        {report.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateErrorReportMutation.mutate({
+                              id: report.id,
+                              updates: { status: 'resolved' }
+                            })}
+                          >
+                            Markera löst
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteErrorReportMutation.mutate(report.id)}
+                        >
+                          Ta bort
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sentences grouped by word class and level */}
         <div className="space-y-8">

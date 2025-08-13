@@ -8,6 +8,7 @@ import GameInstructions from "@/components/ui/game-instructions";
 import SentenceDisplay from "@/components/ui/sentence-display";
 import GameSidebar from "@/components/ui/game-sidebar";
 import FeedbackDisplay from "@/components/ui/feedback-display";
+import ErrorReportModal from "@/components/ui/error-report-modal";
 
 export default function Game() {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
@@ -168,11 +169,14 @@ export default function Game() {
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">Mening att analysera</h3>
-                <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
-                  <i className="fas fa-clock text-gray-500 text-sm"></i>
-                  <span className="text-sm text-gray-600">
-                    Fråga {currentSentenceIndex + 1} av {sentences.length}
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <ErrorReportModal sentence={currentSentence} />
+                  <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
+                    <i className="fas fa-clock text-gray-500 text-sm"></i>
+                    <span className="text-sm text-gray-600">
+                      Fråga {currentSentenceIndex + 1} av {sentences.length}
+                    </span>
+                  </div>
                 </div>
               </div>
 

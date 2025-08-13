@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertSentenceSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema } from "@shared/schema";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -221,6 +221,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting sentence:", error);
       res.status(500).json({ message: "Failed to delete sentence" });
+    }
+  });
+
+  // ===== ERROR REPORT ENDPOINTS =====
+  
+  // Create error report
+  app.post("/api/error-reports", async (req, res) => {
+    try {
+      const validatedData = insertErrorReportSchema.parse(req.body);
+      const errorReport = await storage.createErrorReport(validatedData);
+      res.status(201).json(errorReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid error report data", errors: error.errors });
+      }
+      console.error("Error creating error report:", error);
+      res.status(500).json({ message: "Failed to create error report" });
+    }
+  });
+
+  // Get all error reports (admin)
+  app.get("/api/admin/error-reports", async (req, res) => {
+    try {
+      const errorReports = await storage.getErrorReports();
+      res.json(errorReports);
+    } catch (error) {
+      console.error("Error fetching error reports:", error);
+      res.status(500).json({ message: "Failed to fetch error reports" });
+    }
+  });
+
+  // Update error report status (admin)
+  app.patch("/api/admin/error-reports/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const errorReport = await storage.updateErrorReport(req.params.id, updates);
+      res.json(errorReport);
+    } catch (error) {
+      console.error("Error updating error report:", error);
+      res.status(500).json({ message: "Failed to update error report" });
+    }
+  });
+
+  // Delete error report (admin)
+  app.delete("/api/admin/error-reports/:id", async (req, res) => {
+    try {
+      await storage.deleteErrorReport(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting error report:", error);
+      res.status(500).json({ message: "Failed to delete error report" });
     }
   });
 

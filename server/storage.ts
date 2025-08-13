@@ -2,15 +2,17 @@ import {
   type WordClass,
   type Sentence,
   type GameProgress,
+  type ErrorReport,
   type Word,
   type InsertSentence,
   type InsertWordClass,
   type InsertGameProgress,
+  type InsertErrorReport,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -32,6 +34,12 @@ export interface IStorage {
   ): Promise<Sentence>;
   deleteSentence(id: string): Promise<void>;
   getSentenceById(id: string): Promise<Sentence | undefined>;
+
+  // Error report methods
+  createErrorReport(report: InsertErrorReport): Promise<ErrorReport>;
+  getErrorReports(): Promise<ErrorReport[]>;
+  updateErrorReport(id: string, report: Partial<ErrorReport>): Promise<ErrorReport>;
+  deleteErrorReport(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -292,6 +300,28 @@ export class DatabaseStorage implements IStorage {
       .from(sentences)
       .where(eq(sentences.id, id));
     return result[0];
+  }
+
+  // Error report methods
+  async createErrorReport(report: InsertErrorReport): Promise<ErrorReport> {
+    const [errorReport] = await db.insert(errorReports).values(report).returning();
+    return errorReport;
+  }
+
+  async getErrorReports(): Promise<ErrorReport[]> {
+    return await db.select().from(errorReports).orderBy(errorReports.createdAt);
+  }
+
+  async updateErrorReport(id: string, report: Partial<ErrorReport>): Promise<ErrorReport> {
+    const [updatedReport] = await db.update(errorReports)
+      .set(report)
+      .where(eq(errorReports.id, id))
+      .returning();
+    return updatedReport;
+  }
+
+  async deleteErrorReport(id: string): Promise<void> {
+    await db.delete(errorReports).where(eq(errorReports.id, id));
   }
 }
 

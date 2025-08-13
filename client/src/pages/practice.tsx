@@ -5,6 +5,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type Sentence, type WordClass, type GameProgress } from "@shared/schema";
 import MultipleChoiceSentence from "@/components/ui/multiple-choice-sentence";
 import WordClassGuide from "@/components/ui/word-class-guide";
+import ErrorReportModal from "@/components/ui/error-report-modal";
 
 export default function Practice() {
   const [matchLevel, paramsLevel] = useRoute("/practice/:wordClass/level/:level");
@@ -457,13 +458,16 @@ export default function Practice() {
               </p>
             </div>
             
-            <button
-              onClick={() => currentTargetClass && openGuide(currentTargetClass)}
-              className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
-            >
-              <i className="fas fa-question-circle mr-2"></i>
-              Hjälp
-            </button>
+            <div className="flex items-center space-x-3">
+              <ErrorReportModal sentence={currentSentence} />
+              <button
+                onClick={() => currentTargetClass && openGuide(currentTargetClass)}
+                className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+              >
+                <i className="fas fa-question-circle mr-2"></i>
+                Hjälp
+              </button>
+            </div>
           </div>
         </div>
 

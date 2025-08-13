@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -58,3 +58,28 @@ export type Sentence = typeof sentences.$inferSelect;
 
 export type InsertGameProgress = z.infer<typeof insertGameProgressSchema>;
 export type GameProgress = typeof gameProgresses.$inferSelect;
+
+// Error reports table
+export const errorReports = pgTable("error_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sentenceId: varchar("sentence_id").references(() => sentences.id),
+  sentenceText: text("sentence_text").notNull(),
+  reportType: varchar("report_type").notNull(), // 'wrong_word_class', 'missing_word', 'spelling_error', 'other'
+  description: text("description").notNull(),
+  reportedWord: varchar("reported_word"),
+  expectedWordClass: varchar("expected_word_class"),
+  actualWordClass: varchar("actual_word_class"),
+  playerEmail: varchar("player_email"),
+  status: varchar("status").default("pending"), // 'pending', 'reviewed', 'resolved', 'dismissed'
+  createdAt: timestamp("created_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+});
+
+export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertErrorReport = z.infer<typeof insertErrorReportSchema>;
+export type ErrorReport = typeof errorReports.$inferSelect;
