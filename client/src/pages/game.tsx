@@ -87,9 +87,19 @@ export default function Game() {
       }
     } else {
       const actualWordClassData = wordClasses.find(wc => wc.name === wordClass);
+      const getSwedishArticle = (wordClassName: string) => {
+        // Svenska artiklar för ordklasser
+        const enWords = ['interjektioner', 'adjektiv'];
+        const ettWords = ['substantiv', 'pronomen', 'verb', 'adverb', 'räkneord'];
+        
+        if (enWords.includes(wordClassName)) return 'en';
+        if (ettWords.includes(wordClassName)) return 'ett';
+        return wordClassName.endsWith('tion') ? 'en' : 'ett';
+      };
+      
       setFeedback({
         type: "error",
-        message: "Fel svar",
+        message: `Nej, det är ${getSwedishArticle(actualWordClassData?.swedishName || '')} ${actualWordClassData?.swedishName || wordClass}.`,
         actualWordClass: actualWordClassData?.swedishName || wordClass,
       });
 

@@ -94,20 +94,31 @@ export default function Practice() {
         }, 1500);
         return;
       } else {
-        // Wrong answer - show red feedback briefly then allow retry
+        // Wrong answer - show correct word class feedback
+        const actualWordClass = wordClasses.find(wc => wc.name === wordClass);
         setSelectedWords(new Set([wordIndex]));
         setIncorrectWords(new Set([wordIndex]));
+        const getSwedishArticle = (wordClassName: string) => {
+          // Svenska artiklar för ordklasser
+          const enWords = ['interjektioner', 'adjektiv'];
+          const ettWords = ['substantiv', 'pronomen', 'verb', 'adverb', 'räkneord'];
+          
+          if (enWords.includes(wordClassName)) return 'en';
+          if (ettWords.includes(wordClassName)) return 'ett';
+          return wordClassName.endsWith('tion') ? 'en' : 'ett';
+        };
+        
         setFeedback({
           type: 'incorrect',
-          message: `Fel! "${currentSentence?.words[wordIndex]?.text}" är inte ${currentWordClass?.swedishName || currentTargetClass}.`
+          message: `Nej, det är ${getSwedishArticle(actualWordClass?.swedishName || '')} ${actualWordClass?.swedishName || wordClass}.`
         });
         
-        // Clear feedback after 1.5 seconds to allow retry
+        // Clear feedback after 2 seconds to allow retry
         setTimeout(() => {
           setSelectedWords(new Set());
           setIncorrectWords(new Set());
           setFeedback(null);
-        }, 1500);
+        }, 2000);
         return;
       }
     }
