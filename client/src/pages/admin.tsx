@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,6 +46,8 @@ export default function Admin() {
     difficulty: 1,
   });
   const [bulkText, setBulkText] = useState("");
+  const [quickCodeText, setQuickCodeText] = useState("");
+  const [bulkMode, setBulkMode] = useState<"manual" | "code">("manual");
   const [filterWordClass, setFilterWordClass] = useState<string>("all");
   const [filterLevel, setFilterLevel] = useState<string>("all");
 
@@ -187,6 +190,8 @@ export default function Admin() {
   const startBulkCreating = () => {
     setIsBulkCreating(true);
     setBulkText("");
+    setQuickCodeText("");
+    setBulkMode("manual");
     setBulkData(prev => ({ ...prev, sentences: [] }));
   };
 
@@ -196,6 +201,63 @@ export default function Admin() {
       content: line.trim(),
       words: parseWordsFromContent(line.trim(), bulkData.wordClassType)
     }));
+    setBulkData(prev => ({ ...prev, sentences }));
+  };
+
+  // Mapping från nummer till ordklass-namn
+  const codeToWordClass = {
+    '1': 'noun',        // Substantiv
+    '2': 'verb',        // Verb
+    '3': 'adjective',   // Adjektiv
+    '4': 'adverb',      // Adverb
+    '5': 'pronoun',     // Pronomen
+    '6': 'preposition', // Preposition
+    '7': 'conjunction', // Konjunktion
+    '8': 'interjection',// Interjektion
+    '9': 'numeral'      // Räkneord
+  };
+
+  const processQuickCodeText = () => {
+    const lines = quickCodeText.split('\n').filter(line => line.trim() !== '');
+    const sentences: BulkSentence[] = [];
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      const parts = trimmedLine.split(/\s+/);
+      
+      if (parts.length < 2) continue; // Behöver minst mening + kod
+      
+      const lastPart = parts[parts.length - 1];
+      // Kontrollera om sista delen är en numerisk kod
+      if (!/^\d+$/.test(lastPart)) continue;
+      
+      const code = lastPart;
+      const sentenceText = parts.slice(0, -1).join(' ');
+      const words = sentenceText.split(/\s+/).filter(word => word.length > 0);
+      
+      // Kontrollera att koden har rätt längd
+      if (code.length !== words.length) {
+        console.warn(`Kodlängd ${code.length} matchar inte antal ord ${words.length} för: ${sentenceText}`);
+        continue;
+      }
+      
+      const sentenceWords: Word[] = words.map((word, index) => {
+        const codeDigit = code[index];
+        const wordClass = codeToWordClass[codeDigit as keyof typeof codeToWordClass] || 'noun';
+        
+        return {
+          text: word.replace(/[.,!?;:]$/, ''), // Ta bort interpunktion
+          wordClass,
+          isTarget: false
+        };
+      });
+      
+      sentences.push({
+        content: sentenceText,
+        words: sentenceWords
+      });
+    }
+    
     setBulkData(prev => ({ ...prev, sentences }));
   };
 
@@ -872,6 +934,8 @@ export default function Admin() {
         if (!open) {
           setIsBulkCreating(false);
           setBulkText("");
+          setQuickCodeText("");
+          setBulkMode("manual");
           setBulkData(prev => ({ ...prev, sentences: [] }));
         }
       }}>
@@ -879,7 +943,7 @@ export default function Admin() {
           <DialogHeader>
             <DialogTitle>Skapa flera meningar samtidigt</DialogTitle>
             <DialogDescription>
-              Skriv en mening per rad. Du kan sedan redigera ordklasserna för varje ord.
+              Välj mellan manuell inmatning eller snabb kodning för att lägga till meningar.
             </DialogDescription>
           </DialogHeader>
           
@@ -942,26 +1006,71 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Text input */}
-            <div>
-              <Label htmlFor="bulkText">Meningar (en per rad)</Label>
-              <Textarea
-                id="bulkText"
-                value={bulkText}
-                onChange={(e) => setBulkText(e.target.value)}
-                placeholder="Skriv en mening per rad här..."
-                className="min-h-[120px]"
-              />
-              <div className="flex gap-2 mt-2">
-                <Button onClick={processBulkText} variant="outline" size="sm">
-                  <i className="fas fa-cogs mr-2"></i>
-                  Parsa meningar
-                </Button>
-                <span className="text-sm text-gray-500 self-center">
-                  {bulkText.split('\n').filter(line => line.trim() !== '').length} meningar
-                </span>
-              </div>
-            </div>
+            {/* Input methods tabs */}
+            <Tabs value={bulkMode} onValueChange={(value) => setBulkMode(value as "manual" | "code")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">Manuell inmatning</TabsTrigger>
+                <TabsTrigger value="code">Snabb tilläggning med kod</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="manual" className="space-y-4">
+                <div>
+                  <Label htmlFor="bulkText">Meningar (en per rad)</Label>
+                  <Textarea
+                    id="bulkText"
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                    placeholder="Skriv en mening per rad här..."
+                    className="min-h-[120px]"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button onClick={processBulkText} variant="outline" size="sm">
+                      <i className="fas fa-cogs mr-2"></i>
+                      Parsa meningar
+                    </Button>
+                    <span className="text-sm text-gray-500 self-center">
+                      {bulkText.split('\n').filter(line => line.trim() !== '').length} meningar
+                    </span>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="code" className="space-y-4">
+                <div>
+                  <Label htmlFor="quickCodeText">Meningar med koder</Label>
+                  <Textarea
+                    id="quickCodeText"
+                    value={quickCodeText}
+                    onChange={(e) => setQuickCodeText(e.target.value)}
+                    placeholder="Exempel:&#10;Katten springer fort 123&#10;Solen skiner varmt 132&#10;&#10;Koder: 1=Substantiv, 2=Verb, 3=Adjektiv, 4=Adverb, 5=Pronomen, 6=Preposition, 7=Konjunktion, 8=Interjektion, 9=Räkneord"
+                    className="min-h-[140px]"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button onClick={processQuickCodeText} variant="outline" size="sm">
+                      <i className="fas fa-magic mr-2"></i>
+                      Parsa med koder
+                    </Button>
+                    <span className="text-sm text-gray-500 self-center">
+                      {quickCodeText.split('\n').filter(line => line.trim() !== '').length} rader
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2 p-3 bg-blue-50 rounded border">
+                    <div className="font-medium mb-1">Kodschema:</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span>1 = Substantiv</span>
+                      <span>2 = Verb</span>
+                      <span>3 = Adjektiv</span>
+                      <span>4 = Adverb</span>
+                      <span>5 = Pronomen</span>
+                      <span>6 = Preposition</span>
+                      <span>7 = Konjunktion</span>
+                      <span>8 = Interjektion</span>
+                      <span>9 = Räkneord</span>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Parsed sentences with editable word classes */}
             {bulkData.sentences.length > 0 && (
