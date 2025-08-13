@@ -11,7 +11,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { wordClasses, sentences, gameProgresses, errorReports } from "@shared/schema";
 
 export interface IStorage {
@@ -207,8 +207,7 @@ export class DatabaseStorage implements IStorage {
     let result = await db
       .select()
       .from(sentences)
-      .where(eq(sentences.wordClassType, wordClass))
-      .where(eq(sentences.difficulty, level));
+      .where(and(eq(sentences.wordClassType, wordClass), eq(sentences.difficulty, level)));
     result = this.shuffleArray(result);
     if (level === 1) result = result.slice(0, 10);
     return result;
