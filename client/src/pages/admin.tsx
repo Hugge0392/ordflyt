@@ -202,14 +202,60 @@ export default function Admin() {
       'sin': 'pronoun', 'sitt': 'pronoun', 'sina': 'pronoun', 'vår': 'pronoun', 'vårt': 'pronoun', 'våra': 'pronoun',
       'er': 'pronoun', 'ert': 'pronoun', 'era': 'pronoun', 'deras': 'pronoun',
       
-      // Verb (vanliga)
-      'är': 'verb', 'var': 'verb', 'blir': 'verb', 'blev': 'verb', 'har': 'verb', 'hade': 'verb', 'kommer': 'verb', 'kom': 'verb',
-      'går': 'verb', 'gick': 'verb', 'ser': 'verb', 'såg': 'verb', 'hör': 'verb', 'hörde': 'verb', 'säger': 'verb', 'sa': 'verb',
-      'gör': 'verb', 'gjorde': 'verb', 'tar': 'verb', 'tog': 'verb', 'ger': 'verb', 'gav': 'verb', 'får': 'verb', 'fick': 'verb',
-      'vill': 'verb', 'ville': 'verb', 'kan': 'verb', 'kunde': 'verb', 'ska': 'verb', 'skulle': 'verb', 'måste': 'verb',
-      'bor': 'verb', 'bodde': 'verb', 'arbetar': 'verb', 'arbetade': 'verb', 'studerar': 'verb', 'studerade': 'verb',
-      'äter': 'verb', 'åt': 'verb', 'dricker': 'verb', 'drack': 'verb', 'sover': 'verb', 'sov': 'verb',
-      'springer': 'verb', 'sprang': 'verb', 'hoppar': 'verb', 'hoppade': 'verb', 'läser': 'verb', 'läste': 'verb',
+      // Verb (omfattande lista med böjningar)
+      // Vanliga hjälpverb
+      'är': 'verb', 'var': 'verb', 'varit': 'verb', 'vare': 'verb', 'bli': 'verb', 'blir': 'verb', 'blev': 'verb', 'blivit': 'verb',
+      'ha': 'verb', 'har': 'verb', 'hade': 'verb', 'haft': 'verb', 'have': 'verb',
+      
+      // Modalverb
+      'kan': 'verb', 'kunde': 'verb', 'kunnat': 'verb', 'vill': 'verb', 'ville': 'verb', 'velat': 'verb',
+      'ska': 'verb', 'skulle': 'verb', 'skolat': 'verb', 'må': 'verb', 'måste': 'verb', 'bör': 'verb', 'borde': 'verb',
+      
+      // Rörelse och position
+      'går': 'verb', 'gick': 'verb', 'gått': 'verb', 'gå': 'verb', 'kommer': 'verb', 'kom': 'verb', 'kommit': 'verb', 'komma': 'verb',
+      'springer': 'verb', 'sprang': 'verb', 'sprungit': 'verb', 'springa': 'verb', 'hoppar': 'verb', 'hoppade': 'verb', 'hoppat': 'verb', 'hoppa': 'verb',
+      'cyklar': 'verb', 'cyklade': 'verb', 'cyklat': 'verb', 'cykla': 'verb', 'kör': 'verb', 'körde': 'verb', 'kört': 'verb', 'köra': 'verb',
+      'åker': 'verb', 'åkte': 'verb', 'åkt': 'verb', 'åka': 'verb', 'flyger': 'verb', 'flög': 'verb', 'flugit': 'verb', 'flyga': 'verb',
+      'står': 'verb', 'stod': 'verb', 'stått': 'verb', 'stå': 'verb', 'sitter': 'verb', 'satt': 'verb', 'sitta': 'verb',
+      'ligger': 'verb', 'låg': 'verb', 'legat': 'verb', 'ligga': 'verb', 'bor': 'verb', 'bodde': 'verb', 'bott': 'verb', 'bo': 'verb',
+      
+      // Aktiviteter och handlingar
+      'arbetar': 'verb', 'arbetade': 'verb', 'arbetat': 'verb', 'arbeta': 'verb', 'studerar': 'verb', 'studerade': 'verb', 'studerat': 'verb', 'studera': 'verb',
+      'leker': 'verb', 'lekte': 'verb', 'lekt': 'verb', 'leka': 'verb', 'spelar': 'verb', 'spelade': 'verb', 'spelat': 'verb', 'spela': 'verb',
+      'tränar': 'verb', 'tränade': 'verb', 'tränat': 'verb', 'träna': 'verb', 'vilar': 'verb', 'vilade': 'verb', 'vilat': 'verb', 'vila': 'verb',
+      
+      // Kommunikation och sinnen
+      'säger': 'verb', 'sa': 'verb', 'sagt': 'verb', 'säga': 'verb', 'pratar': 'verb', 'pratade': 'verb', 'pratat': 'verb', 'prata': 'verb',
+      'talar': 'verb', 'talade': 'verb', 'talat': 'verb', 'tala': 'verb', 'berättar': 'verb', 'berättade': 'verb', 'berättat': 'verb', 'berätta': 'verb',
+      'lyssnar': 'verb', 'lyssnade': 'verb', 'lyssnat': 'verb', 'lyssna': 'verb', 'hör': 'verb', 'hörde': 'verb', 'hört': 'verb', 'höra': 'verb',
+      'ser': 'verb', 'såg': 'verb', 'sett': 'verb', 'se': 'verb', 'tittar': 'verb', 'tittade': 'verb', 'tittat': 'verb', 'titta': 'verb',
+      'känner': 'verb', 'kände': 'verb', 'känt': 'verb', 'känna': 'verb', 'luktar': 'verb', 'luktade': 'verb', 'luktat': 'verb', 'lukta': 'verb',
+      
+      // Handlingar med händer
+      'tar': 'verb', 'tog': 'verb', 'tagit': 'verb', 'ta': 'verb', 'ger': 'verb', 'gav': 'verb', 'gett': 'verb', 'ge': 'verb',
+      'får': 'verb', 'fick': 'verb', 'fått': 'verb', 'få': 'verb', 'gör': 'verb', 'gjorde': 'verb', 'gjort': 'verb', 'göra': 'verb',
+      'håller': 'verb', 'höll': 'verb', 'hållit': 'verb', 'hålla': 'verb', 'kastar': 'verb', 'kastade': 'verb', 'kastat': 'verb', 'kasta': 'verb',
+      'bygger': 'verb', 'byggde': 'verb', 'byggt': 'verb', 'bygga': 'verb', 'ritar': 'verb', 'ritade': 'verb', 'ritat': 'verb', 'rita': 'verb',
+      
+      // Mat och dryck
+      'äter': 'verb', 'åt': 'verb', 'ätit': 'verb', 'äta': 'verb', 'dricker': 'verb', 'drack': 'verb', 'druckit': 'verb', 'dricka': 'verb',
+      'lagar': 'verb', 'lagade': 'verb', 'lagat': 'verb', 'laga': 'verb', 'bakar': 'verb', 'bakade': 'verb', 'bakat': 'verb', 'baka': 'verb',
+      'köper': 'verb', 'köpte': 'verb', 'köpt': 'verb', 'köpa': 'verb', 'säljer': 'verb', 'sålde': 'verb', 'sålt': 'verb', 'sälja': 'verb',
+      
+      // Vardagsaktiviteter
+      'sover': 'verb', 'sov': 'verb', 'sovit': 'verb', 'sova': 'verb', 'vaknar': 'verb', 'vaknade': 'verb', 'vaknat': 'verb', 'vakna': 'verb',
+      'tvättar': 'verb', 'tvättade': 'verb', 'tvättat': 'verb', 'tvätta': 'verb', 'städar': 'verb', 'städade': 'verb', 'städat': 'verb', 'städa': 'verb',
+      'duschar': 'verb', 'duschade': 'verb', 'duschat': 'verb', 'duscha': 'verb', 'kammar': 'verb', 'kammade': 'verb', 'kammat': 'verb', 'kamma': 'verb',
+      
+      // Läsning och lärande
+      'läser': 'verb', 'läste': 'verb', 'läst': 'verb', 'läsa': 'verb', 'skriver': 'verb', 'skrev': 'verb', 'skrivit': 'verb', 'skriva': 'verb',
+      'räknar': 'verb', 'räknade': 'verb', 'räknat': 'verb', 'räkna': 'verb', 'lär': 'verb', 'lärde': 'verb', 'lärt': 'verb', 'lära': 'verb',
+      'förstår': 'verb', 'förstod': 'verb', 'förstått': 'verb', 'förstå': 'verb', 'minns': 'verb', 'mindes': 'verb', 'mints': 'verb', 'minnas': 'verb',
+      
+      // Känslor och tillstånd
+      'tycker': 'verb', 'tyckte': 'verb', 'tyckt': 'verb', 'tycka': 'verb', 'älskar': 'verb', 'älskade': 'verb', 'älskat': 'verb', 'älska': 'verb',
+      'hatar': 'verb', 'hatade': 'verb', 'hatat': 'verb', 'hata': 'verb', 'gillar': 'verb', 'gillade': 'verb', 'gillat': 'verb', 'gilla': 'verb',
+      'tror': 'verb', 'trodde': 'verb', 'trott': 'verb', 'tro': 'verb', 'vet': 'verb', 'visste': 'verb', 'vetat': 'verb', 'veta': 'verb',
       
       // Prepositioner
       'på': 'preposition', 'i': 'preposition', 'till': 'preposition', 'från': 'preposition', 'med': 'preposition', 
