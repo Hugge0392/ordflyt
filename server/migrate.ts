@@ -39,17 +39,7 @@ async function migrate() {
         { text: "snabbt", wordClass: "adverb" },
       ],
     },
-    {
-      content: "Hon köper äpple",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Hon", wordClass: "pronoun" },
-        { text: "köper", wordClass: "verb" },
-        { text: "äpple", wordClass: "noun" },
-      ],
-    },
+    
     {
       content: "Boken ligger där",
       level: 1,
@@ -61,106 +51,8 @@ async function migrate() {
         { text: "där", wordClass: "adverb" },
       ],
     },
-    {
-      content: "Vi ser huset",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Vi", wordClass: "pronoun" },
-        { text: "ser", wordClass: "verb" },
-        { text: "huset", wordClass: "noun" },
-      ],
-    },
-    {
-      content: "Flickan har katt",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Flickan", wordClass: "noun" },
-        { text: "har", wordClass: "verb" },
-        { text: "katt", wordClass: "noun" },
-      ],
-    },
-    {
-      content: "Stolen är trasig",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Stolen", wordClass: "noun" },
-        { text: "är", wordClass: "verb" },
-        { text: "trasig", wordClass: "adjective" },
-      ],
-    },
-    {
-      content: "Jag gillar glass",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Jag", wordClass: "pronoun" },
-        { text: "gillar", wordClass: "verb" },
-        { text: "glass", wordClass: "noun" },
-      ],
-    },
-    {
-      content: "Pojken hittar boll",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Pojken", wordClass: "noun" },
-        { text: "hittar", wordClass: "verb" },
-        { text: "boll", wordClass: "noun" },
-      ],
-    },
-    {
-      content: "Bordet är stort",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Bordet", wordClass: "noun" },
-        { text: "är", wordClass: "verb" },
-        { text: "stort", wordClass: "adjective" },
-      ],
-    },
-    {
-      content: "Vi planterar träd",
-      level: 1,
-      wordClassType: "noun",
-      difficulty: 1,
-      words: [
-        { text: "Vi", wordClass: "pronoun" },
-        { text: "planterar", wordClass: "verb" },
-        { text: "träd", wordClass: "noun" },
-      ],
-    },
-    // Verb Nivå 1
-    {
-      content: "Hunden jagar katten",
-      level: 1,
-      wordClassType: "verb",
-      difficulty: 1,
-      words: [
-        { text: "Hunden", wordClass: "noun" },
-        { text: "jagar", wordClass: "verb" },
-        { text: "katten", wordClass: "noun" },
-      ],
-    },
-    {
-      content: "Vi äter frukost",
-      level: 1,
-      wordClassType: "verb",
-      difficulty: 1,
-      words: [
-        { text: "Vi", wordClass: "pronoun" },
-        { text: "äter", wordClass: "verb" },
-        { text: "frukost", wordClass: "noun" },
-      ],
-    },
+    
+   
     // Add more sentences here following the same pattern...
   ];
 
