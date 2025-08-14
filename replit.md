@@ -11,6 +11,8 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Restructured to 4 Levels**: System now uses exactly 4 levels (1, 2, 3, 4) where level 4 is the timed final exam
 - **Enhanced Level 3 & 4**: Both levels combine two types of sentences: (1) sentences without the target word class and (2) sentences with multiple instances of the target word class
 - **Level 4 Final Exam**: Former level 5 is now level 4, combining level 3 mechanics with timer and 5-star scoring
+- **Question Limits & Error System**: Implemented exact question limits per level (10 for levels 1-3, 15 for level 4) with random selection from question bank and level restart after 3 mistakes
+- **Admin Panel Consistency**: Limited admin interface to levels 1-3 for content creation, maintaining system consistency where database stores 1-3, players see 1-4
 
 # User Preferences
 

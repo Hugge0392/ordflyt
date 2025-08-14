@@ -243,7 +243,12 @@ export class DatabaseStorage implements IStorage {
       // Combine both types of sentences
       let result = [...filteredWithoutTarget, ...filteredWithMultiple];
       result = this.shuffleArray(result);
-      return result.slice(0, 15); // Return 15 sentences for level 3 and 4
+      // Return different amounts based on level
+      if (level === 3) {
+        return result.slice(0, 10); // 10 questions for level 3
+      } else {
+        return result.slice(0, 15); // 15 questions for level 4 (final exam)
+      }
     }
     
     let result = await db
@@ -251,7 +256,11 @@ export class DatabaseStorage implements IStorage {
       .from(sentences)
       .where(and(eq(sentences.wordClassType, wordClass), eq(sentences.level, level)));
     result = this.shuffleArray(result);
-    if (level === 1) result = result.slice(0, 10);
+    
+    // Limit sentences per level
+    if (level === 1 || level === 2 || level === 3) {
+      result = result.slice(0, 10); // 10 questions for levels 1-3
+    }
     return result;
   }
 

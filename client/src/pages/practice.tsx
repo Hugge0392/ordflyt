@@ -26,6 +26,8 @@ export default function Practice() {
   const [hasNoWords, setHasNoWords] = useState(false);
   const [levelCompleted, setLevelCompleted] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [errorCount, setErrorCount] = useState(0);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
 
   // Fetch appropriate sentences based on level
   const { data: sentences = [], isLoading: sentencesLoading, error: sentencesError } = useQuery<Sentence[]>({
@@ -166,6 +168,25 @@ export default function Practice() {
     }
   };
 
+  const restartLevel = () => {
+    setCurrentSentenceIndex(0);
+    setSelectedWords(new Set());
+    setFeedback(null);
+    setIsSubmitted(false);
+    setCorrectWords(new Set());
+    setIncorrectWords(new Set());
+    setHasNoWords(false);
+    setErrorCount(0);
+    setShowRestartDialog(false);
+    setLevelCompleted(false);
+    // Refetch sentences to get new random selection
+    queryClient.invalidateQueries({ 
+      queryKey: practiceLevel 
+        ? [`/api/sentences/wordclass/${specificWordClass}/level/${practiceLevel}`]
+        : ["/api/sentences"]
+    });
+  };
+
   const handleSubmit = () => {
     if (isSubmitted) return;
     checkAnswer(selectedWords, hasNoWords);
@@ -237,6 +258,17 @@ export default function Practice() {
     setIsSubmitted(true);
     setCorrectWords(correctIndices);
     setIncorrectWords(incorrectIndices);
+
+    // Track errors and restart level if 3 errors
+    if (!isCorrect) {
+      const newErrorCount = errorCount + 1;
+      setErrorCount(newErrorCount);
+      
+      if (newErrorCount >= 3) {
+        setShowRestartDialog(true);
+        return;
+      }
+    }
 
     // Update progress
     if (gameProgress && specificWordClass) {
@@ -435,6 +467,10 @@ export default function Practice() {
               <div className="text-sm text-gray-600">
                 {gameProgress?.correctAnswers || 0} rätt, {gameProgress?.wrongAnswers || 0} fel
               </div>
+              {/* Show error count */}
+              <div className="text-sm text-red-600">
+                Fel: {errorCount}/3
+              </div>
               {/* Show progress towards 10 correct answers for level 1 */}
               {practiceLevel === 1 && specificWordClass && (
                 <div className="text-xs text-blue-600 mt-1">
@@ -555,6 +591,34 @@ export default function Practice() {
           )}
         </div>
       </main>
+
+      {/* Restart Dialog */}
+      {showRestartDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md mx-4">
+            <div className="text-center">
+              <div className="text-6xl mb-4">😞</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">För många fel!</h2>
+              <p className="text-gray-600 mb-6">
+                Du har gjort 3 fel. Nivån startar om från början med nya frågor.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={restartLevel}
+                  className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Starta om nivån
+                </button>
+                <Link href={practiceLevel ? `/wordclass/${specificWordClass}` : "/"}>
+                  <button className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors">
+                    Tillbaka till nivåer
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guide */}
       {showGuide && guideWordClass && (
