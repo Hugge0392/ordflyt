@@ -8,8 +8,9 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Admin Duplicate Detection**: Added "Sök dubbletter" button in admin panel for manual duplicate identification
 - **Simplified Data Model**: Removed "difficulty" column from sentences table, keeping only "level" for simplified management
 - **Removed Drag-and-Drop Game**: Eliminated the "ordklassdrak" (word class dragon) drag-and-drop functionality per user request
-- **Removed Level 4**: Eliminated level 4 completely, now progression goes directly from level 3 to level 5 (final exam)
-- **Enhanced Level 3**: Restructured level 3 to combine two types of sentences: (1) sentences without the target word class and (2) sentences with multiple instances of the target word class
+- **Restructured to 4 Levels**: System now uses exactly 4 levels (1, 2, 3, 4) where level 4 is the timed final exam
+- **Enhanced Level 3 & 4**: Both levels combine two types of sentences: (1) sentences without the target word class and (2) sentences with multiple instances of the target word class
+- **Level 4 Final Exam**: Former level 5 is now level 4, combining level 3 mechanics with timer and 5-star scoring
 
 # User Preferences
 

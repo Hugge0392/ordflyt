@@ -124,8 +124,8 @@ export default function Practice() {
       }
     }
     
-    // For level 3 and 5, allow multiple selection (level 4 is removed)
-    if (practiceLevel && (practiceLevel === 3 || practiceLevel === 5)) {
+    // For levels 3 and 4, allow multiple selection
+    if (practiceLevel && (practiceLevel === 3 || practiceLevel === 4)) {
       const newSelected = new Set(selectedWords);
       if (newSelected.has(wordIndex)) {
         newSelected.delete(wordIndex);
@@ -302,14 +302,14 @@ export default function Practice() {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownInterval);
-            const nextLevel = practiceLevel === 3 ? 5 : practiceLevel ? practiceLevel + 1 : null; // Skip level 4
-            const canContinue = nextLevel && (nextLevel <= 3 || nextLevel === 5);
+            const nextLevel = practiceLevel ? practiceLevel + 1 : null;
+            const canContinue = nextLevel && nextLevel <= 4;
             
-            if (canContinue && nextLevel !== 5) {
+            if (canContinue && nextLevel !== 4) {
               // Navigate to next level
               window.location.href = `/practice/${specificWordClass}/level/${nextLevel}`;
-            } else if (nextLevel === 5) {
-              // Navigate to final test
+            } else if (nextLevel === 4) {
+              // Navigate to final test (level 4 is now the timed test)
               window.location.href = `/test/${specificWordClass}`;
             } else {
               // Navigate back to level selection
@@ -368,8 +368,8 @@ export default function Practice() {
   }
 
   if (levelCompleted) {
-    const nextLevel = practiceLevel ? (practiceLevel === 3 ? 5 : practiceLevel + 1) : null; // Skip level 4
-    const canContinue = nextLevel && (nextLevel <= 3 || nextLevel === 5);
+    const nextLevel = practiceLevel ? practiceLevel + 1 : null;
+    const canContinue = nextLevel && nextLevel <= 4;
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
@@ -384,7 +384,7 @@ export default function Practice() {
             <div className="text-center">
               <p className="text-lg text-gray-600 mb-2">
                 {canContinue ? 'Går automatiskt till nästa nivå om' : 
-                 nextLevel === 5 ? 'Går automatiskt till slutprovet om' : 
+                 nextLevel === 4 ? 'Går automatiskt till slutprovet om' : 
                  'Går automatiskt tillbaka till nivåer om'}
               </p>
               <div className="text-6xl font-bold text-green-600 mb-4">
@@ -479,7 +479,7 @@ export default function Practice() {
           targetWordClass={currentWordClass?.swedishName || currentTargetClass || ""}
           selectedWords={selectedWords}
           onWordClick={handleWordClick}
-          showNoWordsButton={practiceLevel ? (practiceLevel === 3 || practiceLevel === 5) && !isSubmitted : !isSubmitted}
+          showNoWordsButton={practiceLevel ? (practiceLevel === 3 || practiceLevel === 4) && !isSubmitted : !isSubmitted}
           onNoWords={handleNoWords}
           isSubmitted={isSubmitted}
           correctWords={correctWords}
@@ -489,7 +489,7 @@ export default function Practice() {
         {/* Controls */}
         <div className="text-center space-y-4">
           {/* For levels 3+, show "Gå vidare" button when selections are made */}
-          {!isSubmitted && practiceLevel && (practiceLevel === 3 || practiceLevel === 5) && (selectedWords.size > 0 || hasNoWords) && (
+          {!isSubmitted && practiceLevel && (practiceLevel === 3 || practiceLevel === 4) && (selectedWords.size > 0 || hasNoWords) && (
             <button
               onClick={handleSubmit}
               className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors text-lg"

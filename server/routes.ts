@@ -65,26 +65,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🎯 DEBUG: Requested ${wordClass} level ${level}. Completed level: ${completedLevel}`);
       
-      // Skip level 4 completely - jump from 3 to 5
-      if (level === 4) {
-        return res.status(404).json({ message: "Nivå 4 finns inte längre" });
+      // Only allow levels 1-4 now
+      if (level > 4) {
+        return res.status(404).json({ message: "Nivån finns inte" });
       }
       
       // Allow access to level 1 always, or if previous level is completed
-      // For level 5, require level 3 to be completed (since level 4 is removed)
-      let requiredLevel = level - 1;
-      if (level === 5) requiredLevel = 3;
-      
-      if (level === 1 || (level === 5 && completedLevel >= 3) || level <= completedLevel + 1) {
+      if (level === 1 || level <= completedLevel + 1) {
         const sentences = await storage.getSentencesByWordClassAndLevel(wordClass, level);
         console.log(`🎯 DEBUG: Access granted to level ${level}. Found ${sentences.length} sentences.`);
         res.json(sentences);
       } else {
-        const actualRequiredLevel = level === 5 ? 3 : level - 1;
-        console.log(`🎯 DEBUG: Access denied to level ${level}. Must complete level ${actualRequiredLevel} first.`);
+        const requiredLevel = level - 1;
+        console.log(`🎯 DEBUG: Access denied to level ${level}. Must complete level ${requiredLevel} first.`);
         res.status(403).json({ 
-          message: `Du måste klara nivå ${actualRequiredLevel} först innan du kan spela nivå ${level}`,
-          requiredLevel: actualRequiredLevel,
+          message: `Du måste klara nivå ${requiredLevel} först innan du kan spela nivå ${level}`,
+          requiredLevel: requiredLevel,
           currentLevel: completedLevel
         });
       }

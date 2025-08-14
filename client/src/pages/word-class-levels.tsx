@@ -43,7 +43,7 @@ export default function WordClassLevels() {
       icon: "🏔️"
     },
     {
-      level: 5,
+      level: 4,
       name: "Slutprov",
       description: "Tidsprov med 5-stjärnig bedömning",
       difficulty: "Slutprov",

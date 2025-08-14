@@ -204,8 +204,8 @@ export class DatabaseStorage implements IStorage {
     wordClass: string,
     level: number,
   ): Promise<Sentence[]> {
-    // For level 3, combine sentences without the target word class AND sentences with multiple instances
-    if (level === 3) {
+    // For level 3 and 4, combine sentences without the target word class AND sentences with multiple instances
+    if (level === 3 || level === 4) {
       // Get sentences that DON'T have the target word class
       const sentencesWithoutTarget = await db
         .select()
@@ -243,7 +243,7 @@ export class DatabaseStorage implements IStorage {
       // Combine both types of sentences
       let result = [...filteredWithoutTarget, ...filteredWithMultiple];
       result = this.shuffleArray(result);
-      return result.slice(0, 15); // Return 15 sentences for level 3
+      return result.slice(0, 15); // Return 15 sentences for level 3 and 4
     }
     
     let result = await db
