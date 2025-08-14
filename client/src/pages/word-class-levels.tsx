@@ -37,18 +37,10 @@ export default function WordClassLevels() {
     {
       level: 3,
       name: "Avancerad",
-      description: "5-8 ord, flera rätt svar. 'Gå vidare' knapp.",
+      description: "Meningar utan ordklassen ELLER flera ord av samma ordklass. 'Gå vidare' knapp.",
       difficulty: "Svår",
       color: "from-orange-400 to-red-500",
       icon: "🏔️"
-    },
-    {
-      level: 4,
-      name: "Expert",
-      description: "6-12 ord, flera svar eller inga ord. 'Gå vidare' knapp.",
-      difficulty: "Expert",
-      color: "from-red-500 to-pink-600",
-      icon: "🔥"
     },
     {
       level: 5,

@@ -11,7 +11,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { wordClasses, sentences, gameProgresses, errorReports } from "@shared/schema";
 
 export interface IStorage {
@@ -155,7 +155,7 @@ export class MemStorage implements IStorage {
     level: number,
   ): Promise<Sentence[]> {
     let filtered = [...this.sentences.values()].filter(
-      (s) => s.wordClassType === wordClass && s.difficulty === level,
+      (s) => s.wordClassType === wordClass && s.level === level,
     );
     filtered = this.shuffleArray(filtered);
     if (level === 1) filtered = filtered.slice(0, 10);
@@ -204,10 +204,52 @@ export class DatabaseStorage implements IStorage {
     wordClass: string,
     level: number,
   ): Promise<Sentence[]> {
+    // For level 3, combine sentences without the target word class AND sentences with multiple instances
+    if (level === 3) {
+      // Get sentences that DON'T have the target word class
+      const sentencesWithoutTarget = await db
+        .select()
+        .from(sentences)
+        .where(and(
+          isNull(sentences.wordClassType),
+          eq(sentences.level, 1)
+        ));
+      
+      // Filter to only sentences that actually don't contain the target word class
+      const filteredWithoutTarget = sentencesWithoutTarget.filter(sentence => {
+        const hasTargetWordClass = sentence.words.some(word => 
+          !word.isPunctuation && word.wordClass === wordClass
+        );
+        return !hasTargetWordClass;
+      });
+      
+      // Get sentences with multiple instances of the target word class
+      const sentencesWithTarget = await db
+        .select()
+        .from(sentences)
+        .where(and(
+          eq(sentences.wordClassType, wordClass),
+          eq(sentences.level, 1)
+        ));
+      
+      // Filter to sentences that have multiple instances of the target word class
+      const filteredWithMultiple = sentencesWithTarget.filter(sentence => {
+        const targetWordCount = sentence.words.filter(word => 
+          !word.isPunctuation && word.wordClass === wordClass
+        ).length;
+        return targetWordCount >= 2;
+      });
+      
+      // Combine both types of sentences
+      let result = [...filteredWithoutTarget, ...filteredWithMultiple];
+      result = this.shuffleArray(result);
+      return result.slice(0, 15); // Return 15 sentences for level 3
+    }
+    
     let result = await db
       .select()
       .from(sentences)
-      .where(and(eq(sentences.wordClassType, wordClass), eq(sentences.difficulty, level)));
+      .where(and(eq(sentences.wordClassType, wordClass), eq(sentences.level, level)));
     result = this.shuffleArray(result);
     if (level === 1) result = result.slice(0, 10);
     return result;
