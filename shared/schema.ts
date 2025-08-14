@@ -17,7 +17,6 @@ export const sentences = pgTable("sentences", {
   words: jsonb("words").notNull().$type<Word[]>(),
   level: integer("level").notNull().default(1),
   wordClassType: text("word_class_type"), // Which word class this sentence is for
-  difficulty: integer("difficulty").notNull().default(1), // 1-5 difficulty within the word class
 });
 
 export const gameProgresses = pgTable("game_progresses", {

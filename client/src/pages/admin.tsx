@@ -18,7 +18,6 @@ interface EditingSentence {
   content: string;
   level: number;
   wordClassType: string;
-  difficulty: number;
   words: Word[];
 }
 
@@ -36,14 +35,12 @@ export default function Admin() {
     content: "",
     level: 1,
     wordClassType: "noun",
-    difficulty: 1,
     words: []
   });
   const [bulkData, setBulkData] = useState({
     sentences: [] as BulkSentence[],
     level: 1,
     wordClassType: "noun",
-    difficulty: 1,
   });
   const [bulkText, setBulkText] = useState("");
   const [quickCodeText, setQuickCodeText] = useState("");
@@ -184,7 +181,6 @@ export default function Admin() {
       content: "",
       level: 1,
       wordClassType: "noun",
-      difficulty: 1,
       words: []
     });
   };
@@ -195,7 +191,6 @@ export default function Admin() {
       content: sentence.content,
       level: sentence.level,
       wordClassType: sentence.wordClassType || "noun",
-      difficulty: sentence.difficulty,
       words: sentence.words
     });
   };
@@ -543,21 +538,21 @@ export default function Admin() {
       words: sentence.words,
       level: bulkData.level,
       wordClassType: bulkData.wordClassType,
-      difficulty: bulkData.difficulty
+
     }));
     bulkCreateMutation.mutate(sentences);
   };
 
   const filteredSentences = sentences.filter(sentence => {
     const wordClassMatch = filterWordClass === "all" || sentence.wordClassType === filterWordClass;
-    const levelMatch = filterLevel === "all" || sentence.difficulty.toString() === filterLevel;
+    const levelMatch = filterLevel === "all" || sentence.level.toString() === filterLevel;
     return wordClassMatch && levelMatch;
   });
 
   const getWordClassInfo = (name: string) => wordClasses.find(wc => wc.name === name);
 
   const groupedSentences = filteredSentences.reduce((acc, sentence) => {
-    const key = `${sentence.wordClassType}-${sentence.difficulty}`;
+    const key = `${sentence.wordClassType}-${sentence.level}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -726,7 +721,7 @@ export default function Admin() {
                              report.reportType === 'spelling_error' ? 'Stavfel' : 'Annat'}
                           </span>
                           <span className="text-xs text-gray-400">
-                            {new Date(report.createdAt).toLocaleDateString('sv-SE')}
+                            {new Date(report.createdAt!).toLocaleDateString('sv-SE')}
                           </span>
                         </div>
                         <div className="text-sm font-medium mb-1">
@@ -899,24 +894,7 @@ export default function Admin() {
                 </Select>
               </div>
               
-              <div>
-                <Label htmlFor="difficulty">Svårighet</Label>
-                <Select 
-                  value={editingData.difficulty.toString()} 
-                  onValueChange={(value) => setEditingData(prev => ({ ...prev, difficulty: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1</SelectItem>
-                    <SelectItem value="2">2</SelectItem>
-                    <SelectItem value="3">3</SelectItem>
-                    <SelectItem value="4">4</SelectItem>
-                    <SelectItem value="5">5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
             
             <div>
@@ -1025,24 +1003,7 @@ export default function Admin() {
                 </Select>
               </div>
               
-              <div>
-                <Label htmlFor="bulkDifficulty">Svårighet</Label>
-                <Select 
-                  value={bulkData.difficulty.toString()} 
-                  onValueChange={(value) => setBulkData(prev => ({ ...prev, difficulty: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1</SelectItem>
-                    <SelectItem value="2">2</SelectItem>
-                    <SelectItem value="3">3</SelectItem>
-                    <SelectItem value="4">4</SelectItem>
-                    <SelectItem value="5">5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
 
             {/* Input methods tabs */}

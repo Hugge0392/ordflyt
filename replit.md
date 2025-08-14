@@ -6,6 +6,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Database Query Bug**: Fixed critical issue where Drizzle-ORM queries returned wrong word class sentences due to incorrect `.where()` chaining, resolved by using `and()` operator
 - **Duplicate Sentence Prevention**: Enhanced bulk creation functionality with duplicate detection and prevention to avoid unintended sentence multiplication
 - **Admin Duplicate Detection**: Added "Sök dubbletter" button in admin panel for manual duplicate identification
+- **Simplified Data Model**: Removed "difficulty" column from sentences table, keeping only "level" for simplified management
 
 # User Preferences
 
