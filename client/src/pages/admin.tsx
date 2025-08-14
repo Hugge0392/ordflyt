@@ -649,8 +649,6 @@ export default function Admin() {
                   <SelectItem value="1">Nivå 1</SelectItem>
                   <SelectItem value="2">Nivå 2</SelectItem>
                   <SelectItem value="3">Nivå 3</SelectItem>
-                  <SelectItem value="4">Nivå 4</SelectItem>
-                  <SelectItem value="5">Nivå 5</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -888,8 +886,6 @@ export default function Admin() {
                     <SelectItem value="1">Nivå 1</SelectItem>
                     <SelectItem value="2">Nivå 2</SelectItem>
                     <SelectItem value="3">Nivå 3</SelectItem>
-                    <SelectItem value="4">Nivå 4</SelectItem>
-                    <SelectItem value="5">Nivå 5</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -997,8 +993,6 @@ export default function Admin() {
                     <SelectItem value="1">Nivå 1</SelectItem>
                     <SelectItem value="2">Nivå 2</SelectItem>
                     <SelectItem value="3">Nivå 3</SelectItem>
-                    <SelectItem value="4">Nivå 4</SelectItem>
-                    <SelectItem value="5">Nivå 5</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

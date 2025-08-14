@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
     wordClass: string,
     level: number,
   ): Promise<Sentence[]> {
-    // For level 3 and 4, combine sentences without the target word class AND sentences with multiple instances
+    // For level 3 (and level 4 which uses same sentences as level 3), combine sentences without the target word class AND sentences with multiple instances
     if (level === 3 || level === 4) {
       // Get sentences that DON'T have the target word class
       const sentencesWithoutTarget = await db
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
         .from(sentences)
         .where(and(
           isNull(sentences.wordClassType),
-          eq(sentences.level, 1)
+          eq(sentences.level, 3)
         ));
       
       // Filter to only sentences that actually don't contain the target word class
@@ -229,7 +229,7 @@ export class DatabaseStorage implements IStorage {
         .from(sentences)
         .where(and(
           eq(sentences.wordClassType, wordClass),
-          eq(sentences.level, 1)
+          eq(sentences.level, 3)
         ));
       
       // Filter to sentences that have multiple instances of the target word class
