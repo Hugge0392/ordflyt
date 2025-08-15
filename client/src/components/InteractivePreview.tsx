@@ -170,24 +170,22 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         return (
           <div className="max-w-2xl mx-auto">
             <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0 relative">
-                {moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.startsWith('/objects/') ? (
-                  <>
+              <div className="flex-shrink-0">
+                {(moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.startsWith('/objects/')) ? (
+                  <div className="relative">
                     <img 
                       src={moment.config.characterImage} 
                       alt="Character" 
                       className="w-20 h-20 object-cover rounded-full border-2 border-gray-300"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        const fallback = target.nextElementSibling as HTMLDivElement;
-                        target.style.display = 'none';
-                        if (fallback) {
-                          fallback.style.display = 'block';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="text-6xl">👨‍🏫</div>';
                         }
                       }}
                     />
-                    <div className="text-6xl hidden">👨‍🏫</div>
-                  </>
+                  </div>
                 ) : (
                   <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
                 )}
@@ -267,25 +265,31 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         );
 
       case 'sortera-korgar':
+        const availableWords = (moment.config.words || [])
+          .filter((word: string) => !Object.values(categories).flat().includes(word));
+
         return (
           <div className="max-w-4xl mx-auto">
             <h3 className="text-xl font-bold text-center mb-6">{moment.config.instruction || 'Sortera orden'}</h3>
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4 className="font-semibold mb-4">Ord att sortera:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {(moment.config.words || [])
-                    .filter((word: string) => !Object.values(categories).flat().includes(word))
-                    .map((word: string, i: number) => (
+                <div className="flex flex-wrap gap-2 min-h-[100px] p-4 border rounded-lg bg-gray-50">
+                  {availableWords.map((word: string, i: number) => (
                     <div
-                      key={i}
+                      key={`word-${i}`}
                       draggable
                       onDragStart={() => handleDragStart(word)}
-                      className="bg-blue-500 text-white px-3 py-2 rounded cursor-move hover:bg-blue-600 transition-colors"
+                      className="bg-blue-500 text-white px-3 py-2 rounded cursor-move hover:bg-blue-600 transition-colors select-none"
                     >
                       {word}
                     </div>
                   ))}
+                  {availableWords.length === 0 && (
+                    <div className="text-gray-400 italic w-full text-center py-8">
+                      Alla ord är sorterade!
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -293,22 +297,31 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                 <div className="space-y-3">
                   {(moment.config.categories || []).map((category: string, i: number) => (
                     <div
-                      key={i}
+                      key={`category-${i}`}
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => handleDrop(category)}
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-16 hover:border-blue-300 transition-colors"
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDrop(category);
+                      }}
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-[80px] hover:border-blue-300 transition-colors bg-white"
                     >
                       <div className="font-medium text-gray-600 mb-2">{category}</div>
                       <div className="flex flex-wrap gap-1">
                         {categories[category]?.map((word: string, wordIndex: number) => (
                           <span
-                            key={wordIndex}
+                            key={`sorted-${wordIndex}`}
                             onClick={() => removeWordFromCategory(category, wordIndex)}
-                            className="bg-green-500 text-white text-sm px-2 py-1 rounded cursor-pointer hover:bg-green-600"
+                            className="bg-green-500 text-white text-sm px-2 py-1 rounded cursor-pointer hover:bg-green-600 transition-colors"
+                            title="Klicka för att ta bort"
                           >
                             {word} ×
                           </span>
                         ))}
+                        {(!categories[category] || categories[category].length === 0) && (
+                          <div className="text-gray-400 italic text-sm">
+                            Dra ord hit
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -318,6 +331,64 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
             <div className="text-center mt-6">
               <Button onClick={onNext}>Fortsätt</Button>
             </div>
+          </div>
+        );
+
+      case 'korsord':
+        const crosswordGrid = moment.config.grid || [];
+        const gridSize = 15;
+        
+        return (
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">Korsord</h3>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Grid */}
+              <div className="flex justify-center">
+                <div className="grid gap-0.5 max-w-md" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
+                  {Array.from({ length: gridSize * gridSize }).map((_, index) => {
+                    const x = index % gridSize;
+                    const y = Math.floor(index / gridSize);
+                    const cell = crosswordGrid.find((c: any) => c.x === x && c.y === y);
+                    
+                    return (
+                      <div
+                        key={`${x}-${y}`}
+                        className={`w-6 h-6 border border-gray-300 text-xs flex items-center justify-center relative ${
+                          cell ? 'bg-white font-bold' : 'bg-gray-200'
+                        }`}
+                      >
+                        {cell?.letter}
+                        {cell?.number && (
+                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none">
+                            {cell.number}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Clues */}
+              <div className="text-left">
+                <h4 className="font-semibold mb-4">Ledtrådar:</h4>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {(moment.config.clues || []).map((clue: any, i: number) => (
+                    <div key={i} className="p-2 border rounded">
+                      <div className="font-medium">
+                        {i + 1}. {clue.question}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        ({clue.answer.length} bokstäver)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <Button onClick={onNext} className="mt-6">Fortsätt</Button>
           </div>
         );
 

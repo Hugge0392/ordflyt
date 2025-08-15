@@ -65,11 +65,15 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     let entityDir = this.getPrivateObjectDir();
-    if (!entityDir.endsWith("/")) {
-      entityDir = `${entityDir}/`;
+    
+    // Remove leading slash if present for consistency
+    if (entityDir.startsWith("/")) {
+      entityDir = entityDir.slice(1);
     }
-    const objectEntityPath = `${entityDir}${entityId}`;
-    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    
+    // Construct full object path
+    const fullObjectPath = `/${entityDir}/${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(fullObjectPath);
     const bucket = objectStorageClient.bucket(bucketName);
     const objectFile = bucket.file(objectName);
     const [exists] = await objectFile.exists();
@@ -113,17 +117,25 @@ export class ObjectStorageService {
     const url = new URL(rawPath);
     const rawObjectPath = url.pathname;
 
-    let objectEntityDir = this.getPrivateObjectDir();
-    if (!objectEntityDir.endsWith("/")) {
-      objectEntityDir = `${objectEntityDir}/`;
-    }
-
-    if (!rawObjectPath.startsWith(objectEntityDir)) {
+    // Extract bucket name and object path
+    const pathParts = rawObjectPath.split('/');
+    if (pathParts.length < 3) {
       return rawObjectPath;
     }
 
-    const entityId = rawObjectPath.slice(objectEntityDir.length);
-    return `/objects/${entityId}`;
+    // Remove leading empty string and bucket name
+    const objectPath = pathParts.slice(2).join('/');
+    
+    // Check if this is in our private directory
+    const privateDir = this.getPrivateObjectDir().replace(/^\//, ''); // Remove leading slash
+    
+    if (objectPath.startsWith(privateDir)) {
+      // Remove the private directory prefix to get the entity ID
+      const entityId = objectPath.slice(privateDir.length + 1); // +1 for the slash
+      return `/objects/${entityId}`;
+    }
+
+    return `/objects/${objectPath}`;
   }
 }
 
