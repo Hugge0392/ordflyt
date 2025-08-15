@@ -186,6 +186,24 @@ export default function Menu() {
           </div>
         </section>
 
+        {/* New Pirate Course Section */}
+        <section className="mb-16">
+          <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl shadow-xl p-8 text-white">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🏴‍☠️</div>
+              <h2 className="text-2xl font-bold mb-4">Piraternas Substantivkurs</h2>
+              <p className="text-amber-100 mb-6">
+                Ett helt nytt äventyr med pirater! Lär dig substantiv genom interaktiva övningar på 3 nivåer.
+              </p>
+              <Link href="/pirate-course">
+                <button className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold hover:bg-orange-50 transition-colors text-lg">
+                  🚢 Starta piratäventyret!
+                </button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Admin Panel Section */}
         <section className="mb-16">
           <div className="max-w-md mx-auto">
