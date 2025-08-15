@@ -14,6 +14,14 @@ import { CrosswordBuilder } from "@/components/CrosswordBuilder";
 import { CharacterLibrary } from "@/components/CharacterLibrary";
 import { LessonTemplates } from "@/components/LessonTemplates";
 import { LessonValidator } from "@/components/LessonValidator";
+import { 
+  OrdracetConfigurator, 
+  MeningPusselConfigurator, 
+  GissaOrdetConfigurator, 
+  RimSpelConfigurator, 
+  SynonymerConfigurator, 
+  QuizConfigurator 
+} from "@/components/GameConfigurators";
 
 interface LessonMoment {
   id: string;
@@ -39,7 +47,23 @@ const MOMENT_TYPES = [
   { id: 'fyll-mening', name: 'Fyll i meningen', icon: '✍️', description: 'Dra ord till rätt plats' },
   { id: 'dra-ord', name: 'Dra ord', icon: '↔️', description: 'Dra och släpp övning' },
   { id: 'ordmoln', name: 'Ordmoln', icon: '☁️', description: 'Interaktivt ordmoln' },
-  { id: 'sortera-korgar', name: 'Sortera i korgar', icon: '🗂️', description: 'Sortera ord i olika kategorier' }
+  { id: 'sortera-korgar', name: 'Sortera i korgar', icon: '🗂️', description: 'Sortera ord i olika kategorier' },
+  { id: 'ordracet', name: 'Ordracet', icon: '🏃‍♂️', description: 'Snabbt spel där ord regnar från himlen' },
+  { id: 'mening-pussel', name: 'Meningspussel', icon: '🧩', description: 'Sätt ihop meningar från orddelar' },
+  { id: 'gissa-ordet', name: 'Gissa ordet', icon: '🎯', description: 'Gissa ord från ledtrådar' },
+  { id: 'rim-spel', name: 'Rimspel', icon: '🎵', description: 'Hitta ord som rimmar' },
+  { id: 'synonymer', name: 'Synonymer', icon: '🔄', description: 'Matcha ord med samma betydelse' },
+  { id: 'motsatser', name: 'Motsatser', icon: '⚖️', description: 'Hitta ord med motsatt betydelse' },
+  { id: 'ordkedja', name: 'Ordkedja', icon: '🔗', description: 'Bygg en kedja av relaterade ord' },
+  { id: 'bokstavs-jakt', name: 'Bokstavsjakt', icon: '🔤', description: 'Hitta ord som börjar med viss bokstav' },
+  { id: 'ordlangd', name: 'Ordlängd', icon: '📏', description: 'Sortera ord efter antal bokstäver' },
+  { id: 'bild-ord', name: 'Bild och ord', icon: '🖼️', description: 'Matcha bilder med rätt ord' },
+  { id: 'stavning', name: 'Stavning', icon: '🔤', description: 'Stava ord korrekt' },
+  { id: 'ordbok', name: 'Ordbok', icon: '📚', description: 'Slå upp ord och lär betydelser' },
+  { id: 'berattelse', name: 'Berättelse', icon: '📖', description: 'Interaktiv berättelse med val' },
+  { id: 'quiz', name: 'Quiz', icon: '❓', description: 'Flervalsfrågor om grammatik' },
+  { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
+  { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' }
 ];
 
 const WORD_CLASSES = [
@@ -99,6 +123,38 @@ export default function LessonBuilder() {
         return { words: [], theme: '', size: 'medium' };
       case 'sortera-korgar':
         return { words: [], categories: [], instruction: '' };
+      case 'ordracet':
+        return { words: [], speed: 'medium', duration: 60, theme: '' };
+      case 'mening-pussel':
+        return { sentences: [], difficulty: 'easy' };
+      case 'gissa-ordet':
+        return { words: [], clues: [], maxGuesses: 3 };
+      case 'rim-spel':
+        return { words: [], instruction: 'Hitta ord som rimmar' };
+      case 'synonymer':
+        return { wordPairs: [], instruction: 'Matcha ord med samma betydelse' };
+      case 'motsatser':
+        return { wordPairs: [], instruction: 'Hitta motsatser' };
+      case 'ordkedja':
+        return { startWord: '', categories: [], chainLength: 5 };
+      case 'bokstavs-jakt':
+        return { letters: [], words: [], timeLimit: 30 };
+      case 'ordlangd':
+        return { words: [], instruction: 'Sortera efter antal bokstäver' };
+      case 'bild-ord':
+        return { pairs: [], instruction: 'Matcha bild med ord' };
+      case 'stavning':
+        return { words: [], difficulty: 'easy', allowHints: true };
+      case 'ordbok':
+        return { words: [], showDefinitions: true };
+      case 'berattelse':
+        return { story: '', choices: [], outcomes: [] };
+      case 'quiz':
+        return { questions: [], timeLimit: 0, randomOrder: true };
+      case 'ljudspel':
+        return { words: [], audioType: 'pronunciation' };
+      case 'ordform':
+        return { baseWords: [], forms: [], instruction: 'Böj orden korrekt' };
       default:
         return {};
     }
@@ -679,6 +735,134 @@ export default function LessonBuilder() {
           </div>
         );
 
+      case 'ordracet':
+        return <OrdracetConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'mening-pussel':
+        return <MeningPusselConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'gissa-ordet':
+        return <GissaOrdetConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'rim-spel':
+        return <RimSpelConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'synonymer':
+        return <SynonymerConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'motsatser':
+        return <SynonymerConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'quiz':
+        return <QuizConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'ordkedja':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Startord</Label>
+              <Input
+                value={moment.config.startWord}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, startWord: e.target.value })}
+                placeholder="katt"
+              />
+            </div>
+            <div>
+              <Label>Kedjelängd</Label>
+              <Input
+                type="number"
+                value={moment.config.chainLength || 5}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, chainLength: parseInt(e.target.value) })}
+              />
+            </div>
+          </div>
+        );
+
+      case 'bokstavs-jakt':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Bokstäver att jaga (separerade med komma)</Label>
+              <Input
+                value={(moment.config.letters || []).join(', ')}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, letters: e.target.value.split(',').map(l => l.trim()) })}
+                placeholder="A, B, K, S"
+              />
+            </div>
+            <div>
+              <Label>Tidsgräns (sekunder)</Label>
+              <Input
+                type="number"
+                value={moment.config.timeLimit || 30}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, timeLimit: parseInt(e.target.value) })}
+              />
+            </div>
+          </div>
+        );
+
+      case 'stavning':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord att stava (ett per rad)</Label>
+              <Textarea
+                value={(moment.config.words || []).join('\n')}
+                onChange={(e) => {
+                  const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="katt\nhund\nbil"
+                className="min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label>Tillåt ledtrådar</Label>
+              <Select
+                value={moment.config.allowHints ? 'true' : 'false'}
+                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, allowHints: value === 'true' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Ja</SelectItem>
+                  <SelectItem value="false">Nej</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'berattelse':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Berättelse</Label>
+              <Textarea
+                value={moment.config.story}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, story: e.target.value })}
+                placeholder="Det var en gång en katt som..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <Label>Val och utfall (format: val|utfall, ett per rad)</Label>
+              <Textarea
+                value={(moment.config.choices || []).map((choice: any) => `${choice.text}|${choice.outcome}`).join('\n')}
+                onChange={(e) => {
+                  const choices = e.target.value.split('\n').filter(line => line.includes('|')).map(line => {
+                    const [text, outcome] = line.split('|');
+                    return { text: text?.trim() || '', outcome: outcome?.trim() || '' };
+                  });
+                  updateMomentConfig(moment.id, { ...moment.config, choices });
+                }}
+                placeholder="Gå till höger|Du hittar en skattkista\nGå till vänster|Du möter en drake"
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+        );
+
       default:
         return <p className="text-gray-500">Konfiguration för {moment.type} kommer snart...</p>;
     }
@@ -953,11 +1137,23 @@ export default function LessonBuilder() {
                     <div className="text-4xl mb-4">📝</div>
                     <h3 className="text-lg font-medium mb-2">Skapa din första lektion</h3>
                     <p className="mb-4">Välj moment från vänstra menyn eller använd en färdig mall</p>
-                    <div className="flex justify-center space-x-4">
+                    <div className="space-y-4">
                       <LessonTemplates onSelectTemplate={loadFromTemplate} />
-                      <Button variant="outline" onClick={() => addMoment('pratbubbla')}>
-                        💬 Börja med pratbubbla
-                      </Button>
+                      <div className="text-sm text-gray-600">eller välj ett moment nedan:</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant="outline" size="sm" onClick={() => addMoment('ordracet')}>
+                          🏃‍♂️ Ordracet
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => addMoment('quiz')}>
+                          ❓ Quiz
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => addMoment('pratbubbla')}>
+                          💬 Pratbubbla
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => addMoment('gissa-ordet')}>
+                          🎯 Gissa ordet
+                        </Button>
+                      </div>
                     </div>
 
                   </div>

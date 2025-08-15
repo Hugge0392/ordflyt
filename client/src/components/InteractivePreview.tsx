@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { 
+  OrdracetPreview, 
+  MeningPusselPreview, 
+  GissaOrdetPreview, 
+  QuizPreview, 
+  RimSpelPreview, 
+  BeratttelsePreview 
+} from "@/components/GamePreviews";
 
 interface MemoryCard {
   id: string;
@@ -442,6 +450,74 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
             </div>
             
             <Button onClick={onNext} className="mt-6">Fortsätt</Button>
+          </div>
+        );
+
+      case 'ordracet':
+        return <OrdracetPreview moment={moment} onNext={onNext} />;
+
+      case 'mening-pussel':
+        return <MeningPusselPreview moment={moment} onNext={onNext} />;
+
+      case 'gissa-ordet':
+        return <GissaOrdetPreview moment={moment} onNext={onNext} />;
+
+      case 'quiz':
+        return <QuizPreview moment={moment} onNext={onNext} />;
+
+      case 'rim-spel':
+        return <RimSpelPreview moment={moment} onNext={onNext} />;
+
+      case 'berattelse':
+        return <BeratttelsePreview moment={moment} onNext={onNext} />;
+
+      case 'synonymer':
+      case 'motsatser':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">
+              {moment.type === 'synonymer' ? '🔄 Synonymer' : '⚖️ Motsatser'}
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <p className="mb-4">{moment.config.instruction}</p>
+              <div className="grid grid-cols-2 gap-4">
+                {(moment.config.wordPairs || []).slice(0, 4).map((pair: any, i: number) => (
+                  <div key={i} className="space-y-2">
+                    <Button variant="outline" className="w-full">
+                      {pair.word1 || 'ord1'}
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      {pair.word2 || 'ord2'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button onClick={onNext}>Fortsätt</Button>
+          </div>
+        );
+
+      case 'stavning':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">🔤 Stavning</h3>
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <p className="text-lg mb-4">Stava ordet:</p>
+              <div className="text-2xl font-bold mb-4 text-blue-600">
+                {moment.config.words?.[0] || 'EXEMPEL'}
+              </div>
+              <input 
+                type="text" 
+                className="border-2 border-gray-300 rounded-lg p-3 text-xl text-center w-64"
+                placeholder="Skriv ordet här..."
+              />
+              {moment.config.allowHints && (
+                <div className="mt-4">
+                  <Button variant="outline" size="sm">💡 Ledtråd</Button>
+                </div>
+              )}
+            </div>
+            <Button onClick={onNext}>Fortsätt</Button>
           </div>
         );
 
