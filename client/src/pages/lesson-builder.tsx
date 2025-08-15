@@ -1062,10 +1062,17 @@ export default function LessonBuilder() {
 
               {/* Current moment preview */}
               <div className="min-h-96 bg-gray-50 rounded-lg p-8">
-                <InteractivePreview 
-                  moment={currentLesson.moments[currentPreviewMoment]}
-                  onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
-                />
+                {currentLesson.moments[currentPreviewMoment] ? (
+                  <InteractivePreview 
+                    moment={currentLesson.moments[currentPreviewMoment]}
+                    onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500 py-12">
+                    <div className="text-4xl mb-4">📝</div>
+                    <p>Inget moment att visa</p>
+                  </div>
+                )}
               </div>
 
               {/* Navigation */}

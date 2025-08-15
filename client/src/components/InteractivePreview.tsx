@@ -15,6 +15,14 @@ interface InteractivePreviewProps {
 }
 
 export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) {
+  if (!moment) {
+    return (
+      <div className="text-center text-gray-500 py-12">
+        <div className="text-4xl mb-4">⚠️</div>
+        <p>Inget moment att visa</p>
+      </div>
+    );
+  }
   const [currentText, setCurrentText] = useState("");
   const [textIndex, setTextIndex] = useState(0);
   const [selectedWords, setSelectedWords] = useState<number[]>([]);
@@ -153,6 +161,15 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
   };
 
   const renderMoment = () => {
+    if (!moment || !moment.type) {
+      return (
+        <div className="text-center text-gray-500 py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p>Moment saknas eller är felaktigt konfigurerat</p>
+        </div>
+      );
+    }
+
     switch(moment.type) {
       case 'textruta':
         return (
