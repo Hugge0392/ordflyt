@@ -13,6 +13,9 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Level 4 Final Exam**: Former level 5 is now level 4, combining level 3 mechanics with timer and 5-star scoring
 - **Question Limits & Error System**: Implemented exact question limits per level (10 for levels 1-3, 15 for level 4) with random selection from question bank and level restart after 3 mistakes
 - **Admin Panel Consistency**: Limited admin interface to levels 1-3 for content creation, maintaining system consistency where database stores 1-3, players see 1-4
+- **Object Storage Integration**: Fully implemented image upload system with automatic fallback for failed images
+- **Character Library**: Added visual character selection library with custom pirate character and emoji options for pratbubbla moments
+- **Lesson Builder UX**: Improved memory creation with input boxes instead of complex text areas, and specific target word selection for ordklass exercises
 
 # User Preferences
 

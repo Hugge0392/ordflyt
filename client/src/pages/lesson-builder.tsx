@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
 import { CrosswordBuilder } from "@/components/CrosswordBuilder";
+import { CharacterLibrary } from "@/components/CharacterLibrary";
 
 interface LessonMoment {
   id: string;
@@ -181,11 +182,9 @@ export default function LessonBuilder() {
               />
             </div>
             <div>
-              <Label>Figurbild</Label>
-              <ImageUploader
+              <CharacterLibrary
                 currentImage={moment.config.characterImage}
-                onImageUploaded={(url) => updateMomentConfig(moment.id, { ...moment.config, characterImage: url })}
-                placeholder="Välj figur för pratbubblan"
+                onCharacterSelect={(imageUrl) => updateMomentConfig(moment.id, { ...moment.config, characterImage: imageUrl })}
               />
             </div>
             <div>
