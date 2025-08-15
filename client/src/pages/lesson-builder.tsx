@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 
@@ -51,6 +51,8 @@ export default function LessonBuilder() {
   const [draggedMoment, setDraggedMoment] = useState<string | null>(null);
   const [editingMoment, setEditingMoment] = useState<LessonMoment | null>(null);
   const [showMomentDialog, setShowMomentDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -84,9 +86,9 @@ export default function LessonBuilder() {
       case 'dra-ord':
         return { words: [], targets: [] };
       case 'ordmoln':
-        return { words: [], theme: '' };
+        return { words: [], theme: '', size: 'medium' };
       case 'sortera-korgar':
-        return { words: [], categories: [] };
+        return { words: [], categories: [], instruction: '' };
       default:
         return {};
     }
@@ -300,20 +302,141 @@ export default function LessonBuilder() {
         return (
           <div className="space-y-4">
             <div>
+              <Label>Instruktion till eleven</Label>
+              <Input
+                value={moment.config.instruction}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="Sortera orden i rätt korgar"
+              />
+            </div>
+            <div>
               <Label>Ord att sortera (kommaseparerade)</Label>
               <Textarea
                 value={moment.config.words.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()) })}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
                 placeholder="hund, springa, blå, snabbt, jag, under"
                 className="min-h-[80px]"
               />
             </div>
             <div>
-              <Label>Kategorier (kommaseparerade)</Label>
+              <Label>Kategorier/korgar (kommaseparerade)</Label>
               <Input
                 value={moment.config.categories.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, categories: e.target.value.split(',').map(s => s.trim()) })}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, categories: e.target.value.split(',').map(s => s.trim()).filter(c => c) })}
                 placeholder="Substantiv, Verb, Adjektiv"
+              />
+            </div>
+          </div>
+        );
+
+      case 'ordmoln':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord för ordmolnet (kommaseparerade)</Label>
+              <Textarea
+                value={moment.config.words.join(', ')}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
+                placeholder="substantiv, djur, hus, bil, katt, hund, bok, stol"
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <Label>Tema/kategori</Label>
+              <Input
+                value={moment.config.theme}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, theme: e.target.value })}
+                placeholder="T.ex. Substantiv, Djur, Föremål"
+              />
+            </div>
+            <div>
+              <Label>Storlek</Label>
+              <Select
+                value={moment.config.size}
+                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, size: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Liten</SelectItem>
+                  <SelectItem value="medium">Medel</SelectItem>
+                  <SelectItem value="large">Stor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'korsord':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Korsordsfrågor (fråga|svar, en per rad)</Label>
+              <Textarea
+                value={moment.config.clues.map((clue: any) => `${clue.question}|${clue.answer}`).join('\n')}
+                onChange={(e) => {
+                  const clues = e.target.value.split('\n').filter(line => line.trim()).map(line => {
+                    const [question, answer] = line.split('|');
+                    return { question: question?.trim() || '', answer: answer?.trim() || '' };
+                  });
+                  updateMomentConfig(moment.id, { ...moment.config, clues });
+                }}
+                placeholder="Ett djur som säger vov|HUND&#10;Något man kör|BIL&#10;En färg som blod|RÖD"
+                className="min-h-[120px]"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Bredd (rutor)</Label>
+                <Input
+                  type="number"
+                  value={moment.config.size?.width || 10}
+                  onChange={(e) => updateMomentConfig(moment.id, { 
+                    ...moment.config, 
+                    size: { ...moment.config.size, width: parseInt(e.target.value) || 10 }
+                  })}
+                  placeholder="10"
+                  min="5"
+                  max="15"
+                />
+              </div>
+              <div>
+                <Label>Höjd (rutor)</Label>
+                <Input
+                  type="number"
+                  value={moment.config.size?.height || 10}
+                  onChange={(e) => updateMomentConfig(moment.id, { 
+                    ...moment.config, 
+                    size: { ...moment.config.size, height: parseInt(e.target.value) || 10 }
+                  })}
+                  placeholder="10"
+                  min="5"
+                  max="15"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'dra-ord':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord att dra (kommaseparerade)</Label>
+              <Textarea
+                value={moment.config.words.join(', ')}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
+                placeholder="hund, katt, bil, hus"
+                className="min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label>Målområden (kommaseparerade)</Label>
+              <Input
+                value={moment.config.targets.join(', ')}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, targets: e.target.value.split(',').map(s => s.trim()).filter(t => t) })}
+                placeholder="Djur, Föremål"
               />
             </div>
           </div>
@@ -321,6 +444,144 @@ export default function LessonBuilder() {
 
       default:
         return <p className="text-gray-500">Konfiguration för {moment.type} kommer snart...</p>;
+    }
+  };
+
+  const renderPreviewMoment = (moment: LessonMoment) => {
+    switch(moment.type) {
+      case 'textruta':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
+              <p className="text-lg mb-6 leading-relaxed">{moment.config.text || 'Här kommer texten...'}</p>
+              <Button>{moment.config.buttonText || 'Nästa'}</Button>
+            </div>
+          </div>
+        );
+
+      case 'pratbubbla':
+        return (
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-start space-x-4">
+              <div className="text-6xl">
+                {moment.config.characterImage || '👨‍🏫'}
+              </div>
+              <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
+                <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
+                <p className="text-lg">{moment.config.text || 'Här kommer pratbubblan...'}</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'memory':
+        return (
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">Memory - {moment.config.difficulty}</h3>
+            <div className="grid grid-cols-4 gap-4">
+              {Array.from({length: moment.config.difficulty === 'easy' ? 8 : moment.config.difficulty === 'medium' ? 12 : 16}).map((_, i) => (
+                <div key={i} className="bg-blue-500 rounded-lg h-20 flex items-center justify-center text-white font-bold">
+                  ?
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'finns-ordklass':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
+            <div className="bg-gray-50 border rounded-lg p-6">
+              <p className="text-lg leading-relaxed">
+                {(moment.config.text || 'Här kommer texten...').split(' ').map((word, i) => (
+                  <span key={i} className="hover:bg-yellow-200 cursor-pointer px-1 py-0.5 rounded">
+                    {word}{' '}
+                  </span>
+                ))}
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'sortera-korgar':
+        return (
+          <div className="max-w-4xl mx-auto">
+            <h3 className="text-xl font-bold text-center mb-6">{moment.config.instruction || 'Sortera orden'}</h3>
+            <div className="grid grid-cols-2 gap-8">
+              <div>
+                <h4 className="font-semibold mb-4">Ord att sortera:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {(moment.config.words || []).map((word: string, i: number) => (
+                    <div key={i} className="bg-blue-500 text-white px-3 py-2 rounded cursor-move">
+                      {word}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Korgar:</h4>
+                <div className="space-y-3">
+                  {(moment.config.categories || []).map((category: string, i: number) => (
+                    <div key={i} className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-16">
+                      <div className="font-medium text-gray-600">{category}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ordmoln':
+        return (
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">Ordmoln: {moment.config.theme || 'Tema'}</h3>
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-8 min-h-64 flex items-center justify-center">
+              <div className="flex flex-wrap justify-center gap-3">
+                {(moment.config.words || []).map((word: string, i: number) => (
+                  <span 
+                    key={i} 
+                    className="bg-white border-2 border-blue-300 px-4 py-2 rounded-full font-semibold hover:bg-blue-100 cursor-pointer"
+                    style={{fontSize: `${Math.random() * 8 + 12}px`}}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'korsord':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">Korsord</h3>
+            <div className="bg-white border rounded-lg p-6">
+              <div className="grid grid-cols-10 gap-1 mb-6">
+                {Array.from({length: 100}).map((_, i) => (
+                  <div key={i} className="w-6 h-6 border border-gray-300 bg-gray-50"></div>
+                ))}
+              </div>
+              <div className="text-left">
+                <h4 className="font-semibold mb-2">Ledtrådar:</h4>
+                {(moment.config.clues || []).map((clue: any, i: number) => (
+                  <div key={i} className="text-sm mb-1">
+                    {i + 1}. {clue.question}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="text-center text-gray-500">
+            <div className="text-4xl mb-4">🚧</div>
+            <p>Förhandsvisning för {moment.title} kommer snart</p>
+          </div>
+        );
     }
   };
 
@@ -337,8 +598,14 @@ export default function LessonBuilder() {
               <h1 className="text-2xl font-bold text-gray-900">Lektionsbyggare</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline">Förhandsgranska</Button>
-              <Button>Spara lektion</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreview(true)}
+                disabled={currentLesson.moments.length === 0}
+              >
+                👁️ Förhandsgranska
+              </Button>
+              <Button>💾 Spara lektion</Button>
             </div>
           </div>
         </div>
@@ -457,6 +724,9 @@ export default function LessonBuilder() {
                                 <DialogContent className="max-w-2xl">
                                   <DialogHeader>
                                     <DialogTitle>Konfigurera: {moment.title}</DialogTitle>
+                                    <DialogDescription>
+                                      Ställ in inställningar för detta moment
+                                    </DialogDescription>
                                   </DialogHeader>
                                   <div className="mt-4">
                                     {renderMomentConfig(moment)}
@@ -481,6 +751,88 @@ export default function LessonBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Förhandsvisning: {currentLesson.title}</DialogTitle>
+            <DialogDescription>
+              Så här kommer lektionen att se ut för eleverna
+            </DialogDescription>
+          </DialogHeader>
+          
+          {currentLesson.moments.length > 0 && (
+            <div className="space-y-6">
+              {/* Progress bar */}
+              <div className="flex items-center space-x-4">
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${((currentPreviewMoment + 1) / currentLesson.moments.length) * 100}%`
+                    }}
+                  ></div>
+                </div>
+                <span className="text-sm text-gray-600">
+                  {currentPreviewMoment + 1} / {currentLesson.moments.length}
+                </span>
+              </div>
+
+              {/* Current moment preview */}
+              <div className="min-h-96 bg-gray-50 rounded-lg p-8">
+                {renderPreviewMoment(currentLesson.moments[currentPreviewMoment])}
+              </div>
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPreviewMoment(Math.max(0, currentPreviewMoment - 1))}
+                  disabled={currentPreviewMoment === 0}
+                >
+                  ← Föregående
+                </Button>
+                
+                <div className="text-center">
+                  <h4 className="font-semibold">
+                    {currentLesson.moments[currentPreviewMoment]?.title}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {MOMENT_TYPES.find(t => t.id === currentLesson.moments[currentPreviewMoment]?.type)?.description}
+                  </p>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
+                  disabled={currentPreviewMoment === currentLesson.moments.length - 1}
+                >
+                  Nästa →
+                </Button>
+              </div>
+
+              {/* Quick jump to moments */}
+              <div className="border-t pt-4">
+                <div className="text-sm font-semibold mb-2">Hoppa till moment:</div>
+                <div className="flex flex-wrap gap-2">
+                  {currentLesson.moments.map((moment, index) => (
+                    <Button
+                      key={moment.id}
+                      variant={currentPreviewMoment === index ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPreviewMoment(index)}
+                      className="text-xs"
+                    >
+                      {index + 1}. {MOMENT_TYPES.find(t => t.id === moment.type)?.icon} {moment.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
