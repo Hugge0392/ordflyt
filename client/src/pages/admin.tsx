@@ -574,12 +574,20 @@ export default function Admin() {
       <header className="bg-white shadow-sm border-b-2 border-primary/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/">
-              <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
-                <i className="fas fa-arrow-left"></i>
-                <span>Tillbaka till spel</span>
-              </button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/lesson-builder">
+                <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors flex items-center space-x-2">
+                  <span>🎯</span>
+                  <span>Lektionsbyggare</span>
+                </button>
+              </Link>
+              <Link href="/">
+                <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+                  <i className="fas fa-arrow-left"></i>
+                  <span>Tillbaka till spel</span>
+                </button>
+              </Link>
+            </div>
             
             <h1 className="text-3xl font-bold text-gray-900">Adminpanel</h1>
             
