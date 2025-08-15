@@ -242,30 +242,44 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'finns-ordklass':
         const targetWords = moment.config.targetWords || [];
-        const textWords = (moment.config.text || 'Här kommer texten...').split(' ');
+        const fullText = moment.config.text || 'Här kommer texten...';
+        
+        // Split text into words and punctuation
+        const textParts = fullText.split(/(\s+)/).filter(part => part.length > 0);
+        let wordIndex = 0;
         
         return (
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
             <div className="bg-gray-50 border rounded-lg p-6 mb-6">
               <p className="text-lg leading-relaxed">
-                {textWords.map((word: string, i: number) => {
-                  const cleanWord = word.replace(/[.,!?;:]$/, ''); // Remove punctuation for comparison
+                {textParts.map((part: string, i: number) => {
+                  // Skip whitespace parts
+                  if (/^\s+$/.test(part)) {
+                    return <span key={i}>{part}</span>;
+                  }
+                  
+                  const cleanWord = part.replace(/[.,!?;:]*$/, ''); // Remove trailing punctuation
+                  const punctuation = part.slice(cleanWord.length); // Get the punctuation
                   const isTarget = targetWords.includes(cleanWord);
-                  const isSelected = selectedWords.includes(i);
+                  const isSelected = selectedWords.includes(wordIndex);
+                  const currentWordIndex = wordIndex;
+                  wordIndex++;
                   
                   return (
-                    <span 
-                      key={i} 
-                      onClick={() => handleWordClick(i)}
-                      className={`cursor-pointer px-1 py-0.5 rounded transition-colors ${
-                        isSelected 
-                          ? (isTarget ? 'bg-green-300' : 'bg-red-300')
-                          : (isTarget ? 'hover:bg-green-100' : 'hover:bg-yellow-100')
-                      }`}
-                      title={isTarget ? 'Rätt ord att klicka på' : ''}
-                    >
-                      {word}{' '}
+                    <span key={i}>
+                      <span 
+                        onClick={() => handleWordClick(currentWordIndex)}
+                        className={`cursor-pointer px-1 py-0.5 rounded transition-colors ${
+                          isSelected 
+                            ? (isTarget ? 'bg-green-300' : 'bg-red-300')
+                            : (isTarget ? 'hover:bg-green-100' : 'hover:bg-yellow-100')
+                        }`}
+                        title={isTarget ? 'Rätt ord att klicka på' : ''}
+                      >
+                        {cleanWord}
+                      </span>
+                      {punctuation && <span className="text-gray-600">{punctuation}</span>}
                     </span>
                   );
                 })}
@@ -274,8 +288,11 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
             {targetWords.length > 0 && (
               <div className="mb-4 text-sm text-gray-600">
                 <p>Hittat: {selectedWords.filter(i => {
-                  const word = textWords[i]?.replace(/[.,!?;:]$/, '');
-                  return targetWords.includes(word);
+                  // Rebuild word array for counting
+                  const words = fullText.split(/(\s+)/)
+                    .filter(part => part.length > 0 && !/^\s+$/.test(part))
+                    .map(word => word.replace(/[.,!?;:]*$/, ''));
+                  return targetWords.includes(words[i]);
                 }).length} / {targetWords.length}</p>
               </div>
             )}
