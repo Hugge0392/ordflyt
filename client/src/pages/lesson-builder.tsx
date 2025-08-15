@@ -204,16 +204,75 @@ export default function LessonBuilder() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Ordpar (ett par per rad, separerade med |)</Label>
-              <Textarea
-                value={moment.config.wordPairs.join('\n')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, wordPairs: e.target.value.split('\n').filter(line => line.trim()) })}
-                placeholder="hund|djur\nbil|fordon\nrött|färg"
-                className="min-h-[120px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Tryck Enter för ny rad. Format: första_ordet|andra_ordet
+              <Label>Minnespar - Lägg till ord</Label>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <Label className="text-sm">Första ordet</Label>
+                  <Input
+                    placeholder="t.ex. hund"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const word1 = e.currentTarget.value.trim();
+                        const word2Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:last-child') as HTMLInputElement;
+                        const word2 = word2Input?.value.trim();
+                        
+                        if (word1 && word2) {
+                          const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                          e.currentTarget.value = '';
+                          word2Input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Andra ordet</Label>
+                  <Input
+                    placeholder="t.ex. djur"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const word2 = e.currentTarget.value.trim();
+                        const word1Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:first-child') as HTMLInputElement;
+                        const word1 = word1Input?.value.trim();
+                        
+                        if (word1 && word2) {
+                          const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                          e.currentTarget.value = '';
+                          word1Input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <Label className="text-sm font-medium">Skapade par:</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {(moment.config.wordPairs || []).map((pair: string, index: number) => {
+                    const [word1, word2] = pair.split('|');
+                    return (
+                      <div key={index} className="flex justify-between items-center bg-white p-2 rounded border">
+                        <span className="text-sm">{word1} ↔ {word2}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const newPairs = moment.config.wordPairs.filter((_: string, i: number) => i !== index);
+                            updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+                {(!moment.config.wordPairs || moment.config.wordPairs.length === 0) && (
+                  <div className="text-gray-400 text-sm mt-2">Inga par skapade än. Fyll i båda fälten och tryck Enter.</div>
+                )}
               </div>
             </div>
             <div>
@@ -239,16 +298,38 @@ export default function LessonBuilder() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Text där ord ska hittas</Label>
+              <Label>Instruktion</Label>
+              <Input
+                value={moment.config.instruction}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="Klicka på orden: katten, mattan, fisk"
+              />
+            </div>
+            <div>
+              <Label>Text med ord</Label>
               <Textarea
                 value={moment.config.text}
                 onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
-                placeholder="Katten satt på mattan och tittade ut genom fönstret."
+                placeholder="Katten sitter på mattan och äter fisk."
                 className="min-h-[120px]"
               />
             </div>
             <div>
-              <Label>Målordklass</Label>
+              <Label>Ord som ska hittas (kommaseparerade)</Label>
+              <Input
+                value={(moment.config.targetWords || []).join(', ')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  targetWords: e.target.value.split(',').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="katten, mattan, fisk"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange exakt vilka ord som ska klickas på (skiftlägeskänsligt)
+              </div>
+            </div>
+            <div>
+              <Label>Ordklass (för feedback)</Label>
               <Select
                 value={moment.config.targetWordClass}
                 onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, targetWordClass: value })}
@@ -262,14 +343,6 @@ export default function LessonBuilder() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Instruktion</Label>
-              <Input
-                value={moment.config.instruction}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
-                placeholder="Klicka på alla substantiv i texten"
-              />
             </div>
           </div>
         );

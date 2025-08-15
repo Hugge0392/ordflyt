@@ -242,24 +242,44 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         );
 
       case 'finns-ordklass':
+        const targetWords = moment.config.targetWords || [];
+        const textWords = (moment.config.text || 'Här kommer texten...').split(' ');
+        
         return (
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
             <div className="bg-gray-50 border rounded-lg p-6 mb-6">
               <p className="text-lg leading-relaxed">
-                {(moment.config.text || 'Här kommer texten...').split(' ').map((word: string, i: number) => (
-                  <span 
-                    key={i} 
-                    onClick={() => handleWordClick(i)}
-                    className={`cursor-pointer px-1 py-0.5 rounded transition-colors ${
-                      selectedWords.includes(i) ? 'bg-yellow-300' : 'hover:bg-yellow-100'
-                    }`}
-                  >
-                    {word}{' '}
-                  </span>
-                ))}
+                {textWords.map((word: string, i: number) => {
+                  const cleanWord = word.replace(/[.,!?;:]$/, ''); // Remove punctuation for comparison
+                  const isTarget = targetWords.includes(cleanWord);
+                  const isSelected = selectedWords.includes(i);
+                  
+                  return (
+                    <span 
+                      key={i} 
+                      onClick={() => handleWordClick(i)}
+                      className={`cursor-pointer px-1 py-0.5 rounded transition-colors ${
+                        isSelected 
+                          ? (isTarget ? 'bg-green-300' : 'bg-red-300')
+                          : (isTarget ? 'hover:bg-green-100' : 'hover:bg-yellow-100')
+                      }`}
+                      title={isTarget ? 'Rätt ord att klicka på' : ''}
+                    >
+                      {word}{' '}
+                    </span>
+                  );
+                })}
               </p>
             </div>
+            {targetWords.length > 0 && (
+              <div className="mb-4 text-sm text-gray-600">
+                <p>Hittat: {selectedWords.filter(i => {
+                  const word = textWords[i]?.replace(/[.,!?;:]$/, '');
+                  return targetWords.includes(word);
+                }).length} / {targetWords.length}</p>
+              </div>
+            )}
             <Button onClick={onNext}>Fortsätt</Button>
           </div>
         );
