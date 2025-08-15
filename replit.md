@@ -16,6 +16,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Object Storage Integration**: Fully implemented image upload system with automatic fallback for failed images
 - **Character Library**: Added visual character selection library with custom pirate character and emoji options for pratbubbla moments
 - **Lesson Builder UX**: Improved memory creation with input boxes instead of complex text areas, and specific target word selection for ordklass exercises
+- **Comprehensive Lesson Builder**: Major overhaul with lesson templates, validation system, save/load functionality, export capabilities, moment duplication, and enhanced UI
 
 # User Preferences
 

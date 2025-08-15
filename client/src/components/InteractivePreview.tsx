@@ -245,7 +245,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         const fullText = moment.config.text || 'Här kommer texten...';
         
         // Split text into words and punctuation
-        const textParts = fullText.split(/(\s+)/).filter(part => part.length > 0);
+        const textParts = fullText.split(/(\s+)/).filter((part: string) => part.length > 0);
         let wordIndex = 0;
         
         return (
@@ -290,8 +290,8 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                 <p>Hittat: {selectedWords.filter(i => {
                   // Rebuild word array for counting
                   const words = fullText.split(/(\s+)/)
-                    .filter(part => part.length > 0 && !/^\s+$/.test(part))
-                    .map(word => word.replace(/[.,!?;:]*$/, ''));
+                    .filter((part: string) => part.length > 0 && !/^\s+$/.test(part))
+                    .map((word: string) => word.replace(/[.,!?;:]*$/, ''));
                   return targetWords.includes(words[i]);
                 }).length} / {targetWords.length}</p>
               </div>

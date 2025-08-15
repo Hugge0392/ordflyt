@@ -12,6 +12,8 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
 import { CrosswordBuilder } from "@/components/CrosswordBuilder";
 import { CharacterLibrary } from "@/components/CharacterLibrary";
+import { LessonTemplates } from "@/components/LessonTemplates";
+import { LessonValidator } from "@/components/LessonValidator";
 
 interface LessonMoment {
   id: string;
@@ -57,6 +59,10 @@ export default function LessonBuilder() {
   const [showMomentDialog, setShowMomentDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
+  const [savedLessons, setSavedLessons] = useState<Lesson[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -84,7 +90,7 @@ export default function LessonBuilder() {
       case 'korsord':
         return { clues: [], size: { width: 10, height: 10 } };
       case 'finns-ordklass':
-        return { text: '', targetWordClass: '', instruction: '' };
+        return { text: '', targetWordClass: '', instruction: '', targetWords: [] };
       case 'fyll-mening':
         return { sentence: '', blanks: [], options: [] };
       case 'dra-ord':
@@ -133,6 +139,89 @@ export default function LessonBuilder() {
       ...currentLesson,
       moments: currentLesson.moments.filter(m => m.id !== momentId)
     });
+  };
+
+  const duplicateMoment = (momentId: string) => {
+    const momentToDuplicate = currentLesson.moments.find(m => m.id === momentId);
+    if (!momentToDuplicate) return;
+
+    const newMoment: LessonMoment = {
+      ...momentToDuplicate,
+      id: `moment_${Date.now()}`,
+      title: `${momentToDuplicate.title} (kopia)`,
+      order: currentLesson.moments.length
+    };
+
+    setCurrentLesson({
+      ...currentLesson,
+      moments: [...currentLesson.moments, newMoment]
+    });
+  };
+
+  const saveLesson = () => {
+    if (!currentLesson.title.trim()) {
+      alert('Lektionen måste ha en titel');
+      return;
+    }
+
+    const lessonToSave = {
+      ...currentLesson,
+      id: currentLesson.id || `lesson_${Date.now()}`
+    };
+
+    const saved = localStorage.getItem('saved-lessons');
+    const existingLessons = saved ? JSON.parse(saved) : [];
+    const existingIndex = existingLessons.findIndex((l: any) => l.id === lessonToSave.id);
+    
+    if (existingIndex >= 0) {
+      existingLessons[existingIndex] = lessonToSave;
+    } else {
+      existingLessons.push(lessonToSave);
+    }
+
+    localStorage.setItem('saved-lessons', JSON.stringify(existingLessons));
+    setSavedLessons(existingLessons);
+    setCurrentLesson(lessonToSave);
+    
+    alert('Lektionen sparades!');
+  };
+
+  const loadFromTemplate = (template: any) => {
+    const newLesson: Lesson = {
+      id: `lesson_${Date.now()}`,
+      title: template.name,
+      wordClass: template.wordClass,
+      moments: template.moments.map((moment: any, index: number) => ({
+        id: `moment_${Date.now()}_${index}`,
+        ...moment,
+        order: index
+      }))
+    };
+
+    setCurrentLesson(newLesson);
+  };
+
+  const newLesson = () => {
+    if (currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill skapa en ny lektion? Osparade ändringar går förlorade.')) {
+      return;
+    }
+    setCurrentLesson({
+      id: '',
+      wordClass: '',
+      title: '',
+      moments: []
+    });
+  };
+
+  const exportLesson = () => {
+    const dataStr = JSON.stringify(currentLesson, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentLesson.title || 'lektion'}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const updateMomentConfig = (momentId: string, config: any) => {
@@ -753,13 +842,28 @@ export default function LessonBuilder() {
               >
                 👁️ Förhandsgranska
               </Button>
-              <Button>💾 Spara lektion</Button>
+              <div className="flex space-x-2">
+                <LessonTemplates onSelectTemplate={loadFromTemplate} />
+                <Button variant="outline" onClick={newLesson}>🆕 Ny</Button>
+                <Button variant="outline" onClick={() => setShowValidation(!showValidation)}>
+                  ✅ Validera
+                </Button>
+                <Button onClick={saveLesson}>💾 Spara</Button>
+                <Button variant="outline" onClick={exportLesson}>📤 Exportera</Button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto p-6">
+        {/* Validation Panel */}
+        {showValidation && (
+          <div className="mb-6">
+            <LessonValidator lesson={currentLesson} />
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Lesson Settings */}
           <div className="space-y-6">
@@ -793,6 +897,19 @@ export default function LessonBuilder() {
                     placeholder="T.ex. Substantiv - Grunderna"
                   />
                 </div>
+                
+                {currentLesson.moments.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Moment:</span>
+                      <span>{currentLesson.moments.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Beräknad tid:</span>
+                      <span>{Math.max(5, currentLesson.moments.length * 3)} min</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -834,7 +951,15 @@ export default function LessonBuilder() {
                 {currentLesson.moments.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-4">📝</div>
-                    <p>Börja bygga din lektion genom att lägga till moment från vänster panel</p>
+                    <h3 className="text-lg font-medium mb-2">Skapa din första lektion</h3>
+                    <p className="mb-4">Välj moment från vänstra menyn eller använd en färdig mall</p>
+                    <div className="flex justify-center space-x-4">
+                      <LessonTemplates onSelectTemplate={loadFromTemplate} />
+                      <Button variant="outline" onClick={() => addMoment('pratbubbla')}>
+                        💬 Börja med pratbubbla
+                      </Button>
+                    </div>
+
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -881,6 +1006,14 @@ export default function LessonBuilder() {
                                   </div>
                                 </DialogContent>
                               </Dialog>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => duplicateMoment(moment.id)}
+                                title="Duplicera moment"
+                              >
+                                📋
+                              </Button>
                               <Button 
                                 size="sm" 
                                 variant="destructive"
@@ -944,41 +1077,12 @@ export default function LessonBuilder() {
                 >
                   ← Föregående
                 </Button>
-                
-                <div className="text-center">
-                  <h4 className="font-semibold">
-                    {currentLesson.moments[currentPreviewMoment]?.title}
-                  </h4>
-                  <p className="text-sm text-gray-500">
-                    {MOMENT_TYPES.find(t => t.id === currentLesson.moments[currentPreviewMoment]?.type)?.description}
-                  </p>
-                </div>
-
                 <Button
-                  variant="outline"
                   onClick={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
                   disabled={currentPreviewMoment === currentLesson.moments.length - 1}
                 >
                   Nästa →
                 </Button>
-              </div>
-
-              {/* Quick jump to moments */}
-              <div className="border-t pt-4">
-                <div className="text-sm font-semibold mb-2">Hoppa till moment:</div>
-                <div className="flex flex-wrap gap-2">
-                  {currentLesson.moments.map((moment, index) => (
-                    <Button
-                      key={moment.id}
-                      variant={currentPreviewMoment === index ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPreviewMoment(index)}
-                      className="text-xs"
-                    >
-                      {index + 1}. {MOMENT_TYPES.find(t => t.id === moment.type)?.icon} {moment.title}
-                    </Button>
-                  ))}
-                </div>
               </div>
             </div>
           )}
