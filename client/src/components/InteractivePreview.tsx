@@ -171,7 +171,23 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
           <div className="max-w-2xl mx-auto">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
+                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') ? (
+                  <img 
+                    src={moment.config.characterImage} 
+                    alt="Character" 
+                    className="w-20 h-20 object-contain rounded-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const emojiDiv = document.createElement('div');
+                      emojiDiv.className = 'text-6xl';
+                      emojiDiv.textContent = '👨‍🏫';
+                      target.parentNode?.appendChild(emojiDiv);
+                    }}
+                  />
+                ) : (
+                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
+                )}
               </div>
               <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
                 <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
