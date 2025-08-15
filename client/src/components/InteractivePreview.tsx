@@ -171,24 +171,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
           <div className="max-w-2xl mx-auto">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                {(moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.startsWith('/objects/')) ? (
-                  <div className="relative">
-                    <img 
-                      src={moment.config.characterImage} 
-                      alt="Character" 
-                      className="w-20 h-20 object-cover rounded-full border-2 border-gray-300"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = '<div class="text-6xl">👨‍🏫</div>';
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
-                )}
+                <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
               </div>
               <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
                 <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>

@@ -15,7 +15,7 @@ const CHARACTER_LIBRARY = [
   {
     id: 'pirat',
     name: 'Pirat',
-    image: piratImage,
+    emoji: '🏴‍☠️',
     description: 'Trevlig pirat som kan hjälpa med substantivlektioner'
   },
   {

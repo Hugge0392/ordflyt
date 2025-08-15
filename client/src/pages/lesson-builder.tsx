@@ -219,7 +219,7 @@ export default function LessonBuilder() {
                           const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
                           updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
                           e.currentTarget.value = '';
-                          word2Input.value = '';
+                          if (word2Input) word2Input.value = '';
                         }
                       }
                     }}
@@ -239,7 +239,7 @@ export default function LessonBuilder() {
                           const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
                           updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
                           e.currentTarget.value = '';
-                          word1Input.value = '';
+                          if (word1Input) word1Input.value = '';
                         }
                       }
                     }}
@@ -247,14 +247,33 @@ export default function LessonBuilder() {
                 </div>
               </div>
               
+              <Button 
+                onClick={() => {
+                  const word1Input = document.querySelector('input[placeholder="t.ex. hund"]') as HTMLInputElement;
+                  const word2Input = document.querySelector('input[placeholder="t.ex. djur"]') as HTMLInputElement;
+                  const word1 = word1Input?.value.trim();
+                  const word2 = word2Input?.value.trim();
+                  
+                  if (word1 && word2) {
+                    const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                    updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                    word1Input.value = '';
+                    word2Input.value = '';
+                  }
+                }}
+                className="w-full mb-4"
+              >
+                Lägg till par
+              </Button>
+              
               <div className="border rounded-lg p-4 bg-gray-50">
                 <Label className="text-sm font-medium">Skapade par:</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-1 gap-2 mt-2">
                   {(moment.config.wordPairs || []).map((pair: string, index: number) => {
                     const [word1, word2] = pair.split('|');
                     return (
-                      <div key={index} className="flex justify-between items-center bg-white p-2 rounded border">
-                        <span className="text-sm">{word1} ↔ {word2}</span>
+                      <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
+                        <span className="text-sm font-medium">{word1} ↔ {word2}</span>
                         <Button
                           size="sm"
                           variant="outline"
@@ -263,14 +282,14 @@ export default function LessonBuilder() {
                             updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
                           }}
                         >
-                          ×
+                          Ta bort
                         </Button>
                       </div>
                     );
                   })}
                 </div>
                 {(!moment.config.wordPairs || moment.config.wordPairs.length === 0) && (
-                  <div className="text-gray-400 text-sm mt-2">Inga par skapade än. Fyll i båda fälten och tryck Enter.</div>
+                  <div className="text-gray-400 text-sm mt-2 text-center py-4">Inga par skapade än. Fyll i båda fälten och klicka "Lägg till par".</div>
                 )}
               </div>
             </div>
