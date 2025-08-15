@@ -160,7 +160,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
             <CardTitle>Korsordsgrid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-15 gap-0.5 max-w-md mx-auto">
+            <div className="grid gap-0.5 max-w-md mx-auto" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
               {Array.from({ length: gridSize * gridSize }).map((_, index) => {
                 const x = index % gridSize;
                 const y = Math.floor(index / gridSize);
