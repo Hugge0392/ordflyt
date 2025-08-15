@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { ImageUploader } from "@/components/ImageUploader";
+import { InteractivePreview } from "@/components/InteractivePreview";
 
 interface LessonMoment {
   id: string;
@@ -178,11 +180,11 @@ export default function LessonBuilder() {
               />
             </div>
             <div>
-              <Label>Figurbild (URL eller emoji)</Label>
-              <Input
-                value={moment.config.characterImage}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, characterImage: e.target.value })}
-                placeholder="👨‍🏫 eller URL till bild"
+              <Label>Figurbild</Label>
+              <ImageUploader
+                currentImage={moment.config.characterImage}
+                onImageUploaded={(url) => updateMomentConfig(moment.id, { ...moment.config, characterImage: url })}
+                placeholder="Välj figur för pratbubblan"
               />
             </div>
             <div>
@@ -781,7 +783,10 @@ export default function LessonBuilder() {
 
               {/* Current moment preview */}
               <div className="min-h-96 bg-gray-50 rounded-lg p-8">
-                {renderPreviewMoment(currentLesson.moments[currentPreviewMoment])}
+                <InteractivePreview 
+                  moment={currentLesson.moments[currentPreviewMoment]}
+                  onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
+                />
               </div>
 
               {/* Navigation */}
