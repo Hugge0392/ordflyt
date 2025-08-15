@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
+import { CrosswordBuilder } from "@/components/CrosswordBuilder";
 
 interface LessonMoment {
   id: string;
@@ -207,9 +208,13 @@ export default function LessonBuilder() {
               <Textarea
                 value={moment.config.wordPairs.join('\n')}
                 onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, wordPairs: e.target.value.split('\n').filter(line => line.trim()) })}
-                placeholder="hund|djur&#10;bil|fordon&#10;rött|färg"
+                placeholder="hund|djur\nbil|fordon\nrött|färg"
                 className="min-h-[120px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
+              <div className="text-xs text-gray-500 mt-1">
+                Tryck Enter för ny rad. Format: första_ordet|andra_ordet
+              </div>
             </div>
             <div>
               <Label>Svårighetsgrad</Label>
@@ -312,20 +317,45 @@ export default function LessonBuilder() {
               />
             </div>
             <div>
-              <Label>Ord att sortera (kommaseparerade)</Label>
+              <Label>Ord att sortera (ett ord per rad eller kommaseparerat)</Label>
               <Textarea
-                value={moment.config.words.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
-                placeholder="hund, springa, blå, snabbt, jag, under"
+                value={moment.config.words.join('\n')}
+                onChange={(e) => {
+                  const input = e.target.value;
+                  let words: string[] = [];
+                  
+                  if (input.includes('\n')) {
+                    words = input.split('\n').map(s => s.trim()).filter(w => w);
+                  } else {
+                    words = input.split(',').map(s => s.trim()).filter(w => w);
+                  }
+                  
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="hund\nspringa\nblå\nsnabbt\njag\nunder"
                 className="min-h-[80px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
             </div>
             <div>
-              <Label>Kategorier/korgar (kommaseparerade)</Label>
-              <Input
-                value={moment.config.categories.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, categories: e.target.value.split(',').map(s => s.trim()).filter(c => c) })}
-                placeholder="Substantiv, Verb, Adjektiv"
+              <Label>Kategorier/korgar (en kategori per rad eller kommaseparerat)</Label>
+              <Textarea
+                value={moment.config.categories.join('\n')}
+                onChange={(e) => {
+                  const input = e.target.value;
+                  let categories: string[] = [];
+                  
+                  if (input.includes('\n')) {
+                    categories = input.split('\n').map(s => s.trim()).filter(c => c);
+                  } else {
+                    categories = input.split(',').map(s => s.trim()).filter(c => c);
+                  }
+                  
+                  updateMomentConfig(moment.id, { ...moment.config, categories });
+                }}
+                placeholder="Substantiv\nVerb\nAdjektiv"
+                className="min-h-[60px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
             </div>
           </div>
@@ -335,13 +365,29 @@ export default function LessonBuilder() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Ord för ordmolnet (kommaseparerade)</Label>
+              <Label>Ord för ordmolnet (ett ord per rad eller kommaseparerat)</Label>
               <Textarea
-                value={moment.config.words.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
-                placeholder="substantiv, djur, hus, bil, katt, hund, bok, stol"
+                value={moment.config.words.join('\n')}
+                onChange={(e) => {
+                  // Support both newline and comma separation
+                  const input = e.target.value;
+                  let words: string[] = [];
+                  
+                  if (input.includes('\n')) {
+                    words = input.split('\n').map(s => s.trim()).filter(w => w);
+                  } else {
+                    words = input.split(',').map(s => s.trim()).filter(w => w);
+                  }
+                  
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="substantiv\ndjur\nhus\nbil\nkatt\nhund\nbok\nstol"
                 className="min-h-[120px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
+              <div className="text-xs text-gray-500 mt-1">
+                Ett ord per rad eller separera med komma
+              </div>
             </div>
             <div>
               <Label>Tema/kategori</Label>
@@ -384,40 +430,24 @@ export default function LessonBuilder() {
                   });
                   updateMomentConfig(moment.id, { ...moment.config, clues });
                 }}
-                placeholder="Ett djur som säger vov|HUND&#10;Något man kör|BIL&#10;En färg som blod|RÖD"
+                placeholder="Ett djur som säger vov|HUND\nNågot man kör|BIL\nEn färg som blod|RÖD"
                 className="min-h-[120px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Bredd (rutor)</Label>
-                <Input
-                  type="number"
-                  value={moment.config.size?.width || 10}
-                  onChange={(e) => updateMomentConfig(moment.id, { 
-                    ...moment.config, 
-                    size: { ...moment.config.size, width: parseInt(e.target.value) || 10 }
-                  })}
-                  placeholder="10"
-                  min="5"
-                  max="15"
-                />
-              </div>
-              <div>
-                <Label>Höjd (rutor)</Label>
-                <Input
-                  type="number"
-                  value={moment.config.size?.height || 10}
-                  onChange={(e) => updateMomentConfig(moment.id, { 
-                    ...moment.config, 
-                    size: { ...moment.config.size, height: parseInt(e.target.value) || 10 }
-                  })}
-                  placeholder="10"
-                  min="5"
-                  max="15"
-                />
+              <div className="text-xs text-gray-500 mt-1">
+                Tryck Enter för ny rad. Format: fråga|SVAR (svaret med versaler)
               </div>
             </div>
+            
+            {moment.config.clues && moment.config.clues.length > 0 && (
+              <div className="mt-6">
+                <CrosswordBuilder
+                  clues={moment.config.clues}
+                  onGridUpdate={(grid) => updateMomentConfig(moment.id, { ...moment.config, grid })}
+                  initialGrid={moment.config.grid || []}
+                />
+              </div>
+            )}
           </div>
         );
 
@@ -425,20 +455,45 @@ export default function LessonBuilder() {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Ord att dra (kommaseparerade)</Label>
+              <Label>Ord att dra (ett ord per rad eller kommaseparerat)</Label>
               <Textarea
-                value={moment.config.words.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, words: e.target.value.split(',').map(s => s.trim()).filter(w => w) })}
-                placeholder="hund, katt, bil, hus"
+                value={moment.config.words.join('\n')}
+                onChange={(e) => {
+                  const input = e.target.value;
+                  let words: string[] = [];
+                  
+                  if (input.includes('\n')) {
+                    words = input.split('\n').map(s => s.trim()).filter(w => w);
+                  } else {
+                    words = input.split(',').map(s => s.trim()).filter(w => w);
+                  }
+                  
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="hund\nkatt\nbil\nhus"
                 className="min-h-[80px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
             </div>
             <div>
-              <Label>Målområden (kommaseparerade)</Label>
-              <Input
-                value={moment.config.targets.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, targets: e.target.value.split(',').map(s => s.trim()).filter(t => t) })}
-                placeholder="Djur, Föremål"
+              <Label>Målområden (ett område per rad eller kommaseparerat)</Label>
+              <Textarea
+                value={moment.config.targets.join('\n')}
+                onChange={(e) => {
+                  const input = e.target.value;
+                  let targets: string[] = [];
+                  
+                  if (input.includes('\n')) {
+                    targets = input.split('\n').map(s => s.trim()).filter(t => t);
+                  } else {
+                    targets = input.split(',').map(s => s.trim()).filter(t => t);
+                  }
+                  
+                  updateMomentConfig(moment.id, { ...moment.config, targets });
+                }}
+                placeholder="Djur\nFöremål\nFärger"
+                className="min-h-[60px]"
+                style={{ whiteSpace: 'pre-wrap' }}
               />
             </div>
           </div>
@@ -496,7 +551,7 @@ export default function LessonBuilder() {
             <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
             <div className="bg-gray-50 border rounded-lg p-6">
               <p className="text-lg leading-relaxed">
-                {(moment.config.text || 'Här kommer texten...').split(' ').map((word, i) => (
+                {(moment.config.text || 'Här kommer texten...').split(' ').map((word: string, i: number) => (
                   <span key={i} className="hover:bg-yellow-200 cursor-pointer px-1 py-0.5 rounded">
                     {word}{' '}
                   </span>

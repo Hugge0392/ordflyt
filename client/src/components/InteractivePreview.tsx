@@ -170,15 +170,20 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         return (
           <div className="max-w-2xl mx-auto">
             <div className="flex items-start space-x-4">
-              <div className="text-6xl">
-                {moment.config.characterImage?.startsWith('http') ? (
+              <div className="flex-shrink-0">
+                {moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.startsWith('/objects/') ? (
                   <img 
                     src={moment.config.characterImage} 
                     alt="Character" 
-                    className="w-16 h-16 object-contain"
+                    className="w-20 h-20 object-cover rounded-full border-2 border-gray-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling!.textContent = '👨‍🏫';
+                    }}
                   />
                 ) : (
-                  moment.config.characterImage || '👨‍🏫'
+                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
                 )}
               </div>
               <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
@@ -238,7 +243,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
             <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
             <div className="bg-gray-50 border rounded-lg p-6 mb-6">
               <p className="text-lg leading-relaxed">
-                {(moment.config.text || 'Här kommer texten...').split(' ').map((word, i) => (
+                {(moment.config.text || 'Här kommer texten...').split(' ').map((word: string, i: number) => (
                   <span 
                     key={i} 
                     onClick={() => handleWordClick(i)}
