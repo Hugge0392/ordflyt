@@ -29,7 +29,7 @@ import {
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform';
   title: string;
   order: number;
   config: any;
@@ -103,12 +103,12 @@ export default function LessonBuilder() {
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
   // Fetch word classes for publish dialog
-  const { data: wordClasses = [] } = useQuery({
+  const { data: wordClasses = [] } = useQuery<any[]>({
     queryKey: ['/api/word-classes'],
   });
 
   // Fetch lesson drafts
-  const { data: savedLessons = [] } = useQuery({
+  const { data: savedLessons = [] } = useQuery<any[]>({
     queryKey: ['/api/lessons/drafts'],
   });
 
@@ -228,7 +228,7 @@ export default function LessonBuilder() {
       id: `moment_${Date.now()}`,
       type: type as any,
       title: MOMENT_TYPES.find(t => t.id === type)?.name || '',
-      order: currentLesson.moments.length,
+      order: (currentLesson.moments || []).length,
       config: getDefaultConfig(type)
     };
     
@@ -336,7 +336,7 @@ export default function LessonBuilder() {
   const removeMoment = (momentId: string) => {
     setCurrentLesson({
       ...currentLesson,
-      moments: currentLesson.moments.filter(m => m.id !== momentId)
+      moments: (currentLesson.moments || []).filter(m => m.id !== momentId)
     });
   };
 
@@ -396,7 +396,7 @@ export default function LessonBuilder() {
   };
 
   const loadFromDraft = (draft: any) => {
-    if (currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill ladda detta utkast? Osparade ändringar går förlorade.')) {
+    if (currentLesson.moments && currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill ladda detta utkast? Osparade ändringar går förlorade.')) {
       return;
     }
     
@@ -432,7 +432,7 @@ export default function LessonBuilder() {
       return;
     }
 
-    if (currentLesson.moments.length === 0) {
+    if (!currentLesson.moments || currentLesson.moments.length === 0) {
       toast({
         title: "Inga moment",
         description: "Lägg till minst ett moment innan du publicerar lektionen.",
@@ -470,7 +470,7 @@ export default function LessonBuilder() {
   };
 
   const newLesson = () => {
-    if (currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill skapa en ny lektion? Osparade ändringar går förlorade.')) {
+    if (currentLesson.moments && currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill skapa en ny lektion? Osparade ändringar går förlorade.')) {
       return;
     }
     setCurrentLesson({
@@ -495,7 +495,7 @@ export default function LessonBuilder() {
   const updateMomentConfig = (momentId: string, config: any) => {
     setCurrentLesson({
       ...currentLesson,
-      moments: currentLesson.moments.map(m => 
+      moments: (currentLesson.moments || []).map(m => 
         m.id === momentId ? { ...m, config } : m
       )
     });
@@ -1361,7 +1361,7 @@ export default function LessonBuilder() {
               <Button 
                 variant="outline" 
                 onClick={() => setShowPreview(true)}
-                disabled={currentLesson.moments.length === 0}
+                disabled={!currentLesson.moments || currentLesson.moments.length === 0}
               >
                 👁️ Förhandsgranska
               </Button>
@@ -1432,7 +1432,7 @@ export default function LessonBuilder() {
                   />
                 </div>
                 
-                {currentLesson.moments.length > 0 && (
+                {currentLesson.moments && currentLesson.moments.length > 0 && (
                   <div className="pt-2 border-t">
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>Moment:</span>
@@ -1482,7 +1482,7 @@ export default function LessonBuilder() {
                 <CardTitle>Lektionstidslinje</CardTitle>
               </CardHeader>
               <CardContent>
-                {currentLesson.moments.length === 0 ? (
+                {!currentLesson.moments || currentLesson.moments.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-4">📝</div>
                     <h3 className="text-lg font-medium mb-2">Skapa din första lektion</h3>
@@ -1663,7 +1663,7 @@ export default function LessonBuilder() {
                   <SelectValue placeholder="Välj ordklass" />
                 </SelectTrigger>
                 <SelectContent>
-                  {wordClasses.map((wc: any) => (
+                  {(wordClasses as any[]).map((wc: any) => (
                     <SelectItem key={wc.id} value={wc.name}>{wc.swedishName}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1726,14 +1726,14 @@ export default function LessonBuilder() {
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {savedLessons.length === 0 ? (
+            {(savedLessons as any[]).length === 0 ? (
               <div className="col-span-2 text-center py-8 text-gray-500">
                 <div className="text-4xl mb-4">📝</div>
                 <h3 className="text-lg font-medium mb-2">Inga sparade utkast</h3>
                 <p>Du har inga sparade lektionsutkast än. Skapa en lektion och spara den som utkast först.</p>
               </div>
             ) : (
-              savedLessons.map((draft: any) => (
+              (savedLessons as any[]).map((draft: any) => (
                 <Card key={draft.id} className="cursor-pointer hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
