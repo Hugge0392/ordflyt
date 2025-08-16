@@ -266,7 +266,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
                 <div className="text-center sm:text-left">
                   <div className="text-sm uppercase tracking-wide text-slate-500">Du grävde upp</div>
                   <div className="text-3xl font-extrabold mt-1">"{revealedWord.w}"</div>
-                  <div className="mt-1 text-slate-600">Är det ett substantiv?</div>
+                  <div className="mt-2 text-xl font-bold text-slate-800">Är det ett substantiv?</div>
                 </div>
                 <div className="flex gap-3">
                   <button
