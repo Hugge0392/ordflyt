@@ -49,8 +49,8 @@ const BASE_WORDS = [
   { w: "nära", n: false },
 ];
 
-const makeWordDeck = () => {
-  const base = [...BASE_WORDS];
+const makeWordDeck = (words: any[]) => {
+  const base = [...words];
   const factor = 3;
   const deck = [];
   for (let i = 0; i < factor; i++) deck.push(...shuffle(base));
@@ -67,14 +67,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   const customWords = moment?.config?.words || [];
   const wordsToUse = customWords.length > 0 ? customWords : BASE_WORDS;
   
-  const [deck] = useState(() => {
-    const base = [...wordsToUse];
-    const factor = 3;
-    const deck = [];
-    for (let i = 0; i < factor; i++) deck.push(...shuffle(base));
-    return deck;
-  });
-  
+  const [deck] = useState(() => makeWordDeck(wordsToUse));
   const [cursor, setCursor] = useState(0);
   const [revealedWord, setRevealedWord] = useState<any>(null);
   const [dug, setDug] = useState(Array(12).fill(false));
@@ -83,7 +76,6 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   const [streak, setStreak] = useState(0);
   const [message, setMessage] = useState("Klicka på en sandhög för att gräva!");
   const [round, setRound] = useState(1);
-  const [gameCompleted, setGameCompleted] = useState(false);
 
   const tiles = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
 
@@ -96,7 +88,6 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
       setHearts(3);
       setStreak(0);
       setRound(1);
-      setGameCompleted(false);
     }
   }
 
@@ -135,14 +126,9 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
 
     const done = dug.every(Boolean);
     if (done) {
-      if (round >= 3 || coins >= 10) {
-        setGameCompleted(true);
-        setMessage("Grattis! Du har klarat piratgrävspelet!");
-      } else {
-        setRound((r) => r + 1);
-        setDug(Array(12).fill(false));
-        setMessage("Ny runda! Gräv vidare efter fler ord.");
-      }
+      setRound((r) => r + 1);
+      setDug(Array(12).fill(false));
+      setMessage("Ny runda! Gräv vidare efter fler ord.");
     }
   }
 
@@ -229,27 +215,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
           </div>
 
           <div className="mt-6">
-            {gameCompleted ? (
-              <div className="rounded-2xl bg-white p-4 shadow text-center">
-                <div className="text-3xl mb-2">🏆</div>
-                <h3 className="text-xl font-extrabold mb-1">Grattis!</h3>
-                <p className="mb-3">Du klarade piratgrävspelet och samlade {coins} skattkistor!</p>
-                {onNext && (
-                  <button
-                    className="rounded-2xl px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white shadow font-bold mr-2"
-                    onClick={onNext}
-                  >
-                    Fortsätt till nästa moment
-                  </button>
-                )}
-                <button
-                  className="rounded-2xl px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white shadow font-bold"
-                  onClick={() => resetBoard(false)}
-                >
-                  Spela igen
-                </button>
-              </div>
-            ) : gameOver ? (
+            {gameOver ? (
               <div className="rounded-2xl bg-white p-4 shadow text-center">
                 <div className="text-3xl mb-2">☠️</div>
                 <h3 className="text-xl font-extrabold mb-1">Slut på liv!</h3>
@@ -293,7 +259,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
       </main>
 
       <footer className="mx-auto max-w-5xl px-4 pb-10 text-center text-xs text-slate-600">
-        <p>Tips: Anpassa orden i moment-konfigurationen för att passa din lektion.</p>
+        <p>Tips: Lägg till egna ord i listan <code>BASE_WORDS</code> för att anpassa testet.</p>
       </footer>
     </div>
   );

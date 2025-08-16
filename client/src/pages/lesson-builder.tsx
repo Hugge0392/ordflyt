@@ -104,6 +104,10 @@ export default function LessonBuilder() {
     description: ''
   });
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  
+  // Piratgrav configuration state
+  const [piratgravWord1, setPiratgravWord1] = useState('');
+  const [piratgravWord2, setPiratgravWord2] = useState('');
 
   // Fetch word classes for publish dialog
   const { data: wordClasses = [] } = useQuery<any[]>({
@@ -1285,20 +1289,18 @@ export default function LessonBuilder() {
         );
 
       case 'piratgrav':
-        const [newWord1, setNewWord1] = useState('');
-        const [newWord2, setNewWord2] = useState('');
         const existingWords = moment.config.words || [];
         
         const addWordPair = () => {
-          if (newWord1.trim() && newWord2.trim()) {
+          if (piratgravWord1.trim() && piratgravWord2.trim()) {
             const newWords = [
               ...existingWords,
-              { w: newWord1.trim(), n: true },
-              { w: newWord2.trim(), n: false }
+              { w: piratgravWord1.trim(), n: true },
+              { w: piratgravWord2.trim(), n: false }
             ];
             updateMomentConfig(moment.id, { ...moment.config, words: newWords });
-            setNewWord1('');
-            setNewWord2('');
+            setPiratgravWord1('');
+            setPiratgravWord2('');
           }
         };
         
@@ -1324,22 +1326,22 @@ export default function LessonBuilder() {
                 <div className="flex-1">
                   <Label className="text-sm">Substantiv</Label>
                   <Input
-                    value={newWord1}
-                    onChange={(e) => setNewWord1(e.target.value)}
+                    value={piratgravWord1}
+                    onChange={(e) => setPiratgravWord1(e.target.value)}
                     placeholder="t.ex. katt"
                   />
                 </div>
                 <div className="flex-1">
                   <Label className="text-sm">Icke-substantiv</Label>
                   <Input
-                    value={newWord2}
-                    onChange={(e) => setNewWord2(e.target.value)}
+                    value={piratgravWord2}
+                    onChange={(e) => setPiratgravWord2(e.target.value)}
                     placeholder="t.ex. springa"
                   />
                 </div>
                 <Button 
                   onClick={addWordPair}
-                  disabled={!newWord1.trim() || !newWord2.trim()}
+                  disabled={!piratgravWord1.trim() || !piratgravWord2.trim()}
                   className="whitespace-nowrap"
                 >
                   Lägg till par
