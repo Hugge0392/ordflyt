@@ -12,6 +12,7 @@ import WordClassLevels from "@/pages/word-class-levels";
 import Admin from "@/pages/admin";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
+import LessonPlayer from "@/pages/lesson-player";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/pirate-course" component={PirateCourse} />
       <Route path="/lesson-builder" component={LessonBuilder} />
+      <Route path="/lesson/:id" component={LessonPlayer} />
       <Route component={NotFound} />
     </Switch>
   );

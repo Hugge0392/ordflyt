@@ -20,11 +20,7 @@ export default function Menu() {
   });
 
   const getLessonsForWordClass = (wordClassName: string) => {
-    console.log('All published lessons:', publishedLessons);
-    console.log('Looking for lessons with wordClass:', wordClassName);
-    const filtered = publishedLessons.filter((lesson: any) => lesson.wordClass === wordClassName);
-    console.log('Filtered lessons:', filtered);
-    return filtered;
+    return publishedLessons.filter((lesson: any) => lesson.wordClass === wordClassName);
   };
 
   const getColorForWordClass = (wordClass: string) => {
@@ -276,16 +272,14 @@ export default function Menu() {
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600 mb-3">{lesson.description}</p>
-                    <Button 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => {
-                        // TODO: Navigate to lesson player
-                        console.log('Playing lesson:', lesson.id);
-                      }}
-                    >
-                      Spela lektion
-                    </Button>
+                    <Link href={`/lesson/${lesson.id}`}>
+                      <Button 
+                        size="sm" 
+                        className="w-full"
+                      >
+                        Spela lektion
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>
