@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  OrdracetPreview, 
-  MeningPusselPreview, 
-  GissaOrdetPreview, 
-  QuizPreview, 
-  RimSpelPreview, 
-  BeratttelsePreview 
-} from "@/components/GamePreviews";
 
 interface MemoryCard {
   id: string;
@@ -23,14 +15,6 @@ interface InteractivePreviewProps {
 }
 
 export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) {
-  if (!moment) {
-    return (
-      <div className="text-center text-gray-500 py-12">
-        <div className="text-4xl mb-4">⚠️</div>
-        <p>Inget moment att visa</p>
-      </div>
-    );
-  }
   const [currentText, setCurrentText] = useState("");
   const [textIndex, setTextIndex] = useState(0);
   const [selectedWords, setSelectedWords] = useState<number[]>([]);
@@ -169,15 +153,6 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
   };
 
   const renderMoment = () => {
-    if (!moment || !moment.type) {
-      return (
-        <div className="text-center text-gray-500 py-12">
-          <div className="text-4xl mb-4">⚠️</div>
-          <p>Moment saknas eller är felaktigt konfigurerat</p>
-        </div>
-      );
-    }
-
     switch(moment.type) {
       case 'textruta':
         return (
@@ -193,54 +168,39 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'pratbubbla':
         return (
-          <div className="w-full h-screen flex">
-            {/* Text area - 3/4 of screen */}
-            <div className="w-3/4 flex items-center justify-center p-8">
-              <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
-                <div className="bg-gray-100 rounded-lg p-6 relative">
-                  <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
-                  <p className="text-xl leading-relaxed">
-                    {currentText}
-                    {textIndex < (moment.config.text || '').length && (
-                      <span className="animate-pulse">|</span>
-                    )}
-                  </p>
-                  {textIndex >= (moment.config.text || '').length && (
-                    <Button onClick={onNext} className="mt-4">
-                      Fortsätt
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Character area - 1/4 of screen */}
-            <div className="w-1/4 flex items-center justify-center p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
-                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.includes('blob:') ? (
+                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') ? (
                   <img 
                     src={moment.config.characterImage} 
                     alt="Character" 
-                    className="w-full h-auto max-h-96 object-contain"
+                    className="w-20 h-20 object-contain rounded-lg"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const emojiDiv = document.createElement('div');
-                      emojiDiv.className = 'text-9xl flex items-center justify-center h-96';
+                      emojiDiv.className = 'text-6xl';
                       emojiDiv.textContent = '👨‍🏫';
                       target.parentNode?.appendChild(emojiDiv);
                     }}
                   />
-                ) : moment.config.characterImage?.includes('data:') ? (
-                  <img 
-                    src={moment.config.characterImage} 
-                    alt="Character" 
-                    className="w-full h-auto max-h-96 object-contain" 
-                  />
                 ) : (
-                  <div className="text-9xl flex items-center justify-center h-96">
-                    {moment.config.characterImage || '👨‍🏫'}
-                  </div>
+                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
+                )}
+              </div>
+              <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
+                <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
+                <p className="text-lg">
+                  {currentText}
+                  {textIndex < (moment.config.text || '').length && (
+                    <span className="animate-pulse">|</span>
+                  )}
+                </p>
+                {textIndex >= (moment.config.text || '').length && (
+                  <Button onClick={onNext} className="mt-4">
+                    Fortsätt
+                  </Button>
                 )}
               </div>
             </div>
@@ -285,7 +245,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         const fullText = moment.config.text || 'Här kommer texten...';
         
         // Split text into words and punctuation
-        const textParts = fullText.split(/(\s+)/).filter((part: string) => part.length > 0);
+        const textParts = fullText.split(/(\s+)/).filter(part => part.length > 0);
         let wordIndex = 0;
         
         return (
@@ -330,8 +290,8 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                 <p>Hittat: {selectedWords.filter(i => {
                   // Rebuild word array for counting
                   const words = fullText.split(/(\s+)/)
-                    .filter((part: string) => part.length > 0 && !/^\s+$/.test(part))
-                    .map((word: string) => word.replace(/[.,!?;:]*$/, ''));
+                    .filter(part => part.length > 0 && !/^\s+$/.test(part))
+                    .map(word => word.replace(/[.,!?;:]*$/, ''));
                   return targetWords.includes(words[i]);
                 }).length} / {targetWords.length}</p>
               </div>
@@ -465,74 +425,6 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
             </div>
             
             <Button onClick={onNext} className="mt-6">Fortsätt</Button>
-          </div>
-        );
-
-      case 'ordracet':
-        return <OrdracetPreview moment={moment} onNext={onNext} />;
-
-      case 'mening-pussel':
-        return <MeningPusselPreview moment={moment} onNext={onNext} />;
-
-      case 'gissa-ordet':
-        return <GissaOrdetPreview moment={moment} onNext={onNext} />;
-
-      case 'quiz':
-        return <QuizPreview moment={moment} onNext={onNext} />;
-
-      case 'rim-spel':
-        return <RimSpelPreview moment={moment} onNext={onNext} />;
-
-      case 'berattelse':
-        return <BeratttelsePreview moment={moment} onNext={onNext} />;
-
-      case 'synonymer':
-      case 'motsatser':
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">
-              {moment.type === 'synonymer' ? '🔄 Synonymer' : '⚖️ Motsatser'}
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <p className="mb-4">{moment.config.instruction}</p>
-              <div className="grid grid-cols-2 gap-4">
-                {(moment.config.wordPairs || []).slice(0, 4).map((pair: any, i: number) => (
-                  <div key={i} className="space-y-2">
-                    <Button variant="outline" className="w-full">
-                      {pair.word1 || 'ord1'}
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      {pair.word2 || 'ord2'}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <Button onClick={onNext}>Fortsätt</Button>
-          </div>
-        );
-
-      case 'stavning':
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">🔤 Stavning</h3>
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <p className="text-lg mb-4">Stava ordet:</p>
-              <div className="text-2xl font-bold mb-4 text-blue-600">
-                {moment.config.words?.[0] || 'EXEMPEL'}
-              </div>
-              <input 
-                type="text" 
-                className="border-2 border-gray-300 rounded-lg p-3 text-xl text-center w-64"
-                placeholder="Skriv ordet här..."
-              />
-              {moment.config.allowHints && (
-                <div className="mt-4">
-                  <Button variant="outline" size="sm">💡 Ledtråd</Button>
-                </div>
-              )}
-            </div>
-            <Button onClick={onNext}>Fortsätt</Button>
           </div>
         );
 

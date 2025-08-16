@@ -1,8 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,16 +12,6 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
 import { CrosswordBuilder } from "@/components/CrosswordBuilder";
 import { CharacterLibrary } from "@/components/CharacterLibrary";
-import { LessonTemplates } from "@/components/LessonTemplates";
-import { LessonValidator } from "@/components/LessonValidator";
-import { 
-  OrdracetConfigurator, 
-  MeningPusselConfigurator, 
-  GissaOrdetConfigurator, 
-  RimSpelConfigurator, 
-  SynonymerConfigurator, 
-  QuizConfigurator 
-} from "@/components/GameConfigurators";
 
 interface LessonMoment {
   id: string;
@@ -50,23 +37,7 @@ const MOMENT_TYPES = [
   { id: 'fyll-mening', name: 'Fyll i meningen', icon: '✍️', description: 'Dra ord till rätt plats' },
   { id: 'dra-ord', name: 'Dra ord', icon: '↔️', description: 'Dra och släpp övning' },
   { id: 'ordmoln', name: 'Ordmoln', icon: '☁️', description: 'Interaktivt ordmoln' },
-  { id: 'sortera-korgar', name: 'Sortera i korgar', icon: '🗂️', description: 'Sortera ord i olika kategorier' },
-  { id: 'ordracet', name: 'Ordracet', icon: '🏃‍♂️', description: 'Snabbt spel där ord regnar från himlen' },
-  { id: 'mening-pussel', name: 'Meningspussel', icon: '🧩', description: 'Sätt ihop meningar från orddelar' },
-  { id: 'gissa-ordet', name: 'Gissa ordet', icon: '🎯', description: 'Gissa ord från ledtrådar' },
-  { id: 'rim-spel', name: 'Rimspel', icon: '🎵', description: 'Hitta ord som rimmar' },
-  { id: 'synonymer', name: 'Synonymer', icon: '🔄', description: 'Matcha ord med samma betydelse' },
-  { id: 'motsatser', name: 'Motsatser', icon: '⚖️', description: 'Hitta ord med motsatt betydelse' },
-  { id: 'ordkedja', name: 'Ordkedja', icon: '🔗', description: 'Bygg en kedja av relaterade ord' },
-  { id: 'bokstavs-jakt', name: 'Bokstavsjakt', icon: '🔤', description: 'Hitta ord som börjar med viss bokstav' },
-  { id: 'ordlangd', name: 'Ordlängd', icon: '📏', description: 'Sortera ord efter antal bokstäver' },
-  { id: 'bild-ord', name: 'Bild och ord', icon: '🖼️', description: 'Matcha bilder med rätt ord' },
-  { id: 'stavning', name: 'Stavning', icon: '🔤', description: 'Stava ord korrekt' },
-  { id: 'ordbok', name: 'Ordbok', icon: '📚', description: 'Slå upp ord och lär betydelser' },
-  { id: 'berattelse', name: 'Berättelse', icon: '📖', description: 'Interaktiv berättelse med val' },
-  { id: 'quiz', name: 'Quiz', icon: '❓', description: 'Flervalsfrågor om grammatik' },
-  { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
-  { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' }
+  { id: 'sortera-korgar', name: 'Sortera i korgar', icon: '🗂️', description: 'Sortera ord i olika kategorier' }
 ];
 
 const WORD_CLASSES = [
@@ -74,9 +45,6 @@ const WORD_CLASSES = [
 ];
 
 export default function LessonBuilder() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
   const [currentLesson, setCurrentLesson] = useState<Lesson>({
     id: '',
     wordClass: '',
@@ -89,98 +57,6 @@ export default function LessonBuilder() {
   const [showMomentDialog, setShowMomentDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
-  const [savedLessons, setSavedLessons] = useState<Lesson[]>([]);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showLoadDialog, setShowLoadDialog] = useState(false);
-  const [showValidation, setShowValidation] = useState(false);
-  const [showPublishDialog, setShowPublishDialog] = useState(false);
-  const [publishData, setPublishData] = useState({
-    wordClass: '',
-    difficulty: 'medium',
-    description: ''
-  });
-  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
-
-  // Fetch word classes for publish dialog
-  const { data: wordClasses = [] } = useQuery({
-    queryKey: ['/api/word-classes'],
-  });
-
-  // Publish lesson mutation
-  const publishLessonMutation = useMutation({
-    mutationFn: async (lessonData: any) => {
-      if (editingLessonId) {
-        // Update existing lesson
-        const response = await apiRequest('PUT', `/api/lessons/published/${editingLessonId}`, lessonData);
-        return response.json();
-      } else {
-        // Create new lesson
-        const response = await apiRequest('POST', '/api/lessons/publish', lessonData);
-        return response.json();
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: editingLessonId ? "Lektion uppdaterad!" : "Lektion publicerad!",
-        description: editingLessonId 
-          ? "Lektionen har uppdaterats framgångsrikt." 
-          : "Lektionen är nu tillgänglig i huvudmenyn under vald ordklass.",
-      });
-      setShowPublishDialog(false);
-      setEditingLessonId(null);
-      localStorage.removeItem('editingLesson');
-      // Reset lesson after successful publish
-      setCurrentLesson({
-        id: '',
-        wordClass: '',
-        title: '',
-        moments: []
-      });
-      setPublishData({
-        wordClass: '',
-        difficulty: 'medium',
-        description: ''
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: editingLessonId ? "Uppdatering misslyckades" : "Publicering misslyckades",
-        description: editingLessonId 
-          ? "Kunde inte uppdatera lektionen. Försök igen."
-          : "Kunde inte publicera lektionen. Försök igen.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Load lesson for editing on component mount
-  useEffect(() => {
-    const editData = localStorage.getItem('editingLesson');
-    if (editData) {
-      try {
-        const lessonData = JSON.parse(editData);
-        setCurrentLesson({
-          id: lessonData.content.title || '',
-          wordClass: lessonData.content.wordClass || '',
-          title: lessonData.content.title || '',
-          moments: lessonData.content.moments || []
-        });
-        setPublishData({
-          wordClass: lessonData.wordClass || '',
-          difficulty: lessonData.difficulty || 'medium',
-          description: lessonData.description || ''
-        });
-        setEditingLessonId(lessonData.id);
-        toast({
-          title: "Lektion laddad",
-          description: `Redigerar nu "${lessonData.title}"`,
-        });
-      } catch (error) {
-        console.error('Failed to load editing lesson:', error);
-        localStorage.removeItem('editingLesson');
-      }
-    }
-  }, []);
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -208,7 +84,7 @@ export default function LessonBuilder() {
       case 'korsord':
         return { clues: [], size: { width: 10, height: 10 } };
       case 'finns-ordklass':
-        return { text: '', targetWordClass: '', instruction: '', targetWords: [] };
+        return { text: '', targetWordClass: '', instruction: '' };
       case 'fyll-mening':
         return { sentence: '', blanks: [], options: [] };
       case 'dra-ord':
@@ -217,38 +93,6 @@ export default function LessonBuilder() {
         return { words: [], theme: '', size: 'medium' };
       case 'sortera-korgar':
         return { words: [], categories: [], instruction: '' };
-      case 'ordracet':
-        return { words: [], speed: 'medium', duration: 60, theme: '' };
-      case 'mening-pussel':
-        return { sentences: [], difficulty: 'easy' };
-      case 'gissa-ordet':
-        return { words: [], clues: [], maxGuesses: 3 };
-      case 'rim-spel':
-        return { words: [], instruction: 'Hitta ord som rimmar' };
-      case 'synonymer':
-        return { wordPairs: [], instruction: 'Matcha ord med samma betydelse' };
-      case 'motsatser':
-        return { wordPairs: [], instruction: 'Hitta motsatser' };
-      case 'ordkedja':
-        return { startWord: '', categories: [], chainLength: 5 };
-      case 'bokstavs-jakt':
-        return { letters: [], words: [], timeLimit: 30 };
-      case 'ordlangd':
-        return { words: [], instruction: 'Sortera efter antal bokstäver' };
-      case 'bild-ord':
-        return { pairs: [], instruction: 'Matcha bild med ord' };
-      case 'stavning':
-        return { words: [], difficulty: 'easy', allowHints: true };
-      case 'ordbok':
-        return { words: [], showDefinitions: true };
-      case 'berattelse':
-        return { story: '', choices: [], outcomes: [] };
-      case 'quiz':
-        return { questions: [], timeLimit: 0, randomOrder: true };
-      case 'ljudspel':
-        return { words: [], audioType: 'pronunciation' };
-      case 'ordform':
-        return { baseWords: [], forms: [], instruction: 'Böj orden korrekt' };
       default:
         return {};
     }
@@ -289,136 +133,6 @@ export default function LessonBuilder() {
       ...currentLesson,
       moments: currentLesson.moments.filter(m => m.id !== momentId)
     });
-  };
-
-  const duplicateMoment = (momentId: string) => {
-    const momentToDuplicate = currentLesson.moments.find(m => m.id === momentId);
-    if (!momentToDuplicate) return;
-
-    const newMoment: LessonMoment = {
-      ...momentToDuplicate,
-      id: `moment_${Date.now()}`,
-      title: `${momentToDuplicate.title} (kopia)`,
-      order: currentLesson.moments.length
-    };
-
-    setCurrentLesson({
-      ...currentLesson,
-      moments: [...currentLesson.moments, newMoment]
-    });
-  };
-
-  const saveLesson = () => {
-    if (!currentLesson.title.trim()) {
-      alert('Lektionen måste ha en titel');
-      return;
-    }
-
-    const lessonToSave = {
-      ...currentLesson,
-      id: currentLesson.id || `lesson_${Date.now()}`
-    };
-
-    const saved = localStorage.getItem('saved-lessons');
-    const existingLessons = saved ? JSON.parse(saved) : [];
-    const existingIndex = existingLessons.findIndex((l: any) => l.id === lessonToSave.id);
-    
-    if (existingIndex >= 0) {
-      existingLessons[existingIndex] = lessonToSave;
-    } else {
-      existingLessons.push(lessonToSave);
-    }
-
-    localStorage.setItem('saved-lessons', JSON.stringify(existingLessons));
-    setSavedLessons(existingLessons);
-    setCurrentLesson(lessonToSave);
-    
-    alert('Lektionen sparades!');
-  };
-
-  const loadFromTemplate = (template: any) => {
-    const newLesson: Lesson = {
-      id: `lesson_${Date.now()}`,
-      title: template.name,
-      wordClass: template.wordClass,
-      moments: template.moments.map((moment: any, index: number) => ({
-        id: `moment_${Date.now()}_${index}`,
-        ...moment,
-        order: index
-      }))
-    };
-
-    setCurrentLesson(newLesson);
-  };
-
-  const handlePublish = () => {
-    if (!currentLesson.title.trim()) {
-      toast({
-        title: "Titel saknas",
-        description: "Ge lektionen en titel innan du publicerar den.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (currentLesson.moments.length === 0) {
-      toast({
-        title: "Inga moment",
-        description: "Lägg till minst ett moment innan du publicerar lektionen.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setShowPublishDialog(true);
-  };
-
-  const confirmPublish = () => {
-    if (!publishData.wordClass) {
-      toast({
-        title: "Ordklass saknas",
-        description: "Välj vilken ordklass lektionen tillhör.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const lessonData = {
-      title: currentLesson.title,
-      description: publishData.description || `En interaktiv lektion med ${currentLesson.moments.length} moment`,
-      wordClass: publishData.wordClass,
-      difficulty: publishData.difficulty,
-      content: {
-        title: currentLesson.title,
-        moments: currentLesson.moments,
-        wordClass: publishData.wordClass
-      }
-    };
-
-    publishLessonMutation.mutate(lessonData);
-  };
-
-  const newLesson = () => {
-    if (currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill skapa en ny lektion? Osparade ändringar går förlorade.')) {
-      return;
-    }
-    setCurrentLesson({
-      id: '',
-      wordClass: '',
-      title: '',
-      moments: []
-    });
-  };
-
-  const exportLesson = () => {
-    const dataStr = JSON.stringify(currentLesson, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${currentLesson.title || 'lektion'}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const updateMomentConfig = (momentId: string, config: any) => {
@@ -876,134 +590,6 @@ export default function LessonBuilder() {
           </div>
         );
 
-      case 'ordracet':
-        return <OrdracetConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'mening-pussel':
-        return <MeningPusselConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'gissa-ordet':
-        return <GissaOrdetConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'rim-spel':
-        return <RimSpelConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'synonymer':
-        return <SynonymerConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'motsatser':
-        return <SynonymerConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'quiz':
-        return <QuizConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
-
-      case 'ordkedja':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Startord</Label>
-              <Input
-                value={moment.config.startWord}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, startWord: e.target.value })}
-                placeholder="katt"
-              />
-            </div>
-            <div>
-              <Label>Kedjelängd</Label>
-              <Input
-                type="number"
-                value={moment.config.chainLength || 5}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, chainLength: parseInt(e.target.value) })}
-              />
-            </div>
-          </div>
-        );
-
-      case 'bokstavs-jakt':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Bokstäver att jaga (separerade med komma)</Label>
-              <Input
-                value={(moment.config.letters || []).join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, letters: e.target.value.split(',').map(l => l.trim()) })}
-                placeholder="A, B, K, S"
-              />
-            </div>
-            <div>
-              <Label>Tidsgräns (sekunder)</Label>
-              <Input
-                type="number"
-                value={moment.config.timeLimit || 30}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, timeLimit: parseInt(e.target.value) })}
-              />
-            </div>
-          </div>
-        );
-
-      case 'stavning':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Ord att stava (ett per rad)</Label>
-              <Textarea
-                value={(moment.config.words || []).join('\n')}
-                onChange={(e) => {
-                  const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
-                  updateMomentConfig(moment.id, { ...moment.config, words });
-                }}
-                placeholder="katt\nhund\nbil"
-                className="min-h-[80px]"
-              />
-            </div>
-            <div>
-              <Label>Tillåt ledtrådar</Label>
-              <Select
-                value={moment.config.allowHints ? 'true' : 'false'}
-                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, allowHints: value === 'true' })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">Ja</SelectItem>
-                  <SelectItem value="false">Nej</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
-      case 'berattelse':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Berättelse</Label>
-              <Textarea
-                value={moment.config.story}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, story: e.target.value })}
-                placeholder="Det var en gång en katt som..."
-                className="min-h-[120px]"
-              />
-            </div>
-            <div>
-              <Label>Val och utfall (format: val|utfall, ett per rad)</Label>
-              <Textarea
-                value={(moment.config.choices || []).map((choice: any) => `${choice.text}|${choice.outcome}`).join('\n')}
-                onChange={(e) => {
-                  const choices = e.target.value.split('\n').filter(line => line.includes('|')).map(line => {
-                    const [text, outcome] = line.split('|');
-                    return { text: text?.trim() || '', outcome: outcome?.trim() || '' };
-                  });
-                  updateMomentConfig(moment.id, { ...moment.config, choices });
-                }}
-                placeholder="Gå till höger|Du hittar en skattkista\nGå till vänster|Du möter en drake"
-                className="min-h-[80px]"
-              />
-            </div>
-          </div>
-        );
-
       default:
         return <p className="text-gray-500">Konfiguration för {moment.type} kommer snart...</p>;
     }
@@ -1167,38 +753,13 @@ export default function LessonBuilder() {
               >
                 👁️ Förhandsgranska
               </Button>
-              <div className="flex space-x-2">
-                <LessonTemplates onSelectTemplate={loadFromTemplate} />
-                <Button variant="outline" onClick={newLesson}>🆕 Ny</Button>
-                <Button variant="outline" onClick={() => setShowValidation(!showValidation)}>
-                  ✅ Validera
-                </Button>
-                <Button onClick={saveLesson}>💾 Spara</Button>
-                <Button variant="outline" onClick={exportLesson}>📤 Exportera</Button>
-                <Button 
-                  onClick={handlePublish}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={publishLessonMutation.isPending}
-                >
-                  {publishLessonMutation.isPending ? 
-                    (editingLessonId ? '💾 Uppdaterar...' : '📤 Publicerar...') : 
-                    (editingLessonId ? '💾 Uppdatera' : '🚀 Publicera')
-                  }
-                </Button>
-              </div>
+              <Button>💾 Spara lektion</Button>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Validation Panel */}
-        {showValidation && (
-          <div className="mb-6">
-            <LessonValidator lesson={currentLesson} />
-          </div>
-        )}
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Lesson Settings */}
           <div className="space-y-6">
@@ -1232,19 +793,6 @@ export default function LessonBuilder() {
                     placeholder="T.ex. Substantiv - Grunderna"
                   />
                 </div>
-                
-                {currentLesson.moments.length > 0 && (
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Moment:</span>
-                      <span>{currentLesson.moments.length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Beräknad tid:</span>
-                      <span>{Math.max(5, currentLesson.moments.length * 3)} min</span>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -1286,27 +834,7 @@ export default function LessonBuilder() {
                 {currentLesson.moments.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="text-4xl mb-4">📝</div>
-                    <h3 className="text-lg font-medium mb-2">Skapa din första lektion</h3>
-                    <p className="mb-4">Välj moment från vänstra menyn eller använd en färdig mall</p>
-                    <div className="space-y-4">
-                      <LessonTemplates onSelectTemplate={loadFromTemplate} />
-                      <div className="text-sm text-gray-600">eller välj ett moment nedan:</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" size="sm" onClick={() => addMoment('ordracet')}>
-                          🏃‍♂️ Ordracet
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => addMoment('quiz')}>
-                          ❓ Quiz
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => addMoment('pratbubbla')}>
-                          💬 Pratbubbla
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => addMoment('gissa-ordet')}>
-                          🎯 Gissa ordet
-                        </Button>
-                      </div>
-                    </div>
-
+                    <p>Börja bygga din lektion genom att lägga till moment från vänster panel</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1355,14 +883,6 @@ export default function LessonBuilder() {
                               </Dialog>
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                onClick={() => duplicateMoment(moment.id)}
-                                title="Duplicera moment"
-                              >
-                                📋
-                              </Button>
-                              <Button 
-                                size="sm" 
                                 variant="destructive"
                                 onClick={() => removeMoment(moment.id)}
                               >
@@ -1409,17 +929,10 @@ export default function LessonBuilder() {
 
               {/* Current moment preview */}
               <div className="min-h-96 bg-gray-50 rounded-lg p-8">
-                {currentLesson.moments[currentPreviewMoment] ? (
-                  <InteractivePreview 
-                    moment={currentLesson.moments[currentPreviewMoment]}
-                    onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
-                  />
-                ) : (
-                  <div className="text-center text-gray-500 py-12">
-                    <div className="text-4xl mb-4">📝</div>
-                    <p>Inget moment att visa</p>
-                  </div>
-                )}
+                <InteractivePreview 
+                  moment={currentLesson.moments[currentPreviewMoment]}
+                  onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
+                />
               </div>
 
               {/* Navigation */}
@@ -1431,88 +944,44 @@ export default function LessonBuilder() {
                 >
                   ← Föregående
                 </Button>
+                
+                <div className="text-center">
+                  <h4 className="font-semibold">
+                    {currentLesson.moments[currentPreviewMoment]?.title}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {MOMENT_TYPES.find(t => t.id === currentLesson.moments[currentPreviewMoment]?.type)?.description}
+                  </p>
+                </div>
+
                 <Button
+                  variant="outline"
                   onClick={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
                   disabled={currentPreviewMoment === currentLesson.moments.length - 1}
                 >
                   Nästa →
                 </Button>
               </div>
+
+              {/* Quick jump to moments */}
+              <div className="border-t pt-4">
+                <div className="text-sm font-semibold mb-2">Hoppa till moment:</div>
+                <div className="flex flex-wrap gap-2">
+                  {currentLesson.moments.map((moment, index) => (
+                    <Button
+                      key={moment.id}
+                      variant={currentPreviewMoment === index ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPreviewMoment(index)}
+                      className="text-xs"
+                    >
+                      {index + 1}. {MOMENT_TYPES.find(t => t.id === moment.type)?.icon} {moment.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Publish Dialog */}
-      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Publicera lektion</DialogTitle>
-            <DialogDescription>
-              Publicerad lektion blir tillgänglig i huvudmenyn under vald ordklass
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label>Ordklass *</Label>
-              <Select
-                value={publishData.wordClass}
-                onValueChange={(value) => setPublishData({...publishData, wordClass: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Välj ordklass" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wordClasses.map((wc: any) => (
-                    <SelectItem key={wc.id} value={wc.name}>{wc.swedishName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Svårighetsgrad</Label>
-              <Select
-                value={publishData.difficulty}
-                onValueChange={(value) => setPublishData({...publishData, difficulty: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Lätt</SelectItem>
-                  <SelectItem value="medium">Medel</SelectItem>
-                  <SelectItem value="hard">Svår</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Beskrivning (valfritt)</Label>
-              <Textarea
-                value={publishData.description}
-                onChange={(e) => setPublishData({...publishData, description: e.target.value})}
-                placeholder="Kort beskrivning av vad lektionen handlar om..."
-                className="min-h-[80px]"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-between mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setShowPublishDialog(false)}
-            >
-              Avbryt
-            </Button>
-            <Button
-              onClick={confirmPublish}
-              disabled={publishLessonMutation.isPending}
-            >
-              {publishLessonMutation.isPending ? 'Publicerar...' : 'Publicera'}
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
