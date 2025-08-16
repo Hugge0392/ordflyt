@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,13 +19,26 @@ interface LessonMoment {
   title: string;
   order: number;
   config: any;
+  style?: {
+    backgroundColor?: string;
+    textColor?: string;
+    fontFamily?: string;
+    backgroundImage?: string;
+  };
 }
 
 interface Lesson {
   id: string;
   wordClass: string;
   title: string;
+  description: string;
   moments: LessonMoment[];
+  theme?: {
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+    backgroundImage?: string;
+  };
 }
 
 const MOMENT_TYPES = [
@@ -44,12 +57,34 @@ const WORD_CLASSES = [
   'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'preposition', 'conjunction', 'interjection', 'numeral'
 ];
 
+const THEMES = [
+  { id: 'default', name: 'Standard', primary: '#3b82f6', secondary: '#e5e7eb' },
+  { id: 'pirate', name: 'Pirat', primary: '#dc2626', secondary: '#fef3c7' },
+  { id: 'nature', name: 'Natur', primary: '#16a34a', secondary: '#dcfce7' },
+  { id: 'ocean', name: 'Hav', primary: '#0ea5e9', secondary: '#e0f2fe' },
+  { id: 'sunset', name: 'Solnedgång', primary: '#f97316', secondary: '#fed7aa' },
+  { id: 'forest', name: 'Skog', primary: '#15803d', secondary: '#f0fdf4' }
+];
+
+const FONT_FAMILIES = [
+  { id: 'default', name: 'Standard', font: 'Inter, sans-serif' },
+  { id: 'playful', name: 'Lekfull', font: 'Comic Sans MS, cursive' },
+  { id: 'elegant', name: 'Elegant', font: 'Georgia, serif' },
+  { id: 'modern', name: 'Modern', font: 'Helvetica, Arial, sans-serif' }
+];
+
 export default function LessonBuilder() {
   const [currentLesson, setCurrentLesson] = useState<Lesson>({
     id: '',
     wordClass: '',
     title: '',
-    moments: []
+    description: '',
+    moments: [],
+    theme: {
+      primaryColor: '#3b82f6',
+      secondaryColor: '#e5e7eb',
+      fontFamily: 'Inter, sans-serif'
+    }
   });
   
   const [draggedMoment, setDraggedMoment] = useState<string | null>(null);
@@ -57,6 +92,8 @@ export default function LessonBuilder() {
   const [showMomentDialog, setShowMomentDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
+  const [showThemeDialog, setShowThemeDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -64,7 +101,12 @@ export default function LessonBuilder() {
       type: type as any,
       title: MOMENT_TYPES.find(t => t.id === type)?.name || '',
       order: currentLesson.moments.length,
-      config: getDefaultConfig(type)
+      config: getDefaultConfig(type),
+      style: {
+        backgroundColor: currentLesson.theme?.secondaryColor || '#e5e7eb',
+        textColor: '#1f2937',
+        fontFamily: currentLesson.theme?.fontFamily || 'Inter, sans-serif'
+      }
     };
     
     setCurrentLesson({
@@ -84,7 +126,7 @@ export default function LessonBuilder() {
       case 'korsord':
         return { clues: [], size: { width: 10, height: 10 } };
       case 'finns-ordklass':
-        return { text: '', targetWordClass: '', instruction: '' };
+        return { text: '', targetWordClass: '', instruction: '', targetWords: [] };
       case 'fyll-mening':
         return { sentence: '', blanks: [], options: [] };
       case 'dra-ord':
@@ -96,36 +138,6 @@ export default function LessonBuilder() {
       default:
         return {};
     }
-  };
-
-  const handleDragStart = (e: React.DragEvent, momentId: string) => {
-    setDraggedMoment(momentId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault();
-    if (!draggedMoment) return;
-
-    const draggedIndex = currentLesson.moments.findIndex(m => m.id === draggedMoment);
-    if (draggedIndex === -1) return;
-
-    const newMoments = [...currentLesson.moments];
-    const [draggedItem] = newMoments.splice(draggedIndex, 1);
-    newMoments.splice(targetIndex, 0, draggedItem);
-
-    // Update order
-    newMoments.forEach((moment, index) => {
-      moment.order = index;
-    });
-
-    setCurrentLesson({ ...currentLesson, moments: newMoments });
-    setDraggedMoment(null);
   };
 
   const removeMoment = (momentId: string) => {
@@ -141,6 +153,19 @@ export default function LessonBuilder() {
       moments: currentLesson.moments.map(m => 
         m.id === momentId ? { ...m, config } : m
       )
+    });
+  };
+
+  const updateLessonTheme = (updates: Partial<Lesson['theme']>) => {
+    setCurrentLesson({
+      ...currentLesson,
+      theme: { 
+        primaryColor: '#3b82f6',
+        secondaryColor: '#e5e7eb',
+        fontFamily: 'Inter, sans-serif',
+        ...currentLesson.theme, 
+        ...updates 
+      }
     });
   };
 
@@ -187,127 +212,99 @@ export default function LessonBuilder() {
                 onCharacterSelect={(imageUrl) => updateMomentConfig(moment.id, { ...moment.config, characterImage: imageUrl })}
               />
             </div>
-            <div>
-              <Label>Animationshastighet (ms per tecken)</Label>
-              <Input
-                type="number"
-                value={moment.config.animationSpeed}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, animationSpeed: parseInt(e.target.value) })}
-                placeholder="50"
-              />
-            </div>
           </div>
         );
 
       case 'memory':
         return (
           <div className="space-y-4">
-            <div>
-              <Label>Minnespar - Lägg till ord</Label>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label className="text-sm">Första ordet</Label>
-                  <Input
-                    placeholder="t.ex. hund"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const word1 = e.currentTarget.value.trim();
-                        const word2Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:last-child') as HTMLInputElement;
-                        const word2 = word2Input?.value.trim();
-                        
-                        if (word1 && word2) {
-                          const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
-                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                          e.currentTarget.value = '';
-                          if (word2Input) word2Input.value = '';
-                        }
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Ord 1</Label>
+                <Input
+                  placeholder="t.ex. hund"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const word1 = e.currentTarget.value.trim();
+                      const word2Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:last-child') as HTMLInputElement;
+                      const word2 = word2Input?.value.trim();
+                      
+                      if (word1 && word2) {
+                        const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                        updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                        e.currentTarget.value = '';
+                        if (word2Input) word2Input.value = '';
                       }
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm">Andra ordet</Label>
-                  <Input
-                    placeholder="t.ex. djur"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const word2 = e.currentTarget.value.trim();
-                        const word1Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:first-child') as HTMLInputElement;
-                        const word1 = word1Input?.value.trim();
-                        
-                        if (word1 && word2) {
-                          const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
-                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                          e.currentTarget.value = '';
-                          if (word1Input) word1Input.value = '';
-                        }
-                      }
-                    }}
-                  />
-                </div>
+                    }
+                  }}
+                />
               </div>
-              
-              <Button 
-                onClick={() => {
-                  const word1Input = document.querySelector('input[placeholder="t.ex. hund"]') as HTMLInputElement;
-                  const word2Input = document.querySelector('input[placeholder="t.ex. djur"]') as HTMLInputElement;
-                  const word1 = word1Input?.value.trim();
-                  const word2 = word2Input?.value.trim();
-                  
-                  if (word1 && word2) {
-                    const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
-                    updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                    word1Input.value = '';
-                    word2Input.value = '';
-                  }
-                }}
-                className="w-full mb-4"
-              >
-                Lägg till par
-              </Button>
-              
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <Label className="text-sm font-medium">Skapade par:</Label>
-                <div className="grid grid-cols-1 gap-2 mt-2">
-                  {(moment.config.wordPairs || []).map((pair: string, index: number) => {
-                    const [word1, word2] = pair.split('|');
-                    return (
-                      <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
-                        <span className="text-sm font-medium">{word1} ↔ {word2}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const newPairs = moment.config.wordPairs.filter((_: string, i: number) => i !== index);
-                            updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                          }}
-                        >
-                          Ta bort
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-                {(!moment.config.wordPairs || moment.config.wordPairs.length === 0) && (
-                  <div className="text-gray-400 text-sm mt-2 text-center py-4">Inga par skapade än. Fyll i båda fälten och klicka "Lägg till par".</div>
-                )}
+              <div>
+                <Label>Ord 2</Label>
+                <Input
+                  placeholder="t.ex. djur"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const word2 = e.currentTarget.value.trim();
+                      const word1Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:first-child') as HTMLInputElement;
+                      const word1 = word1Input?.value.trim();
+                      
+                      if (word1 && word2) {
+                        const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                        updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                        e.currentTarget.value = '';
+                        if (word1Input) word1Input.value = '';
+                      }
+                    }
+                  }}
+                />
               </div>
             </div>
-            <div>
-              <Label>Svårighetsgrad</Label>
-              <Select
-                value={moment.config.difficulty}
-                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, difficulty: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Lätt (4 par)</SelectItem>
-                  <SelectItem value="medium">Medel (6 par)</SelectItem>
-                  <SelectItem value="hard">Svår (8 par)</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            <Button 
+              onClick={() => {
+                const word1Input = document.querySelector('input[placeholder="t.ex. hund"]') as HTMLInputElement;
+                const word2Input = document.querySelector('input[placeholder="t.ex. djur"]') as HTMLInputElement;
+                const word1 = word1Input?.value.trim();
+                const word2 = word2Input?.value.trim();
+                
+                if (word1 && word2) {
+                  const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
+                  updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                  word1Input.value = '';
+                  word2Input.value = '';
+                }
+              }}
+              className="w-full mb-4"
+            >
+              Lägg till par
+            </Button>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <Label className="text-sm font-medium">Skapade par:</Label>
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {(moment.config.wordPairs || []).map((pair: string, index: number) => {
+                  const [word1, word2] = pair.split('|');
+                  return (
+                    <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
+                      <span className="text-sm font-medium">{word1} ↔ {word2}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const newPairs = moment.config.wordPairs.filter((_: string, i: number) => i !== index);
+                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                        }}
+                      >
+                        Ta bort
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+              {(!moment.config.wordPairs || moment.config.wordPairs.length === 0) && (
+                <div className="text-gray-400 text-sm mt-2 text-center py-4">Inga par skapade än. Fyll i båda fälten och klicka "Lägg till par".</div>
+              )}
             </div>
           </div>
         );
@@ -333,17 +330,21 @@ export default function LessonBuilder() {
               />
             </div>
             <div>
-              <Label>Ord som ska hittas (kommaseparerade)</Label>
-              <Input
-                value={(moment.config.targetWords || []).join(', ')}
+              <Label>Ord som ska hittas</Label>
+              <Textarea
+                value={(moment.config.targetWords || []).join('\n')}
                 onChange={(e) => updateMomentConfig(moment.id, { 
                   ...moment.config, 
-                  targetWords: e.target.value.split(',').map(w => w.trim()).filter(w => w)
+                  targetWords: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
                 })}
-                placeholder="katten, mattan, fisk"
+                placeholder="katten&#10;mattan&#10;fisk"
+                className="min-h-[100px]"
               />
               <div className="text-xs text-gray-500 mt-1">
-                Ange exakt vilka ord som ska klickas på (skiftlägeskänsligt)
+                Ange ett ord per rad. Exempel:<br/>
+                katten<br/>
+                mattan<br/>
+                fisk
               </div>
             </div>
             <div>
@@ -365,625 +366,334 @@ export default function LessonBuilder() {
           </div>
         );
 
-      case 'fyll-mening':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Mening med [BLANK] för tomrum</Label>
-              <Textarea
-                value={moment.config.sentence}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, sentence: e.target.value })}
-                placeholder="[BLANK] springer snabbt genom [BLANK]."
-                className="min-h-[80px]"
-              />
-            </div>
-            <div>
-              <Label>Rätta svar (kommaseparerade)</Label>
-              <Input
-                value={moment.config.blanks.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, blanks: e.target.value.split(',').map(s => s.trim()) })}
-                placeholder="Hunden, parken"
-              />
-            </div>
-            <div>
-              <Label>Distraktorer (extra alternativ)</Label>
-              <Input
-                value={moment.config.options.join(', ')}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, options: e.target.value.split(',').map(s => s.trim()) })}
-                placeholder="katten, bilen, huset"
-              />
-            </div>
-          </div>
-        );
-
-      case 'sortera-korgar':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Instruktion till eleven</Label>
-              <Input
-                value={moment.config.instruction}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
-                placeholder="Sortera orden i rätt korgar"
-              />
-            </div>
-            <div>
-              <Label>Ord att sortera (ett ord per rad eller kommaseparerat)</Label>
-              <Textarea
-                value={moment.config.words.join('\n')}
-                onChange={(e) => {
-                  const input = e.target.value;
-                  let words: string[] = [];
-                  
-                  if (input.includes('\n')) {
-                    words = input.split('\n').map(s => s.trim()).filter(w => w);
-                  } else {
-                    words = input.split(',').map(s => s.trim()).filter(w => w);
-                  }
-                  
-                  updateMomentConfig(moment.id, { ...moment.config, words });
-                }}
-                placeholder="hund\nspringa\nblå\nsnabbt\njag\nunder"
-                className="min-h-[80px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-            </div>
-            <div>
-              <Label>Kategorier/korgar (en kategori per rad eller kommaseparerat)</Label>
-              <Textarea
-                value={moment.config.categories.join('\n')}
-                onChange={(e) => {
-                  const input = e.target.value;
-                  let categories: string[] = [];
-                  
-                  if (input.includes('\n')) {
-                    categories = input.split('\n').map(s => s.trim()).filter(c => c);
-                  } else {
-                    categories = input.split(',').map(s => s.trim()).filter(c => c);
-                  }
-                  
-                  updateMomentConfig(moment.id, { ...moment.config, categories });
-                }}
-                placeholder="Substantiv\nVerb\nAdjektiv"
-                className="min-h-[60px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-            </div>
-          </div>
-        );
-
-      case 'ordmoln':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Ord för ordmolnet (ett ord per rad eller kommaseparerat)</Label>
-              <Textarea
-                value={moment.config.words.join('\n')}
-                onChange={(e) => {
-                  // Support both newline and comma separation
-                  const input = e.target.value;
-                  let words: string[] = [];
-                  
-                  if (input.includes('\n')) {
-                    words = input.split('\n').map(s => s.trim()).filter(w => w);
-                  } else {
-                    words = input.split(',').map(s => s.trim()).filter(w => w);
-                  }
-                  
-                  updateMomentConfig(moment.id, { ...moment.config, words });
-                }}
-                placeholder="substantiv\ndjur\nhus\nbil\nkatt\nhund\nbok\nstol"
-                className="min-h-[120px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Ett ord per rad eller separera med komma
-              </div>
-            </div>
-            <div>
-              <Label>Tema/kategori</Label>
-              <Input
-                value={moment.config.theme}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, theme: e.target.value })}
-                placeholder="T.ex. Substantiv, Djur, Föremål"
-              />
-            </div>
-            <div>
-              <Label>Storlek</Label>
-              <Select
-                value={moment.config.size}
-                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, size: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="small">Liten</SelectItem>
-                  <SelectItem value="medium">Medel</SelectItem>
-                  <SelectItem value="large">Stor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
-      case 'korsord':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Korsordsfrågor (fråga|svar, en per rad)</Label>
-              <Textarea
-                value={moment.config.clues.map((clue: any) => `${clue.question}|${clue.answer}`).join('\n')}
-                onChange={(e) => {
-                  const clues = e.target.value.split('\n').filter(line => line.trim()).map(line => {
-                    const [question, answer] = line.split('|');
-                    return { question: question?.trim() || '', answer: answer?.trim() || '' };
-                  });
-                  updateMomentConfig(moment.id, { ...moment.config, clues });
-                }}
-                placeholder="Ett djur som säger vov|HUND\nNågot man kör|BIL\nEn färg som blod|RÖD"
-                className="min-h-[120px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Tryck Enter för ny rad. Format: fråga|SVAR (svaret med versaler)
-              </div>
-            </div>
-            
-            {moment.config.clues && moment.config.clues.length > 0 && (
-              <div className="mt-6">
-                <CrosswordBuilder
-                  clues={moment.config.clues}
-                  onGridUpdate={(grid) => updateMomentConfig(moment.id, { ...moment.config, grid })}
-                  initialGrid={moment.config.grid || []}
-                />
-              </div>
-            )}
-          </div>
-        );
-
-      case 'dra-ord':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Ord att dra (ett ord per rad eller kommaseparerat)</Label>
-              <Textarea
-                value={moment.config.words.join('\n')}
-                onChange={(e) => {
-                  const input = e.target.value;
-                  let words: string[] = [];
-                  
-                  if (input.includes('\n')) {
-                    words = input.split('\n').map(s => s.trim()).filter(w => w);
-                  } else {
-                    words = input.split(',').map(s => s.trim()).filter(w => w);
-                  }
-                  
-                  updateMomentConfig(moment.id, { ...moment.config, words });
-                }}
-                placeholder="hund\nkatt\nbil\nhus"
-                className="min-h-[80px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-            </div>
-            <div>
-              <Label>Målområden (ett område per rad eller kommaseparerat)</Label>
-              <Textarea
-                value={moment.config.targets.join('\n')}
-                onChange={(e) => {
-                  const input = e.target.value;
-                  let targets: string[] = [];
-                  
-                  if (input.includes('\n')) {
-                    targets = input.split('\n').map(s => s.trim()).filter(t => t);
-                  } else {
-                    targets = input.split(',').map(s => s.trim()).filter(t => t);
-                  }
-                  
-                  updateMomentConfig(moment.id, { ...moment.config, targets });
-                }}
-                placeholder="Djur\nFöremål\nFärger"
-                className="min-h-[60px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-            </div>
-          </div>
-        );
-
       default:
         return <p className="text-gray-500">Konfiguration för {moment.type} kommer snart...</p>;
     }
   };
 
-  const renderPreviewMoment = (moment: LessonMoment) => {
-    switch(moment.type) {
-      case 'textruta':
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
-              <p className="text-lg mb-6 leading-relaxed">{moment.config.text || 'Här kommer texten...'}</p>
-              <Button>{moment.config.buttonText || 'Nästa'}</Button>
-            </div>
-          </div>
-        );
-
-      case 'pratbubbla':
-        return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-start space-x-4">
-              <div className="text-6xl">
-                {moment.config.characterImage || '👨‍🏫'}
-              </div>
-              <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
-                <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
-                <p className="text-lg">{moment.config.text || 'Här kommer pratbubblan...'}</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'memory':
-        return (
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">Memory - {moment.config.difficulty}</h3>
-            <div className="grid grid-cols-4 gap-4">
-              {Array.from({length: moment.config.difficulty === 'easy' ? 8 : moment.config.difficulty === 'medium' ? 12 : 16}).map((_, i) => (
-                <div key={i} className="bg-blue-500 rounded-lg h-20 flex items-center justify-center text-white font-bold">
-                  ?
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'finns-ordklass':
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-4">{moment.config.instruction || 'Klicka på orden'}</h3>
-            <div className="bg-gray-50 border rounded-lg p-6">
-              <p className="text-lg leading-relaxed">
-                {(moment.config.text || 'Här kommer texten...').split(' ').map((word: string, i: number) => (
-                  <span key={i} className="hover:bg-yellow-200 cursor-pointer px-1 py-0.5 rounded">
-                    {word}{' '}
-                  </span>
-                ))}
-              </p>
-            </div>
-          </div>
-        );
-
-      case 'sortera-korgar':
-        return (
-          <div className="max-w-4xl mx-auto">
-            <h3 className="text-xl font-bold text-center mb-6">{moment.config.instruction || 'Sortera orden'}</h3>
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <h4 className="font-semibold mb-4">Ord att sortera:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {(moment.config.words || []).map((word: string, i: number) => (
-                    <div key={i} className="bg-blue-500 text-white px-3 py-2 rounded cursor-move">
-                      {word}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4">Korgar:</h4>
-                <div className="space-y-3">
-                  {(moment.config.categories || []).map((category: string, i: number) => (
-                    <div key={i} className="border-2 border-dashed border-gray-300 rounded-lg p-4 min-h-16">
-                      <div className="font-medium text-gray-600">{category}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'ordmoln':
-        return (
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">Ordmoln: {moment.config.theme || 'Tema'}</h3>
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-8 min-h-64 flex items-center justify-center">
-              <div className="flex flex-wrap justify-center gap-3">
-                {(moment.config.words || []).map((word: string, i: number) => (
-                  <span 
-                    key={i} 
-                    className="bg-white border-2 border-blue-300 px-4 py-2 rounded-full font-semibold hover:bg-blue-100 cursor-pointer"
-                    style={{fontSize: `${Math.random() * 8 + 12}px`}}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'korsord':
-        return (
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">Korsord</h3>
-            <div className="bg-white border rounded-lg p-6">
-              <div className="grid grid-cols-10 gap-1 mb-6">
-                {Array.from({length: 100}).map((_, i) => (
-                  <div key={i} className="w-6 h-6 border border-gray-300 bg-gray-50"></div>
-                ))}
-              </div>
-              <div className="text-left">
-                <h4 className="font-semibold mb-2">Ledtrådar:</h4>
-                {(moment.config.clues || []).map((clue: any, i: number) => (
-                  <div key={i} className="text-sm mb-1">
-                    {i + 1}. {clue.question}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return (
-          <div className="text-center text-gray-500">
-            <div className="text-4xl mb-4">🚧</div>
-            <p>Förhandsvisning för {moment.title} kommer snart</p>
-          </div>
-        );
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* Sleek Header */}
+      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <Link href="/admin">
-                <Button variant="outline">← Tillbaka</Button>
+                <Button variant="outline" className="hover:bg-blue-50">← Tillbaka</Button>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Lektionsbyggare</h1>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Lektionsbyggare
+                </h1>
+                <p className="text-sm text-gray-600">Skapa engagerande interaktiva lektioner</p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
                 onClick={() => setShowPreview(true)}
                 disabled={currentLesson.moments.length === 0}
+                className="bg-blue-50 hover:bg-blue-100"
               >
                 👁️ Förhandsgranska
               </Button>
-              <Button>💾 Spara lektion</Button>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+                💾 Spara lektion
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Lesson Settings */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lektionsinställningar</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Ordklass</Label>
-                  <Select
-                    value={currentLesson.wordClass}
-                    onValueChange={(value) => setCurrentLesson({ ...currentLesson, wordClass: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Välj ordklass" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {WORD_CLASSES.map(wc => (
-                        <SelectItem key={wc} value={wc}>{wc}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label>Lektionstitel</Label>
-                  <Input
-                    value={currentLesson.title}
-                    onChange={(e) => setCurrentLesson({ ...currentLesson, title: e.target.value })}
-                    placeholder="T.ex. Substantiv - Grunderna"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+        {/* Quick Setup Card */}
+        <Card className="mb-8 bg-white/90 backdrop-blur-sm shadow-xl border-0">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Label className="text-base font-semibold text-gray-700">Ordklass</Label>
+                <Select
+                  value={currentLesson.wordClass}
+                  onValueChange={(value) => setCurrentLesson({ ...currentLesson, wordClass: value })}
+                >
+                  <SelectTrigger className="mt-2 h-12">
+                    <SelectValue placeholder="Välj ordklass" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WORD_CLASSES.map(wc => (
+                      <SelectItem key={wc} value={wc}>{wc}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label className="text-base font-semibold text-gray-700">Lektionstitel</Label>
+                <Input
+                  value={currentLesson.title}
+                  onChange={(e) => setCurrentLesson({ ...currentLesson, title: e.target.value })}
+                  placeholder="T.ex. Substantiv - Grunderna"
+                  className="mt-2 h-12"
+                />
+              </div>
 
-            {/* Available Moments */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Tillgängliga moment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-2">
-                  {MOMENT_TYPES.map(momentType => (
-                    <Button
-                      key={momentType.id}
-                      variant="outline"
-                      onClick={() => addMoment(momentType.id)}
-                      className="justify-start h-auto p-3 text-left"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-xl">{momentType.icon}</span>
-                        <div>
-                          <div className="font-medium">{momentType.name}</div>
-                          <div className="text-xs text-gray-500">{momentType.description}</div>
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <div>
+                <Label className="text-base font-semibold text-gray-700">Beskrivning</Label>
+                <Input
+                  value={currentLesson.description}
+                  onChange={(e) => setCurrentLesson({ ...currentLesson, description: e.target.value })}
+                  placeholder="En kort beskrivning av lektionen"
+                  className="mt-2 h-12"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Timeline */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lektionstidslinje</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {currentLesson.moments.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <div className="text-4xl mb-4">📝</div>
-                    <p>Börja bygga din lektion genom att lägga till moment från vänster panel</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {currentLesson.moments
-                      .sort((a, b) => a.order - b.order)
-                      .map((moment, index) => (
-                        <div
-                          key={moment.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, moment.id)}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, index)}
-                          className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-move hover:border-blue-300 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <Badge variant="secondary">{index + 1}</Badge>
-                              <span className="text-2xl">
-                                {MOMENT_TYPES.find(t => t.id === moment.type)?.icon}
-                              </span>
-                              <div>
-                                <div className="font-medium">{moment.title}</div>
-                                <div className="text-sm text-gray-500">
-                                  {MOMENT_TYPES.find(t => t.id === moment.type)?.description}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm" variant="outline">
-                                    ⚙️ Konfigurera
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Konfigurera: {moment.title}</DialogTitle>
-                                    <DialogDescription>
-                                      Ställ in inställningar för detta moment
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="mt-4">
-                                    {renderMomentConfig(moment)}
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                              <Button 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => removeMoment(moment.id)}
-                              >
-                                🗑️
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Main Tabs */}
+        <div className="mb-6">
+          <div className="flex space-x-1 bg-white/50 p-1 rounded-lg">
+            <Button
+              variant={activeTab === 'content' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('content')}
+              className={`flex-1 ${activeTab === 'content' ? 'bg-white shadow-md' : ''}`}
+            >
+              📝 Innehåll & Moment
+            </Button>
+            <Button
+              variant={activeTab === 'design' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('design')}
+              className={`flex-1 ${activeTab === 'design' ? 'bg-white shadow-md' : ''}`}
+            >
+              🎨 Design & Utseende
+            </Button>
           </div>
         </div>
+
+        {activeTab === 'content' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Content Section */}
+            <div className="space-y-6">
+              <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-lg">
+                  <CardTitle className="text-gray-800">Lägg till moment</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    {MOMENT_TYPES.map(momentType => (
+                      <Button
+                        key={momentType.id}
+                        variant="outline"
+                        onClick={() => addMoment(momentType.id)}
+                        className="flex items-center justify-start p-4 h-auto hover:bg-blue-50 border-2 hover:border-blue-200"
+                      >
+                        <span className="text-3xl mr-4">{momentType.icon}</span>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-gray-800">{momentType.name}</div>
+                          <div className="text-sm text-gray-600 mt-1">{momentType.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Timeline Section */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+                  <CardTitle className="text-gray-800">Lektionens tidslinje ({currentLesson.moments.length} moment)</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {currentLesson.moments.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="text-6xl mb-4">📝</div>
+                      <h3 className="text-xl font-semibold mb-2">Inga moment än</h3>
+                      <p>Börja med att lägga till moment från panelen till vänster</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {currentLesson.moments
+                        .sort((a, b) => a.order - b.order)
+                        .map((moment, index) => (
+                          <div
+                            key={moment.id}
+                            className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border-2 border-blue-100 hover:border-blue-200 transition-all"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-800">
+                                    {MOMENT_TYPES.find(t => t.id === moment.type)?.icon} {moment.title}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    {MOMENT_TYPES.find(t => t.id === moment.type)?.description}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingMoment(moment)}
+                                  className="hover:bg-blue-50"
+                                >
+                                  ⚙️ Redigera
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeMoment(moment.id)}
+                                  className="hover:bg-red-50 hover:border-red-200"
+                                >
+                                  🗑️
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          // Design Tab
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 rounded-t-lg">
+                <CardTitle className="text-gray-800">🎨 Tema & Färger</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <Label className="text-base font-semibold">Välj tema</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {THEMES.map(theme => (
+                      <Button
+                        key={theme.id}
+                        variant="outline"
+                        onClick={() => updateLessonTheme({ primaryColor: theme.primary, secondaryColor: theme.secondary })}
+                        className="h-20 flex flex-col items-center justify-center space-y-2 hover:scale-105 transition-transform"
+                        style={{ 
+                          backgroundColor: currentLesson.theme?.primaryColor === theme.primary ? theme.secondary : 'white',
+                          borderColor: theme.primary
+                        }}
+                      >
+                        <div 
+                          className="w-8 h-8 rounded-full"
+                          style={{ backgroundColor: theme.primary }}
+                        ></div>
+                        <span className="text-sm font-medium">{theme.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-base font-semibold">Primärfärg</Label>
+                  <div className="flex items-center space-x-3 mt-2">
+                    <input
+                      type="color"
+                      value={currentLesson.theme?.primaryColor || '#3b82f6'}
+                      onChange={(e) => updateLessonTheme({ primaryColor: e.target.value })}
+                      className="w-12 h-12 rounded-lg border-2 border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      value={currentLesson.theme?.primaryColor || '#3b82f6'}
+                      onChange={(e) => updateLessonTheme({ primaryColor: e.target.value })}
+                      placeholder="#3b82f6"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-base font-semibold">Sekundärfärg</Label>
+                  <div className="flex items-center space-x-3 mt-2">
+                    <input
+                      type="color"
+                      value={currentLesson.theme?.secondaryColor || '#e5e7eb'}
+                      onChange={(e) => updateLessonTheme({ secondaryColor: e.target.value })}
+                      className="w-12 h-12 rounded-lg border-2 border-gray-300 cursor-pointer"
+                    />
+                    <Input
+                      value={currentLesson.theme?.secondaryColor || '#e5e7eb'}
+                      onChange={(e) => updateLessonTheme({ secondaryColor: e.target.value })}
+                      placeholder="#e5e7eb"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+                <CardTitle className="text-gray-800">✍️ Typografi</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div>
+                  <Label className="text-base font-semibold">Typsnitt</Label>
+                  <div className="grid grid-cols-1 gap-3 mt-3">
+                    {FONT_FAMILIES.map(font => (
+                      <Button
+                        key={font.id}
+                        variant="outline"
+                        onClick={() => updateLessonTheme({ fontFamily: font.font })}
+                        className={`h-16 justify-start text-left px-4 ${
+                          currentLesson.theme?.fontFamily === font.font ? 'bg-blue-50 border-blue-300' : ''
+                        }`}
+                        style={{ fontFamily: font.font }}
+                      >
+                        <div>
+                          <div className="font-semibold">{font.name}</div>
+                          <div className="text-sm text-gray-600">AaBbCc 123 åäö</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Preview Modal */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Förhandsvisning: {currentLesson.title}</DialogTitle>
-            <DialogDescription>
-              Så här kommer lektionen att se ut för eleverna
-            </DialogDescription>
+            <DialogTitle>Förhandsgranska lektion</DialogTitle>
           </DialogHeader>
-          
-          {currentLesson.moments.length > 0 && (
-            <div className="space-y-6">
-              {/* Progress bar */}
-              <div className="flex items-center space-x-4">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${((currentPreviewMoment + 1) / currentLesson.moments.length) * 100}%`
-                    }}
-                  ></div>
-                </div>
-                <span className="text-sm text-gray-600">
-                  {currentPreviewMoment + 1} / {currentLesson.moments.length}
-                </span>
-              </div>
-
-              {/* Current moment preview */}
-              <div className="min-h-96 bg-gray-50 rounded-lg p-8">
-                <InteractivePreview 
-                  moment={currentLesson.moments[currentPreviewMoment]}
-                  onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
-                />
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPreviewMoment(Math.max(0, currentPreviewMoment - 1))}
-                  disabled={currentPreviewMoment === 0}
-                >
-                  ← Föregående
-                </Button>
-                
-                <div className="text-center">
-                  <h4 className="font-semibold">
-                    {currentLesson.moments[currentPreviewMoment]?.title}
-                  </h4>
-                  <p className="text-sm text-gray-500">
-                    {MOMENT_TYPES.find(t => t.id === currentLesson.moments[currentPreviewMoment]?.type)?.description}
-                  </p>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
-                  disabled={currentPreviewMoment === currentLesson.moments.length - 1}
-                >
-                  Nästa →
-                </Button>
-              </div>
-
-              {/* Quick jump to moments */}
-              <div className="border-t pt-4">
-                <div className="text-sm font-semibold mb-2">Hoppa till moment:</div>
-                <div className="flex flex-wrap gap-2">
-                  {currentLesson.moments.map((moment, index) => (
-                    <Button
-                      key={moment.id}
-                      variant={currentPreviewMoment === index ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPreviewMoment(index)}
-                      className="text-xs"
-                    >
-                      {index + 1}. {MOMENT_TYPES.find(t => t.id === moment.type)?.icon} {moment.title}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="py-4">
+            <InteractivePreview 
+              moments={currentLesson.moments}
+              currentMoment={currentPreviewMoment}
+              onNext={() => setCurrentPreviewMoment(prev => Math.min(prev + 1, currentLesson.moments.length - 1))}
+              onPrevious={() => setCurrentPreviewMoment(prev => Math.max(prev - 1, 0))}
+            />
+          </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Moment Modal */}
+      {editingMoment && (
+        <Dialog open={!!editingMoment} onOpenChange={() => setEditingMoment(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Redigera {editingMoment.title}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {renderMomentConfig(editingMoment)}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
