@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import express from "express";
+import path from "path";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { LessonGenerator } from "./lessonGenerator";
@@ -437,6 +439,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete published lesson" });
     }
   });
+
+  // Serve generated lesson files statically
+  app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
 
   const httpServer = createServer(app);
   return httpServer;

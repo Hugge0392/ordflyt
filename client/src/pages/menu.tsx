@@ -272,14 +272,16 @@ export default function Menu() {
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600 mb-3">{lesson.description}</p>
-                    <Link href={`/lesson/${lesson.id}`}>
-                      <Button 
-                        size="sm" 
-                        className="w-full"
-                      >
-                        Spela lektion
-                      </Button>
-                    </Link>
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        // Öppna den genererade HTML-filen direkt
+                        window.open(`/generated-lessons/${lesson.fileName}`, '_blank');
+                      }}
+                    >
+                      Spela lektion
+                    </Button>
                   </div>
                 ))}
               </div>
