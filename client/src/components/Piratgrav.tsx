@@ -135,9 +135,9 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
     setRevealedWord(null);
 
     // Check for game completion (all unique words answered correctly)
-    const allUniqueWords = new Set(wordsToUse.map(word => word.w));
+    const allUniqueWords = new Set(wordsToUse.map((word: any) => word.w));
     const allWordsCompleted = allUniqueWords.size > 0 && 
-      [...allUniqueWords].every(word => newCorrectWords.has(word));
+      Array.from(allUniqueWords).every((word: string) => newCorrectWords.has(word));
       
     if (allWordsCompleted) {
       setGameCompleted(true);
