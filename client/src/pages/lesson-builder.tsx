@@ -395,6 +395,33 @@ export default function LessonBuilder() {
     setCurrentLesson(newLesson);
   };
 
+  const loadFromDraft = (draft: any) => {
+    if (currentLesson.moments.length > 0 && !confirm('Är du säker på att du vill ladda detta utkast? Osparade ändringar går förlorade.')) {
+      return;
+    }
+    
+    const loadedLesson: Lesson = {
+      id: draft.id,
+      title: draft.title,
+      wordClass: draft.wordClass || '',
+      moments: draft.content?.moments || []
+    };
+
+    setCurrentLesson(loadedLesson);
+    setShowLoadDialog(false);
+    
+    toast({
+      title: "Utkast laddat",
+      description: `"${draft.title}" har laddats in i redigeraren.`,
+    });
+  };
+
+  const deleteDraft = (draftId: string) => {
+    if (confirm('Är du säker på att du vill ta bort detta utkast? Detta kan inte ångras.')) {
+      deleteLessonMutation.mutate(draftId);
+    }
+  };
+
   const handlePublish = () => {
     if (!currentLesson.title.trim()) {
       toast({
@@ -1340,6 +1367,7 @@ export default function LessonBuilder() {
               </Button>
               <div className="flex space-x-2">
                 <LessonTemplates onSelectTemplate={loadFromTemplate} />
+                <Button variant="outline" onClick={() => setShowLoadDialog(true)}>📂 Ladda</Button>
                 <Button variant="outline" onClick={newLesson}>🆕 Ny</Button>
                 <Button variant="outline" onClick={() => setShowValidation(!showValidation)}>
                   ✅ Validera
@@ -1683,6 +1711,77 @@ export default function LessonBuilder() {
             >
               {publishLessonMutation.isPending ? 'Publicerar...' : 'Publicera'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load Lesson Dialog */}
+      <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sparade lektionsutkast</DialogTitle>
+            <DialogDescription>
+              Välj ett utkast att ladda in i redigeraren
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {savedLessons.length === 0 ? (
+              <div className="col-span-2 text-center py-8 text-gray-500">
+                <div className="text-4xl mb-4">📝</div>
+                <h3 className="text-lg font-medium mb-2">Inga sparade utkast</h3>
+                <p>Du har inga sparade lektionsutkast än. Skapa en lektion och spara den som utkast först.</p>
+              </div>
+            ) : (
+              savedLessons.map((draft: any) => (
+                <Card key={draft.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg">{draft.title}</CardTitle>
+                      <Badge variant="outline">
+                        {draft.wordClass || 'Ingen ordklass'}
+                      </Badge>
+                    </div>
+                    {draft.description && (
+                      <p className="text-sm text-gray-600">{draft.description}</p>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Moment:</span>
+                        <span className="font-medium">{draft.content?.moments?.length || 0} stycken</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Uppdaterad:</span>
+                        <span>{new Date(draft.updatedAt).toLocaleDateString('sv-SE')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Svårighet:</span>
+                        <span className="capitalize">{draft.difficulty || 'medium'}</span>
+                      </div>
+                      <div className="flex space-x-2 mt-4">
+                        <Button 
+                          onClick={() => loadFromDraft(draft)}
+                          className="flex-1"
+                          size="sm"
+                        >
+                          📂 Ladda
+                        </Button>
+                        <Button 
+                          onClick={() => deleteDraft(draft.id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={deleteLessonMutation.isPending}
+                        >
+                          🗑️
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
