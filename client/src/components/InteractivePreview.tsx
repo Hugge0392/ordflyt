@@ -310,70 +310,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
         
         return (
           <div className="w-full h-screen flex" style={getBackgroundStyle()}>
-            {/* Text area - 3/4 of screen */}
-            <div className="w-3/4 flex items-start justify-center pt-16 p-8" style={lesson?.background ? { backgroundColor: 'rgba(255,255,255,0.95)', margin: '20px', borderRadius: '20px' } : {}}>
-              <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
-                <div className="bg-gray-100 rounded-lg p-6 relative">
-                  <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
-                  
-                  {/* Text content */}
-                  <p className="text-2xl leading-relaxed">
-                    {showFeedback ? feedbackText : currentText}
-                    {!showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && (
-                      <span className="animate-pulse">|</span>
-                    )}
-                  </p>
-                  
-                  {/* Question and alternatives */}
-                  {hasQuestion && isCurrentItemQuestion && textComplete && !showFeedback && (
-                    <div className="mt-6">
-                      <div className="space-y-3">
-                        {currentAlternatives.map((alt: any, index: number) => (
-                          <Button
-                            key={index}
-                            variant="outline"
-                            className="w-full text-left justify-start p-4 h-auto"
-                            onClick={() => {
-                              handleAnswerSelect(alt.text, alt.correct);
-                              // Use current item's feedback
-                              if (alt.correct) {
-                                setFeedbackText(currentItem?.correctFeedback || 'Rätt! Bra jobbat!');
-                              } else {
-                                setFeedbackText(currentItem?.incorrectFeedback || 'Fel svar. Försök igen!');
-                              }
-                            }}
-                            disabled={selectedAnswer !== null}
-                          >
-                            {alt.text}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Feedback actions */}
-                  {showFeedback && (
-                    <div className="mt-4 space-x-3">
-                      {!currentAlternatives.find((alt: any) => alt.text === selectedAnswer)?.correct && (
-                        <Button variant="outline" onClick={resetQuestion}>
-                          Försök igen
-                        </Button>
-                      )}
-                      <Button onClick={goToNextItem}>
-                        Fortsätt
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* Default continue button for text-only or completed questions */}
-                  {!hasQuestion && textComplete && (
-                    <Button onClick={goToNextItem} className="mt-4">
-                      Fortsätt
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
+            
             
             {/* Character area - 1/4 of screen */}
             <div className="w-1/4 flex items-center justify-center p-4">
