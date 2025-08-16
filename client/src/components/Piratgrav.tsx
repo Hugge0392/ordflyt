@@ -77,6 +77,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   const [message, setMessage] = useState("Klicka på en sandhög för att gräva!");
   const [round, setRound] = useState(1);
   const [gameCompleted, setGameCompleted] = useState(false);
+  const [correctlyAnsweredWords, setCorrectlyAnsweredWords] = useState<Set<string>>(new Set());
 
   const tiles = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
 
@@ -90,6 +91,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
       setHearts(3);
       setStreak(0);
       setRound(1);
+      setCorrectlyAnsweredWords(new Set());
     }
   }
 
@@ -113,13 +115,17 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
     if (!revealedWord) return;
     const correct = revealedWord.n === isNoun;
 
-    let newCoins = coins;
+    let newCorrectWords = correctlyAnsweredWords;
     if (correct) {
       const bonus = 1 + Math.floor(streak / 3);
-      newCoins = coins + 1 + bonus;
-      setCoins(newCoins);
+      setCoins((c) => c + 1 + bonus);
       setStreak((s) => s + 1);
       setMessage("Rätt! 💰 +" + (1 + bonus));
+      
+      // Add word to correctly answered set
+      newCorrectWords = new Set(correctlyAnsweredWords);
+      newCorrectWords.add(revealedWord.w);
+      setCorrectlyAnsweredWords(newCorrectWords);
     } else {
       setHearts((h) => Math.max(0, h - 1));
       setStreak(0);
@@ -128,8 +134,12 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
 
     setRevealedWord(null);
 
-    // Check for game completion (after collecting 10 coins)
-    if (newCoins >= 10) {
+    // Check for game completion (all unique words answered correctly)
+    const allUniqueWords = new Set(wordsToUse.map(word => word.w));
+    const allWordsCompleted = allUniqueWords.size > 0 && 
+      [...allUniqueWords].every(word => newCorrectWords.has(word));
+      
+    if (allWordsCompleted) {
       setGameCompleted(true);
       setMessage("Bra jobbat! Nu är du snart i hamn, bara lite till...");
       return;
