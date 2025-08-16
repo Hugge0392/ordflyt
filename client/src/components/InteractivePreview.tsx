@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { 
+  OrdracetPreview, 
+  MeningPusselPreview, 
+  GissaOrdetPreview, 
+  QuizPreview, 
+  RimSpelPreview, 
+  BeratttelsePreview 
+} from "@/components/GamePreviews";
 
 interface MemoryCard {
   id: string;
@@ -15,6 +23,14 @@ interface InteractivePreviewProps {
 }
 
 export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) {
+  if (!moment) {
+    return (
+      <div className="text-center text-gray-500 py-12">
+        <div className="text-4xl mb-4">⚠️</div>
+        <p>Inget moment att visa</p>
+      </div>
+    );
+  }
   const [currentText, setCurrentText] = useState("");
   const [textIndex, setTextIndex] = useState(0);
   const [selectedWords, setSelectedWords] = useState<number[]>([]);
@@ -153,6 +169,15 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
   };
 
   const renderMoment = () => {
+    if (!moment || !moment.type) {
+      return (
+        <div className="text-center text-gray-500 py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p>Moment saknas eller är felaktigt konfigurerat</p>
+        </div>
+      );
+    }
+
     switch(moment.type) {
       case 'textruta':
         return (
@@ -168,39 +193,54 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'pratbubbla':
         return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-start space-x-4">
+          <div className="w-full h-screen flex">
+            {/* Text area - 3/4 of screen */}
+            <div className="w-3/4 flex items-center justify-center p-8">
+              <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
+                <div className="bg-gray-100 rounded-lg p-6 relative">
+                  <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
+                  <p className="text-xl leading-relaxed">
+                    {currentText}
+                    {textIndex < (moment.config.text || '').length && (
+                      <span className="animate-pulse">|</span>
+                    )}
+                  </p>
+                  {textIndex >= (moment.config.text || '').length && (
+                    <Button onClick={onNext} className="mt-4">
+                      Fortsätt
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Character area - 1/4 of screen */}
+            <div className="w-1/4 flex items-center justify-center p-4">
               <div className="flex-shrink-0">
-                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') ? (
+                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.includes('blob:') ? (
                   <img 
                     src={moment.config.characterImage} 
                     alt="Character" 
-                    className="w-20 h-20 object-contain rounded-lg"
+                    className="w-full h-auto max-h-96 object-contain"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const emojiDiv = document.createElement('div');
-                      emojiDiv.className = 'text-6xl';
+                      emojiDiv.className = 'text-9xl flex items-center justify-center h-96';
                       emojiDiv.textContent = '👨‍🏫';
                       target.parentNode?.appendChild(emojiDiv);
                     }}
                   />
+                ) : moment.config.characterImage?.includes('data:') ? (
+                  <img 
+                    src={moment.config.characterImage} 
+                    alt="Character" 
+                    className="w-full h-auto max-h-96 object-contain" 
+                  />
                 ) : (
-                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
-                )}
-              </div>
-              <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
-                <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
-                <p className="text-lg">
-                  {currentText}
-                  {textIndex < (moment.config.text || '').length && (
-                    <span className="animate-pulse">|</span>
-                  )}
-                </p>
-                {textIndex >= (moment.config.text || '').length && (
-                  <Button onClick={onNext} className="mt-4">
-                    Fortsätt
-                  </Button>
+                  <div className="text-9xl flex items-center justify-center h-96">
+                    {moment.config.characterImage || '👨‍🏫'}
+                  </div>
                 )}
               </div>
             </div>
@@ -372,17 +412,16 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'korsord':
         const crosswordGrid = moment.config.grid || [];
-        const crosswordClues = moment.config.clues || [];
         const gridSize = 15;
         
         return (
-          <div className="max-w-6xl mx-auto">
-            <h3 className="text-xl font-bold text-center mb-6">Korsord</h3>
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">Korsord</h3>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Grid */}
-              <div className="lg:col-span-2 flex justify-center">
-                <div className="grid gap-0.5" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
+              <div className="flex justify-center">
+                <div className="grid gap-0.5 max-w-md" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
                   {Array.from({ length: gridSize * gridSize }).map((_, index) => {
                     const x = index % gridSize;
                     const y = Math.floor(index / gridSize);
@@ -391,13 +430,13 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                     return (
                       <div
                         key={`${x}-${y}`}
-                        className={`w-8 h-8 border border-gray-300 text-sm flex items-center justify-center relative font-bold ${
-                          cell ? 'bg-white border-gray-600' : 'bg-gray-300'
+                        className={`w-6 h-6 border border-gray-300 text-xs flex items-center justify-center relative ${
+                          cell ? 'bg-white font-bold' : 'bg-gray-200'
                         }`}
                       >
                         {cell?.letter}
                         {cell?.number && (
-                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none p-0.5">
+                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none">
                             {cell.number}
                           </div>
                         )}
@@ -408,28 +447,92 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
               </div>
 
               {/* Clues */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-4 text-lg">Ledtrådar</h4>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {crosswordClues.map((clue: any, index: number) => (
-                    <div key={index} className="bg-white p-3 rounded border">
-                      <div className="font-bold text-blue-600">{index + 1}.</div>
-                      <div className="text-sm">{clue.question}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {clue.answer?.length} bokstäver
+              <div className="text-left">
+                <h4 className="font-semibold mb-4">Ledtrådar:</h4>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {(moment.config.clues || []).map((clue: any, i: number) => (
+                    <div key={i} className="p-2 border rounded">
+                      <div className="font-medium">
+                        {i + 1}. {clue.question}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        ({clue.answer.length} bokstäver)
                       </div>
                     </div>
                   ))}
-                  {crosswordClues.length === 0 && (
-                    <div className="text-gray-500 italic text-center py-8">
-                      Inga ledtrådar skapade än. Konfigurera korsordet först.
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
             
             <Button onClick={onNext} className="mt-6">Fortsätt</Button>
+          </div>
+        );
+
+      case 'ordracet':
+        return <OrdracetPreview moment={moment} onNext={onNext} />;
+
+      case 'mening-pussel':
+        return <MeningPusselPreview moment={moment} onNext={onNext} />;
+
+      case 'gissa-ordet':
+        return <GissaOrdetPreview moment={moment} onNext={onNext} />;
+
+      case 'quiz':
+        return <QuizPreview moment={moment} onNext={onNext} />;
+
+      case 'rim-spel':
+        return <RimSpelPreview moment={moment} onNext={onNext} />;
+
+      case 'berattelse':
+        return <BeratttelsePreview moment={moment} onNext={onNext} />;
+
+      case 'synonymer':
+      case 'motsatser':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">
+              {moment.type === 'synonymer' ? '🔄 Synonymer' : '⚖️ Motsatser'}
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <p className="mb-4">{moment.config.instruction}</p>
+              <div className="grid grid-cols-2 gap-4">
+                {(moment.config.wordPairs || []).slice(0, 4).map((pair: any, i: number) => (
+                  <div key={i} className="space-y-2">
+                    <Button variant="outline" className="w-full">
+                      {pair.word1 || 'ord1'}
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      {pair.word2 || 'ord2'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button onClick={onNext}>Fortsätt</Button>
+          </div>
+        );
+
+      case 'stavning':
+        return (
+          <div className="max-w-2xl mx-auto text-center">
+            <h3 className="text-xl font-bold mb-6">🔤 Stavning</h3>
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <p className="text-lg mb-4">Stava ordet:</p>
+              <div className="text-2xl font-bold mb-4 text-blue-600">
+                {moment.config.words?.[0] || 'EXEMPEL'}
+              </div>
+              <input 
+                type="text" 
+                className="border-2 border-gray-300 rounded-lg p-3 text-xl text-center w-64"
+                placeholder="Skriv ordet här..."
+              />
+              {moment.config.allowHints && (
+                <div className="mt-4">
+                  <Button variant="outline" size="sm">💡 Ledtråd</Button>
+                </div>
+              )}
+            </div>
+            <Button onClick={onNext}>Fortsätt</Button>
           </div>
         );
 

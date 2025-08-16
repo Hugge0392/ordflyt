@@ -1,0 +1,359 @@
+        import React, { useEffect, useRef, useState } from "react";
+
+        // NOTE: Removed import of './assets/pirate.png' because the file was missing and broke the build.
+        // The guide now loads an image from localStorage if available, otherwise it falls back to a built-in SVG.
+        // Users can still upload/drag in the provided pirate image and it will persist automatically.
+
+        // --- Default avatar (fallback SVG) ---
+        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'>\n  <defs>\n    <linearGradient id='g' x1='0' x2='1'>\n      <stop offset='0' stop-color='#fcd34d'/><stop offset='1' stop-color='#fb923c'/>\n    </linearGradient>\n  </defs>\n  <rect width='128' height='128' rx='24' fill='url(#g)'/>\n  <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='64'>🏴‍☠️</text>\n</svg>`)} `;
+
+        // --- Utility helpers ---
+        const shuffle = (arr) => {
+          const a = [...arr];
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        };
+
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+        // --- Pirate words & feel ---
+        const pirateQuotes = {
+          intro:
+            "Ahoy! Jag är Kapten Ruby. Häng med på en skattjakt över de sju haven! Matcha korten för att hitta ledtrådarna till sjökartan.",
+          firstFlip:
+            "Fin vändning, skeppare! Hitta paret så ska jag berätta en hemlighet...",
+          match: (icon) => `Träff! Två ${icon}. Vi är ett steg närmare skatten!`,
+          miss: "Aj aj, ingen träff den här gången. Försök igen, landkrabba!",
+          win: "Se där! Alla par hittade. Kartan är komplett – skatten väntar i lagunen!",
+          restart: "Skeppet är redo för en ny färd. Klara, färdiga, segla!",
+        };
+
+        // --- Pirate icons (emoji = self contained assets) ---
+        const ICONS = [
+          { id: "skull", icon: "☠️", name: "dödskalle" },
+          { id: "anchor", icon: "⚓", name: "ankare" },
+          { id: "map", icon: "🗺️", name: "karta" },
+          { id: "parrot", icon: "🦜", name: "papegoja" },
+          { id: "rum", icon: "🍺", name: "rom" },
+          { id: "wheel", icon: "🛞", name: "roder" },
+          { id: "gem", icon: "💎", name: "juvel" },
+          { id: "spyglass", icon: "🔭", name: "kikare" },
+        ];
+
+        // --- Sound FX with WebAudio (tiny beeps; no external files) ---
+        function useSfx() {
+          const ctxRef = useRef(null);
+          const ensure = () => (ctxRef.current ??= new (window.AudioContext || window.webkitAudioContext)());
+          const tone = async (freq = 440, dur = 0.07, type = "sine", vol = 0.03) => {
+            const ctx = ensure();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = type; o.frequency.value = freq; g.gain.value = vol;
+            o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur);
+          };
+          return {
+            click: () => tone(520, 0.05, "triangle", 0.03),
+            match: () => { tone(660, 0.09, "square", 0.04); setTimeout(() => tone(880, 0.09, "square", 0.04), 90); },
+            miss: () => { tone(180, 0.12, "sawtooth", 0.025); setTimeout(() => tone(140, 0.12, "sawtooth", 0.02), 70); },
+            win: () => { [660, 880, 990, 1320].forEach((f, i) => setTimeout(() => tone(f, 0.1, "triangle", 0.05), i * 120)); },
+          };
+        }
+
+        // --- Card component ---
+        function Card({ data, flipped, solved, onFlip, index }) {
+          return (
+            <button
+              aria-label={`Kort ${index + 1}`}
+              onClick={onFlip}
+              className={`relative aspect-[3/4] w-full rounded-2xl transition-transform duration-300 [transform-style:preserve-3d] ${
+                flipped || solved ? "[transform:rotateY(180deg)]" : ""
+              }`}
+              disabled={solved}
+            >
+              {/* Back */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-sky-700 via-indigo-800 to-slate-900 text-white border border-indigo-400/40 shadow-xl [backface-visibility:hidden]">
+                <div className="text-3xl">🏴‍☠️</div>
+              </div>
+
+              {/* Front */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-100 border border-amber-300 shadow-xl [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                <div className="text-5xl drop-shadow-sm select-none">{data.icon}</div>
+              </div>
+            </button>
+          );
+        }
+
+        // --- Dialogue bubble with the pirate character ---
+        function PirateGuide({ text }) {
+          const [imageSrc, setImageSrc] = useState(null);
+
+          // Load from localStorage first
+          useEffect(() => {
+            try {
+              const saved = localStorage.getItem("pirate-avatar");
+              if (saved) setImageSrc(saved);
+            } catch {}
+          }, []);
+
+          // Persist whenever user changes image
+          useEffect(() => {
+            if (!imageSrc) return;
+            try { localStorage.setItem("pirate-avatar", imageSrc); } catch {}
+          }, [imageSrc]);
+
+          const onPick = (file) => {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => setImageSrc(reader.result);
+            reader.readAsDataURL(file);
+          };
+
+          const onDrop = (e) => {
+            e.preventDefault();
+            const f = e.dataTransfer?.files?.[0];
+            if (f) onPick(f);
+          };
+
+          return (
+            <div className="flex gap-4 items-center" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+              <img
+                src={imageSrc || DEFAULT_AVATAR}
+                onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
+                alt="Kapten Ruby"
+                className="w-24 h-24 rounded-full border-4 border-amber-300 shadow-lg bg-white object-cover"
+              />
+              <div className="relative max-w-xl">
+                <div className="rounded-2xl bg-white/90 p-4 pr-5 text-slate-800 border border-amber-300 shadow-xl">
+                  <p className="leading-relaxed">{text}</p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <span className="px-2 py-1 rounded-lg bg-amber-100 border border-amber-300">Byt karaktärsbild</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
+                    </label>
+                    <span className="opacity-70">(dra & släpp funkar också)</span>
+                  </div>
+                </div>
+                <div className="absolute -left-3 top-6 h-0 w-0 border-y-8 border-y-transparent border-r-8 border-r-amber-300/80" />
+              </div>
+            </div>
+          );
+        }
+
+        // --- Confetti (lightweight) ---
+        function Confetti({ show }) {
+          const canvasRef = useRef(null);
+          useEffect(() => {
+            if (!show) return; const c = canvasRef.current; const ctx = c.getContext("2d");
+            let id; const parts = Array.from({ length: 120 }, () => ({
+              x: Math.random() * c.width,
+              y: -10 - Math.random() * c.height,
+              s: 4 + Math.random() * 4,
+              v: 1 + Math.random() * 3,
+              r: Math.random() * Math.PI,
+              a: 0.7 + Math.random() * 0.3,
+            }));
+            const loop = () => {
+              ctx.clearRect(0, 0, c.width, c.height);
+              parts.forEach((p) => {
+                p.y += p.v; p.x += Math.sin(p.y / 20) * 0.7; p.r += 0.1;
+                ctx.save(); ctx.globalAlpha = p.a; ctx.translate(p.x, p.y); ctx.rotate(p.r);
+                ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s);
+                ctx.restore();
+                if (p.y > c.height + 10) p.y = -10;
+              });
+              id = requestAnimationFrame(loop);
+            };
+            id = requestAnimationFrame(loop);
+            return () => cancelAnimationFrame(id);
+          }, [show]);
+          return (
+            <canvas ref={canvasRef} width={1200} height={400} className={`pointer-events-none absolute inset-0 w-full h-full ${show ? '' : 'hidden'}`} />
+          );
+        }
+
+        // --- Main Game Component ---
+        export default function App() {
+          const [size, setSize] = useState(4); // grid size (even number: 4, 6)
+          const [deck, setDeck] = useState([]);
+          const [flipped, setFlipped] = useState([]); // indexes of flipped cards
+          const [solved, setSolved] = useState(new Set());
+          const [moves, setMoves] = useState(0);
+          const [startedAt, setStartedAt] = useState(null);
+          const [message, setMessage] = useState(pirateQuotes.intro);
+          const [won, setWon] = useState(false);
+          const sfx = useSfx();
+
+          // Build deck
+          const buildDeck = (n) => {
+            const pairs = (n * n) / 2;
+            const items = shuffle(ICONS).slice(0, pairs);
+            const doubled = shuffle(
+              items.flatMap((d) => [
+                { ...d, uid: d.id + "-A" },
+                { ...d, uid: d.id + "-B" },
+              ])
+            );
+            return doubled;
+          };
+
+          const reset = (n = size) => {
+            setDeck(buildDeck(n));
+            setFlipped([]);
+            setSolved(new Set());
+            setMoves(0);
+            setStartedAt(Date.now());
+            setWon(false);
+            setMessage(pirateQuotes.restart);
+          };
+
+          useEffect(() => { reset(size); }, [size]);
+
+          const timeSpent = () => (startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0);
+
+          const onFlip = async (idx) => {
+            if (won) return;
+            if (flipped.includes(idx) || solved.has(deck[idx].uid)) return;
+            sfx.click();
+            let cur = [...flipped, idx];
+            if (moves === 0 && flipped.length === 0) setMessage(pirateQuotes.firstFlip);
+            setFlipped(cur);
+            if (cur.length === 2) {
+              setMoves((m) => m + 1);
+              const [a, b] = cur.map((i) => deck[i]);
+              if (a.id === b.id && a.uid !== b.uid) {
+                // Match
+                await sleep(250);
+                sfx.match();
+                setSolved((s) => new Set([...s, a.uid, b.uid]));
+                setMessage(pirateQuotes.match(a.name));
+                setFlipped([]);
+              } else {
+                // Miss
+                await sleep(700);
+                sfx.miss();
+                setMessage(pirateQuotes.miss);
+                setFlipped([]);
+              }
+            } else if (cur.length > 2) {
+              setFlipped([idx]);
+            }
+          };
+
+          useEffect(() => {
+            if (deck.length > 0 && solved.size === deck.length) {
+              setWon(true); sfx.win(); setMessage(pirateQuotes.win);
+            }
+          }, [solved, deck]);
+
+          // --- Lightweight runtime tests (in dev) ---
+          useEffect(() => {
+            try {
+              if (deck.length) {
+                console.assert(deck.length === size * size, "[test] Deck size should equal grid cells");
+                const counts = deck.reduce((m, c) => ((m[c.id] = (m[c.id] || 0) + 1), m), {});
+                console.assert(Object.values(counts).every((c) => c === 2), "[test] Each icon should appear twice");
+                const uniq = new Set(deck.map((c) => c.uid));
+                console.assert(uniq.size === deck.length, "[test] Each card UID must be unique");
+                // Extra test: ensure we can build enough pairs for chosen grid
+                const need = (size * size) / 2;
+                console.assert(ICONS.length >= need, "[test] ICONS must include enough unique symbols for chosen grid size");
+              }
+            } catch {}
+          }, [deck, size]);
+
+          return (
+            <div className="min-h-screen text-slate-100 relative overflow-hidden">
+              {/* Ocean background */}
+              <div className="absolute inset-0 -z-10 bg-gradient-to-b from-sky-500 via-sky-700 to-indigo-900" />
+              <div className="absolute inset-x-0 bottom-0 h-40 -z-10 bg-[radial-gradient(ellipse_at_bottom,_rgba(255,255,255,0.12),_rgba(0,0,0,0)_60%)]" />
+              <div
+                className="absolute inset-0 -z-10 opacity-30"
+                style={{
+                  backgroundImage:
+                    "url(\n      data:image/svg+xml;utf8,\n      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'><path fill='%23ffffff' d='M0,64L80,101.3C160,139,320,213,480,240C640,267,800,245,960,218.7C1120,192,1280,160,1360,144L1440,128L1440,0L1360,0C1280,0,1120,0,960,0C800,0,640,0,480,0C320,0,160,0,80,0L0,0Z'></path></svg>\n      )",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "cover",
+                  backgroundPosition: "bottom",
+                }}
+              />
+
+              <header className="mx-auto max-w-5xl px-6 pt-10">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">🏴‍☠️ Piratskatten</h1>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm">Svårighet</label>
+                    <select
+                      className="rounded-xl bg-white/90 text-slate-800 px-3 py-2 border border-amber-300 shadow"
+                      value={size}
+                      onChange={(e) => setSize(parseInt(e.target.value))}
+                    >
+                      <option value={4}>Lätt (4×4)</option>
+                      <option value={6}>Utmaning (6×6)</option>
+                    </select>
+                    <button
+                      onClick={() => reset()}
+                      className="rounded-xl bg-amber-400 text-slate-900 px-4 py-2 font-semibold shadow hover:brightness-110 active:translate-y-[1px]"
+                    >
+                      Starta om
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              <main className="mx-auto max-w-5xl px-6 py-6">
+                <div className="mb-6">
+                  <PirateGuide text={message} />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 sm:gap-5 select-none">
+                  {deck.map((card, idx) => (
+                    <Card
+                      key={card.uid}
+                      data={card}
+                      flipped={flipped.includes(idx)}
+                      solved={solved.has(card.uid)}
+                      onFlip={() => onFlip(idx)}
+                      index={idx}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Drag:</span> <strong>{moves}</strong>
+                  </div>
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Tid:</span> <strong>{timeSpent()}s</strong>
+                  </div>
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Par kvar:</span> <strong>{Math.max(0, deck.length / 2 - solved.size / 2)}</strong>
+                  </div>
+                </div>
+
+                {/* Win overlay */}
+                {won && (
+                  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+                    <div className="relative w-full max-w-xl rounded-3xl bg-white text-slate-900 p-6 border border-amber-300 shadow-2xl">
+                      <Confetti show={won} />
+                      <h2 className="text-3xl font-black mb-2">Du fann skatten! 🧭💰</h2>
+                      <p className="mb-4">Kapten Ruby salutera! Du tog dig igenom minnesspelet med {moves} drag på {timeSpent()} sekunder.</p>
+                      <div className="flex justify-end gap-3">
+                        <button onClick={() => setWon(false)} className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Fortsätt titta</button>
+                        <button onClick={() => { setWon(false); reset(); }} className="px-4 py-2 rounded-xl bg-amber-400 font-semibold hover:brightness-110">Segla igen</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </main>
+
+              <footer className="mx-auto max-w-5xl px-6 py-8 text-center opacity-80">
+                <p>
+                  Byggt för äventyr – pirattema från topp till tå. Tips: slå på ljud för små effekter!
+                </p>
+              </footer>
+            </div>
+          );
+        }

@@ -60,6 +60,10 @@ export default function Admin() {
     queryKey: ["/api/admin/error-reports"],
   });
 
+  const { data: publishedLessons = [], isLoading: lessonsLoading } = useQuery<any[]>({
+    queryKey: ["/api/lessons/published"],
+  });
+
   // Create sentence mutation
   const createSentenceMutation = useMutation({
     mutationFn: async (sentence: Omit<EditingSentence, 'id'>) => {
@@ -691,16 +695,113 @@ export default function Admin() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Felrapporter</CardTitle>
+              <CardTitle className="text-lg">Publicerade lektioner</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-600">{errorReports.length}</div>
+              <div className="text-3xl font-bold text-green-600">{publishedLessons.length}</div>
               <div className="text-sm text-gray-500">
-                {errorReports.filter(r => r.status === 'pending').length} väntande
+                Genererade HTML-filer
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Published Lessons Section */}
+        {publishedLessons.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Publicerade lektioner</CardTitle>
+              <CardDescription>Lektioner som publicerats från lektionsbyggaren</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {publishedLessons.map((lesson: any) => (
+                  <div key={lesson.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{lesson.title}</h3>
+                          <Badge variant="outline">{lesson.wordClass}</Badge>
+                          <Badge variant={lesson.difficulty === 'easy' ? 'secondary' : lesson.difficulty === 'medium' ? 'default' : 'destructive'}>
+                            {lesson.difficulty === 'easy' ? 'Lätt' : lesson.difficulty === 'medium' ? 'Medel' : 'Svår'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-gray-600 mb-3">{lesson.description}</p>
+                        
+                        <div className="bg-blue-50 p-3 rounded-md">
+                          <p className="text-sm font-medium text-blue-800 mb-1">Genererad fil:</p>
+                          <p className="text-sm text-blue-600 font-mono">{lesson.fileName}</p>
+                          {lesson.filePath && (
+                            <p className="text-xs text-blue-500 mt-1">Sökväg: {lesson.filePath}</p>
+                          )}
+                        </div>
+                        
+                        <div className="text-xs text-gray-500 mt-2">
+                          Publicerad: {new Date(lesson.createdAt).toLocaleString('sv-SE')}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(lesson.fileName);
+                            toast({ title: "Kopierat!", description: "Filnamnet kopierades till urklipp" });
+                          }}
+                        >
+                          📋 Kopiera filnamn
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            // Skicka lektionsdata till lektionsbyggaren via localStorage
+                            const editData = {
+                              id: lesson.id,
+                              title: lesson.title,
+                              description: lesson.description,
+                              wordClass: lesson.wordClass,
+                              difficulty: lesson.difficulty,
+                              content: lesson.content,
+                              isEditing: true
+                            };
+                            localStorage.setItem('editingLesson', JSON.stringify(editData));
+                            window.location.href = '/lesson-builder';
+                          }}
+                        >
+                          ✏️ Redigera
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={async () => {
+                            if (confirm(`Vill du verkligen ta bort lektionen "${lesson.title}"?`)) {
+                              try {
+                                await apiRequest('DELETE', `/api/lessons/published/${lesson.id}`);
+                                queryClient.invalidateQueries({ queryKey: ["/api/lessons/published"] });
+                                toast({ title: "Raderad", description: "Lektionen har tagits bort" });
+                              } catch (error) {
+                                toast({ 
+                                  title: "Fel", 
+                                  description: "Kunde inte ta bort lektionen", 
+                                  variant: "destructive" 
+                                });
+                              }
+                            }
+                          }}
+                        >
+                          🗑️ Ta bort
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Error Reports Section */}
         {errorReports.length > 0 && (

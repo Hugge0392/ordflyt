@@ -3,16 +3,18 @@ import {
   type Sentence,
   type GameProgress,
   type ErrorReport,
+  type PublishedLesson,
   type Word,
   type InsertSentence,
   type InsertWordClass,
   type InsertGameProgress,
   type InsertErrorReport,
+  type InsertPublishedLesson,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -40,6 +42,13 @@ export interface IStorage {
   getErrorReports(): Promise<ErrorReport[]>;
   updateErrorReport(id: string, report: Partial<ErrorReport>): Promise<ErrorReport>;
   deleteErrorReport(id: string): Promise<void>;
+
+  // Published lesson methods
+  createPublishedLesson(lesson: InsertPublishedLesson): Promise<PublishedLesson>;
+  getPublishedLessons(): Promise<PublishedLesson[]>;
+  getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]>;
+  updatePublishedLesson(id: string, lesson: Partial<InsertPublishedLesson>): Promise<PublishedLesson>;
+  deletePublishedLesson(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -372,6 +381,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteErrorReport(id: string): Promise<void> {
     await db.delete(errorReports).where(eq(errorReports.id, id));
+  }
+
+  // Published lesson methods
+  async createPublishedLesson(lesson: InsertPublishedLesson): Promise<PublishedLesson> {
+    const [newLesson] = await db.insert(publishedLessons).values(lesson).returning();
+    return newLesson;
+  }
+
+  async getPublishedLessons(): Promise<PublishedLesson[]> {
+    return await db.select().from(publishedLessons);
+  }
+
+  async getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]> {
+    return await db.select().from(publishedLessons).where(eq(publishedLessons.wordClass, wordClass));
+  }
+
+  async updatePublishedLesson(id: string, lesson: Partial<InsertPublishedLesson>): Promise<PublishedLesson> {
+    const [updatedLesson] = await db.update(publishedLessons)
+      .set({ ...lesson, updatedAt: new Date() })
+      .where(eq(publishedLessons.id, id))
+      .returning();
+    return updatedLesson;
+  }
+
+  async deletePublishedLesson(id: string): Promise<void> {
+    await db.delete(publishedLessons).where(eq(publishedLessons.id, id));
   }
 }
 

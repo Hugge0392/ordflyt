@@ -1,9 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import express from "express";
+import path from "path";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema } from "@shared/schema";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -322,6 +325,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // Published lesson endpoints
+  app.post("/api/lessons/publish", async (req, res) => {
+    try {
+      console.log("Received publish request:", req.body);
+      const validatedData = insertPublishedLessonSchema.parse(req.body);
+      console.log("Validated data:", validatedData);
+      
+      // Generera HTML-fil för lektionen
+      const lessonGenerator = new LessonGenerator();
+      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
+      console.log("Generated filename:", fileName);
+      
+      try {
+        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
+        console.log("Generated file at:", filePath);
+        
+        // Lägg till filnamn och sökväg till databasen
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: filePath
+        };
+        
+        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
+        res.json({ ...lesson, fileName, filePath });
+      } catch (fileError) {
+        console.error("Failed to generate lesson file:", fileError);
+        
+        // Publicera utan fil om filgenereringen misslyckas
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: null
+        };
+        
+        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
+        res.json({ ...lesson, fileName, warning: "File generation failed" });
+      }
+    } catch (error) {
+      console.error("Failed to publish lesson:", error);
+      res.status(500).json({ message: "Failed to publish lesson" });
+    }
+  });
+
+  app.get("/api/lessons/published", async (req, res) => {
+    try {
+      const lessons = await storage.getPublishedLessons();
+      res.json(lessons);
+    } catch (error) {
+      console.error("Failed to fetch published lessons:", error);
+      res.status(500).json({ message: "Failed to fetch published lessons" });
+    }
+  });
+
+  app.get("/api/lessons/published/wordclass/:wordClass", async (req, res) => {
+    try {
+      const { wordClass } = req.params;
+      const lessons = await storage.getPublishedLessonsByWordClass(wordClass);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Failed to fetch published lessons by word class:", error);
+      res.status(500).json({ message: "Failed to fetch published lessons by word class" });
+    }
+  });
+
+  app.put("/api/lessons/published/:id", async (req, res) => {
+    try {
+      console.log("Received update request for lesson:", req.params.id, req.body);
+      const validatedData = insertPublishedLessonSchema.parse(req.body);
+      
+      // Generera nytt filnamn för den uppdaterade lektionen
+      const lessonGenerator = new LessonGenerator();
+      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
+      
+      try {
+        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
+        
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: filePath
+        };
+        
+        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
+        res.json({ ...lesson, fileName, filePath });
+      } catch (fileError) {
+        console.error("Failed to regenerate lesson file:", fileError);
+        
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: null
+        };
+        
+        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
+        res.json({ ...lesson, fileName, warning: "File generation failed" });
+      }
+    } catch (error) {
+      console.error("Failed to update published lesson:", error);
+      res.status(500).json({ message: "Failed to update published lesson" });
+    }
+  });
+
+  app.delete("/api/lessons/published/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePublishedLesson(id);
+      res.json({ message: "Lesson deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete published lesson:", error);
+      res.status(500).json({ message: "Failed to delete published lesson" });
+    }
+  });
+
+  // Serve generated lesson files statically
+  app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
 
   const httpServer = createServer(app);
   return httpServer;
