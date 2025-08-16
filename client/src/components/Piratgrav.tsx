@@ -76,6 +76,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   const [streak, setStreak] = useState(0);
   const [message, setMessage] = useState("Klicka på en sandhög för att gräva!");
   const [round, setRound] = useState(1);
+  const [gameCompleted, setGameCompleted] = useState(false);
 
   const tiles = useMemo(() => Array.from({ length: 12 }, (_, i) => i), []);
 
@@ -83,6 +84,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
     setDug(Array(12).fill(false));
     setRevealedWord(null);
     setMessage("Klicka på en sandhög för att gräva!");
+    setGameCompleted(false);
     if (!keepScore) {
       setCoins(0);
       setHearts(3);
@@ -98,7 +100,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   }
 
   function onTileClick(i: number) {
-    if (revealedWord || dug[i] || hearts <= 0) return;
+    if (revealedWord || dug[i] || hearts <= 0 || gameCompleted) return;
     const next = nextWord();
     const newDug = [...dug];
     newDug[i] = true;
@@ -111,9 +113,11 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
     if (!revealedWord) return;
     const correct = revealedWord.n === isNoun;
 
+    let newCoins = coins;
     if (correct) {
       const bonus = 1 + Math.floor(streak / 3);
-      setCoins((c) => c + 1 + bonus);
+      newCoins = coins + 1 + bonus;
+      setCoins(newCoins);
       setStreak((s) => s + 1);
       setMessage("Rätt! 💰 +" + (1 + bonus));
     } else {
@@ -124,6 +128,13 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
 
     setRevealedWord(null);
 
+    // Check for game completion (after collecting 10 coins)
+    if (newCoins >= 10) {
+      setGameCompleted(true);
+      setMessage("Bra jobbat! Nu är du snart i hamn, bara lite till...");
+      return;
+    }
+
     const done = dug.every(Boolean);
     if (done) {
       setRound((r) => r + 1);
@@ -133,6 +144,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
   }
 
   const gameOver = hearts <= 0;
+  const isGameCompleted = gameCompleted;
 
   const Heart = ({ filled }: { filled: boolean }) => (
     <span aria-label={filled ? "hjärta" : "tomt hjärta"} title={filled ? "Liv" : "Inget liv"}>
@@ -215,7 +227,19 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
           </div>
 
           <div className="mt-6">
-            {gameOver ? (
+            {isGameCompleted ? (
+              <div className="rounded-2xl bg-white p-4 shadow text-center">
+                <div className="text-3xl mb-2">🏴‍☠️</div>
+                <h3 className="text-xl font-extrabold mb-1">Bra jobbat!</h3>
+                <p className="mb-3">Nu är du snart i hamn, bara lite till...</p>
+                <button
+                  className="rounded-2xl px-4 py-2 bg-green-500 hover:bg-green-400 text-white shadow font-bold"
+                  onClick={onNext}
+                >
+                  Fortsätt
+                </button>
+              </div>
+            ) : gameOver ? (
               <div className="rounded-2xl bg-white p-4 shadow text-center">
                 <div className="text-3xl mb-2">☠️</div>
                 <h3 className="text-xl font-extrabold mb-1">Slut på liv!</h3>
