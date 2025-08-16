@@ -245,7 +245,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         const fullText = moment.config.text || 'Här kommer texten...';
         
         // Split text into words and punctuation
-        const textParts = fullText.split(/(\s+)/).filter(part => part.length > 0);
+        const textParts = fullText.split(/(\s+)/).filter((part: string) => part.length > 0);
         let wordIndex = 0;
         
         return (
@@ -290,8 +290,8 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                 <p>Hittat: {selectedWords.filter(i => {
                   // Rebuild word array for counting
                   const words = fullText.split(/(\s+)/)
-                    .filter(part => part.length > 0 && !/^\s+$/.test(part))
-                    .map(word => word.replace(/[.,!?;:]*$/, ''));
+                    .filter((part: string) => part.length > 0 && !/^\s+$/.test(part))
+                    .map((word: string) => word.replace(/[.,!?;:]*$/, ''));
                   return targetWords.includes(words[i]);
                 }).length} / {targetWords.length}</p>
               </div>
@@ -372,16 +372,17 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'korsord':
         const crosswordGrid = moment.config.grid || [];
+        const crosswordClues = moment.config.clues || [];
         const gridSize = 15;
         
         return (
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-xl font-bold mb-6">Korsord</h3>
+          <div className="max-w-6xl mx-auto">
+            <h3 className="text-xl font-bold text-center mb-6">Korsord</h3>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Grid */}
-              <div className="flex justify-center">
-                <div className="grid gap-0.5 max-w-md" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
+              <div className="lg:col-span-2 flex justify-center">
+                <div className="grid gap-0.5" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
                   {Array.from({ length: gridSize * gridSize }).map((_, index) => {
                     const x = index % gridSize;
                     const y = Math.floor(index / gridSize);
@@ -390,13 +391,13 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                     return (
                       <div
                         key={`${x}-${y}`}
-                        className={`w-6 h-6 border border-gray-300 text-xs flex items-center justify-center relative ${
-                          cell ? 'bg-white font-bold' : 'bg-gray-200'
+                        className={`w-8 h-8 border border-gray-300 text-sm flex items-center justify-center relative font-bold ${
+                          cell ? 'bg-white border-gray-600' : 'bg-gray-300'
                         }`}
                       >
                         {cell?.letter}
                         {cell?.number && (
-                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none">
+                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none p-0.5">
                             {cell.number}
                           </div>
                         )}
@@ -407,19 +408,23 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
               </div>
 
               {/* Clues */}
-              <div className="text-left">
-                <h4 className="font-semibold mb-4">Ledtrådar:</h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {(moment.config.clues || []).map((clue: any, i: number) => (
-                    <div key={i} className="p-2 border rounded">
-                      <div className="font-medium">
-                        {i + 1}. {clue.question}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        ({clue.answer.length} bokstäver)
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-4 text-lg">Ledtrådar</h4>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {crosswordClues.map((clue: any, index: number) => (
+                    <div key={index} className="bg-white p-3 rounded border">
+                      <div className="font-bold text-blue-600">{index + 1}.</div>
+                      <div className="text-sm">{clue.question}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {clue.answer?.length} bokstäver
                       </div>
                     </div>
                   ))}
+                  {crosswordClues.length === 0 && (
+                    <div className="text-gray-500 italic text-center py-8">
+                      Inga ledtrådar skapade än. Konfigurera korsordet först.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

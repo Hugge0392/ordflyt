@@ -124,7 +124,7 @@ export default function LessonBuilder() {
       case 'memory':
         return { wordPairs: [], difficulty: 'easy' };
       case 'korsord':
-        return { clues: [], size: { width: 10, height: 10 } };
+        return { clues: [], grid: [] };
       case 'finns-ordklass':
         return { text: '', targetWordClass: '', instruction: '', targetWords: [] };
       case 'fyll-mening':
@@ -362,6 +362,238 @@ export default function LessonBuilder() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+        );
+
+      case 'korsord':
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-base font-semibold">Ledtrådar och svar</Label>
+              <div className="space-y-3 mt-3">
+                {(moment.config.clues || []).map((clue: any, index: number) => (
+                  <div key={index} className="grid grid-cols-3 gap-3 p-3 border rounded-lg">
+                    <div>
+                      <Label className="text-sm">Ledtråd {index + 1}</Label>
+                      <Input
+                        value={clue.question}
+                        onChange={(e) => {
+                          const newClues = [...(moment.config.clues || [])];
+                          newClues[index] = { ...clue, question: e.target.value };
+                          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+                        }}
+                        placeholder="t.ex. Djur som säger vov"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Svar</Label>
+                      <Input
+                        value={clue.answer}
+                        onChange={(e) => {
+                          const newClues = [...(moment.config.clues || [])];
+                          newClues[index] = { ...clue, answer: e.target.value };
+                          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+                        }}
+                        placeholder="t.ex. HUND"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newClues = moment.config.clues.filter((_: any, i: number) => i !== index);
+                          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+                        }}
+                      >
+                        Ta bort
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  onClick={() => {
+                    const newClues = [...(moment.config.clues || []), { question: '', answer: '' }];
+                    updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+                  }}
+                  className="w-full"
+                  variant="outline"
+                >
+                  + Lägg till ledtråd
+                </Button>
+              </div>
+            </div>
+            
+            {moment.config.clues && moment.config.clues.length > 0 && (
+              <div>
+                <Label className="text-base font-semibold">Korsordsgrid</Label>
+                <div className="mt-3">
+                  <CrosswordBuilder
+                    clues={moment.config.clues}
+                    onGridUpdate={(grid) => updateMomentConfig(moment.id, { ...moment.config, grid })}
+                    initialGrid={moment.config.grid || []}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'fyll-mening':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Mening med luckor</Label>
+              <Textarea
+                value={moment.config.sentence}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, sentence: e.target.value })}
+                placeholder="Skriv meningen och använd ___ för luckor. T.ex: Katten ___ på mattan."
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Använd ___ för att markera var eleverna ska fylla i ord
+              </div>
+            </div>
+            <div>
+              <Label>Svarsalternativ</Label>
+              <Textarea
+                value={(moment.config.options || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  options: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="sitter&#10;ligger&#10;springer&#10;hoppar"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange ett svarsalternativ per rad
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'dra-ord':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord att dra</Label>
+              <Textarea
+                value={(moment.config.words || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  words: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="katt&#10;hund&#10;fisk&#10;fågel"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange ett ord per rad
+              </div>
+            </div>
+            <div>
+              <Label>Målkategorier</Label>
+              <Textarea
+                value={(moment.config.targets || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  targets: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="Husdjur&#10;Vilda djur&#10;Fåglar"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange en kategori per rad
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ordmoln':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Tema för ordmolnet</Label>
+              <Input
+                value={moment.config.theme}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, theme: e.target.value })}
+                placeholder="t.ex. Djur, Känslor, Verb..."
+              />
+            </div>
+            <div>
+              <Label>Storlek</Label>
+              <Select
+                value={moment.config.size}
+                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, size: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Liten</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Stor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Ord i molnet</Label>
+              <Textarea
+                value={(moment.config.words || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  words: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="katt&#10;hund&#10;springa&#10;hoppa&#10;glad&#10;ledsen"
+                className="min-h-[120px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange ett ord per rad. Orden kommer att visas i olika storlekar och färger.
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'sortera-korgar':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Instruktion</Label>
+              <Input
+                value={moment.config.instruction}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="t.ex. Sortera orden efter ordklass"
+              />
+            </div>
+            <div>
+              <Label>Ord att sortera</Label>
+              <Textarea
+                value={(moment.config.words || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  words: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="katt&#10;springa&#10;snabb&#10;hus"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange ett ord per rad
+              </div>
+            </div>
+            <div>
+              <Label>Kategorier (korgar)</Label>
+              <Textarea
+                value={(moment.config.categories || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  categories: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="Substantiv&#10;Verb&#10;Adjektiv"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange en kategori per rad
+              </div>
             </div>
           </div>
         );
@@ -671,12 +903,12 @@ export default function LessonBuilder() {
             <DialogTitle>Förhandsgranska lektion</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <InteractivePreview 
-              moments={currentLesson.moments}
-              currentMoment={currentPreviewMoment}
-              onNext={() => setCurrentPreviewMoment(prev => Math.min(prev + 1, currentLesson.moments.length - 1))}
-              onPrevious={() => setCurrentPreviewMoment(prev => Math.max(prev - 1, 0))}
-            />
+            {currentLesson.moments[currentPreviewMoment] && (
+              <InteractivePreview 
+                moment={currentLesson.moments[currentPreviewMoment]}
+                onNext={() => setCurrentPreviewMoment(prev => Math.min(prev + 1, currentLesson.moments.length - 1))}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
