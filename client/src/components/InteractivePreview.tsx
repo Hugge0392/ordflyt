@@ -272,7 +272,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
       if (!isGameActive || timeLeft <= 0) return;
       
       const timer = setInterval(() => {
-        setTimeLeft(prev => {
+        setTimeLeft((prev: number) => {
           if (prev <= 1) {
             setIsGameActive(false);
             setShowResult(true);
@@ -346,7 +346,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
       // Check if selection matches target words exactly
       const isCorrect = targetWords.length > 0 && 
         targetWords.length === selectedWordsText.length &&
-        targetWords.every(target => selectedWordsText.includes(target));
+        targetWords.every((target: string) => selectedWordsText.includes(target));
       
       if (isCorrect) {
         setCorrectAnswers(prev => prev + 1);
@@ -358,9 +358,9 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
           return;
         }
       } else {
-        setWrongAnswers(prev => prev + 1);
+        setWrongAnswers((prev: number) => prev + 1);
         // Add penalty time
-        setTimeLeft(prev => Math.max(0, prev - penaltySeconds));
+        setTimeLeft((prev: number) => Math.max(0, prev - penaltySeconds));
       }
 
       // Move to next sentence
