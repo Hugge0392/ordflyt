@@ -218,8 +218,8 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
       setFeedbackText(moment.config.incorrectFeedback || 'Fel svar. Försök igen!');
     }
     
-    // Auto-continue after correct answer
-    if (isCorrect && onNext) {
+    // Auto-continue after correct answer ONLY for old structure (no items)
+    if (isCorrect && onNext && !moment.config.items) {
       setTimeout(() => {
         onNext();
       }, 2000);
