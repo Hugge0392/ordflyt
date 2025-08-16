@@ -193,39 +193,54 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'pratbubbla':
         return (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-start space-x-4">
+          <div className="w-full h-screen flex">
+            {/* Text area - 3/4 of screen */}
+            <div className="w-3/4 flex items-center justify-center p-8">
+              <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
+                <div className="bg-gray-100 rounded-lg p-6 relative">
+                  <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
+                  <p className="text-xl leading-relaxed">
+                    {currentText}
+                    {textIndex < (moment.config.text || '').length && (
+                      <span className="animate-pulse">|</span>
+                    )}
+                  </p>
+                  {textIndex >= (moment.config.text || '').length && (
+                    <Button onClick={onNext} className="mt-4">
+                      Fortsätt
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Character area - 1/4 of screen */}
+            <div className="w-1/4 flex items-center justify-center p-4">
               <div className="flex-shrink-0">
-                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') ? (
+                {moment.config.characterImage?.startsWith('/') || moment.config.characterImage?.startsWith('http') || moment.config.characterImage?.includes('blob:') ? (
                   <img 
                     src={moment.config.characterImage} 
                     alt="Character" 
-                    className="w-20 h-20 object-contain rounded-lg"
+                    className="w-full h-auto max-h-96 object-contain"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const emojiDiv = document.createElement('div');
-                      emojiDiv.className = 'text-6xl';
+                      emojiDiv.className = 'text-9xl flex items-center justify-center h-96';
                       emojiDiv.textContent = '👨‍🏫';
                       target.parentNode?.appendChild(emojiDiv);
                     }}
                   />
+                ) : moment.config.characterImage?.includes('data:') ? (
+                  <img 
+                    src={moment.config.characterImage} 
+                    alt="Character" 
+                    className="w-full h-auto max-h-96 object-contain" 
+                  />
                 ) : (
-                  <div className="text-6xl">{moment.config.characterImage || '👨‍🏫'}</div>
-                )}
-              </div>
-              <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
-                <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
-                <p className="text-lg">
-                  {currentText}
-                  {textIndex < (moment.config.text || '').length && (
-                    <span className="animate-pulse">|</span>
-                  )}
-                </p>
-                {textIndex >= (moment.config.text || '').length && (
-                  <Button onClick={onNext} className="mt-4">
-                    Fortsätt
-                  </Button>
+                  <div className="text-9xl flex items-center justify-center h-96">
+                    {moment.config.characterImage || '👨‍🏫'}
+                  </div>
                 )}
               </div>
             </div>
