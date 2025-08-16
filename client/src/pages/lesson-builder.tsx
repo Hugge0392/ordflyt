@@ -94,6 +94,7 @@ export default function LessonBuilder() {
   const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
   const [showThemeDialog, setShowThemeDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
+  const [memoryInputs, setMemoryInputs] = useState<{[key: string]: {word1: string, word2: string}}>({});
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -170,6 +171,8 @@ export default function LessonBuilder() {
   };
 
   const renderMomentConfig = (moment: LessonMoment) => {
+    const config = moment.config || {};
+    
     switch(moment.type) {
       case 'textruta':
         return (
@@ -177,8 +180,8 @@ export default function LessonBuilder() {
             <div>
               <Label>Text</Label>
               <Textarea
-                value={moment.config.text || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
+                value={config.text || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, text: e.target.value })}
                 placeholder="Skriv texten som ska visas..."
                 className="min-h-[120px]"
               />
@@ -186,8 +189,8 @@ export default function LessonBuilder() {
             <div>
               <Label>Knapptext</Label>
               <Input
-                value={moment.config.buttonText || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, buttonText: e.target.value })}
+                value={config.buttonText || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, buttonText: e.target.value })}
                 placeholder="Nästa"
               />
             </div>
@@ -200,71 +203,72 @@ export default function LessonBuilder() {
             <div>
               <Label>Text som ska "pratas"</Label>
               <Textarea
-                value={moment.config.text || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
+                value={config.text || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, text: e.target.value })}
                 placeholder="Hej! Jag ska hjälpa dig lära dig substantiv..."
                 className="min-h-[120px]"
               />
             </div>
             <div>
               <CharacterLibrary
-                currentImage={moment.config.characterImage}
-                onCharacterSelect={(imageUrl) => updateMomentConfig(moment.id, { ...moment.config, characterImage: imageUrl })}
+                currentImage={config.characterImage}
+                onCharacterSelect={(imageUrl) => updateMomentConfig(moment.id, { ...config, characterImage: imageUrl })}
               />
             </div>
           </div>
         );
 
       case 'memory':
+        const currentMemoryInputs = memoryInputs[moment.id] || { word1: '', word2: '' };
+        
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Ord 1</Label>
                 <Input
+                  value={currentMemoryInputs.word1}
+                  onChange={(e) => setMemoryInputs(prev => ({
+                    ...prev,
+                    [moment.id]: { ...currentMemoryInputs, word1: e.target.value }
+                  }))}
                   placeholder="t.ex. hund"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const word1 = e.currentTarget.value.trim();
-                      const word2Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:last-child') as HTMLInputElement;
-                      const word2 = word2Input?.value.trim();
-                      
-                      if (word1 && word2) {
-                        const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
-                        updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                        e.currentTarget.value = '';
-                        if (word2Input) word2Input.value = '';
-                      }
-                    }
-                  }}
                 />
               </div>
               <div>
                 <Label>Ord 2</Label>
                 <Input
+                  value={currentMemoryInputs.word2}
+                  onChange={(e) => setMemoryInputs(prev => ({
+                    ...prev,
+                    [moment.id]: { ...currentMemoryInputs, word2: e.target.value }
+                  }))}
                   placeholder="t.ex. djur"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const word2 = e.currentTarget.value.trim();
-                      const word1Input = e.currentTarget.parentElement?.parentElement?.querySelector('input:first-child') as HTMLInputElement;
-                      const word1 = word1Input?.value.trim();
-                      
-                      if (word1 && word2) {
-                        const newPairs = [...(moment.config.wordPairs || []), `${word1}|${word2}`];
-                        updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
-                        e.currentTarget.value = '';
-                        if (word1Input) word1Input.value = '';
-                      }
-                    }
-                  }}
                 />
               </div>
             </div>
             
+            <Button 
+              onClick={() => {
+                if (currentMemoryInputs.word1.trim() && currentMemoryInputs.word2.trim()) {
+                  const newPairs = [...(config.wordPairs || []), `${currentMemoryInputs.word1.trim()}|${currentMemoryInputs.word2.trim()}`];
+                  updateMomentConfig(moment.id, { ...config, wordPairs: newPairs });
+                  setMemoryInputs(prev => ({
+                    ...prev,
+                    [moment.id]: { word1: '', word2: '' }
+                  }));
+                }
+              }}
+              className="w-full"
+              disabled={!currentMemoryInputs.word1.trim() || !currentMemoryInputs.word2.trim()}
+            >
+              Lägg till par
+            </Button>
+            
             <div className="border rounded-lg p-4 bg-gray-50">
               <Label className="text-sm font-medium">Skapade par:</Label>
               <div className="grid grid-cols-1 gap-2 mt-2">
-                {(moment.config.wordPairs || []).map((pair: string, index: number) => {
+                {(config.wordPairs || []).map((pair: string, index: number) => {
                   const [word1, word2] = pair.split('|');
                   return (
                     <div key={index} className="flex justify-between items-center bg-white p-3 rounded border">
@@ -273,8 +277,8 @@ export default function LessonBuilder() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          const newPairs = moment.config.wordPairs.filter((_: string, i: number) => i !== index);
-                          updateMomentConfig(moment.id, { ...moment.config, wordPairs: newPairs });
+                          const newPairs = (config.wordPairs || []).filter((_: string, i: number) => i !== index);
+                          updateMomentConfig(moment.id, { ...config, wordPairs: newPairs });
                         }}
                       >
                         Ta bort
@@ -283,8 +287,8 @@ export default function LessonBuilder() {
                   );
                 })}
               </div>
-              {(!moment.config.wordPairs || moment.config.wordPairs.length === 0) && (
-                <div className="text-gray-400 text-sm mt-2 text-center py-4">Inga par skapade än. Fyll i båda fälten och tryck Enter.</div>
+              {(!config.wordPairs || config.wordPairs.length === 0) && (
+                <div className="text-gray-400 text-sm mt-2 text-center py-4">Inga par skapade än</div>
               )}
             </div>
           </div>
@@ -296,16 +300,16 @@ export default function LessonBuilder() {
             <div>
               <Label>Instruktion</Label>
               <Input
-                value={moment.config.instruction || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                value={config.instruction || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, instruction: e.target.value })}
                 placeholder="Klicka på orden: katten, mattan, fisk"
               />
             </div>
             <div>
               <Label>Text med ord</Label>
               <Textarea
-                value={moment.config.text || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
+                value={config.text || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, text: e.target.value })}
                 placeholder="Katten sitter på mattan och äter fisk."
                 className="min-h-[120px]"
               />
@@ -313,9 +317,9 @@ export default function LessonBuilder() {
             <div>
               <Label>Ord som ska hittas</Label>
               <Textarea
-                value={(moment.config.targetWords || []).join('\n')}
+                value={(config.targetWords || []).join('\n')}
                 onChange={(e) => updateMomentConfig(moment.id, { 
-                  ...moment.config, 
+                  ...config, 
                   targetWords: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
                 })}
                 placeholder="katten&#10;mattan&#10;fisk"
@@ -328,8 +332,8 @@ export default function LessonBuilder() {
             <div>
               <Label>Ordklass (för feedback)</Label>
               <Select
-                value={moment.config.targetWordClass || ''}
-                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, targetWordClass: value })}
+                value={config.targetWordClass || ''}
+                onValueChange={(value) => updateMomentConfig(moment.id, { ...config, targetWordClass: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -340,6 +344,143 @@ export default function LessonBuilder() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+        );
+
+      case 'sortera-korgar':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Instruktion</Label>
+              <Input
+                value={config.instruction || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, instruction: e.target.value })}
+                placeholder="t.ex. Sortera orden efter ordklass"
+              />
+            </div>
+            <div>
+              <Label>Ord att sortera</Label>
+              <Textarea
+                value={(config.wordsToSort || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  wordsToSort: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="katt&#10;springa&#10;snabb&#10;mus"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange ett ord per rad. Exempel:<br/>
+                katt<br/>
+                springa<br/>
+                snabb<br/>
+                mus
+              </div>
+            </div>
+            <div>
+              <Label>Kategorier (korgar)</Label>
+              <Textarea
+                value={(config.categories || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  categories: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="Substantiv&#10;Verb&#10;Adjektiv"
+                className="min-h-[80px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange en kategori per rad
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'fyll-mening':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Mening med luckor</Label>
+              <Textarea
+                value={config.sentence || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, sentence: e.target.value })}
+                placeholder="Skriv meningen och använd ___ för luckor. T.ex: Katten ___ på mattan."
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Använd ___ för att markera var eleverna ska fylla i ord
+              </div>
+            </div>
+            <div>
+              <Label>Svarsalternativ</Label>
+              <Textarea
+                value={(config.options || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  options: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="sitter&#10;ligger&#10;springer&#10;hoppar"
+                className="min-h-[100px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange svarsalternativ, ett per rad
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'dra-ord':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord att dra</Label>
+              <Textarea
+                value={(config.words || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  words: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="hund&#10;katt&#10;bil&#10;hus"
+                className="min-h-[100px]"
+              />
+            </div>
+            <div>
+              <Label>Målområden</Label>
+              <Textarea
+                value={(config.targets || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  targets: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="Djur&#10;Fordon"
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+        );
+
+      case 'ordmoln':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Ord för molnet</Label>
+              <Textarea
+                value={(config.words || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...config, 
+                  words: e.target.value.split('\n').map((w: string) => w.trim()).filter((w: string) => w)
+                })}
+                placeholder="substantiv&#10;verb&#10;adjektiv&#10;adverb"
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <Label>Tema/kategori</Label>
+              <Input
+                value={config.theme || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...config, theme: e.target.value })}
+                placeholder="t.ex. Ordklasser"
+              />
             </div>
           </div>
         );
