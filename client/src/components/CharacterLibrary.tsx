@@ -30,11 +30,22 @@ import { Play, Plus, Save, Upload, Download, ArrowDown, ArrowUp, Trash2, Eye, Ey
  * ------------------------------------------------------
  */
 
+type DialogueItem = {
+  id: string;
+  type: "text" | "question";
+  order: number;
+  content: string;
+  // För frågor:
+  answers?: QuizAnswer[];
+  requireAllCorrect?: boolean;
+  allowRetry?: boolean;
+};
+
 type DialogueBlock = {
   id: string;
   type: "dialogue";
   speaker: string; // t.ex. "Pirat"
-  text: string; // markdown-stöd kan läggas senare
+  items: DialogueItem[]; // flera text/frågor i sekvens
 };
 
 type QuizAnswer = {
@@ -196,17 +207,169 @@ function CharacterLibrary({ onCharacterSelect, currentImage }: CharacterLibraryP
  */
 
 function DialogueEditor({ block, onChange }: { block: DialogueBlock; onChange: (b: DialogueBlock) => void }) {
+  const addItem = (type: "text" | "question") => {
+    const newOrder = Math.max(0, ...block.items.map(i => i.order)) + 1;
+    const newItem: DialogueItem = {
+      id: uuid(),
+      type,
+      order: newOrder,
+      content: "",
+      ...(type === "question" ? { answers: [{ id: uuid(), text: "", correct: true }], requireAllCorrect: false, allowRetry: true } : {})
+    };
+    onChange({ ...block, items: [...block.items, newItem].sort((a, b) => a.order - b.order) });
+  };
+
+  const updateItem = (itemId: string, updates: Partial<DialogueItem>) => {
+    onChange({
+      ...block,
+      items: block.items.map(item => item.id === itemId ? { ...item, ...updates } : item).sort((a, b) => a.order - b.order)
+    });
+  };
+
+  const removeItem = (itemId: string) => {
+    onChange({ ...block, items: block.items.filter(item => item.id !== itemId) });
+  };
+
+  const updateAnswer = (itemId: string, answerId: string, patch: Partial<QuizAnswer>) => {
+    updateItem(itemId, {
+      answers: block.items.find(i => i.id === itemId)?.answers?.map(a => a.id === answerId ? { ...a, ...patch } : a)
+    });
+  };
+
+  const addAnswer = (itemId: string) => {
+    const item = block.items.find(i => i.id === itemId);
+    if (item?.answers) {
+      updateItem(itemId, { answers: [...item.answers, { id: uuid(), text: "", correct: false }] });
+    }
+  };
+
+  const removeAnswer = (itemId: string, answerId: string) => {
+    const item = block.items.find(i => i.id === itemId);
+    if (item?.answers) {
+      updateItem(itemId, { answers: item.answers.filter(a => a.id !== answerId) });
+    }
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Talare */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
         <Label>Talare</Label>
         <div className="md:col-span-2">
           <Input value={block.speaker} onChange={(e) => onChange({ ...block, speaker: e.target.value })} placeholder="t.ex. Piraten" />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label>Replik / text</Label>
-        <Textarea rows={4} value={block.text} onChange={(e) => onChange({ ...block, text: e.target.value })} placeholder="Skriv figurens replik här…" />
+
+      {/* Lägg till knappar */}
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => addItem("text")}>
+          <Plus className="w-4 h-4 mr-1" /> Text
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => addItem("question")}>
+          <Plus className="w-4 h-4 mr-1" /> Fråga
+        </Button>
+      </div>
+
+      {/* Items */}
+      <div className="space-y-3">
+        {block.items.map((item, index) => (
+          <Card key={item.id} className="">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Badge variant={item.type === "text" ? "default" : "secondary"}>
+                  {item.order}. {item.type === "text" ? "Text" : "Fråga"}
+                </Badge>
+                <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {item.type === "text" && (
+                <div className="space-y-2">
+                  <Label>Text innehåll</Label>
+                  <Textarea 
+                    rows={3} 
+                    value={item.content} 
+                    onChange={(e) => updateItem(item.id, { content: e.target.value })} 
+                    placeholder="Skriv text här…" 
+                  />
+                </div>
+              )}
+
+              {item.type === "question" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Fråga</Label>
+                    <Textarea 
+                      rows={2} 
+                      value={item.content} 
+                      onChange={(e) => updateItem(item.id, { content: e.target.value })} 
+                      placeholder="Skriv frågan här…" 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="font-medium">Svarsalternativ</Label>
+                      <Button size="sm" variant="outline" onClick={() => addAnswer(item.id)}>
+                        <Plus className="w-4 h-4 mr-1" /> Lägg till svar
+                      </Button>
+                    </div>
+                    {item.answers?.map((ans, idx) => (
+                      <div key={ans.id} className="flex items-center gap-2">
+                        <Badge variant={ans.correct ? "default" : "secondary"}>{idx + 1}</Badge>
+                        <Input 
+                          value={ans.text} 
+                          onChange={(e) => updateAnswer(item.id, ans.id, { text: e.target.value })} 
+                          placeholder={`Alternativ ${idx + 1}`} 
+                        />
+                        <Button 
+                          type="button" 
+                          size="icon" 
+                          variant={ans.correct ? "default" : "outline"} 
+                          onClick={() => updateAnswer(item.id, ans.id, { correct: !ans.correct })}
+                        >
+                          {ans.correct ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          size="icon" 
+                          variant="ghost" 
+                          onClick={() => removeAnswer(item.id, ans.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <Label className="font-medium">Kräv alla rätt</Label>
+                        <p className="text-xs text-muted-foreground">Om av – ett rätt svar räcker.</p>
+                      </div>
+                      <Switch 
+                        checked={!!item.requireAllCorrect} 
+                        onCheckedChange={(v) => updateItem(item.id, { requireAllCorrect: v })} 
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <Label className="font-medium">Tillåt nytt försök</Label>
+                        <p className="text-xs text-muted-foreground">Eleven kan försöka igen vid fel.</p>
+                      </div>
+                      <Switch 
+                        checked={!!item.allowRetry} 
+                        onCheckedChange={(v) => updateItem(item.id, { allowRetry: v })} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
@@ -294,7 +457,12 @@ function PauseEditor({ block, onChange }: { block: PauseBlock; onChange: (b: Pau
  * ------------------------------------------------------
  */
 
-const createDialogue = (): DialogueBlock => ({ id: uuid(), type: "dialogue", speaker: "Pirat", text: "…" });
+const createDialogue = (): DialogueBlock => ({ 
+  id: uuid(), 
+  type: "dialogue", 
+  speaker: "Pirat", 
+  items: [{ id: uuid(), type: "text", order: 1, content: "…" }] 
+});
 const createQuiz = (): QuizBlock => ({ id: uuid(), type: "quiz", question: "", answers: [{ id: uuid(), text: "", correct: true }], requireAllCorrect: false, allowRetry: true });
 const createPause = (): PauseBlock => ({ id: uuid(), type: "pause", label: "Fortsätt" });
 
@@ -316,13 +484,24 @@ function move<T>(arr: T[], from: number, to: number): T[] {
 function StoryPlayer({ story }: { story: Story }) {
   const [sectionIndex, setSectionIndex] = useState(0);
   const [blockIndex, setBlockIndex] = useState(0);
+  const [dialogueItemIndex, setDialogueItemIndex] = useState(0); // Ny state för items i dialogue
   const [quizState, setQuizState] = useState<Record<string, { chosen: string[]; finished: boolean; correct: boolean }>>({});
 
   const section = story.sections[sectionIndex];
   const block = section?.blocks[blockIndex];
+  const currentDialogueItem = block?.type === "dialogue" ? block.items[dialogueItemIndex] : null;
 
   const goNextBlock = () => {
     if (!section) return;
+    
+    // Om vi är i en dialogue block, kolla om det finns fler items
+    if (block?.type === "dialogue" && dialogueItemIndex < block.items.length - 1) {
+      setDialogueItemIndex(i => i + 1);
+      return;
+    }
+    
+    // Annars gå till nästa block
+    setDialogueItemIndex(0);
     if (blockIndex < section.blocks.length - 1) setBlockIndex((i) => i + 1);
     else if (sectionIndex < story.sections.length - 1) {
       setSectionIndex((s) => s + 1);
@@ -333,6 +512,7 @@ function StoryPlayer({ story }: { story: Story }) {
   const restart = () => {
     setSectionIndex(0);
     setBlockIndex(0);
+    setDialogueItemIndex(0);
     setQuizState({});
   };
 
@@ -354,10 +534,125 @@ function StoryPlayer({ story }: { story: Story }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4 min-h-[200px]">
-        {block?.type === "dialogue" && (
-          <div className="space-y-2">
+        {block?.type === "dialogue" && currentDialogueItem && (
+          <div className="space-y-4">
             <div className="text-sm text-muted-foreground">{block.speaker} säger:</div>
-            <div className="p-3 rounded-xl bg-muted/50 leading-relaxed whitespace-pre-wrap">{block.text}</div>
+            
+            {currentDialogueItem.type === "text" && (
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-muted/50 leading-relaxed whitespace-pre-wrap">
+                  {currentDialogueItem.content}
+                </div>
+                <div className="text-center">
+                  <Button onClick={goNextBlock}>
+                    <ChevronRight className="w-4 h-4 mr-1" /> 
+                    {dialogueItemIndex < block.items.length - 1 ? "Nästa" : "Fortsätt"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {currentDialogueItem.type === "question" && (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-muted/50 leading-relaxed whitespace-pre-wrap">
+                  {currentDialogueItem.content}
+                </div>
+                
+                <div className="grid gap-2">
+                  {currentDialogueItem.answers?.map((a) => {
+                    const stateKey = `${block.id}-${currentDialogueItem.id}`;
+                    const st = quizState[stateKey] || { chosen: [], finished: false, correct: false };
+                    const chosen = st.chosen.includes(a.id);
+                    const disabled = st.finished;
+                    return (
+                      <Button
+                        key={a.id}
+                        variant={chosen ? "default" : "outline"}
+                        className="justify-start"
+                        disabled={disabled}
+                        onClick={() => {
+                          const nextChosen = currentDialogueItem.requireAllCorrect 
+                            ? (chosen ? st.chosen.filter((x) => x !== a.id) : [...st.chosen, a.id]) 
+                            : [a.id];
+                          setQuizState({
+                            ...quizState,
+                            [stateKey]: { ...st, chosen: nextChosen },
+                          });
+                        }}
+                      >
+                        {a.text}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <div className="flex gap-2">
+                  {!quizState[`${block.id}-${currentDialogueItem.id}`]?.finished ? (
+                    <Button
+                      onClick={() => {
+                        const stateKey = `${block.id}-${currentDialogueItem.id}`;
+                        const st = quizState[stateKey] || { chosen: [], finished: false, correct: false };
+                        const chosenSet = new Set(st.chosen);
+                        const allCorrectIds = new Set(currentDialogueItem.answers?.filter((a) => a.correct).map((a) => a.id));
+                        const anyCorrect = currentDialogueItem.answers?.some((a) => a.correct && chosenSet.has(a.id));
+                        const exactlyAll = st.chosen.length === allCorrectIds.size && st.chosen.every((id) => allCorrectIds.has(id));
+                        const isCorrect = currentDialogueItem.requireAllCorrect ? exactlyAll : (anyCorrect || false);
+                        setQuizState({ ...quizState, [stateKey]: { ...st, finished: true, correct: isCorrect } });
+                      }}
+                    >
+                      Rätta
+                    </Button>
+                  ) : (
+                    <>
+                      {quizState[`${block.id}-${currentDialogueItem.id}`]?.correct ? (
+                        <>
+                          <Alert className="border-green-600/30">
+                            <AlertTitle>Rätt! 🎉</AlertTitle>
+                            <AlertDescription>Bra jobbat!</AlertDescription>
+                          </Alert>
+                          <Button onClick={goNextBlock}>
+                            {dialogueItemIndex < block.items.length - 1 ? "Nästa" : "Fortsätt"}
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Alert className="border-red-600/30">
+                            <AlertTitle>Nästan!</AlertTitle>
+                            <AlertDescription>Försök igen.</AlertDescription>
+                          </Alert>
+                          {currentDialogueItem.allowRetry && (
+                            <Button 
+                              variant="outline" 
+                              onClick={() => {
+                                const stateKey = `${block.id}-${currentDialogueItem.id}`;
+                                setQuizState({ ...quizState, [stateKey]: { chosen: [], finished: false, correct: false } });
+                              }}
+                            >
+                              Försök igen
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Progress indicator för dialogue items */}
+            {block.items.length > 1 && (
+              <div className="flex justify-center gap-1 mt-4">
+                {block.items.map((_, idx) => (
+                  <div 
+                    key={idx}
+                    className={`w-2 h-2 rounded-full ${
+                      idx === dialogueItemIndex ? 'bg-blue-500' : 
+                      idx < dialogueItemIndex ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -447,7 +742,12 @@ function StoryPlayer({ story }: { story: Story }) {
       </CardContent>
       <CardFooter className="justify-between text-xs text-muted-foreground">
         <div>Avsnitt {sectionIndex + 1} av {story.sections.length}</div>
-        <div>Block {blockIndex + 1} av {section.blocks.length}</div>
+        <div>
+          Block {blockIndex + 1} av {section.blocks.length}
+          {block?.type === "dialogue" && block.items.length > 1 && (
+            <span className="ml-2 text-xs">({dialogueItemIndex + 1}/{block.items.length})</span>
+          )}
+        </div>
         <Button variant="ghost" size="sm" onClick={restart}><EyeOff className="w-4 h-4 mr-1"/>Börja om</Button>
       </CardFooter>
     </Card>
@@ -627,7 +927,15 @@ export default function LessonAdmin() {
                   <div key={b.id} className={`p-3 rounded-lg border flex items-center gap-2 ${i === selectedBlockIndex ? "bg-muted" : ""}`}>
                     <Badge variant="secondary" className="w-20 justify-center capitalize">{b.type}</Badge>
                     <div className="flex-1 text-sm truncate">
-                      {b.type === "dialogue" && (<span><strong>{(b as DialogueBlock).speaker}:</strong> {(b as DialogueBlock).text.slice(0, 60) || "(tom)"}</span>)}
+                      {b.type === "dialogue" && (
+                        <span>
+                          <strong>{(b as DialogueBlock).speaker}:</strong> 
+                          {(b as DialogueBlock).items.length > 0 
+                            ? (b as DialogueBlock).items[0].content.slice(0, 60) || "(tom)"
+                            : "(inga items)"}
+                          {(b as DialogueBlock).items.length > 1 && <span className="text-xs text-muted-foreground ml-1">+{(b as DialogueBlock).items.length - 1}</span>}
+                        </span>
+                      )}
                       {b.type === "quiz" && (<span>Fråga: {(b as QuizBlock).question.slice(0, 60) || "(tom)"}</span>)}
                       {b.type === "pause" && (<span>Paus – {(b as PauseBlock).label || "Fortsätt"}</span>)}
                     </div>
@@ -730,7 +1038,14 @@ function validateStory(story: Story): { errors: string[] } {
       if (b.type === "dialogue") {
         const d = b as DialogueBlock;
         if (!d.speaker.trim()) errors.push(`Sektion ${si + 1}, block ${bi + 1}: Talare saknas.`);
-        if (!d.text.trim()) errors.push(`Sektion ${si + 1}, block ${bi + 1}: Dialogtext saknas.`);
+        if (d.items.length === 0) errors.push(`Sektion ${si + 1}, block ${bi + 1}: Minst ett item krävs.`);
+        d.items.forEach((item, ii) => {
+          if (!item.content.trim()) errors.push(`Sektion ${si + 1}, block ${bi + 1}, item ${ii + 1}: Innehåll saknas.`);
+          if (item.type === "question") {
+            if (!item.answers || item.answers.length === 0) errors.push(`Sektion ${si + 1}, block ${bi + 1}, item ${ii + 1}: Minst ett svar krävs för frågor.`);
+            if (item.answers && !item.answers.some((a) => a.correct)) errors.push(`Sektion ${si + 1}, block ${bi + 1}, item ${ii + 1}: Markera minst ett rätt svar.`);
+          }
+        });
       }
       if (b.type === "quiz") {
         const q = b as QuizBlock;
