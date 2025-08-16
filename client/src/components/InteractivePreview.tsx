@@ -71,7 +71,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
       const currentItem = getCurrentItem();
       let text = '';
       
-      if (currentItem && currentItem.type === 'text') {
+      if (currentItem && (currentItem.type === 'text' || currentItem.type === 'question')) {
         text = currentItem.content || '';
       } else if (!moment.config.items) {
         // Fall back to old text field for backward compatibility
@@ -289,8 +289,8 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
           currentAlternatives = moment.config.alternatives || [];
         }
         
-        // For text items, check if typewriter animation is complete
-        const textComplete = isCurrentItemText ? itemCompleted : true;
+        // For text and question items, check if typewriter animation is complete
+        const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? itemCompleted : true;
         
         return (
           <div className="w-full h-screen flex">
@@ -302,16 +302,14 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                   
                   {/* Text content */}
                   <p className="text-2xl leading-relaxed">
-                    {showFeedback ? feedbackText : (
-                      isCurrentItemQuestion ? (currentItem?.content || '') : currentText
-                    )}
-                    {!showFeedback && isCurrentItemText && !itemCompleted && (
+                    {showFeedback ? feedbackText : currentText}
+                    {!showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && (
                       <span className="animate-pulse">|</span>
                     )}
                   </p>
                   
                   {/* Question and alternatives */}
-                  {hasQuestion && isCurrentItemQuestion && !showFeedback && (
+                  {hasQuestion && isCurrentItemQuestion && textComplete && !showFeedback && (
                     <div className="mt-6">
                       <div className="space-y-3">
                         {currentAlternatives.map((alt: any, index: number) => (
