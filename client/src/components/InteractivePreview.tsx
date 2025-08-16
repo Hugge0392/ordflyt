@@ -619,14 +619,15 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                   {/* Feedback actions */}
                   {showFeedback && (
                     <div className="mt-4 space-x-3">
-                      {!currentAlternatives.find((alt: any) => alt.text === selectedAnswer)?.correct && (
+                      {!currentAlternatives.find((alt: any) => alt.text === selectedAnswer)?.correct ? (
                         <Button variant="outline" onClick={resetQuestion}>
                           Försök igen
                         </Button>
+                      ) : (
+                        <Button onClick={goToNextItem}>
+                          Fortsätt
+                        </Button>
                       )}
-                      <Button onClick={goToNextItem}>
-                        Fortsätt
-                      </Button>
                     </div>
                   )}
                   
