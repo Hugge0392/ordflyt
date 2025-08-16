@@ -108,12 +108,23 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
     newDug[i] = true;
     setDug(newDug);
     setRevealedWord(next);
-    setMessage("Är det ett substantiv?");
+    // Get target word class from moment config
+    const targetWordClass = moment?.config?.targetWordClass || 'substantiv';
+    setMessage(`Är det ett ${targetWordClass}?`);
   }
 
-  function answer(isNoun: boolean) {
+  function answer(isTargetWordClass: boolean) {
     if (!revealedWord) return;
-    const correct = revealedWord.n === isNoun;
+    // Check if answer matches the target word class
+    const targetWordClass = moment?.config?.targetWordClass || 'substantiv';
+    let correct = false;
+    
+    if (targetWordClass === 'substantiv') {
+      correct = revealedWord.n === isTargetWordClass;
+    } else {
+      // For other word classes, check the word's actual class
+      correct = (revealedWord.wordClass === targetWordClass) === isTargetWordClass;
+    }
 
     let newCorrectWords = correctlyAnsweredWords;
     if (correct) {
@@ -266,7 +277,9 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
                 <div className="text-center sm:text-left">
                   <div className="text-sm uppercase tracking-wide text-slate-500">Du grävde upp</div>
                   <div className="text-3xl font-extrabold mt-1">"{revealedWord.w}"</div>
-                  <div className="mt-2 text-xl font-bold text-slate-800">Är det ett substantiv?</div>
+                  <div className="mt-2 text-xl font-bold text-slate-800">
+                    Är det ett {moment?.config?.targetWordClass || 'substantiv'}?
+                  </div>
                 </div>
                 <div className="flex gap-3">
                   <button

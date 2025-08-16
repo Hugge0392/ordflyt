@@ -255,9 +255,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
   const isLastItem = () => {
     if (moment.type === 'pratbubbla' && moment.config.items && moment.config.items.length > 0) {
       const sortedItems = [...moment.config.items].sort((a: any, b: any) => a.order - b.order);
-      const isLast = currentItemIndex === sortedItems.length - 1;
-      console.log('isLastItem check:', { currentItemIndex, totalItems: sortedItems.length, isLast });
-      return isLast;
+      return currentItemIndex === sortedItems.length - 1;
     }
     return false;
   };
@@ -634,10 +632,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                           Försök igen
                         </Button>
                       ) : isLastItem() ? (
-                        <Button onClick={() => {
-                          console.log('Gör test button clicked, calling onNext');
-                          if (onNext) onNext();
-                        }} className="bg-green-600 hover:bg-green-700">
+                        <Button onClick={onNext} className="bg-green-600 hover:bg-green-700">
                           Gör test
                         </Button>
                       ) : (
@@ -652,10 +647,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                   {!hasQuestion && textComplete && (
                     <div className="mt-4">
                       {isLastItem() ? (
-                        <Button onClick={() => {
-                          console.log('Gör test button clicked (text-only), calling onNext');
-                          if (onNext) onNext();
-                        }} className="bg-green-600 hover:bg-green-700">
+                        <Button onClick={onNext} className="bg-green-600 hover:bg-green-700">
                           Gör test
                         </Button>
                       ) : (
