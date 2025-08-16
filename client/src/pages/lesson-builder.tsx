@@ -974,32 +974,80 @@ export default function LessonBuilder() {
         );
 
       case 'korsord':
+        const currentClues = moment.config.clues || [];
+        
+        const addNewClue = () => {
+          const newClues = [...currentClues, { question: '', answer: '' }];
+          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+        };
+        
+        const removeClue = (index: number) => {
+          const newClues = currentClues.filter((_: any, i: number) => i !== index);
+          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+        };
+        
+        const updateClue = (index: number, field: 'question' | 'answer', value: string) => {
+          const newClues = [...currentClues];
+          newClues[index] = { ...newClues[index], [field]: value };
+          updateMomentConfig(moment.id, { ...moment.config, clues: newClues });
+        };
+        
         return (
           <div className="space-y-4">
-            <div>
-              <Label>Korsordsfrågor (fråga|svar, en per rad)</Label>
-              <Textarea
-                value={moment.config.clues.map((clue: any) => `${clue.question}|${clue.answer}`).join('\n')}
-                onChange={(e) => {
-                  const clues = e.target.value.split('\n').filter(line => line.trim()).map(line => {
-                    const [question, answer] = line.split('|');
-                    return { question: question?.trim() || '', answer: answer?.trim() || '' };
-                  });
-                  updateMomentConfig(moment.id, { ...moment.config, clues });
-                }}
-                placeholder="Ett djur som säger vov|HUND\nNågot man kör|BIL\nEn färg som blod|RÖD"
-                className="min-h-[120px]"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Tryck Enter för ny rad. Format: fråga|SVAR (svaret med versaler)
-              </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-lg font-semibold">Korsordsfrågor</Label>
+              <Button onClick={addNewClue} size="sm" variant="outline">
+                + Lägg till fråga
+              </Button>
             </div>
             
-            {moment.config.clues && moment.config.clues.length > 0 && (
+            {currentClues.length > 0 && (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {currentClues.map((clue: any, index: number) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="font-medium text-sm text-gray-600">
+                      {index + 1}.
+                    </div>
+                    <div className="col-span-5">
+                      <Input
+                        placeholder="Skriv din fråga..."
+                        value={clue.question}
+                        onChange={(e) => updateClue(index, 'question', e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="col-span-5">
+                      <Input
+                        placeholder="SVAR (versaler)"
+                        value={clue.answer}
+                        onChange={(e) => updateClue(index, 'answer', e.target.value.toUpperCase())}
+                        className="text-sm font-mono"
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => removeClue(index)} 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {currentClues.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-lg mb-2">🔤</div>
+                <p>Inga frågor än. Klicka "Lägg till fråga" för att börja.</p>
+              </div>
+            )}
+            
+            {currentClues.length > 0 && (
               <div className="mt-6">
                 <CrosswordBuilder
-                  clues={moment.config.clues}
+                  clues={currentClues.filter((clue: any) => clue.question && clue.answer)}
                   onGridUpdate={(grid) => updateMomentConfig(moment.id, { ...moment.config, grid })}
                   initialGrid={moment.config.grid || []}
                 />
