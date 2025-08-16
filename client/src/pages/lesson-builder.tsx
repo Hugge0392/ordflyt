@@ -54,7 +54,7 @@ const MOMENT_TYPES = [
 ];
 
 const WORD_CLASSES = [
-  'noun', 'verb', 'adjective', 'adverb', 'pronoun', 'preposition', 'conjunction', 'interjection', 'numeral'
+  'substantiv', 'verb', 'adjektiv', 'adverb', 'pronomen', 'preposition', 'konjunktion', 'interjektion'
 ];
 
 const THEMES = [
@@ -308,65 +308,6 @@ export default function LessonBuilder() {
             </div>
           </div>
         );
-
-      case 'finns-ordklass':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Instruktion</Label>
-              <Input
-                value={moment.config.instruction}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
-                placeholder="Klicka på orden: katten, mattan, fisk"
-              />
-            </div>
-            <div>
-              <Label>Text med ord</Label>
-              <Textarea
-                value={moment.config.text}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
-                placeholder="Katten sitter på mattan och äter fisk."
-                className="min-h-[120px]"
-              />
-            </div>
-            <div>
-              <Label>Ord som ska hittas</Label>
-              <Textarea
-                value={(moment.config.targetWords || []).join('\n')}
-                onChange={(e) => updateMomentConfig(moment.id, { 
-                  ...moment.config, 
-                  targetWords: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
-                })}
-                placeholder="katten&#10;mattan&#10;fisk"
-                className="min-h-[100px]"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Ange ett ord per rad. Exempel:<br/>
-                katten<br/>
-                mattan<br/>
-                fisk
-              </div>
-            </div>
-            <div>
-              <Label>Ordklass (för feedback)</Label>
-              <Select
-                value={moment.config.targetWordClass}
-                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, targetWordClass: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WORD_CLASSES.map(wc => (
-                    <SelectItem key={wc} value={wc}>{wc}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
-      case 'finns-ordklass':
         return (
           <div className="space-y-4">
             <div>
