@@ -1589,7 +1589,7 @@ export default function LessonBuilder() {
             </DialogDescription>
           </DialogHeader>
           
-          {currentLesson.moments.length > 0 && (
+          {currentLesson.moments && currentLesson.moments.length > 0 && (
             <div className="space-y-6">
               {/* Progress bar */}
               <div className="flex items-center space-x-4">
@@ -1597,12 +1597,12 @@ export default function LessonBuilder() {
                   <div 
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                     style={{
-                      width: `${((currentPreviewMoment + 1) / currentLesson.moments.length) * 100}%`
+                      width: `${((currentPreviewMoment + 1) / (currentLesson.moments || []).length) * 100}%`
                     }}
                   ></div>
                 </div>
                 <span className="text-sm text-gray-600">
-                  {currentPreviewMoment + 1} / {currentLesson.moments.length}
+                  {currentPreviewMoment + 1} / {(currentLesson.moments || []).length}
                 </span>
               </div>
 
@@ -1611,7 +1611,7 @@ export default function LessonBuilder() {
                 {currentLesson.moments[currentPreviewMoment] ? (
                   <InteractivePreview 
                     moment={currentLesson.moments[currentPreviewMoment]}
-                    onNext={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
+                    onNext={() => setCurrentPreviewMoment(Math.min((currentLesson.moments || []).length - 1, currentPreviewMoment + 1))}
                   />
                 ) : (
                   <div className="text-center text-gray-500 py-12">
@@ -1631,8 +1631,8 @@ export default function LessonBuilder() {
                   ← Föregående
                 </Button>
                 <Button
-                  onClick={() => setCurrentPreviewMoment(Math.min(currentLesson.moments.length - 1, currentPreviewMoment + 1))}
-                  disabled={currentPreviewMoment === currentLesson.moments.length - 1}
+                  onClick={() => setCurrentPreviewMoment(Math.min((currentLesson.moments || []).length - 1, currentPreviewMoment + 1))}
+                  disabled={currentPreviewMoment === (currentLesson.moments || []).length - 1}
                 >
                   Nästa →
                 </Button>
