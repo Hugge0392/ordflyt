@@ -109,6 +109,11 @@ export default function LessonBuilder() {
   // Piratgrav configuration state
   const [piratgravWord1, setPiratgravWord1] = useState('');
   const [piratgravWord2, setPiratgravWord2] = useState('');
+  
+  // Lesson merging state
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [selectedLessons, setSelectedLessons] = useState<{lesson1: any | null, lesson2: any | null}>({lesson1: null, lesson2: null});
+  const [mergeOptions, setMergeOptions] = useState<{insertPosition: 'beginning' | 'end' | 'replace', preserveMetadata: boolean}>({insertPosition: 'end', preserveMetadata: false});
 
   // Fetch word classes for publish dialog
   const { data: wordClasses = [] } = useQuery<any[]>({
@@ -118,6 +123,11 @@ export default function LessonBuilder() {
   // Fetch lesson drafts
   const { data: savedLessons = [] } = useQuery<any[]>({
     queryKey: ['/api/lessons/drafts'],
+  });
+  
+  // Fetch published lessons for merging
+  const { data: publishedLessons = [] } = useQuery<any[]>({
+    queryKey: ['/api/lessons/published'],
   });
 
   // Save/update lesson draft mutations
@@ -499,6 +509,112 @@ export default function LessonBuilder() {
       title: '',
       background: 'beach',
       moments: []
+    });
+  };
+  
+  const mergeLessons = () => {
+    const { lesson1, lesson2 } = selectedLessons;
+    if (!lesson1 || !lesson2) {
+      toast({
+        title: "Välj två lektioner",
+        description: "Du måste välja två lektioner att slå samman.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Extract moments from both lessons
+    const lesson1Moments = lesson1.content?.moments || lesson1.moments || [];
+    const lesson2Moments = lesson2.content?.moments || lesson2.moments || [];
+    
+    // Combine moments with new IDs and correct order
+    let combinedMoments: LessonMoment[] = [];
+    let nextOrder = 0;
+    
+    if (mergeOptions.insertPosition === 'beginning') {
+      // Add lesson1 moments first
+      combinedMoments = [...lesson1Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged1_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+      
+      // Add lesson2 moments
+      combinedMoments = [...combinedMoments, ...lesson2Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged2_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+      
+      // Add current lesson moments at the end
+      if (mergeOptions.insertPosition !== 'replace') {
+        combinedMoments = [...combinedMoments, ...currentLesson.moments.map((moment: any) => ({
+          ...moment,
+          order: nextOrder++
+        }))];
+      }
+    } else if (mergeOptions.insertPosition === 'end') {
+      // Keep current lesson moments first (if not replacing)
+      if (mergeOptions.insertPosition !== 'replace') {
+        combinedMoments = [...currentLesson.moments.map((moment: any) => ({
+          ...moment,
+          order: nextOrder++
+        }))];
+      }
+      
+      // Add lesson1 moments
+      combinedMoments = [...combinedMoments, ...lesson1Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged1_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+      
+      // Add lesson2 moments
+      combinedMoments = [...combinedMoments, ...lesson2Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged2_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+    } else { // replace
+      // Replace current lesson with merged lessons
+      combinedMoments = [...lesson1Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged1_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+      
+      combinedMoments = [...combinedMoments, ...lesson2Moments.map((moment: any) => ({
+        ...moment,
+        id: `merged2_${Date.now()}_${nextOrder++}`,
+        order: nextOrder - 1
+      }))];
+    }
+    
+    // Handle metadata preservation
+    let mergedLesson = { ...currentLesson };
+    
+    if (mergeOptions.preserveMetadata && lesson1) {
+      mergedLesson = {
+        ...mergedLesson,
+        title: lesson1.title || lesson1.content?.title || mergedLesson.title,
+        wordClass: lesson1.wordClass || lesson1.content?.wordClass || mergedLesson.wordClass,
+        background: lesson1.background || lesson1.content?.background || mergedLesson.background
+      };
+    }
+    
+    // Update current lesson
+    setCurrentLesson({
+      ...mergedLesson,
+      moments: combinedMoments
+    });
+    
+    // Close dialog and reset selections
+    setShowMergeDialog(false);
+    setSelectedLessons({lesson1: null, lesson2: null});
+    
+    toast({
+      title: "Lektioner sammanslagit!",
+      description: `${combinedMoments.length} moment från ${lesson1.title} och ${lesson2.title} har lagts till.`,
     });
   };
 
@@ -1779,6 +1895,7 @@ export default function LessonBuilder() {
               <div className="flex space-x-2">
                 <LessonTemplates onSelectTemplate={loadFromTemplate} />
                 <Button variant="outline" onClick={() => setShowLoadDialog(true)}>📂 Ladda</Button>
+                <Button variant="outline" onClick={() => setShowMergeDialog(true)}>🔗 Slå samman</Button>
                 <Button variant="outline" onClick={newLesson}>🆕 Ny</Button>
                 <Button variant="outline" onClick={() => setShowValidation(!showValidation)}>
                   ✅ Validera
@@ -2142,6 +2259,181 @@ export default function LessonBuilder() {
         </DialogContent>
       </Dialog>
 
+      {/* Merge Lessons Dialog */}
+      <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Slå samman lektioner</DialogTitle>
+            <DialogDescription>
+              Välj två lektioner att slå samman och bestäm hur de ska kombineras
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Lesson Selection */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Första lektionen</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">Utkast</h4>
+                  {savedLessons.map((lesson: any) => (
+                    <div key={`draft-${lesson.id}`} className={`p-3 border rounded cursor-pointer transition-colors ${
+                      selectedLessons.lesson1?.id === lesson.id ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'
+                    }`} onClick={() => setSelectedLessons({...selectedLessons, lesson1: lesson})}>
+                      <div className="font-medium">{lesson.title}</div>
+                      <div className="text-sm text-gray-500">{lesson.content?.moments?.length || 0} moment</div>
+                    </div>
+                  ))}
+                  
+                  <h4 className="text-sm font-medium text-gray-600 mb-2 mt-4">Publicerade lektioner</h4>
+                  {publishedLessons.map((lesson: any) => (
+                    <div key={`published-${lesson.id}`} className={`p-3 border rounded cursor-pointer transition-colors ${
+                      selectedLessons.lesson1?.id === lesson.id ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'
+                    }`} onClick={() => setSelectedLessons({...selectedLessons, lesson1: lesson})}>
+                      <div className="font-medium">{lesson.title}</div>
+                      <div className="text-sm text-gray-500">{lesson.content?.moments?.length || 0} moment</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Andra lektionen</h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">Utkast</h4>
+                  {savedLessons.map((lesson: any) => (
+                    <div key={`draft2-${lesson.id}`} className={`p-3 border rounded cursor-pointer transition-colors ${
+                      selectedLessons.lesson2?.id === lesson.id ? 'bg-green-100 border-green-300' : 'hover:bg-gray-50'
+                    }`} onClick={() => setSelectedLessons({...selectedLessons, lesson2: lesson})}>
+                      <div className="font-medium">{lesson.title}</div>
+                      <div className="text-sm text-gray-500">{lesson.content?.moments?.length || 0} moment</div>
+                    </div>
+                  ))}
+                  
+                  <h4 className="text-sm font-medium text-gray-600 mb-2 mt-4">Publicerade lektioner</h4>
+                  {publishedLessons.map((lesson: any) => (
+                    <div key={`published2-${lesson.id}`} className={`p-3 border rounded cursor-pointer transition-colors ${
+                      selectedLessons.lesson2?.id === lesson.id ? 'bg-green-100 border-green-300' : 'hover:bg-gray-50'
+                    }`} onClick={() => setSelectedLessons({...selectedLessons, lesson2: lesson})}>
+                      <div className="font-medium">{lesson.title}</div>
+                      <div className="text-sm text-gray-500">{lesson.content?.moments?.length || 0} moment</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Selected Lessons Preview */}
+            {(selectedLessons.lesson1 || selectedLessons.lesson2) && (
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3">Valda lektioner</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-blue-50 rounded border">
+                    <h4 className="font-medium text-blue-800">Första lektionen</h4>
+                    {selectedLessons.lesson1 ? (
+                      <div>
+                        <div className="font-medium">{selectedLessons.lesson1.title}</div>
+                        <div className="text-sm text-gray-600">{(selectedLessons.lesson1.content?.moments || selectedLessons.lesson1.moments || []).length} moment</div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">Ingen lektion vald</div>
+                    )}
+                  </div>
+                  <div className="p-3 bg-green-50 rounded border">
+                    <h4 className="font-medium text-green-800">Andra lektionen</h4>
+                    {selectedLessons.lesson2 ? (
+                      <div>
+                        <div className="font-medium">{selectedLessons.lesson2.title}</div>
+                        <div className="text-sm text-gray-600">{(selectedLessons.lesson2.content?.moments || selectedLessons.lesson2.moments || []).length} moment</div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">Ingen lektion vald</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Merge Options */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold mb-3">Alternativ för sammanslagning</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Var ska de sammanslagna momenten placeras?</Label>
+                  <Select
+                    value={mergeOptions.insertPosition}
+                    onValueChange={(value: 'beginning' | 'end' | 'replace') => 
+                      setMergeOptions({...mergeOptions, insertPosition: value})
+                    }
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginning">I början (före nuvarande moment)</SelectItem>
+                      <SelectItem value="end">I slutet (efter nuvarande moment)</SelectItem>
+                      <SelectItem value="replace">Ersätt nuvarande lektion helt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="preserveMetadata"
+                    checked={mergeOptions.preserveMetadata}
+                    onCheckedChange={(checked) => 
+                      setMergeOptions({...mergeOptions, preserveMetadata: !!checked})
+                    }
+                  />
+                  <Label htmlFor="preserveMetadata" className="text-sm">
+                    Behåll metadata (titel, ordklass, bakgrund) från första lektionen
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            {/* Preview Result */}
+            {selectedLessons.lesson1 && selectedLessons.lesson2 && (
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3">Förhandsvisning av resultat</h3>
+                <div className="p-4 bg-gray-50 rounded border">
+                  <div className="text-sm space-y-1">
+                    <div>Totalt antal moment: {(
+                      (selectedLessons.lesson1.content?.moments || selectedLessons.lesson1.moments || []).length +
+                      (selectedLessons.lesson2.content?.moments || selectedLessons.lesson2.moments || []).length +
+                      (mergeOptions.insertPosition === 'replace' ? 0 : currentLesson.moments.length)
+                    )}</div>
+                    <div>Från "{selectedLessons.lesson1.title}": {(selectedLessons.lesson1.content?.moments || selectedLessons.lesson1.moments || []).length} moment</div>
+                    <div>Från "{selectedLessons.lesson2.title}": {(selectedLessons.lesson2.content?.moments || selectedLessons.lesson2.moments || []).length} moment</div>
+                    {mergeOptions.insertPosition !== 'replace' && (
+                      <div>Från nuvarande lektion: {currentLesson.moments.length} moment</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowMergeDialog(false);
+                setSelectedLessons({lesson1: null, lesson2: null});
+              }}
+            >
+              Avbryt
+            </Button>
+            <Button
+              onClick={mergeLessons}
+              disabled={!selectedLessons.lesson1 || !selectedLessons.lesson2}
+            >
+              Slå samman lektioner
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       {/* Load Lesson Dialog */}
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
