@@ -82,3 +82,24 @@ export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
 
 export type InsertErrorReport = z.infer<typeof insertErrorReportSchema>;
 export type ErrorReport = typeof errorReports.$inferSelect;
+
+// Published lessons table
+export const publishedLessons = pgTable("published_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: varchar("description"),
+  wordClass: varchar("word_class"), // vilken ordklass lektionen tillhör
+  difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
+  content: jsonb("content").notNull(), // hela lektionsstrukturen
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPublishedLessonSchema = createInsertSchema(publishedLessons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PublishedLesson = typeof publishedLessons.$inferSelect;
+export type InsertPublishedLesson = z.infer<typeof insertPublishedLessonSchema>;

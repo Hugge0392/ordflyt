@@ -1,11 +1,25 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { type WordClass } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function Menu() {
+  const [selectedWordClass, setSelectedWordClass] = useState<string | null>(null);
+  
   const { data: wordClasses = [], isLoading } = useQuery<WordClass[]>({
     queryKey: ["/api/word-classes"],
   });
+
+  const { data: publishedLessons = [] } = useQuery<any[]>({
+    queryKey: ['/api/lessons/published'],
+  });
+
+  const getLessonsForWordClass = (wordClassName: string) => {
+    return publishedLessons.filter((lesson: any) => lesson.wordClass === wordClassName);
+  };
 
   const getColorForWordClass = (wordClass: string) => {
     switch (wordClass) {
@@ -58,10 +72,10 @@ export default function Menu() {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wordClasses.map((wordClass) => (
-              <Link
+              <div
                 key={wordClass.id}
-                href={`/wordclass/${wordClass.name}`}
-                className="group"
+                className="group cursor-pointer"
+                onClick={() => setSelectedWordClass(wordClass.name)}
                 data-testid={`practice-${wordClass.name}`}
               >
                 <div className={`bg-gradient-to-r ${getColorForWordClass(wordClass.name)} text-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300`}>
@@ -84,7 +98,7 @@ export default function Menu() {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </section>
@@ -219,6 +233,71 @@ export default function Menu() {
           </div>
         </section>
       </main>
+
+      {/* Word Class Dialog with Lessons */}
+      <Dialog open={!!selectedWordClass} onOpenChange={() => setSelectedWordClass(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedWordClass && 
+                wordClasses.find(wc => wc.name === selectedWordClass)?.swedishName
+              }
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Regular Practice */}
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold text-lg mb-2">Grundträning</h3>
+              <p className="text-gray-600 mb-4">Träna grundläggande ordklassigenkänning</p>
+              {selectedWordClass && (
+                <Link href={`/wordclass/${selectedWordClass}`}>
+                  <Button className="w-full">Börja träna</Button>
+                </Link>
+              )}
+            </div>
+
+            {/* Published Lessons */}
+            {selectedWordClass && getLessonsForWordClass(selectedWordClass).length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">Interaktiva lektioner</h3>
+                {getLessonsForWordClass(selectedWordClass).map((lesson: any) => (
+                  <div key={lesson.id} className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{lesson.title}</h4>
+                      <Badge variant={lesson.difficulty === 'easy' ? 'secondary' : lesson.difficulty === 'medium' ? 'default' : 'destructive'}>
+                        {lesson.difficulty === 'easy' ? 'Lätt' : lesson.difficulty === 'medium' ? 'Medel' : 'Svår'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">{lesson.description}</p>
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        // TODO: Navigate to lesson player
+                        console.log('Playing lesson:', lesson.id);
+                      }}
+                    >
+                      Spela lektion
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Test Option */}
+            {selectedWordClass && (
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <h3 className="font-semibold text-lg mb-2">Prov</h3>
+                <p className="text-gray-600 mb-4">Testa dina kunskaper med tidtagning</p>
+                <Link href={`/test/${selectedWordClass}`}>
+                  <Button variant="outline" className="w-full">Gör prov</Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

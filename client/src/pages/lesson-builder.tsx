@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +74,9 @@ const WORD_CLASSES = [
 ];
 
 export default function LessonBuilder() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [currentLesson, setCurrentLesson] = useState<Lesson>({
     id: '',
     wordClass: '',
@@ -87,6 +93,53 @@ export default function LessonBuilder() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [publishData, setPublishData] = useState({
+    wordClass: '',
+    difficulty: 'medium',
+    description: ''
+  });
+
+  // Fetch word classes for publish dialog
+  const { data: wordClasses = [] } = useQuery({
+    queryKey: ['/api/word-classes'],
+  });
+
+  // Publish lesson mutation
+  const publishLessonMutation = useMutation({
+    mutationFn: async (lessonData: any) => {
+      return await apiRequest('/api/lessons/publish', {
+        method: 'POST',
+        body: JSON.stringify(lessonData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Lektion publicerad!",
+        description: "Lektionen är nu tillgänglig i huvudmenyn under vald ordklass.",
+      });
+      setShowPublishDialog(false);
+      // Reset lesson after successful publish
+      setCurrentLesson({
+        id: '',
+        wordClass: '',
+        title: '',
+        moments: []
+      });
+      setPublishData({
+        wordClass: '',
+        difficulty: 'medium',
+        description: ''
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Publicering misslyckades",
+        description: "Kunde inte publicera lektionen. Försök igen.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -255,6 +308,53 @@ export default function LessonBuilder() {
     };
 
     setCurrentLesson(newLesson);
+  };
+
+  const handlePublish = () => {
+    if (!currentLesson.title.trim()) {
+      toast({
+        title: "Titel saknas",
+        description: "Ge lektionen en titel innan du publicerar den.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (currentLesson.moments.length === 0) {
+      toast({
+        title: "Inga moment",
+        description: "Lägg till minst ett moment innan du publicerar lektionen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowPublishDialog(true);
+  };
+
+  const confirmPublish = () => {
+    if (!publishData.wordClass) {
+      toast({
+        title: "Ordklass saknas",
+        description: "Välj vilken ordklass lektionen tillhör.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const lessonData = {
+      title: currentLesson.title,
+      description: publishData.description || `En interaktiv lektion med ${currentLesson.moments.length} moment`,
+      wordClass: publishData.wordClass,
+      difficulty: publishData.difficulty,
+      content: {
+        title: currentLesson.title,
+        moments: currentLesson.moments,
+        wordClass: publishData.wordClass
+      }
+    };
+
+    publishLessonMutation.mutate(lessonData);
   };
 
   const newLesson = () => {
@@ -1034,6 +1134,13 @@ export default function LessonBuilder() {
                 </Button>
                 <Button onClick={saveLesson}>💾 Spara</Button>
                 <Button variant="outline" onClick={exportLesson}>📤 Exportera</Button>
+                <Button 
+                  onClick={handlePublish}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={publishLessonMutation.isPending}
+                >
+                  {publishLessonMutation.isPending ? '📤 Publicerar...' : '🚀 Publicera'}
+                </Button>
               </div>
             </div>
           </div>
@@ -1289,6 +1396,79 @@ export default function LessonBuilder() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Publish Dialog */}
+      <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Publicera lektion</DialogTitle>
+            <DialogDescription>
+              Publicerad lektion blir tillgänglig i huvudmenyn under vald ordklass
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Ordklass *</Label>
+              <Select
+                value={publishData.wordClass}
+                onValueChange={(value) => setPublishData({...publishData, wordClass: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Välj ordklass" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wordClasses.map((wc: any) => (
+                    <SelectItem key={wc.id} value={wc.name}>{wc.swedishName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Svårighetsgrad</Label>
+              <Select
+                value={publishData.difficulty}
+                onValueChange={(value) => setPublishData({...publishData, difficulty: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Lätt</SelectItem>
+                  <SelectItem value="medium">Medel</SelectItem>
+                  <SelectItem value="hard">Svår</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Beskrivning (valfritt)</Label>
+              <Textarea
+                value={publishData.description}
+                onChange={(e) => setPublishData({...publishData, description: e.target.value})}
+                placeholder="Kort beskrivning av vad lektionen handlar om..."
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowPublishDialog(false)}
+            >
+              Avbryt
+            </Button>
+            <Button
+              onClick={confirmPublish}
+              disabled={publishLessonMutation.isPending}
+            >
+              {publishLessonMutation.isPending ? 'Publicerar...' : 'Publicera'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

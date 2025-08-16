@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema } from "@shared/schema";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -320,6 +320,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing lesson image:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Published lesson endpoints
+  app.post("/api/lessons/publish", async (req, res) => {
+    try {
+      const validatedData = insertPublishedLessonSchema.parse(req.body);
+      const lesson = await storage.createPublishedLesson(validatedData);
+      res.json(lesson);
+    } catch (error) {
+      console.error("Failed to publish lesson:", error);
+      res.status(500).json({ message: "Failed to publish lesson" });
+    }
+  });
+
+  app.get("/api/lessons/published", async (req, res) => {
+    try {
+      const lessons = await storage.getPublishedLessons();
+      res.json(lessons);
+    } catch (error) {
+      console.error("Failed to fetch published lessons:", error);
+      res.status(500).json({ message: "Failed to fetch published lessons" });
+    }
+  });
+
+  app.get("/api/lessons/published/wordclass/:wordClass", async (req, res) => {
+    try {
+      const { wordClass } = req.params;
+      const lessons = await storage.getPublishedLessonsByWordClass(wordClass);
+      res.json(lessons);
+    } catch (error) {
+      console.error("Failed to fetch published lessons by word class:", error);
+      res.status(500).json({ message: "Failed to fetch published lessons by word class" });
+    }
+  });
+
+  app.delete("/api/lessons/published/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePublishedLesson(id);
+      res.json({ message: "Lesson deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete published lesson:", error);
+      res.status(500).json({ message: "Failed to delete published lesson" });
     }
   });
 
