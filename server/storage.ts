@@ -4,17 +4,19 @@ import {
   type GameProgress,
   type ErrorReport,
   type PublishedLesson,
+  type LessonDraft,
   type Word,
   type InsertSentence,
   type InsertWordClass,
   type InsertGameProgress,
   type InsertErrorReport,
   type InsertPublishedLesson,
+  type InsertLessonDraft,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -49,6 +51,13 @@ export interface IStorage {
   getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]>;
   updatePublishedLesson(id: string, lesson: Partial<InsertPublishedLesson>): Promise<PublishedLesson>;
   deletePublishedLesson(id: string): Promise<void>;
+
+  // Draft lesson methods
+  createLessonDraft(draft: InsertLessonDraft): Promise<LessonDraft>;
+  getLessonDrafts(): Promise<LessonDraft[]>;
+  getLessonDraft(id: string): Promise<LessonDraft | undefined>;
+  updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft>;
+  deleteLessonDraft(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -407,6 +416,33 @@ export class DatabaseStorage implements IStorage {
 
   async deletePublishedLesson(id: string): Promise<void> {
     await db.delete(publishedLessons).where(eq(publishedLessons.id, id));
+  }
+
+  // Draft lesson methods
+  async createLessonDraft(draft: InsertLessonDraft): Promise<LessonDraft> {
+    const [newDraft] = await db.insert(lessonDrafts).values(draft).returning();
+    return newDraft;
+  }
+
+  async getLessonDrafts(): Promise<LessonDraft[]> {
+    return await db.select().from(lessonDrafts).orderBy(lessonDrafts.updatedAt);
+  }
+
+  async getLessonDraft(id: string): Promise<LessonDraft | undefined> {
+    const [draft] = await db.select().from(lessonDrafts).where(eq(lessonDrafts.id, id));
+    return draft;
+  }
+
+  async updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft> {
+    const [updatedDraft] = await db.update(lessonDrafts)
+      .set({ ...draft, updatedAt: new Date() })
+      .where(eq(lessonDrafts.id, id))
+      .returning();
+    return updatedDraft;
+  }
+
+  async deleteLessonDraft(id: string): Promise<void> {
+    await db.delete(lessonDrafts).where(eq(lessonDrafts.id, id));
   }
 }
 

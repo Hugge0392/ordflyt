@@ -440,6 +440,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Draft lesson endpoints
+  app.post("/api/lessons/drafts", async (req, res) => {
+    try {
+      const draft = await storage.createLessonDraft(req.body);
+      res.json(draft);
+    } catch (error) {
+      console.error("Failed to create lesson draft:", error);
+      res.status(500).json({ message: "Failed to create lesson draft" });
+    }
+  });
+
+  app.get("/api/lessons/drafts", async (req, res) => {
+    try {
+      const drafts = await storage.getLessonDrafts();
+      res.json(drafts);
+    } catch (error) {
+      console.error("Failed to fetch lesson drafts:", error);
+      res.status(500).json({ message: "Failed to fetch lesson drafts" });
+    }
+  });
+
+  app.get("/api/lessons/drafts/:id", async (req, res) => {
+    try {
+      const draft = await storage.getLessonDraft(req.params.id);
+      if (!draft) {
+        return res.status(404).json({ message: "Lesson draft not found" });
+      }
+      res.json(draft);
+    } catch (error) {
+      console.error("Failed to fetch lesson draft:", error);
+      res.status(500).json({ message: "Failed to fetch lesson draft" });
+    }
+  });
+
+  app.put("/api/lessons/drafts/:id", async (req, res) => {
+    try {
+      const draft = await storage.updateLessonDraft(req.params.id, req.body);
+      res.json(draft);
+    } catch (error) {
+      console.error("Failed to update lesson draft:", error);
+      res.status(500).json({ message: "Failed to update lesson draft" });
+    }
+  });
+
+  app.delete("/api/lessons/drafts/:id", async (req, res) => {
+    try {
+      await storage.deleteLessonDraft(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete lesson draft:", error);
+      res.status(500).json({ message: "Failed to delete lesson draft" });
+    }
+  });
+
   // Serve generated lesson files statically
   app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
 

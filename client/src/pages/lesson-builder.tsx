@@ -90,7 +90,7 @@ export default function LessonBuilder() {
   const [showMomentDialog, setShowMomentDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [currentPreviewMoment, setCurrentPreviewMoment] = useState(0);
-  const [savedLessons, setSavedLessons] = useState<Lesson[]>([]);
+  // Remove savedLessons state - using server data instead
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -105,6 +105,70 @@ export default function LessonBuilder() {
   // Fetch word classes for publish dialog
   const { data: wordClasses = [] } = useQuery({
     queryKey: ['/api/word-classes'],
+  });
+
+  // Fetch lesson drafts
+  const { data: savedLessons = [] } = useQuery({
+    queryKey: ['/api/lessons/drafts'],
+  });
+
+  // Save/update lesson draft mutations
+  const saveLessonMutation = useMutation({
+    mutationFn: async (lessonData: any) => {
+      if (lessonData.id && lessonData.id.startsWith('lesson_')) {
+        // Check if this draft exists on server
+        try {
+          const response = await apiRequest('GET', `/api/lessons/drafts/${lessonData.id}`);
+          if (response.ok) {
+            // Update existing draft
+            const updateResponse = await apiRequest('PUT', `/api/lessons/drafts/${lessonData.id}`, lessonData);
+            return updateResponse.json();
+          }
+        } catch (error) {
+          // Draft doesn't exist, create new one
+        }
+      }
+      // Create new draft
+      const response = await apiRequest('POST', '/api/lessons/drafts', lessonData);
+      return response.json();
+    },
+    onSuccess: (savedLesson) => {
+      // Update current lesson with server ID
+      setCurrentLesson(savedLesson);
+      // Invalidate drafts cache
+      queryClient.invalidateQueries({ queryKey: ['/api/lessons/drafts'] });
+      toast({
+        title: "Lektion sparad!",
+        description: "Lektionen har sparats som utkast.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Sparning misslyckades",
+        description: "Kunde inte spara lektionen. Försök igen.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteLessonMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      await apiRequest('DELETE', `/api/lessons/drafts/${lessonId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/lessons/drafts'] });
+      toast({
+        title: "Lektion borttagen",
+        description: "Lektionsutkastet har tagits bort.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Borttagning misslyckades",
+        description: "Kunde inte ta bort lektionen. Försök igen.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Publish lesson mutation
@@ -129,7 +193,7 @@ export default function LessonBuilder() {
       });
       setShowPublishDialog(false);
       setEditingLessonId(null);
-      localStorage.removeItem('editingLesson');
+      // Remove local editing state
       // Reset lesson after successful publish
       setCurrentLesson({
         id: '',
@@ -156,7 +220,7 @@ export default function LessonBuilder() {
 
   // Load lesson for editing on component mount
   useEffect(() => {
-    const editData = localStorage.getItem('editingLesson');
+    // Check if we're editing a published lesson (passed via URL params or state)
     if (editData) {
       try {
         const lessonData = JSON.parse(editData);
@@ -178,7 +242,7 @@ export default function LessonBuilder() {
         });
       } catch (error) {
         console.error('Failed to load editing lesson:', error);
-        localStorage.removeItem('editingLesson');
+        // Remove local editing state
       }
     }
   }, []);
@@ -319,30 +383,25 @@ export default function LessonBuilder() {
 
   const saveLesson = () => {
     if (!currentLesson.title.trim()) {
-      alert('Lektionen måste ha en titel');
+      toast({
+        title: "Titel saknas",
+        description: "Lektionen måste ha en titel",
+        variant: "destructive",
+      });
       return;
     }
 
     const lessonToSave = {
       ...currentLesson,
-      id: currentLesson.id || `lesson_${Date.now()}`
+      id: currentLesson.id || `lesson_${Date.now()}`,
+      content: {
+        title: currentLesson.title,
+        moments: currentLesson.moments,
+        wordClass: currentLesson.wordClass
+      }
     };
 
-    const saved = localStorage.getItem('saved-lessons');
-    const existingLessons = saved ? JSON.parse(saved) : [];
-    const existingIndex = existingLessons.findIndex((l: any) => l.id === lessonToSave.id);
-    
-    if (existingIndex >= 0) {
-      existingLessons[existingIndex] = lessonToSave;
-    } else {
-      existingLessons.push(lessonToSave);
-    }
-
-    localStorage.setItem('saved-lessons', JSON.stringify(existingLessons));
-    setSavedLessons(existingLessons);
-    setCurrentLesson(lessonToSave);
-    
-    alert('Lektionen sparades!');
+    saveLessonMutation.mutate(lessonToSave);
   };
 
   const loadFromTemplate = (template: any) => {

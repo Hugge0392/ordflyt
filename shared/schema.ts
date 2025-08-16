@@ -107,3 +107,24 @@ export const insertPublishedLessonSchema = createInsertSchema(publishedLessons).
 
 export type PublishedLesson = typeof publishedLessons.$inferSelect;
 export type InsertPublishedLesson = z.infer<typeof insertPublishedLessonSchema>;
+
+// Draft lessons table - för att spara utkast under utveckling
+export const lessonDrafts = pgTable("lesson_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: varchar("description"),
+  wordClass: varchar("word_class"),
+  difficulty: varchar("difficulty").default("medium"),
+  content: jsonb("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLessonDraftSchema = createInsertSchema(lessonDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type LessonDraft = typeof lessonDrafts.$inferSelect;
+export type InsertLessonDraft = z.infer<typeof insertLessonDraftSchema>;
