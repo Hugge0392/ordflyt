@@ -612,7 +612,7 @@ export default function LessonBuilder() {
             </div>
             
             {/* Items */}
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {(moment.config.items || []).map((item: any) => (
                 <Card key={item.id} className="">
                   <CardContent className="p-4 space-y-3">

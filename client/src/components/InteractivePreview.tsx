@@ -44,8 +44,16 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
   // Typewriter effect for pratbubbla
   useEffect(() => {
-    if (moment.type === 'pratbubbla' && moment.config.text) {
-      const text = moment.config.text;
+    if (moment.type === 'pratbubbla') {
+      // Get first text item if items structure exists, otherwise fall back to old text field
+      let text = '';
+      if (moment.config.items && moment.config.items.length > 0) {
+        const firstTextItem = moment.config.items.find((item: any) => item.type === 'text');
+        text = firstTextItem?.content || '';
+      } else {
+        text = moment.config.text || '';
+      }
+      
       if (textIndex < text.length) {
         const timeout = setTimeout(() => {
           setCurrentText(text.slice(0, textIndex + 1));
@@ -219,8 +227,30 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         );
 
       case 'pratbubbla':
-        const hasQuestion = moment.config.question && moment.config.alternatives;
-        const textComplete = textIndex >= (moment.config.text || '').length;
+        // Check for questions in new items structure or old structure
+        let hasQuestion = false;
+        let currentQuestion = null;
+        let currentAlternatives = [];
+        
+        if (moment.config.items && moment.config.items.length > 0) {
+          currentQuestion = moment.config.items.find((item: any) => item.type === 'question');
+          hasQuestion = !!currentQuestion;
+          currentAlternatives = currentQuestion?.alternatives || [];
+        } else {
+          hasQuestion = moment.config.question && moment.config.alternatives;
+          currentAlternatives = moment.config.alternatives || [];
+        }
+        
+        // Get current text for length check
+        let currentTextLength = 0;
+        if (moment.config.items && moment.config.items.length > 0) {
+          const firstTextItem = moment.config.items.find((item: any) => item.type === 'text');
+          currentTextLength = (firstTextItem?.content || '').length;
+        } else {
+          currentTextLength = (moment.config.text || '').length;
+        }
+        
+        const textComplete = textIndex >= currentTextLength;
         
         return (
           <div className="w-full h-screen flex">
@@ -233,7 +263,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                   {/* Text content */}
                   <p className="text-2xl leading-relaxed">
                     {showFeedback ? feedbackText : currentText}
-                    {!showFeedback && textIndex < (moment.config.text || '').length && (
+                    {!showFeedback && textIndex < currentTextLength && (
                       <span className="animate-pulse">|</span>
                     )}
                   </p>
@@ -241,9 +271,11 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                   {/* Question and alternatives */}
                   {hasQuestion && textComplete && !showFeedback && (
                     <div className="mt-6">
-                      <h4 className="text-xl font-semibold mb-4">{moment.config.question}</h4>
+                      <h4 className="text-xl font-semibold mb-4">
+                        {currentQuestion?.content || moment.config.question}
+                      </h4>
                       <div className="space-y-3">
-                        {moment.config.alternatives.map((alt: any, index: number) => (
+                        {currentAlternatives.map((alt: any, index: number) => (
                           <Button
                             key={index}
                             variant="outline"
@@ -261,7 +293,7 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                   {/* Feedback actions */}
                   {showFeedback && (
                     <div className="mt-4 space-x-3">
-                      {!moment.config.alternatives.find((alt: any) => alt.text === selectedAnswer)?.correct && (
+                      {!currentAlternatives.find((alt: any) => alt.text === selectedAnswer)?.correct && (
                         <Button variant="outline" onClick={resetQuestion}>
                           Försök igen
                         </Button>
