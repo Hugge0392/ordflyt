@@ -1,496 +1,359 @@
-<!DOCTYPE html>
-<html lang="sv">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Introduktion till Substantiv</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        import React, { useEffect, useRef, useState } from "react";
+
+        // NOTE: Removed import of './assets/pirate.png' because the file was missing and broke the build.
+        // The guide now loads an image from localStorage if available, otherwise it falls back to a built-in SVG.
+        // Users can still upload/drag in the provided pirate image and it will persist automatically.
+
+        // --- Default avatar (fallback SVG) ---
+        const DEFAULT_AVATAR = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'>\n  <defs>\n    <linearGradient id='g' x1='0' x2='1'>\n      <stop offset='0' stop-color='#fcd34d'/><stop offset='1' stop-color='#fb923c'/>\n    </linearGradient>\n  </defs>\n  <rect width='128' height='128' rx='24' fill='url(#g)'/>\n  <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='64'>🏴‍☠️</text>\n</svg>`)} `;
+
+        // --- Utility helpers ---
+        const shuffle = (arr) => {
+          const a = [...arr];
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        };
+
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+        // --- Pirate words & feel ---
+        const pirateQuotes = {
+          intro:
+            "Ahoy! Jag är Kapten Ruby. Häng med på en skattjakt över de sju haven! Matcha korten för att hitta ledtrådarna till sjökartan.",
+          firstFlip:
+            "Fin vändning, skeppare! Hitta paret så ska jag berätta en hemlighet...",
+          match: (icon) => `Träff! Två ${icon}. Vi är ett steg närmare skatten!`,
+          miss: "Aj aj, ingen träff den här gången. Försök igen, landkrabba!",
+          win: "Se där! Alla par hittade. Kartan är komplett – skatten väntar i lagunen!",
+          restart: "Skeppet är redo för en ny färd. Klara, färdiga, segla!",
+        };
+
+        // --- Pirate icons (emoji = self contained assets) ---
+        const ICONS = [
+          { id: "skull", icon: "☠️", name: "dödskalle" },
+          { id: "anchor", icon: "⚓", name: "ankare" },
+          { id: "map", icon: "🗺️", name: "karta" },
+          { id: "parrot", icon: "🦜", name: "papegoja" },
+          { id: "rum", icon: "🍺", name: "rom" },
+          { id: "wheel", icon: "🛞", name: "roder" },
+          { id: "gem", icon: "💎", name: "juvel" },
+          { id: "spyglass", icon: "🔭", name: "kikare" },
+        ];
+
+        // --- Sound FX with WebAudio (tiny beeps; no external files) ---
+        function useSfx() {
+          const ctxRef = useRef(null);
+          const ensure = () => (ctxRef.current ??= new (window.AudioContext || window.webkitAudioContext)());
+          const tone = async (freq = 440, dur = 0.07, type = "sine", vol = 0.03) => {
+            const ctx = ensure();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = type; o.frequency.value = freq; g.gain.value = vol;
+            o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur);
+          };
+          return {
+            click: () => tone(520, 0.05, "triangle", 0.03),
+            match: () => { tone(660, 0.09, "square", 0.04); setTimeout(() => tone(880, 0.09, "square", 0.04), 90); },
+            miss: () => { tone(180, 0.12, "sawtooth", 0.025); setTimeout(() => tone(140, 0.12, "sawtooth", 0.02), 70); },
+            win: () => { [660, 880, 990, 1320].forEach((f, i) => setTimeout(() => tone(f, 0.1, "triangle", 0.05), i * 120)); },
+          };
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+        // --- Card component ---
+        function Card({ data, flipped, solved, onFlip, index }) {
+          return (
+            <button
+              aria-label={`Kort ${index + 1}`}
+              onClick={onFlip}
+              className={`relative aspect-[3/4] w-full rounded-2xl transition-transform duration-300 [transform-style:preserve-3d] ${
+                flipped || solved ? "[transform:rotateY(180deg)]" : ""
+              }`}
+              disabled={solved}
+            >
+              {/* Back */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-sky-700 via-indigo-800 to-slate-900 text-white border border-indigo-400/40 shadow-xl [backface-visibility:hidden]">
+                <div className="text-3xl">🏴‍☠️</div>
+              </div>
+
+              {/* Front */}
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 via-amber-50 to-yellow-100 border border-amber-300 shadow-xl [transform:rotateY(180deg)] [backface-visibility:hidden]">
+                <div className="text-5xl drop-shadow-sm select-none">{data.icon}</div>
+              </div>
+            </button>
+          );
         }
 
-        .lesson-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
+        // --- Dialogue bubble with the pirate character ---
+        function PirateGuide({ text }) {
+          const [imageSrc, setImageSrc] = useState(null);
 
-        .lesson-header {
-            background: linear-gradient(45deg, #4f46e5, #7c3aed);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+          // Load from localStorage first
+          useEffect(() => {
+            try {
+              const saved = localStorage.getItem("pirate-avatar");
+              if (saved) setImageSrc(saved);
+            } catch {}
+          }, []);
 
-        .lesson-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
+          // Persist whenever user changes image
+          useEffect(() => {
+            if (!imageSrc) return;
+            try { localStorage.setItem("pirate-avatar", imageSrc); } catch {}
+          }, [imageSrc]);
 
-        .lesson-subtitle {
-            opacity: 0.9;
-            font-size: 1.2rem;
-        }
+          const onPick = (file) => {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => setImageSrc(reader.result);
+            reader.readAsDataURL(file);
+          };
 
-        .progress-bar {
-            background: rgba(255,255,255,0.2);
-            height: 8px;
-            border-radius: 4px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
+          const onDrop = (e) => {
+            e.preventDefault();
+            const f = e.dataTransfer?.files?.[0];
+            if (f) onPick(f);
+          };
 
-        .progress-fill {
-            background: #10b981;
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        .moment-container {
-            padding: 40px;
-            min-height: 400px;
-            display: none;
-        }
-
-        .moment-container.active {
-            display: block;
-        }
-
-        .moment-title {
-            font-size: 1.8rem;
-            color: #1f2937;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .moment-content {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: #374151;
-            text-align: center;
-        }
-
-        .controls {
-            padding: 20px 40px;
-            background: #f9fafb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #4f46e5;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #4338ca;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d5db;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .character-bubble {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            margin: 20px 0;
-        }
-
-        .character-image {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .speech-bubble {
-            flex: 1;
-            background: #f0f9ff;
-            border: 2px solid #0ea5e9;
-            border-radius: 20px;
-            padding: 20px;
-            position: relative;
-            font-size: 1.1rem;
-        }
-
-        .speech-bubble::before {
-            content: '';
-            position: absolute;
-            left: -10px;
-            top: 20px;
-            width: 0;
-            height: 0;
-            border-top: 10px solid transparent;
-            border-bottom: 10px solid transparent;
-            border-right: 10px solid #0ea5e9;
-        }
-
-        .memory-game {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .memory-card {
-            aspect-ratio: 1;
-            background: #f3f4f6;
-            border: 2px solid #d1d5db;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .memory-card:hover {
-            border-color: #4f46e5;
-            transform: scale(1.05);
-        }
-
-        .memory-card.flipped {
-            background: #4f46e5;
-            color: white;
-        }
-
-        .completion-screen {
-            text-align: center;
-            padding: 60px 40px;
-            display: none;
-        }
-
-        .completion-screen.active {
-            display: block;
-        }
-
-        .completion-icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
-        }
-
-        .completion-title {
-            font-size: 2.5rem;
-            color: #059669;
-            margin-bottom: 15px;
-        }
-
-        .completion-message {
-            font-size: 1.2rem;
-            color: #374151;
-            margin-bottom: 30px;
-        }
-
-        .word-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .word-cloud-item {
-            background: #ede9fe;
-            color: #6b21a8;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .word-cloud-item:hover {
-            background: #6b21a8;
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .interactive-text {
-            font-size: 1.3rem;
-            line-height: 1.8;
-            margin: 20px 0;
-        }
-
-        .clickable-word {
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .clickable-word:hover {
-            background: #fef3c7;
-        }
-
-        .clickable-word.correct {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .clickable-word.incorrect {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .moment-container.active {
-            animation: slideIn 0.5s ease-out;
-        }
-    </style>
-</head>
-<body>
-    <div class="lesson-container">
-        <div class="lesson-header">
-            <h1 class="lesson-title">Introduktion till Substantiv</h1>
-            <p class="lesson-subtitle">Ordklass: noun</p>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+          return (
+            <div className="flex gap-4 items-center" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+              <img
+                src={imageSrc || DEFAULT_AVATAR}
+                onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
+                alt="Kapten Ruby"
+                className="w-24 h-24 rounded-full border-4 border-amber-300 shadow-lg bg-white object-cover"
+              />
+              <div className="relative max-w-xl">
+                <div className="rounded-2xl bg-white/90 p-4 pr-5 text-slate-800 border border-amber-300 shadow-xl">
+                  <p className="leading-relaxed">{text}</p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <span className="px-2 py-1 rounded-lg bg-amber-100 border border-amber-300">Byt karaktärsbild</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
+                    </label>
+                    <span className="opacity-70">(dra & släpp funkar också)</span>
+                  </div>
+                </div>
+                <div className="absolute -left-3 top-6 h-0 w-0 border-y-8 border-y-transparent border-r-8 border-r-amber-300/80" />
+              </div>
             </div>
-            <p id="progressText">Moment 1 av 3</p>
-        </div>
-
-        
-        <div class="moment-container active" id="moment0">
-          
-          <h2 class="moment-title">Välkomst</h2>
-          <div class="character-bubble">
-            <img src="🏴‍☠️" class="character-image" alt="Karaktär">
-            <div class="speech-bubble">
-              <p id="bubbleText0">Hej! Idag ska vi lära oss om substantiv. Substantiv är ord som beskriver personer, djur, saker och platser.</p>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment1">
-          
-          <h2 class="moment-title">Hitta substantiven</h2>
-          <div class="moment-content">
-            <p><strong>Instruktion:</strong> Klicka på alla substantiv (saker, djur, personer) i meningen</p>
-            <div class="interactive-text" id="interactiveText1">
-              <span class="clickable-word" data-target="true" onclick="checkWord(this)">Katten</span> <span class="clickable-word" data-target="false" onclick="checkWord(this)">sitter</span> <span class="clickable-word" data-target="false" onclick="checkWord(this)">på</span> <span class="clickable-word" data-target="true" onclick="checkWord(this)">stolen</span> <span class="clickable-word" data-target="false" onclick="checkWord(this)">och</span> <span class="clickable-word" data-target="false" onclick="checkWord(this)">äter</span> <span class="clickable-word" data-target="true" onclick="checkWord(this)">fisk.</span>
-            </div>
-            <p id="feedback1"></p>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment2">
-          
-          <h2 class="moment-title">Memory - Substantiv</h2>
-          <div class="moment-content">
-            <p>Hitta matchande par av ord!</p>
-            <div class="memory-game" id="memoryGame2">
-              
-                <div class="memory-card" data-word="bok|föremål" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="hus|byggnad" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="hund|djur" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="bil|fordon" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="hund|djur" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="bok|föremål" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="bil|fordon" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-                <div class="memory-card" data-word="hus|byggnad" onclick="flipCard(this, 2)">
-                  ?
-                </div>
-              
-            </div>
-          </div>
-        
-        </div>
-      
-
-        <div class="completion-screen" id="completionScreen">
-            <div class="completion-icon">🎉</div>
-            <h2 class="completion-title">Grattis!</h2>
-            <p class="completion-message">Du har slutfört lektionen "Introduktion till Substantiv"</p>
-            <button class="btn btn-primary" onclick="restartLesson()">Börja om</button>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-secondary" id="prevBtn" onclick="previousMoment()" disabled>⬅ Föregående</button>
-            <span id="momentCounter">1 / 3</span>
-            <button class="btn btn-primary" id="nextBtn" onclick="nextMoment()">Nästa ➡</button>
-        </div>
-    </div>
-
-    <script>
-        
-      let currentMoment = 0;
-      const totalMoments = 3;
-      let completedMoments = new Set();
-
-      function updateProgress() {
-        const progress = ((currentMoment + 1) / totalMoments) * 100;
-        document.getElementById('progressFill').style.width = progress + '%';
-        document.getElementById('progressText').textContent = `Moment ${currentMoment + 1} av ${totalMoments}`;
-        document.getElementById('momentCounter').textContent = `${currentMoment + 1} / ${totalMoments}`;
-        
-        document.getElementById('prevBtn').disabled = currentMoment === 0;
-        document.getElementById('nextBtn').disabled = currentMoment === totalMoments - 1;
-      }
-
-      function showMoment(index) {
-        // Göm alla moment
-        document.querySelectorAll('.moment-container').forEach(moment => {
-          moment.classList.remove('active');
-        });
-        
-        // Visa valt moment
-        document.getElementById('moment' + index).classList.add('active');
-        currentMoment = index;
-        updateProgress();
-      }
-
-      function nextMoment() {
-        if (currentMoment < totalMoments - 1) {
-          completedMoments.add(currentMoment);
-          showMoment(currentMoment + 1);
-        } else {
-          // Visa slutskärm
-          document.querySelectorAll('.moment-container').forEach(moment => {
-            moment.classList.remove('active');
-          });
-          document.getElementById('completionScreen').classList.add('active');
-          document.querySelector('.controls').style.display = 'none';
+          );
         }
-      }
 
-      function previousMoment() {
-        if (currentMoment > 0) {
-          showMoment(currentMoment - 1);
-        }
-      }
-
-      function restartLesson() {
-        currentMoment = 0;
-        completedMoments.clear();
-        document.getElementById('completionScreen').classList.remove('active');
-        document.querySelector('.controls').style.display = 'flex';
-        showMoment(0);
-      }
-
-      // Memory game funktioner
-      let flippedCards = [];
-      let matchedPairs = 0;
-
-      function flipCard(card, momentIndex) {
-        if (card.classList.contains('flipped') || flippedCards.length >= 2) return;
-        
-        card.classList.add('flipped');
-        card.textContent = card.dataset.word;
-        flippedCards.push(card);
-
-        if (flippedCards.length === 2) {
-          setTimeout(() => {
-            if (flippedCards[0].dataset.word === flippedCards[1].dataset.word) {
-              matchedPairs++;
-              const totalPairs = document.querySelectorAll('#memoryGame' + momentIndex + ' .memory-card').length / 2;
-              if (matchedPairs === totalPairs) {
-                alert('Bra jobbat! Alla par hittade!');
-              }
-            } else {
-              flippedCards.forEach(card => {
-                card.classList.remove('flipped');
-                card.textContent = '?';
+        // --- Confetti (lightweight) ---
+        function Confetti({ show }) {
+          const canvasRef = useRef(null);
+          useEffect(() => {
+            if (!show) return; const c = canvasRef.current; const ctx = c.getContext("2d");
+            let id; const parts = Array.from({ length: 120 }, () => ({
+              x: Math.random() * c.width,
+              y: -10 - Math.random() * c.height,
+              s: 4 + Math.random() * 4,
+              v: 1 + Math.random() * 3,
+              r: Math.random() * Math.PI,
+              a: 0.7 + Math.random() * 0.3,
+            }));
+            const loop = () => {
+              ctx.clearRect(0, 0, c.width, c.height);
+              parts.forEach((p) => {
+                p.y += p.v; p.x += Math.sin(p.y / 20) * 0.7; p.r += 0.1;
+                ctx.save(); ctx.globalAlpha = p.a; ctx.translate(p.x, p.y); ctx.rotate(p.r);
+                ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s);
+                ctx.restore();
+                if (p.y > c.height + 10) p.y = -10;
               });
+              id = requestAnimationFrame(loop);
+            };
+            id = requestAnimationFrame(loop);
+            return () => cancelAnimationFrame(id);
+          }, [show]);
+          return (
+            <canvas ref={canvasRef} width={1200} height={400} className={`pointer-events-none absolute inset-0 w-full h-full ${show ? '' : 'hidden'}`} />
+          );
+        }
+
+        // --- Main Game Component ---
+        export default function App() {
+          const [size, setSize] = useState(4); // grid size (even number: 4, 6)
+          const [deck, setDeck] = useState([]);
+          const [flipped, setFlipped] = useState([]); // indexes of flipped cards
+          const [solved, setSolved] = useState(new Set());
+          const [moves, setMoves] = useState(0);
+          const [startedAt, setStartedAt] = useState(null);
+          const [message, setMessage] = useState(pirateQuotes.intro);
+          const [won, setWon] = useState(false);
+          const sfx = useSfx();
+
+          // Build deck
+          const buildDeck = (n) => {
+            const pairs = (n * n) / 2;
+            const items = shuffle(ICONS).slice(0, pairs);
+            const doubled = shuffle(
+              items.flatMap((d) => [
+                { ...d, uid: d.id + "-A" },
+                { ...d, uid: d.id + "-B" },
+              ])
+            );
+            return doubled;
+          };
+
+          const reset = (n = size) => {
+            setDeck(buildDeck(n));
+            setFlipped([]);
+            setSolved(new Set());
+            setMoves(0);
+            setStartedAt(Date.now());
+            setWon(false);
+            setMessage(pirateQuotes.restart);
+          };
+
+          useEffect(() => { reset(size); }, [size]);
+
+          const timeSpent = () => (startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0);
+
+          const onFlip = async (idx) => {
+            if (won) return;
+            if (flipped.includes(idx) || solved.has(deck[idx].uid)) return;
+            sfx.click();
+            let cur = [...flipped, idx];
+            if (moves === 0 && flipped.length === 0) setMessage(pirateQuotes.firstFlip);
+            setFlipped(cur);
+            if (cur.length === 2) {
+              setMoves((m) => m + 1);
+              const [a, b] = cur.map((i) => deck[i]);
+              if (a.id === b.id && a.uid !== b.uid) {
+                // Match
+                await sleep(250);
+                sfx.match();
+                setSolved((s) => new Set([...s, a.uid, b.uid]));
+                setMessage(pirateQuotes.match(a.name));
+                setFlipped([]);
+              } else {
+                // Miss
+                await sleep(700);
+                sfx.miss();
+                setMessage(pirateQuotes.miss);
+                setFlipped([]);
+              }
+            } else if (cur.length > 2) {
+              setFlipped([idx]);
             }
-            flippedCards = [];
-          }, 1000);
+          };
+
+          useEffect(() => {
+            if (deck.length > 0 && solved.size === deck.length) {
+              setWon(true); sfx.win(); setMessage(pirateQuotes.win);
+            }
+          }, [solved, deck]);
+
+          // --- Lightweight runtime tests (in dev) ---
+          useEffect(() => {
+            try {
+              if (deck.length) {
+                console.assert(deck.length === size * size, "[test] Deck size should equal grid cells");
+                const counts = deck.reduce((m, c) => ((m[c.id] = (m[c.id] || 0) + 1), m), {});
+                console.assert(Object.values(counts).every((c) => c === 2), "[test] Each icon should appear twice");
+                const uniq = new Set(deck.map((c) => c.uid));
+                console.assert(uniq.size === deck.length, "[test] Each card UID must be unique");
+                // Extra test: ensure we can build enough pairs for chosen grid
+                const need = (size * size) / 2;
+                console.assert(ICONS.length >= need, "[test] ICONS must include enough unique symbols for chosen grid size");
+              }
+            } catch {}
+          }, [deck, size]);
+
+          return (
+            <div className="min-h-screen text-slate-100 relative overflow-hidden">
+              {/* Ocean background */}
+              <div className="absolute inset-0 -z-10 bg-gradient-to-b from-sky-500 via-sky-700 to-indigo-900" />
+              <div className="absolute inset-x-0 bottom-0 h-40 -z-10 bg-[radial-gradient(ellipse_at_bottom,_rgba(255,255,255,0.12),_rgba(0,0,0,0)_60%)]" />
+              <div
+                className="absolute inset-0 -z-10 opacity-30"
+                style={{
+                  backgroundImage:
+                    "url(\n      data:image/svg+xml;utf8,\n      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'><path fill='%23ffffff' d='M0,64L80,101.3C160,139,320,213,480,240C640,267,800,245,960,218.7C1120,192,1280,160,1360,144L1440,128L1440,0L1360,0C1280,0,1120,0,960,0C800,0,640,0,480,0C320,0,160,0,80,0L0,0Z'></path></svg>\n      )",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "cover",
+                  backgroundPosition: "bottom",
+                }}
+              />
+
+              <header className="mx-auto max-w-5xl px-6 pt-10">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">🏴‍☠️ Piratskatten</h1>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm">Svårighet</label>
+                    <select
+                      className="rounded-xl bg-white/90 text-slate-800 px-3 py-2 border border-amber-300 shadow"
+                      value={size}
+                      onChange={(e) => setSize(parseInt(e.target.value))}
+                    >
+                      <option value={4}>Lätt (4×4)</option>
+                      <option value={6}>Utmaning (6×6)</option>
+                    </select>
+                    <button
+                      onClick={() => reset()}
+                      className="rounded-xl bg-amber-400 text-slate-900 px-4 py-2 font-semibold shadow hover:brightness-110 active:translate-y-[1px]"
+                    >
+                      Starta om
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              <main className="mx-auto max-w-5xl px-6 py-6">
+                <div className="mb-6">
+                  <PirateGuide text={message} />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 sm:gap-5 select-none">
+                  {deck.map((card, idx) => (
+                    <Card
+                      key={card.uid}
+                      data={card}
+                      flipped={flipped.includes(idx)}
+                      solved={solved.has(card.uid)}
+                      onFlip={() => onFlip(idx)}
+                      index={idx}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Drag:</span> <strong>{moves}</strong>
+                  </div>
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Tid:</span> <strong>{timeSpent()}s</strong>
+                  </div>
+                  <div className="rounded-xl bg-black/25 px-4 py-2 backdrop-blur border border-white/15">
+                    <span className="opacity-80">Par kvar:</span> <strong>{Math.max(0, deck.length / 2 - solved.size / 2)}</strong>
+                  </div>
+                </div>
+
+                {/* Win overlay */}
+                {won && (
+                  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+                    <div className="relative w-full max-w-xl rounded-3xl bg-white text-slate-900 p-6 border border-amber-300 shadow-2xl">
+                      <Confetti show={won} />
+                      <h2 className="text-3xl font-black mb-2">Du fann skatten! 🧭💰</h2>
+                      <p className="mb-4">Kapten Ruby salutera! Du tog dig igenom minnesspelet med {moves} drag på {timeSpent()} sekunder.</p>
+                      <div className="flex justify-end gap-3">
+                        <button onClick={() => setWon(false)} className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Fortsätt titta</button>
+                        <button onClick={() => { setWon(false); reset(); }} className="px-4 py-2 rounded-xl bg-amber-400 font-semibold hover:brightness-110">Segla igen</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </main>
+
+              <footer className="mx-auto max-w-5xl px-6 py-8 text-center opacity-80">
+                <p>
+                  Byggt för äventyr – pirattema från topp till tå. Tips: slå på ljud för små effekter!
+                </p>
+              </footer>
+            </div>
+          );
         }
-      }
-
-      // Ordklassklickning
-      function checkWord(element) {
-        const isTarget = element.dataset.target === 'true';
-        element.classList.remove('correct', 'incorrect');
-        element.classList.add(isTarget ? 'correct' : 'incorrect');
-        
-        const feedback = element.closest('.moment-content').querySelector('[id^="feedback"]');
-        if (isTarget) {
-          feedback.textContent = 'Rätt! Bra jobbat!';
-          feedback.style.color = '#065f46';
-        } else {
-          feedback.textContent = 'Det var inte rätt ord. Försök igen!';
-          feedback.style.color = '#991b1b';
-        }
-      }
-
-      // Ordmoln markering
-      function highlightWord(element) {
-        element.style.background = element.style.background === 'rgb(107, 33, 168)' ? '#ede9fe' : '#6b21a8';
-        element.style.color = element.style.color === 'white' ? '#6b21a8' : 'white';
-      }
-
-      // Initialisera
-      updateProgress();
-    
-    </script>
-</body>
-</html>
