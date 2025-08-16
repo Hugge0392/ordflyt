@@ -90,6 +90,7 @@ export const publishedLessons = pgTable("published_lessons", {
   description: varchar("description"),
   wordClass: varchar("word_class"), // vilken ordklass lektionen tillhör
   difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
+  background: varchar("background").default("beach"), // bakgrund för lektionen
   content: jsonb("content").notNull(), // hela lektionsstrukturen
   fileName: varchar("file_name").notNull(), // Namn på den genererade filen
   filePath: varchar("file_path"), // Sökväg till filen (om sparad)
@@ -115,6 +116,7 @@ export const lessonDrafts = pgTable("lesson_drafts", {
   description: varchar("description"),
   wordClass: varchar("word_class"),
   difficulty: varchar("difficulty").default("medium"),
+  background: varchar("background").default("beach"), // bakgrund för lektionen
   content: jsonb("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

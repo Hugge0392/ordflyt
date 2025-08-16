@@ -84,7 +84,7 @@ export default function LessonBuilder() {
     id: '',
     wordClass: '',
     title: '',
-    background: '',
+    background: 'beach',
     moments: []
   });
   
@@ -202,7 +202,7 @@ export default function LessonBuilder() {
         id: '',
         wordClass: '',
         title: '',
-        background: '',
+        background: 'beach',
         moments: []
       });
       setPublishData({
@@ -388,7 +388,7 @@ export default function LessonBuilder() {
       id: `lesson_${Date.now()}`,
       title: template.name,
       wordClass: template.wordClass,
-      background: template.background || '',
+      background: template.background || 'beach',
       moments: template.moments.map((moment: any, index: number) => ({
         id: `moment_${Date.now()}_${index}`,
         ...moment,
@@ -408,7 +408,7 @@ export default function LessonBuilder() {
       id: draft.id,
       title: draft.title,
       wordClass: draft.wordClass || '',
-      background: draft.background || '',
+      background: draft.background || 'beach',
       moments: draft.content?.moments || []
     };
 
@@ -483,7 +483,7 @@ export default function LessonBuilder() {
       id: '',
       wordClass: '',
       title: '',
-      background: '',
+      background: 'beach',
       moments: []
     });
   };
@@ -1638,12 +1638,7 @@ export default function LessonBuilder() {
                       <SelectValue placeholder="Välj bakgrund" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Standard</SelectItem>
-                      <SelectItem value="forest">Skog</SelectItem>
-                      <SelectItem value="ocean">Hav</SelectItem>
-                      <SelectItem value="space">Rymden</SelectItem>
-                      <SelectItem value="castle">Slott</SelectItem>
-                      <SelectItem value="school">Skola</SelectItem>
+                      <SelectItem value="beach">Strand</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1827,6 +1822,7 @@ export default function LessonBuilder() {
                 {currentLesson.moments[currentPreviewMoment] ? (
                   <InteractivePreview 
                     moment={currentLesson.moments[currentPreviewMoment]}
+                    lesson={currentLesson}
                     onNext={() => setCurrentPreviewMoment(Math.min((currentLesson.moments || []).length - 1, currentPreviewMoment + 1))}
                   />
                 ) : (

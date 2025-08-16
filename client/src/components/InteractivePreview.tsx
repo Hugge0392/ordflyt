@@ -9,6 +9,7 @@ import {
   BeratttelsePreview 
 } from "@/components/GamePreviews";
 import Piratgrav from "@/components/Piratgrav";
+import beachBackground from "@assets/backgrounds/beach.webp";
 
 interface MemoryCard {
   id: string;
@@ -21,9 +22,10 @@ interface MemoryCard {
 interface InteractivePreviewProps {
   moment: any;
   onNext?: () => void;
+  lesson?: any;
 }
 
-export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) {
+export function InteractivePreview({ moment, onNext, lesson }: InteractivePreviewProps) {
   if (!moment) {
     return (
       <div className="text-center text-gray-500 py-12">
@@ -250,6 +252,19 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
     }
   };
 
+  // Get background style based on lesson settings
+  const getBackgroundStyle = () => {
+    if (lesson?.background === 'beach') {
+      return {
+        backgroundImage: `url(${beachBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
+    }
+    return {};
+  };
+
   const renderMoment = () => {
     if (!moment || !moment.type) {
       return (
@@ -294,9 +309,9 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? itemCompleted : true;
         
         return (
-          <div className="w-full h-screen flex">
+          <div className="w-full h-screen flex" style={getBackgroundStyle()}>
             {/* Text area - 3/4 of screen */}
-            <div className="w-3/4 flex items-start justify-center pt-16 p-8">
+            <div className="w-3/4 flex items-start justify-center pt-16 p-8" style={lesson?.background ? { backgroundColor: 'rgba(255,255,255,0.95)', margin: '20px', borderRadius: '20px' } : {}}>
               <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
                 <div className="bg-gray-100 rounded-lg p-6 relative">
                   <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
