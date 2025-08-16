@@ -195,11 +195,11 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         return (
           <div className="w-full h-screen flex">
             {/* Text area - 3/4 of screen */}
-            <div className="w-3/4 flex items-center justify-center p-8">
+            <div className="w-3/4 flex items-start justify-center pt-16 p-8">
               <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
                 <div className="bg-gray-100 rounded-lg p-6 relative">
                   <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
-                  <p className="text-xl leading-relaxed">
+                  <p className="text-2xl leading-relaxed">
                     {currentText}
                     {textIndex < (moment.config.text || '').length && (
                       <span className="animate-pulse">|</span>
