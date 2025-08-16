@@ -238,7 +238,7 @@ export default function LessonBuilder() {
     
     setCurrentLesson({
       ...currentLesson,
-      moments: [...currentLesson.moments, newMoment]
+      moments: [...(currentLesson.moments || []), newMoment]
     });
   };
 
