@@ -15,10 +15,16 @@ export default function Menu() {
 
   const { data: publishedLessons = [] } = useQuery<any[]>({
     queryKey: ['/api/lessons/published'],
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch to get latest data
   });
 
   const getLessonsForWordClass = (wordClassName: string) => {
-    return publishedLessons.filter((lesson: any) => lesson.wordClass === wordClassName);
+    console.log('All published lessons:', publishedLessons);
+    console.log('Looking for lessons with wordClass:', wordClassName);
+    const filtered = publishedLessons.filter((lesson: any) => lesson.wordClass === wordClassName);
+    console.log('Filtered lessons:', filtered);
+    return filtered;
   };
 
   const getColorForWordClass = (wordClass: string) => {
