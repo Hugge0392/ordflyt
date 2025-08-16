@@ -8,6 +8,7 @@ import {
   RimSpelPreview, 
   BeratttelsePreview 
 } from "@/components/GamePreviews";
+import Piratgrav from "@/components/Piratgrav";
 
 interface MemoryCard {
   id: string;
@@ -630,6 +631,9 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
 
       case 'berattelse':
         return <BeratttelsePreview moment={moment} onNext={onNext} />;
+
+      case 'piratgrav':
+        return <Piratgrav moment={moment} onNext={onNext} />;
 
       case 'synonymer':
       case 'motsatser':

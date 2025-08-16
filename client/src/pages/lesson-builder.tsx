@@ -29,7 +29,7 @@ import {
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav';
   title: string;
   order: number;
   config: any;
@@ -67,7 +67,8 @@ const MOMENT_TYPES = [
   { id: 'berattelse', name: 'Berättelse', icon: '📖', description: 'Interaktiv berättelse med val' },
   { id: 'quiz', name: 'Quiz', icon: '❓', description: 'Flervalsfrågor om grammatik' },
   { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
-  { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' }
+  { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' },
+  { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' }
 ];
 
 const WORD_CLASSES = [
@@ -294,6 +295,8 @@ export default function LessonBuilder() {
         return { words: [], audioType: 'pronunciation' };
       case 'ordform':
         return { baseWords: [], forms: [], instruction: 'Böj orden korrekt' };
+      case 'piratgrav':
+        return { words: [], instruction: 'Gräv fram ord och avgör om de är substantiv' };
       default:
         return {};
     }
@@ -1269,6 +1272,43 @@ export default function LessonBuilder() {
                 placeholder="Gå till höger|Du hittar en skattkista\nGå till vänster|Du möter en drake"
                 className="min-h-[80px]"
               />
+            </div>
+          </div>
+        );
+
+      case 'piratgrav':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Instruktion till eleven</Label>
+              <Input
+                value={moment.config.instruction}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="Gräv fram ord och avgör om de är substantiv"
+              />
+            </div>
+            <div>
+              <Label>Anpassade ord (valfritt - lämna tomt för standardord)</Label>
+              <Textarea
+                value={(moment.config.words || []).map((w: any) => `${w.w}|${w.n ? 'substantiv' : 'ej substantiv'}`).join('\n')}
+                onChange={(e) => {
+                  const words = e.target.value.split('\n')
+                    .map(line => {
+                      const [word, type] = line.split('|').map(s => s.trim());
+                      if (word && type) {
+                        return { w: word, n: type.toLowerCase() === 'substantiv' };
+                      }
+                      return null;
+                    })
+                    .filter(w => w !== null);
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder={`Exempel:\nkatt|substantiv\nspringa|ej substantiv\nblå|ej substantiv\nhus|substantiv`}
+                className="min-h-[120px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Format: ord|substantiv eller ord|ej substantiv (ett per rad)
+              </div>
             </div>
           </div>
         );
