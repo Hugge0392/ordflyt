@@ -366,6 +366,65 @@ export default function LessonBuilder() {
           </div>
         );
 
+      case 'finns-ordklass':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Text att analysera</Label>
+              <Textarea
+                value={moment.config.text}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
+                placeholder="Skriv en mening som innehåller ord av olika ordklasser..."
+                className="min-h-[120px]"
+              />
+            </div>
+            <div>
+              <Label>Målordklass</Label>
+              <Select
+                value={moment.config.targetWordClass}
+                onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, targetWordClass: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Välj ordklass att leta efter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="substantiv">Substantiv</SelectItem>
+                  <SelectItem value="verb">Verb</SelectItem>
+                  <SelectItem value="adjektiv">Adjektiv</SelectItem>
+                  <SelectItem value="adverb">Adverb</SelectItem>
+                  <SelectItem value="preposition">Preposition</SelectItem>
+                  <SelectItem value="pronomen">Pronomen</SelectItem>
+                  <SelectItem value="konjunktion">Konjunktion</SelectItem>
+                  <SelectItem value="interjection">Interjektion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Instruktion</Label>
+              <Input
+                value={moment.config.instruction}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="t.ex. Klicka på alla substantiv i texten"
+              />
+            </div>
+            <div>
+              <Label>Målord (valfritt - lämna tomt för automatisk identifiering)</Label>
+              <Textarea
+                value={(moment.config.targetWords || []).join('\n')}
+                onChange={(e) => updateMomentConfig(moment.id, { 
+                  ...moment.config, 
+                  targetWords: e.target.value.split('\n').map(w => w.trim()).filter(w => w)
+                })}
+                placeholder="katt&#10;hund&#10;bil"
+                className="min-h-[80px]"
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Ange specifika ord att leta efter, ett per rad. Lämna tomt för automatisk identifiering baserat på ordklass.
+              </div>
+            </div>
+          </div>
+        );
+
       case 'korsord':
         return (
           <div className="space-y-6">
@@ -901,6 +960,9 @@ export default function LessonBuilder() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Förhandsgranska lektion</DialogTitle>
+            <DialogDescription>
+              Så här kommer lektionen att se ut för eleverna
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {currentLesson.moments[currentPreviewMoment] && (
@@ -916,12 +978,20 @@ export default function LessonBuilder() {
       {/* Edit Moment Modal */}
       {editingMoment && (
         <Dialog open={!!editingMoment} onOpenChange={() => setEditingMoment(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
             <DialogHeader>
               <DialogTitle>Redigera {editingMoment.title}</DialogTitle>
+              <DialogDescription>
+                Konfigurera inställningar för detta moment
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               {renderMomentConfig(editingMoment)}
+            </div>
+            <div className="flex justify-end pt-4 border-t">
+              <Button onClick={() => setEditingMoment(null)}>
+                Klar
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
