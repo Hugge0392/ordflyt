@@ -389,6 +389,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/lessons/published/:id", async (req, res) => {
+    try {
+      console.log("Received update request for lesson:", req.params.id, req.body);
+      const validatedData = insertPublishedLessonSchema.parse(req.body);
+      
+      // Generera nytt filnamn för den uppdaterade lektionen
+      const lessonGenerator = new LessonGenerator();
+      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
+      
+      try {
+        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
+        
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: filePath
+        };
+        
+        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
+        res.json({ ...lesson, fileName, filePath });
+      } catch (fileError) {
+        console.error("Failed to regenerate lesson file:", fileError);
+        
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: null
+        };
+        
+        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
+        res.json({ ...lesson, fileName, warning: "File generation failed" });
+      }
+    } catch (error) {
+      console.error("Failed to update published lesson:", error);
+      res.status(500).json({ message: "Failed to update published lesson" });
+    }
+  });
+
   app.delete("/api/lessons/published/:id", async (req, res) => {
     try {
       const { id } = req.params;

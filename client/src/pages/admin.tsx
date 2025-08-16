@@ -755,6 +755,26 @@ export default function Admin() {
                         </Button>
                         <Button 
                           size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            // Skicka lektionsdata till lektionsbyggaren via localStorage
+                            const editData = {
+                              id: lesson.id,
+                              title: lesson.title,
+                              description: lesson.description,
+                              wordClass: lesson.wordClass,
+                              difficulty: lesson.difficulty,
+                              content: lesson.content,
+                              isEditing: true
+                            };
+                            localStorage.setItem('editingLesson', JSON.stringify(editData));
+                            window.location.href = '/lesson-builder';
+                          }}
+                        >
+                          ✏️ Redigera
+                        </Button>
+                        <Button 
+                          size="sm" 
                           variant="destructive"
                           onClick={async () => {
                             if (confirm(`Vill du verkligen ta bort lektionen "${lesson.title}"?`)) {

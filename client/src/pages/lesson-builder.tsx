@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -99,6 +99,7 @@ export default function LessonBuilder() {
     difficulty: 'medium',
     description: ''
   });
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
   // Fetch word classes for publish dialog
   const { data: wordClasses = [] } = useQuery({
@@ -108,15 +109,26 @@ export default function LessonBuilder() {
   // Publish lesson mutation
   const publishLessonMutation = useMutation({
     mutationFn: async (lessonData: any) => {
-      const response = await apiRequest('POST', '/api/lessons/publish', lessonData);
-      return response.json();
+      if (editingLessonId) {
+        // Update existing lesson
+        const response = await apiRequest('PUT', `/api/lessons/published/${editingLessonId}`, lessonData);
+        return response.json();
+      } else {
+        // Create new lesson
+        const response = await apiRequest('POST', '/api/lessons/publish', lessonData);
+        return response.json();
+      }
     },
     onSuccess: () => {
       toast({
-        title: "Lektion publicerad!",
-        description: "Lektionen är nu tillgänglig i huvudmenyn under vald ordklass.",
+        title: editingLessonId ? "Lektion uppdaterad!" : "Lektion publicerad!",
+        description: editingLessonId 
+          ? "Lektionen har uppdaterats framgångsrikt." 
+          : "Lektionen är nu tillgänglig i huvudmenyn under vald ordklass.",
       });
       setShowPublishDialog(false);
+      setEditingLessonId(null);
+      localStorage.removeItem('editingLesson');
       // Reset lesson after successful publish
       setCurrentLesson({
         id: '',
@@ -132,12 +144,43 @@ export default function LessonBuilder() {
     },
     onError: (error) => {
       toast({
-        title: "Publicering misslyckades",
-        description: "Kunde inte publicera lektionen. Försök igen.",
+        title: editingLessonId ? "Uppdatering misslyckades" : "Publicering misslyckades",
+        description: editingLessonId 
+          ? "Kunde inte uppdatera lektionen. Försök igen."
+          : "Kunde inte publicera lektionen. Försök igen.",
         variant: "destructive",
       });
     },
   });
+
+  // Load lesson for editing on component mount
+  useEffect(() => {
+    const editData = localStorage.getItem('editingLesson');
+    if (editData) {
+      try {
+        const lessonData = JSON.parse(editData);
+        setCurrentLesson({
+          id: lessonData.content.title || '',
+          wordClass: lessonData.content.wordClass || '',
+          title: lessonData.content.title || '',
+          moments: lessonData.content.moments || []
+        });
+        setPublishData({
+          wordClass: lessonData.wordClass || '',
+          difficulty: lessonData.difficulty || 'medium',
+          description: lessonData.description || ''
+        });
+        setEditingLessonId(lessonData.id);
+        toast({
+          title: "Lektion laddad",
+          description: `Redigerar nu "${lessonData.title}"`,
+        });
+      } catch (error) {
+        console.error('Failed to load editing lesson:', error);
+        localStorage.removeItem('editingLesson');
+      }
+    }
+  }, []);
 
   const addMoment = (type: string) => {
     const newMoment: LessonMoment = {
@@ -1137,7 +1180,10 @@ export default function LessonBuilder() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                   disabled={publishLessonMutation.isPending}
                 >
-                  {publishLessonMutation.isPending ? '📤 Publicerar...' : '🚀 Publicera'}
+                  {publishLessonMutation.isPending ? 
+                    (editingLessonId ? '💾 Uppdaterar...' : '📤 Publicerar...') : 
+                    (editingLessonId ? '💾 Uppdatera' : '🚀 Publicera')
+                  }
                 </Button>
               </div>
             </div>
