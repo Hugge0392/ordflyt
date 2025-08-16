@@ -108,10 +108,8 @@ export default function LessonBuilder() {
   // Publish lesson mutation
   const publishLessonMutation = useMutation({
     mutationFn: async (lessonData: any) => {
-      return await apiRequest('/api/lessons/publish', {
-        method: 'POST',
-        body: JSON.stringify(lessonData),
-      });
+      const response = await apiRequest('POST', '/api/lessons/publish', lessonData);
+      return response.json();
     },
     onSuccess: () => {
       toast({
