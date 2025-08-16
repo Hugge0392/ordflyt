@@ -723,6 +723,25 @@ export default function LessonBuilder() {
             updateItem(itemId, { alternatives: newAlternatives });
           }
         };
+
+        const moveItem = (itemId: string, direction: 'up' | 'down') => {
+          const items = moment.config.items || [];
+          const currentIndex = items.findIndex((item: any) => item.id === itemId);
+          if (currentIndex === -1) return;
+          
+          const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+          if (newIndex < 0 || newIndex >= items.length) return;
+          
+          const newItems = [...items];
+          [newItems[currentIndex], newItems[newIndex]] = [newItems[newIndex], newItems[currentIndex]];
+          
+          // Update order values to match new positions
+          newItems.forEach((item: any, index: number) => {
+            item.order = index + 1;
+          });
+          
+          updateMomentConfig(moment.id, { ...moment.config, items: newItems });
+        };
         
         return (
           <div className="space-y-4">
@@ -754,16 +773,36 @@ export default function LessonBuilder() {
             
             {/* Items */}
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-              {(moment.config.items || []).map((item: any) => (
+              {(moment.config.items || []).map((item: any, index: number) => (
                 <Card key={item.id} className="">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <Badge variant={item.type === 'text' ? 'default' : 'secondary'}>
-                        {item.order}. {item.type === 'text' ? 'Text' : 'Fråga'}
+                        {index + 1}. {item.type === 'text' ? 'Text' : 'Fråga'}
                       </Badge>
-                      <Button size="sm" variant="destructive" onClick={() => removeItem(item.id)}>
-                        ×
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => moveItem(item.id, 'up')}
+                          disabled={index === 0}
+                          title="Flytta upp"
+                        >
+                          ↑
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => moveItem(item.id, 'down')}
+                          disabled={index === (moment.config.items || []).length - 1}
+                          title="Flytta ner"
+                        >
+                          ↓
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => removeItem(item.id)}>
+                          ×
+                        </Button>
+                      </div>
                     </div>
                     
                     {item.type === 'text' && (
