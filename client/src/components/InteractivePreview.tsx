@@ -243,13 +243,21 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
         setShowFeedback(false);
         setSelectedAnswer(null);
       } else {
-        // All items completed, go to next moment
-        if (onNext) onNext();
+        // All items completed, show test button instead of automatically progressing
+        // The test button will handle calling onNext()
       }
     } else {
       // Old structure, just go to next moment
       if (onNext) onNext();
     }
+  }
+
+  const isLastItem = () => {
+    if (moment.type === 'pratbubbla' && moment.config.items && moment.config.items.length > 0) {
+      const sortedItems = [...moment.config.items].sort((a: any, b: any) => a.order - b.order);
+      return currentItemIndex === sortedItems.length - 1;
+    }
+    return false;
   };
 
   // Slutprov Component
@@ -623,6 +631,10 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                         <Button variant="outline" onClick={resetQuestion}>
                           Försök igen
                         </Button>
+                      ) : isLastItem() ? (
+                        <Button onClick={onNext} className="bg-green-600 hover:bg-green-700">
+                          Gör test
+                        </Button>
                       ) : (
                         <Button onClick={goToNextItem}>
                           Fortsätt
@@ -633,9 +645,17 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                   
                   {/* Default continue button for text-only or completed questions */}
                   {!hasQuestion && textComplete && (
-                    <Button onClick={goToNextItem} className="mt-4">
-                      Fortsätt
-                    </Button>
+                    <div className="mt-4">
+                      {isLastItem() ? (
+                        <Button onClick={onNext} className="bg-green-600 hover:bg-green-700">
+                          Gör test
+                        </Button>
+                      ) : (
+                        <Button onClick={goToNextItem}>
+                          Fortsätt
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
