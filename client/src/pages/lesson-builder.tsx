@@ -39,6 +39,7 @@ interface Lesson {
   id: string;
   wordClass: string;
   title: string;
+  background: string;
   moments: LessonMoment[];
 }
 
@@ -83,6 +84,7 @@ export default function LessonBuilder() {
     id: '',
     wordClass: '',
     title: '',
+    background: '',
     moments: []
   });
   
@@ -200,6 +202,7 @@ export default function LessonBuilder() {
         id: '',
         wordClass: '',
         title: '',
+        background: '',
         moments: []
       });
       setPublishData({
@@ -372,7 +375,8 @@ export default function LessonBuilder() {
       content: {
         title: currentLesson.title,
         moments: currentLesson.moments,
-        wordClass: currentLesson.wordClass
+        wordClass: currentLesson.wordClass,
+        background: currentLesson.background
       }
     };
 
@@ -384,6 +388,7 @@ export default function LessonBuilder() {
       id: `lesson_${Date.now()}`,
       title: template.name,
       wordClass: template.wordClass,
+      background: template.background || '',
       moments: template.moments.map((moment: any, index: number) => ({
         id: `moment_${Date.now()}_${index}`,
         ...moment,
@@ -403,6 +408,7 @@ export default function LessonBuilder() {
       id: draft.id,
       title: draft.title,
       wordClass: draft.wordClass || '',
+      background: draft.background || '',
       moments: draft.content?.moments || []
     };
 
@@ -461,7 +467,8 @@ export default function LessonBuilder() {
       content: {
         title: currentLesson.title,
         moments: currentLesson.moments,
-        wordClass: publishData.wordClass
+        wordClass: publishData.wordClass,
+        background: currentLesson.background
       }
     };
 
@@ -476,6 +483,7 @@ export default function LessonBuilder() {
       id: '',
       wordClass: '',
       title: '',
+      background: '',
       moments: []
     });
   };
@@ -1618,6 +1626,26 @@ export default function LessonBuilder() {
                     onChange={(e) => setCurrentLesson({ ...currentLesson, title: e.target.value })}
                     placeholder="T.ex. Substantiv - Grunderna"
                   />
+                </div>
+                
+                <div>
+                  <Label>Bakgrund</Label>
+                  <Select
+                    value={currentLesson.background}
+                    onValueChange={(value) => setCurrentLesson({ ...currentLesson, background: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Välj bakgrund" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Standard</SelectItem>
+                      <SelectItem value="forest">Skog</SelectItem>
+                      <SelectItem value="ocean">Hav</SelectItem>
+                      <SelectItem value="space">Rymden</SelectItem>
+                      <SelectItem value="castle">Slott</SelectItem>
+                      <SelectItem value="school">Skola</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {currentLesson.moments && currentLesson.moments.length > 0 && (
