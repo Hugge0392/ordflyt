@@ -218,33 +218,9 @@ export default function LessonBuilder() {
     },
   });
 
-  // Load lesson for editing on component mount
+  // Component initialization
   useEffect(() => {
-    // Check if we're editing a published lesson (passed via URL params or state)
-    if (editData) {
-      try {
-        const lessonData = JSON.parse(editData);
-        setCurrentLesson({
-          id: lessonData.content.title || '',
-          wordClass: lessonData.content.wordClass || '',
-          title: lessonData.content.title || '',
-          moments: lessonData.content.moments || []
-        });
-        setPublishData({
-          wordClass: lessonData.wordClass || '',
-          difficulty: lessonData.difficulty || 'medium',
-          description: lessonData.description || ''
-        });
-        setEditingLessonId(lessonData.id);
-        toast({
-          title: "Lektion laddad",
-          description: `Redigerar nu "${lessonData.title}"`,
-        });
-      } catch (error) {
-        console.error('Failed to load editing lesson:', error);
-        // Remove local editing state
-      }
-    }
+    // Future: Add lesson loading for editing functionality
   }, []);
 
   const addMoment = (type: string) => {
