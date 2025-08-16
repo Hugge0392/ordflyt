@@ -41,28 +41,54 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
+  const [itemCompleted, setItemCompleted] = useState(false);
+
+  // Reset when moment changes
+  useEffect(() => {
+    if (moment.type === 'pratbubbla') {
+      setCurrentItemIndex(0);
+      setItemCompleted(false);
+      setTextIndex(0);
+      setCurrentText('');
+      setShowFeedback(false);
+      setSelectedAnswer(null);
+    }
+  }, [moment]);
+
+  // Get current item based on index
+  const getCurrentItem = () => {
+    if (moment.type === 'pratbubbla' && moment.config.items && moment.config.items.length > 0) {
+      const sortedItems = [...moment.config.items].sort((a: any, b: any) => a.order - b.order);
+      return sortedItems[currentItemIndex] || null;
+    }
+    return null;
+  };
 
   // Typewriter effect for pratbubbla
   useEffect(() => {
     if (moment.type === 'pratbubbla') {
-      // Get first text item if items structure exists, otherwise fall back to old text field
+      const currentItem = getCurrentItem();
       let text = '';
-      if (moment.config.items && moment.config.items.length > 0) {
-        const firstTextItem = moment.config.items.find((item: any) => item.type === 'text');
-        text = firstTextItem?.content || '';
-      } else {
+      
+      if (currentItem && currentItem.type === 'text') {
+        text = currentItem.content || '';
+      } else if (!moment.config.items) {
+        // Fall back to old text field for backward compatibility
         text = moment.config.text || '';
       }
       
-      if (textIndex < text.length) {
+      if (text && textIndex < text.length) {
         const timeout = setTimeout(() => {
           setCurrentText(text.slice(0, textIndex + 1));
           setTextIndex(textIndex + 1);
         }, moment.config.animationSpeed || 50);
         return () => clearTimeout(timeout);
+      } else if (text && textIndex >= text.length) {
+        setItemCompleted(true);
       }
     }
-  }, [textIndex, moment]);
+  }, [textIndex, moment, currentItemIndex]);
 
   // Initialize memory cards
   useEffect(() => {
@@ -203,6 +229,26 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
     setFeedbackText('');
   };
 
+  const goToNextItem = () => {
+    if (moment.config.items && moment.config.items.length > 0) {
+      const sortedItems = [...moment.config.items].sort((a: any, b: any) => a.order - b.order);
+      if (currentItemIndex < sortedItems.length - 1) {
+        setCurrentItemIndex(currentItemIndex + 1);
+        setTextIndex(0);
+        setCurrentText('');
+        setItemCompleted(false);
+        setShowFeedback(false);
+        setSelectedAnswer(null);
+      } else {
+        // All items completed, go to next moment
+        if (onNext) onNext();
+      }
+    } else {
+      // Old structure, just go to next moment
+      if (onNext) onNext();
+    }
+  };
+
   const renderMoment = () => {
     if (!moment || !moment.type) {
       return (
@@ -227,30 +273,24 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         );
 
       case 'pratbubbla':
-        // Check for questions in new items structure or old structure
+        const currentItem = getCurrentItem();
+        const isCurrentItemQuestion = currentItem?.type === 'question';
+        const isCurrentItemText = currentItem?.type === 'text';
+        
+        // Check for questions in current item or old structure
         let hasQuestion = false;
-        let currentQuestion = null;
         let currentAlternatives = [];
         
-        if (moment.config.items && moment.config.items.length > 0) {
-          currentQuestion = moment.config.items.find((item: any) => item.type === 'question');
-          hasQuestion = !!currentQuestion;
-          currentAlternatives = currentQuestion?.alternatives || [];
-        } else {
-          hasQuestion = moment.config.question && moment.config.alternatives;
+        if (isCurrentItemQuestion) {
+          hasQuestion = true;
+          currentAlternatives = currentItem?.alternatives || [];
+        } else if (!moment.config.items && moment.config.question && moment.config.alternatives) {
+          hasQuestion = true;
           currentAlternatives = moment.config.alternatives || [];
         }
         
-        // Get current text for length check
-        let currentTextLength = 0;
-        if (moment.config.items && moment.config.items.length > 0) {
-          const firstTextItem = moment.config.items.find((item: any) => item.type === 'text');
-          currentTextLength = (firstTextItem?.content || '').length;
-        } else {
-          currentTextLength = (moment.config.text || '').length;
-        }
-        
-        const textComplete = textIndex >= currentTextLength;
+        // For text items, check if typewriter animation is complete
+        const textComplete = isCurrentItemText ? itemCompleted : true;
         
         return (
           <div className="w-full h-screen flex">
@@ -262,25 +302,32 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                   
                   {/* Text content */}
                   <p className="text-2xl leading-relaxed">
-                    {showFeedback ? feedbackText : currentText}
-                    {!showFeedback && textIndex < currentTextLength && (
+                    {showFeedback ? feedbackText : (
+                      isCurrentItemQuestion ? (currentItem?.content || '') : currentText
+                    )}
+                    {!showFeedback && isCurrentItemText && !itemCompleted && (
                       <span className="animate-pulse">|</span>
                     )}
                   </p>
                   
                   {/* Question and alternatives */}
-                  {hasQuestion && textComplete && !showFeedback && (
+                  {hasQuestion && isCurrentItemQuestion && !showFeedback && (
                     <div className="mt-6">
-                      <h4 className="text-xl font-semibold mb-4">
-                        {currentQuestion?.content || moment.config.question}
-                      </h4>
                       <div className="space-y-3">
                         {currentAlternatives.map((alt: any, index: number) => (
                           <Button
                             key={index}
                             variant="outline"
                             className="w-full text-left justify-start p-4 h-auto"
-                            onClick={() => handleAnswerSelect(alt.text, alt.correct)}
+                            onClick={() => {
+                              handleAnswerSelect(alt.text, alt.correct);
+                              // Use current item's feedback
+                              if (alt.correct) {
+                                setFeedbackText(currentItem?.correctFeedback || 'Rätt! Bra jobbat!');
+                              } else {
+                                setFeedbackText(currentItem?.incorrectFeedback || 'Fel svar. Försök igen!');
+                              }
+                            }}
                             disabled={selectedAnswer !== null}
                           >
                             {alt.text}
@@ -298,15 +345,15 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
                           Försök igen
                         </Button>
                       )}
-                      <Button onClick={onNext}>
+                      <Button onClick={goToNextItem}>
                         Fortsätt
                       </Button>
                     </div>
                   )}
                   
-                  {/* Default continue button for text-only */}
+                  {/* Default continue button for text-only or completed questions */}
                   {!hasQuestion && textComplete && (
-                    <Button onClick={onNext} className="mt-4">
+                    <Button onClick={goToNextItem} className="mt-4">
                       Fortsätt
                     </Button>
                   )}
