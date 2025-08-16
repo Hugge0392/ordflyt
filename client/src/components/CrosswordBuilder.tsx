@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface CrosswordCell {
@@ -10,6 +11,7 @@ interface CrosswordCell {
   isStart?: boolean;
   direction?: 'across' | 'down';
   clueIndex?: number;
+  isInputBox?: boolean;
 }
 
 interface CrosswordBuilderProps {
@@ -23,6 +25,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
   const [selectedClue, setSelectedClue] = useState<number | null>(null);
   const [draggedClue, setDraggedClue] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [inputValues, setInputValues] = useState<{[key: string]: string}>({});
 
   const gridSize = 15;
 
@@ -34,7 +37,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
       // Remove old placement of this clue
       const newGrid = grid.filter(cell => cell.clueIndex !== selectedClue);
       
-      // Add new placement
+      // Add new placement with input boxes
       const direction = Math.random() > 0.5 ? 'across' : 'down';
       for (let i = 0; i < answer.length; i++) {
         const cellX = direction === 'across' ? x + i : x;
@@ -44,11 +47,12 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
           newGrid.push({
             x: cellX,
             y: cellY,
-            letter: answer[i],
+            letter: '', // Empty for input boxes
             number: i === 0 ? selectedClue + 1 : undefined,
             isStart: i === 0,
             direction: direction,
-            clueIndex: selectedClue
+            clueIndex: selectedClue,
+            isInputBox: true
           });
         }
       }
@@ -77,17 +81,18 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
       // Remove old placement
       const newGrid = grid.filter(cell => cell.clueIndex !== draggedClue);
       
-      // Add new placement horizontally
+      // Add new placement horizontally with input boxes
       for (let i = 0; i < answer.length; i++) {
         if (x + i < gridSize) {
           newGrid.push({
             x: x + i,
             y: y,
-            letter: answer[i],
+            letter: '', // Empty for input boxes
             number: i === 0 ? draggedClue + 1 : undefined,
             isStart: i === 0,
             direction: 'across',
-            clueIndex: draggedClue
+            clueIndex: draggedClue,
+            isInputBox: true
           });
         }
       }
@@ -107,6 +112,15 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
   const clearGrid = () => {
     setGrid([]);
     onGridUpdate([]);
+    setInputValues({}); // Clear input values
+  };
+
+  const handleInputChange = (x: number, y: number, value: string) => {
+    const key = `${x}-${y}`;
+    setInputValues(prev => ({
+      ...prev,
+      [key]: value.toUpperCase().slice(0, 1) // Only allow single uppercase letter
+    }));
   };
 
   const autoGenerate = () => {
@@ -125,11 +139,12 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
           newGrid.push({
             x: cellX,
             y: cellY,
-            letter: answer[i],
+            letter: '', // Empty for input boxes
             number: i === 0 ? index + 1 : undefined,
             isStart: i === 0,
             direction: direction,
-            clueIndex: index
+            clueIndex: index,
+            isInputBox: true
           });
         }
       }
@@ -137,6 +152,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
     
     setGrid(newGrid);
     onGridUpdate(newGrid);
+    setInputValues({}); // Clear input values
   };
 
   return (
@@ -160,7 +176,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
             <CardTitle>Korsordsgrid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-0.5 max-w-md mx-auto" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
+            <div className="grid gap-0.5 max-w-lg mx-auto" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
               {Array.from({ length: gridSize * gridSize }).map((_, index) => {
                 const x = index % gridSize;
                 const y = Math.floor(index / gridSize);
@@ -169,7 +185,7 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
                 return (
                   <div
                     key={`${x}-${y}`}
-                    className={`w-6 h-6 border border-gray-300 text-xs flex items-center justify-center cursor-pointer relative ${
+                    className={`w-8 h-8 border border-gray-300 text-xs flex items-center justify-center cursor-pointer relative ${
                       cell ? 'bg-white' : 'bg-gray-100'
                     } ${
                       dragPosition?.x === x && dragPosition?.y === y ? 'ring-2 ring-blue-500' : ''
@@ -178,9 +194,19 @@ export function CrosswordBuilder({ clues, onGridUpdate, initialGrid = [] }: Cros
                     onDragOver={(e) => handleDragOver(e, x, y)}
                     onDrop={(e) => handleDrop(e, x, y)}
                   >
-                    {cell?.letter}
+                    {cell?.isInputBox ? (
+                      <Input
+                        className="w-full h-full p-0 text-center text-xs border-0 bg-transparent focus:ring-0 focus:border-0"
+                        value={inputValues[`${x}-${y}`] || ''}
+                        onChange={(e) => handleInputChange(x, y, e.target.value)}
+                        maxLength={1}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      cell?.letter
+                    )}
                     {cell?.number && (
-                      <div className="absolute top-0 left-0 text-xs font-bold text-blue-600">
+                      <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 pointer-events-none">
                         {cell.number}
                       </div>
                     )}
