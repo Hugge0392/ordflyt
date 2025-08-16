@@ -308,6 +308,7 @@ export default function LessonBuilder() {
       case 'slutprov':
         return {
           sentences: [],
+          targetWords: [], // Array of arrays - one array per sentence with target words
           requiredCorrect: 5,
           timeLimit: 60,
           penaltySeconds: 5,
@@ -1399,8 +1400,14 @@ export default function LessonBuilder() {
       case 'slutprov':
         const addSentence = () => {
           const sentences = moment.config.sentences || [];
+          const targetWords = moment.config.targetWords || [];
           const newSentences = [...sentences, ''];
-          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+          const newTargetWords = [...targetWords, ''];
+          updateMomentConfig(moment.id, { 
+            ...moment.config, 
+            sentences: newSentences,
+            targetWords: newTargetWords
+          });
         };
         
         const updateSentence = (index: number, value: string) => {
@@ -1410,10 +1417,23 @@ export default function LessonBuilder() {
           updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
         };
         
+        const updateTargetWords = (index: number, value: string) => {
+          const targetWords = moment.config.targetWords || [];
+          const newTargetWords = [...targetWords];
+          newTargetWords[index] = value;
+          updateMomentConfig(moment.id, { ...moment.config, targetWords: newTargetWords });
+        };
+        
         const removeSentence = (index: number) => {
           const sentences = moment.config.sentences || [];
+          const targetWords = moment.config.targetWords || [];
           const newSentences = sentences.filter((_: string, i: number) => i !== index);
-          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+          const newTargetWords = targetWords.filter((_: string, i: number) => i !== index);
+          updateMomentConfig(moment.id, { 
+            ...moment.config, 
+            sentences: newSentences,
+            targetWords: newTargetWords
+          });
         };
         
         return (
@@ -1468,23 +1488,41 @@ export default function LessonBuilder() {
                 </Button>
               </div>
               
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-4 max-h-60 overflow-y-auto">
                 {(moment.config.sentences || []).map((sentence: string, index: number) => (
-                  <div key={index} className="flex gap-2">
-                    <Textarea
-                      value={sentence}
-                      onChange={(e) => updateSentence(index, e.target.value)}
-                      placeholder="Skriv en mening här..."
-                      className="flex-1 min-h-[40px] resize-none"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => removeSentence(index)}
-                      className="self-start"
-                    >
-                      Ta bort
-                    </Button>
+                  <div key={index} className="space-y-2 p-4 border rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center">
+                      <Label className="font-semibold">Mening {index + 1}</Label>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => removeSentence(index)}
+                      >
+                        Ta bort
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-sm">Mening:</Label>
+                        <Textarea
+                          value={sentence}
+                          onChange={(e) => updateSentence(index, e.target.value)}
+                          placeholder="Skriv en mening här..."
+                          className="min-h-[40px] resize-none"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Ord att klicka på (separera med komma):</Label>
+                        <Input
+                          value={(moment.config.targetWords || [])[index] || ''}
+                          onChange={(e) => updateTargetWords(index, e.target.value)}
+                          placeholder="t.ex. katt, hund, bil"
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                          Ange vilka ord eleven ska klicka på i denna mening
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

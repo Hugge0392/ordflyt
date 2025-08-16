@@ -331,11 +331,24 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
     const handleSubmit = () => {
       if (!isGameActive || showResult) return;
       
-      // For this demo, assume any selected word is correct
-      // In a real implementation, you'd check against word classes
-      const hasSelection = selectedWords.length > 0;
+      // Get target words for current sentence
+      const targetWordsString = (moment.config.targetWords || [])[currentSentenceIndex] || '';
+      const targetWords = targetWordsString
+        .split(',')
+        .map((word: string) => word.trim().toLowerCase())
+        .filter((word: string) => word.length > 0);
       
-      if (hasSelection) {
+      // Get selected words
+      const selectedWordsText = selectedWords
+        .map(index => words[index]?.text?.trim().toLowerCase())
+        .filter(text => text);
+      
+      // Check if selection matches target words exactly
+      const isCorrect = targetWords.length > 0 && 
+        targetWords.length === selectedWordsText.length &&
+        targetWords.every(target => selectedWordsText.includes(target));
+      
+      if (isCorrect) {
         setCorrectAnswers(prev => prev + 1);
         
         // Check if passed
@@ -442,6 +455,24 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
             <h2 className="text-xl mb-6 text-center opacity-90">
               {moment.config.instruction || 'Klicka på ord av rätt ordklass'}
             </h2>
+            
+            {/* Show target words hint */}
+            {(() => {
+              const targetWordsString = (moment.config.targetWords || [])[currentSentenceIndex] || '';
+              const targetWords = targetWordsString
+                .split(',')
+                .map((word: string) => word.trim())
+                .filter((word: string) => word.length > 0);
+              
+              if (targetWords.length > 0) {
+                return (
+                  <div className="text-center mb-4 opacity-75">
+                    <p className="text-sm">Klicka på: {targetWords.join(', ')}</p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             
             <div className="bg-white/20 rounded-2xl p-6 mb-6">
               <p className="text-xl leading-relaxed text-center">
