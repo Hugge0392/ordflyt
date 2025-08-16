@@ -244,13 +244,9 @@ export default function LessonBuilder() {
         return { text: '', buttonText: 'Nästa' };
       case 'pratbubbla':
         return { 
-          text: '', 
           characterImage: '', 
           animationSpeed: 50,
-          question: '',
-          alternatives: [],
-          correctFeedback: 'Rätt! Bra jobbat!',
-          incorrectFeedback: 'Fel svar. Försök igen!'
+          items: [{ id: 'item-1', type: 'text', order: 1, content: '' }]
         };
       case 'memory':
         return { wordPairs: [], difficulty: 'easy' };
@@ -527,17 +523,68 @@ export default function LessonBuilder() {
         );
 
       case 'pratbubbla':
+        const addItem = (type: 'text' | 'question') => {
+          const items = moment.config.items || [];
+          const newOrder = Math.max(0, ...items.map((i: any) => i.order)) + 1;
+          const newItem = {
+            id: `item-${Date.now()}`,
+            type,
+            order: newOrder,
+            content: '',
+            ...(type === 'question' ? { 
+              alternatives: [{ text: '', correct: true }],
+              correctFeedback: 'Rätt! Bra jobbat!',
+              incorrectFeedback: 'Fel svar. Försök igen!'
+            } : {})
+          };
+          const newItems = [...items, newItem].sort((a: any, b: any) => a.order - b.order);
+          updateMomentConfig(moment.id, { ...moment.config, items: newItems });
+        };
+        
+        const updateItem = (itemId: string, updates: any) => {
+          const items = moment.config.items || [];
+          const newItems = items.map((item: any) => 
+            item.id === itemId ? { ...item, ...updates } : item
+          ).sort((a: any, b: any) => a.order - b.order);
+          updateMomentConfig(moment.id, { ...moment.config, items: newItems });
+        };
+        
+        const removeItem = (itemId: string) => {
+          const items = moment.config.items || [];
+          const newItems = items.filter((item: any) => item.id !== itemId);
+          updateMomentConfig(moment.id, { ...moment.config, items: newItems });
+        };
+        
+        const updateAlternative = (itemId: string, altIndex: number, updates: any) => {
+          const items = moment.config.items || [];
+          const item = items.find((i: any) => i.id === itemId);
+          if (item?.alternatives) {
+            const newAlternatives = [...item.alternatives];
+            newAlternatives[altIndex] = { ...newAlternatives[altIndex], ...updates };
+            updateItem(itemId, { alternatives: newAlternatives });
+          }
+        };
+        
+        const addAlternative = (itemId: string) => {
+          const items = moment.config.items || [];
+          const item = items.find((i: any) => i.id === itemId);
+          if (item?.alternatives) {
+            const newAlternatives = [...item.alternatives, { text: '', correct: false }];
+            updateItem(itemId, { alternatives: newAlternatives });
+          }
+        };
+        
+        const removeAlternative = (itemId: string, altIndex: number) => {
+          const items = moment.config.items || [];
+          const item = items.find((i: any) => i.id === itemId);
+          if (item?.alternatives) {
+            const newAlternatives = item.alternatives.filter((_: any, i: number) => i !== altIndex);
+            updateItem(itemId, { alternatives: newAlternatives });
+          }
+        };
+        
         return (
           <div className="space-y-4">
-            <div>
-              <Label>Text som ska "pratas"</Label>
-              <Textarea
-                value={moment.config.text}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, text: e.target.value })}
-                placeholder="Hej! Jag ska hjälpa dig lära dig substantiv..."
-                className="min-h-[120px]"
-              />
-            </div>
             <div>
               <CharacterLibrary
                 currentImage={moment.config.characterImage}
@@ -554,99 +601,108 @@ export default function LessonBuilder() {
               />
             </div>
             
-            {/* Question section */}
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Checkbox
-                  checked={!!(moment.config.question && moment.config.question.trim())}
-                  onCheckedChange={(checked) => {
-                    if (!checked) {
-                      updateMomentConfig(moment.id, { 
-                        ...moment.config, 
-                        question: '',
-                        alternatives: []
-                      });
-                    } else {
-                      updateMomentConfig(moment.id, { 
-                        ...moment.config, 
-                        question: 'Vad är ett substantiv?',
-                        alternatives: [
-                          { text: 'Ett ord som beskriver saker, personer, djur eller platser', correct: true },
-                          { text: 'Ett ord som beskriver handlingar', correct: false }
-                        ]
-                      });
-                    }
-                  }}
-                />
-                <Label>Lägg till fråga med alternativ</Label>
-              </div>
-              
-              {moment.config.question && (
-                <div className="space-y-4">
-                  <div>
-                    <Label>Fråga</Label>
-                    <Input
-                      value={moment.config.question}
-                      onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, question: e.target.value })}
-                      placeholder="Vad är ett substantiv?"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Svarsalternativ</Label>
-                    <div className="space-y-2">
-                      {(moment.config.alternatives || []).map((alt: any, index: number) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            value={alt.text}
-                            onChange={(e) => {
-                              const newAlts = [...(moment.config.alternatives || [])];
-                              newAlts[index] = { ...alt, text: e.target.value };
-                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
-                            }}
-                            placeholder={`Alternativ ${index + 1}`}
-                            className="flex-1"
-                          />
-                          <Checkbox
-                            checked={alt.correct}
-                            onCheckedChange={(checked) => {
-                              const newAlts = [...(moment.config.alternatives || [])];
-                              newAlts[index] = { ...alt, correct: !!checked };
-                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
-                            }}
-                          />
-                          <Label className="text-sm">Rätt</Label>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              const newAlts = (moment.config.alternatives || []).filter((_: any, i: number) => i !== index);
-                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
-                            }}
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newAlts = [...(moment.config.alternatives || []), { text: '', correct: false }];
-                          updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
-                        }}
-                      >
-                        + Lägg till alternativ
+            {/* Lägg till knappar */}
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => addItem('text')}>
+                + Text
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => addItem('question')}>
+                + Fråga
+              </Button>
+            </div>
+            
+            {/* Items */}
+            <div className="space-y-3">
+              {(moment.config.items || []).map((item: any) => (
+                <Card key={item.id} className="">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Badge variant={item.type === 'text' ? 'default' : 'secondary'}>
+                        {item.order}. {item.type === 'text' ? 'Text' : 'Fråga'}
+                      </Badge>
+                      <Button size="sm" variant="destructive" onClick={() => removeItem(item.id)}>
+                        ×
                       </Button>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Feedback för rätt svar</Label>
-                      <Input
-                        value={moment.config.correctFeedback}
-                        onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, correctFeedback: e.target.value })}
+                    
+                    {item.type === 'text' && (
+                      <div className="space-y-2">
+                        <Label>Text innehåll</Label>
+                        <Textarea 
+                          rows={3} 
+                          value={item.content} 
+                          onChange={(e) => updateItem(item.id, { content: e.target.value })} 
+                          placeholder="Skriv text här..." 
+                        />
+                      </div>
+                    )}
+                    
+                    {item.type === 'question' && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Fråga</Label>
+                          <Textarea 
+                            rows={2} 
+                            value={item.content} 
+                            onChange={(e) => updateItem(item.id, { content: e.target.value })} 
+                            placeholder="Skriv frågan här..." 
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Svarsalternativ</Label>
+                          {(item.alternatives || []).map((alt: any, altIndex: number) => (
+                            <div key={altIndex} className="flex items-center gap-2">
+                              <Badge variant={alt.correct ? 'default' : 'secondary'}>{altIndex + 1}</Badge>
+                              <Input 
+                                value={alt.text} 
+                                onChange={(e) => updateAlternative(item.id, altIndex, { text: e.target.value })} 
+                                placeholder={`Alternativ ${altIndex + 1}`} 
+                                className="flex-1"
+                              />
+                              <Checkbox
+                                checked={alt.correct}
+                                onCheckedChange={(checked) => updateAlternative(item.id, altIndex, { correct: !!checked })}
+                              />
+                              <Label className="text-sm">Rätt</Label>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => removeAlternative(item.id, altIndex)}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                          <Button size="sm" variant="outline" onClick={() => addAlternative(item.id)}>
+                            + Lägg till alternativ
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Feedback för rätt svar</Label>
+                            <Input
+                              value={item.correctFeedback || 'Rätt! Bra jobbat!'}
+                              onChange={(e) => updateItem(item.id, { correctFeedback: e.target.value })}
+                              placeholder="Rätt! Bra jobbat!"
+                            />
+                          </div>
+                          <div>
+                            <Label>Feedback för fel svar</Label>
+                            <Input
+                              value={item.incorrectFeedback || 'Fel svar. Försök igen!'}
+                              onChange={(e) => updateItem(item.id, { incorrectFeedback: e.target.value })}
+                              placeholder="Fel svar. Försök igen!"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
                         placeholder="Rätt! Bra jobbat!"
                       />
                     </div>
@@ -1258,7 +1314,21 @@ export default function LessonBuilder() {
               </div>
               <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
                 <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
-                <p className="text-lg">{moment.config.text || 'Här kommer pratbubblan...'}</p>
+                <div className="space-y-2">
+                  {(moment.config.items || []).map((item: any, index: number) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Badge variant={item.type === 'text' ? 'default' : 'secondary'} className="text-xs">
+                        {item.order}. {item.type === 'text' ? 'Text' : 'Fråga'}
+                      </Badge>
+                      <p className="text-sm truncate">
+                        {item.content || '(tomt innehåll)'}
+                      </p>
+                    </div>
+                  ))}
+                  {(!moment.config.items || moment.config.items.length === 0) && (
+                    <p className="text-gray-500">Ingen text ännu...</p>
+                  )}
+                </div>
                 
                 {moment.config.question && (
                   <div className="mt-4 pt-4 border-t">
