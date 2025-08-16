@@ -252,6 +252,240 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
     }
   };
 
+  // Slutprov Component
+  const SlutprovComponent = ({ moment, onNext }: { moment: any; onNext?: () => void }) => {
+    const [timeLeft, setTimeLeft] = useState(moment.config.timeLimit || 60);
+    const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
+    const [correctAnswers, setCorrectAnswers] = useState(0);
+    const [wrongAnswers, setWrongAnswers] = useState(0);
+    const [selectedWords, setSelectedWords] = useState<number[]>([]);
+    const [isGameActive, setIsGameActive] = useState(true);
+    const [showResult, setShowResult] = useState(false);
+    const [grade, setGrade] = useState('');
+
+    const sentences = moment.config.sentences || [];
+    const requiredCorrect = moment.config.requiredCorrect || 5;
+    const penaltySeconds = moment.config.penaltySeconds || 5;
+
+    // Timer effect
+    useEffect(() => {
+      if (!isGameActive || timeLeft <= 0) return;
+      
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setIsGameActive(false);
+            setShowResult(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }, [isGameActive, timeLeft]);
+
+    // Calculate grade
+    useEffect(() => {
+      if (showResult) {
+        const total = correctAnswers + wrongAnswers;
+        const percentage = total > 0 ? (correctAnswers / total) * 100 : 0;
+        
+        if (percentage >= 90) setGrade('A');
+        else if (percentage >= 80) setGrade('B');
+        else if (percentage >= 70) setGrade('C');
+        else if (percentage >= 60) setGrade('D');
+        else if (percentage >= 50) setGrade('E');
+        else setGrade('F');
+      }
+    }, [showResult, correctAnswers, wrongAnswers]);
+
+    const currentSentence = sentences[currentSentenceIndex];
+    
+    // Parse sentence into words
+    const parseWords = (sentence: string) => {
+      if (!sentence) return [];
+      const words = sentence.split(/(\s+|[.,!?;:])/).filter(part => part.trim().length > 0);
+      return words.map((word, index) => ({
+        text: word,
+        index,
+        isWord: /^[a-öA-Ö]+$/.test(word.trim())
+      }));
+    };
+
+    const words = parseWords(currentSentence || '');
+
+    const handleWordClick = (wordIndex: number) => {
+      if (!isGameActive || showResult) return;
+      
+      const word = words[wordIndex];
+      if (!word?.isWord) return;
+
+      setSelectedWords(prev => 
+        prev.includes(wordIndex) 
+          ? prev.filter(i => i !== wordIndex)
+          : [...prev, wordIndex]
+      );
+    };
+
+    const handleSubmit = () => {
+      if (!isGameActive || showResult) return;
+      
+      // For this demo, assume any selected word is correct
+      // In a real implementation, you'd check against word classes
+      const hasSelection = selectedWords.length > 0;
+      
+      if (hasSelection) {
+        setCorrectAnswers(prev => prev + 1);
+        
+        // Check if passed
+        if (correctAnswers + 1 >= requiredCorrect) {
+          setIsGameActive(false);
+          setShowResult(true);
+          return;
+        }
+      } else {
+        setWrongAnswers(prev => prev + 1);
+        // Add penalty time
+        setTimeLeft(prev => Math.max(0, prev - penaltySeconds));
+      }
+
+      // Move to next sentence
+      if (currentSentenceIndex < sentences.length - 1) {
+        setCurrentSentenceIndex(prev => prev + 1);
+        setSelectedWords([]);
+      } else {
+        // No more sentences
+        setIsGameActive(false);
+        setShowResult(true);
+      }
+    };
+
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    if (showResult) {
+      const passed = correctAnswers >= requiredCorrect;
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 max-w-2xl w-full text-center">
+            <div className="text-6xl mb-4">
+              {passed ? '🎉' : '⏰'}
+            </div>
+            <h2 className="text-3xl font-bold mb-4">
+              {passed ? 'Grattis!' : 'Tiden är slut!'}
+            </h2>
+            <div className="text-xl mb-6">
+              <p>Betyg: <span className="text-4xl font-bold text-yellow-300">{grade}</span></p>
+              <p className="mt-2">Rätt svar: {correctAnswers}</p>
+              <p>Fel svar: {wrongAnswers}</p>
+              <p className="text-sm mt-2 opacity-75">
+                {passed ? `Du klarade kravet på ${requiredCorrect} rätt svar!` : `Du behövde ${requiredCorrect} rätt svar för att klara provet.`}
+              </p>
+            </div>
+            <button
+              onClick={onNext}
+              className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-full font-bold text-lg transition-all transform hover:scale-105"
+            >
+              Fortsätt
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!currentSentence) {
+      return (
+        <div className="text-center text-gray-500 py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p>Inga meningar konfigurerade för slutprovet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white">
+        {/* Header */}
+        <div className="p-6 border-b border-white/20">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <h1 className="text-2xl font-bold">Slutprov</h1>
+              <div className="text-lg">
+                📝 {currentSentenceIndex + 1}/{sentences.length}
+              </div>
+            </div>
+            <div className="flex items-center gap-6 text-lg">
+              <div className="flex items-center gap-2">
+                <span>✅</span>
+                <span>{correctAnswers}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>❌</span>
+                <span>{wrongAnswers}</span>
+              </div>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                timeLeft <= 10 ? 'bg-red-500/30 text-red-300' : 'bg-white/20'
+              }`}>
+                <span>⏰</span>
+                <span className="font-mono text-xl">{formatTime(timeLeft)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8">
+            <h2 className="text-xl mb-6 text-center opacity-90">
+              {moment.config.instruction || 'Klicka på ord av rätt ordklass'}
+            </h2>
+            
+            <div className="bg-white/20 rounded-2xl p-6 mb-6">
+              <p className="text-xl leading-relaxed text-center">
+                {words.map((word, index) => (
+                  <span key={index}>
+                    {word.isWord ? (
+                      <span
+                        onClick={() => handleWordClick(index)}
+                        className={`cursor-pointer px-1 py-0.5 rounded transition-all ${
+                          selectedWords.includes(index)
+                            ? 'bg-yellow-400 text-black'
+                            : 'hover:bg-white/20'
+                        }`}
+                      >
+                        {word.text}
+                      </span>
+                    ) : (
+                      <span>{word.text}</span>
+                    )}
+                  </span>
+                ))}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <button
+                onClick={handleSubmit}
+                disabled={!isGameActive}
+                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-500 disabled:to-gray-600 rounded-full font-bold text-lg transition-all transform hover:scale-105 disabled:scale-100"
+              >
+                Nästa mening
+              </button>
+            </div>
+
+            <div className="mt-6 text-center text-sm opacity-75">
+              <p>Mål: {requiredCorrect} rätt svar för godkänt</p>
+              <p>Strafftid vid fel: {penaltySeconds} sekunder</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Get background style based on lesson settings
   const getBackgroundStyle = () => {
     if (lesson?.background === 'beach') {
@@ -649,6 +883,14 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
 
       case 'piratgrav':
         return <Piratgrav moment={moment} onNext={onNext} />;
+
+      case 'slutprov':
+        return (
+          <SlutprovComponent 
+            moment={moment} 
+            onNext={onNext}
+          />
+        );
 
       case 'synonymer':
       case 'motsatser':

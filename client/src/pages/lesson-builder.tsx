@@ -29,7 +29,7 @@ import {
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'slutprov';
   title: string;
   order: number;
   config: any;
@@ -69,7 +69,8 @@ const MOMENT_TYPES = [
   { id: 'quiz', name: 'Quiz', icon: '❓', description: 'Flervalsfrågor om grammatik' },
   { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
   { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' },
-  { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' }
+  { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' },
+  { id: 'slutprov', name: 'Slutprov', icon: '📝', description: 'Tidsbegränsad slutexamination med meningar' }
 ];
 
 const WORD_CLASSES = [
@@ -304,6 +305,14 @@ export default function LessonBuilder() {
         return { baseWords: [], forms: [], instruction: 'Böj orden korrekt' };
       case 'piratgrav':
         return { words: [], instruction: 'Gräv fram ord och avgör om de är substantiv' };
+      case 'slutprov':
+        return {
+          sentences: [],
+          requiredCorrect: 5,
+          timeLimit: 60,
+          penaltySeconds: 5,
+          instruction: 'Klicka på ord av rätt ordklass'
+        };
       default:
         return {};
     }
@@ -1381,6 +1390,108 @@ export default function LessonBuilder() {
               {existingWords.length === 0 && (
                 <div className="text-xs text-gray-500 mt-2">
                   Lämna tomt för att använda standardorden
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'slutprov':
+        const addSentence = () => {
+          const sentences = moment.config.sentences || [];
+          const newSentences = [...sentences, ''];
+          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+        };
+        
+        const updateSentence = (index: number, value: string) => {
+          const sentences = moment.config.sentences || [];
+          const newSentences = [...sentences];
+          newSentences[index] = value;
+          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+        };
+        
+        const removeSentence = (index: number) => {
+          const sentences = moment.config.sentences || [];
+          const newSentences = sentences.filter((_: string, i: number) => i !== index);
+          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+        };
+        
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Instruktion till eleven</Label>
+              <Input
+                value={moment.config.instruction || 'Klicka på ord av rätt ordklass'}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="Klicka på ord av rätt ordklass"
+              />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Antal rätt för godkänt</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={moment.config.requiredCorrect || 5}
+                  onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, requiredCorrect: parseInt(e.target.value) || 5 })}
+                  placeholder="5"
+                />
+              </div>
+              <div>
+                <Label>Tidsgräns (sekunder)</Label>
+                <Input
+                  type="number"
+                  min="10"
+                  value={moment.config.timeLimit || 60}
+                  onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, timeLimit: parseInt(e.target.value) || 60 })}
+                  placeholder="60"
+                />
+              </div>
+              <div>
+                <Label>Strafftid vid fel (sekunder)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={moment.config.penaltySeconds || 5}
+                  onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, penaltySeconds: parseInt(e.target.value) || 5 })}
+                  placeholder="5"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Meningar för slutprovet</Label>
+                <Button onClick={addSentence} size="sm">
+                  Lägg till mening
+                </Button>
+              </div>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {(moment.config.sentences || []).map((sentence: string, index: number) => (
+                  <div key={index} className="flex gap-2">
+                    <Textarea
+                      value={sentence}
+                      onChange={(e) => updateSentence(index, e.target.value)}
+                      placeholder="Skriv en mening här..."
+                      className="flex-1 min-h-[40px] resize-none"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => removeSentence(index)}
+                      className="self-start"
+                    >
+                      Ta bort
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              {(!moment.config.sentences || moment.config.sentences.length === 0) && (
+                <div className="text-xs text-gray-500 mt-2">
+                  Lägg till meningar som eleverna ska analysera i slutprovet
                 </div>
               )}
             </div>
