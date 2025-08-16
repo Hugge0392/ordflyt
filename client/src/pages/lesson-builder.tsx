@@ -1285,6 +1285,29 @@ export default function LessonBuilder() {
         );
 
       case 'piratgrav':
+        const [newWord1, setNewWord1] = useState('');
+        const [newWord2, setNewWord2] = useState('');
+        const existingWords = moment.config.words || [];
+        
+        const addWordPair = () => {
+          if (newWord1.trim() && newWord2.trim()) {
+            const newWords = [
+              ...existingWords,
+              { w: newWord1.trim(), n: true },
+              { w: newWord2.trim(), n: false }
+            ];
+            updateMomentConfig(moment.id, { ...moment.config, words: newWords });
+            setNewWord1('');
+            setNewWord2('');
+          }
+        };
+        
+        const removeWordPair = (index: number) => {
+          const newWords = [...existingWords];
+          newWords.splice(index, 2); // Remove both words in the pair
+          updateMomentConfig(moment.id, { ...moment.config, words: newWords });
+        };
+        
         return (
           <div className="space-y-4">
             <div>
@@ -1296,27 +1319,68 @@ export default function LessonBuilder() {
               />
             </div>
             <div>
-              <Label>Anpassade ord (valfritt - lämna tomt för standardord)</Label>
-              <Textarea
-                value={(moment.config.words || []).map((w: any) => `${w.w}|${w.n ? 'substantiv' : 'ej substantiv'}`).join('\n')}
-                onChange={(e) => {
-                  const words = e.target.value.split('\n')
-                    .map(line => {
-                      const [word, type] = line.split('|').map(s => s.trim());
-                      if (word && type) {
-                        return { w: word, n: type.toLowerCase() === 'substantiv' };
-                      }
-                      return null;
-                    })
-                    .filter(w => w !== null);
-                  updateMomentConfig(moment.id, { ...moment.config, words });
-                }}
-                placeholder={`Exempel:\nkatt|substantiv\nspringa|ej substantiv\nblå|ej substantiv\nhus|substantiv`}
-                className="min-h-[120px]"
-              />
-              <div className="text-xs text-gray-500 mt-1">
-                Format: ord|substantiv eller ord|ej substantiv (ett per rad)
+              <Label>Lägg till ordpar (substantiv och icke-substantiv)</Label>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Label className="text-sm">Substantiv</Label>
+                  <Input
+                    value={newWord1}
+                    onChange={(e) => setNewWord1(e.target.value)}
+                    placeholder="t.ex. katt"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label className="text-sm">Icke-substantiv</Label>
+                  <Input
+                    value={newWord2}
+                    onChange={(e) => setNewWord2(e.target.value)}
+                    placeholder="t.ex. springa"
+                  />
+                </div>
+                <Button 
+                  onClick={addWordPair}
+                  disabled={!newWord1.trim() || !newWord2.trim()}
+                  className="whitespace-nowrap"
+                >
+                  Lägg till par
+                </Button>
               </div>
+              
+              {existingWords.length > 0 && (
+                <div className="mt-4">
+                  <Label className="text-sm mb-2 block">Tillagda ordpar:</Label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {Array.from({length: Math.ceil(existingWords.length / 2)}).map((_, pairIndex) => {
+                      const index = pairIndex * 2;
+                      const word1 = existingWords[index];
+                      const word2 = existingWords[index + 1];
+                      if (!word1 || !word2) return null;
+                      
+                      return (
+                        <div key={pairIndex} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                          <div className="flex gap-4">
+                            <span className="font-medium text-green-600">{word1.w} (substantiv)</span>
+                            <span className="font-medium text-blue-600">{word2.w} (icke-substantiv)</span>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => removeWordPair(index)}
+                          >
+                            Ta bort
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {existingWords.length === 0 && (
+                <div className="text-xs text-gray-500 mt-2">
+                  Lämna tomt för att använda standardorden
+                </div>
+              )}
             </div>
           </div>
         );
