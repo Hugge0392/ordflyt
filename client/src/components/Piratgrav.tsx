@@ -237,7 +237,7 @@ export default function Piratgrav({ moment, onNext }: PiratgravProps) {
           </div>
 
           <div className="mt-6">
-            {isGameCompleted ? (
+            {gameCompleted ? (
               <div className="rounded-2xl bg-white p-4 shadow text-center">
                 <div className="text-3xl mb-2">🏴‍☠️</div>
                 <h3 className="text-xl font-extrabold mb-1">Bra jobbat!</h3>
