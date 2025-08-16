@@ -703,21 +703,6 @@ export default function LessonBuilder() {
                 </Card>
               ))}
             </div>
-                        placeholder="Rätt! Bra jobbat!"
-                      />
-                    </div>
-                    <div>
-                      <Label>Feedback för fel svar</Label>
-                      <Input
-                        value={moment.config.incorrectFeedback}
-                        onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, incorrectFeedback: e.target.value })}
-                        placeholder="Fel svar. Försök igen!"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         );
 
