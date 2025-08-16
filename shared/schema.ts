@@ -101,6 +101,8 @@ export const insertPublishedLessonSchema = createInsertSchema(publishedLessons).
   id: true,
   createdAt: true,
   updatedAt: true,
+  fileName: true,  // Filnamn genereras på servern
+  filePath: true,  // Sökväg genereras på servern
 });
 
 export type PublishedLesson = typeof publishedLessons.$inferSelect;

@@ -327,14 +327,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Published lesson endpoints
   app.post("/api/lessons/publish", async (req, res) => {
     try {
+      console.log("Received publish request:", req.body);
       const validatedData = insertPublishedLessonSchema.parse(req.body);
+      console.log("Validated data:", validatedData);
       
       // Generera HTML-fil för lektionen
       const lessonGenerator = new LessonGenerator();
-      const fileName = lessonGenerator.generateFileName(validatedData.title, validatedData.wordClass || 'unknown');
+      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
+      console.log("Generated filename:", fileName);
       
       try {
         const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
+        console.log("Generated file at:", filePath);
         
         // Lägg till filnamn och sökväg till databasen
         const lessonDataWithFile = {
