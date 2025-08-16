@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
 import { CrosswordBuilder } from "@/components/CrosswordBuilder";
@@ -202,7 +203,15 @@ export default function LessonBuilder() {
       case 'textruta':
         return { text: '', buttonText: 'Nästa' };
       case 'pratbubbla':
-        return { text: '', characterImage: '', animationSpeed: 50 };
+        return { 
+          text: '', 
+          characterImage: '', 
+          animationSpeed: 50,
+          question: '',
+          alternatives: [],
+          correctFeedback: 'Rätt! Bra jobbat!',
+          incorrectFeedback: 'Fel svar. Försök igen!'
+        };
       case 'memory':
         return { wordPairs: [], difficulty: 'easy' };
       case 'korsord':
@@ -481,6 +490,115 @@ export default function LessonBuilder() {
                 onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, animationSpeed: parseInt(e.target.value) })}
                 placeholder="50"
               />
+            </div>
+            
+            {/* Question section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Checkbox
+                  checked={!!(moment.config.question && moment.config.question.trim())}
+                  onCheckedChange={(checked) => {
+                    if (!checked) {
+                      updateMomentConfig(moment.id, { 
+                        ...moment.config, 
+                        question: '',
+                        alternatives: []
+                      });
+                    } else {
+                      updateMomentConfig(moment.id, { 
+                        ...moment.config, 
+                        question: 'Vad är ett substantiv?',
+                        alternatives: [
+                          { text: 'Ett ord som beskriver saker, personer, djur eller platser', correct: true },
+                          { text: 'Ett ord som beskriver handlingar', correct: false }
+                        ]
+                      });
+                    }
+                  }}
+                />
+                <Label>Lägg till fråga med alternativ</Label>
+              </div>
+              
+              {moment.config.question && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Fråga</Label>
+                    <Input
+                      value={moment.config.question}
+                      onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, question: e.target.value })}
+                      placeholder="Vad är ett substantiv?"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Svarsalternativ</Label>
+                    <div className="space-y-2">
+                      {(moment.config.alternatives || []).map((alt: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={alt.text}
+                            onChange={(e) => {
+                              const newAlts = [...(moment.config.alternatives || [])];
+                              newAlts[index] = { ...alt, text: e.target.value };
+                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
+                            }}
+                            placeholder={`Alternativ ${index + 1}`}
+                            className="flex-1"
+                          />
+                          <Checkbox
+                            checked={alt.correct}
+                            onCheckedChange={(checked) => {
+                              const newAlts = [...(moment.config.alternatives || [])];
+                              newAlts[index] = { ...alt, correct: !!checked };
+                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
+                            }}
+                          />
+                          <Label className="text-sm">Rätt</Label>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              const newAlts = (moment.config.alternatives || []).filter((_: any, i: number) => i !== index);
+                              updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
+                            }}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newAlts = [...(moment.config.alternatives || []), { text: '', correct: false }];
+                          updateMomentConfig(moment.id, { ...moment.config, alternatives: newAlts });
+                        }}
+                      >
+                        + Lägg till alternativ
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Feedback för rätt svar</Label>
+                      <Input
+                        value={moment.config.correctFeedback}
+                        onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, correctFeedback: e.target.value })}
+                        placeholder="Rätt! Bra jobbat!"
+                      />
+                    </div>
+                    <div>
+                      <Label>Feedback för fel svar</Label>
+                      <Input
+                        value={moment.config.incorrectFeedback}
+                        onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, incorrectFeedback: e.target.value })}
+                        placeholder="Fel svar. Försök igen!"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1031,6 +1149,24 @@ export default function LessonBuilder() {
               <div className="bg-white border-2 border-gray-300 rounded-2xl p-6 relative">
                 <div className="absolute -left-3 top-6 w-6 h-6 bg-white border-l-2 border-b-2 border-gray-300 transform rotate-45"></div>
                 <p className="text-lg">{moment.config.text || 'Här kommer pratbubblan...'}</p>
+                
+                {moment.config.question && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="font-semibold mb-2">{moment.config.question}</h4>
+                    <div className="space-y-2">
+                      {(moment.config.alternatives || []).map((alt: any, index: number) => (
+                        <div 
+                          key={index} 
+                          className={`p-2 border rounded text-sm ${
+                            alt.correct ? 'border-green-300 bg-green-50' : 'border-gray-300'
+                          }`}
+                        >
+                          {alt.text} {alt.correct && '✓'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

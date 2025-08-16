@@ -38,6 +38,9 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
   const [categories, setCategories] = useState<{[key: string]: string[]}>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
 
   // Typewriter effect for pratbubbla
   useEffect(() => {
@@ -168,6 +171,30 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
     }));
   };
 
+  const handleAnswerSelect = (answer: string, isCorrect: boolean) => {
+    setSelectedAnswer(answer);
+    setShowFeedback(true);
+    
+    if (isCorrect) {
+      setFeedbackText(moment.config.correctFeedback || 'Rätt! Bra jobbat!');
+    } else {
+      setFeedbackText(moment.config.incorrectFeedback || 'Fel svar. Försök igen!');
+    }
+    
+    // Auto-continue after correct answer
+    if (isCorrect && onNext) {
+      setTimeout(() => {
+        onNext();
+      }, 2000);
+    }
+  };
+
+  const resetQuestion = () => {
+    setSelectedAnswer(null);
+    setShowFeedback(false);
+    setFeedbackText('');
+  };
+
   const renderMoment = () => {
     if (!moment || !moment.type) {
       return (
@@ -192,6 +219,9 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
         );
 
       case 'pratbubbla':
+        const hasQuestion = moment.config.question && moment.config.alternatives;
+        const textComplete = textIndex >= (moment.config.text || '').length;
+        
         return (
           <div className="w-full h-screen flex">
             {/* Text area - 3/4 of screen */}
@@ -199,13 +229,51 @@ export function InteractivePreview({ moment, onNext }: InteractivePreviewProps) 
               <div className="bg-white rounded-2xl border-4 border-blue-300 p-8 shadow-lg max-w-3xl w-full">
                 <div className="bg-gray-100 rounded-lg p-6 relative">
                   <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
+                  
+                  {/* Text content */}
                   <p className="text-2xl leading-relaxed">
-                    {currentText}
-                    {textIndex < (moment.config.text || '').length && (
+                    {showFeedback ? feedbackText : currentText}
+                    {!showFeedback && textIndex < (moment.config.text || '').length && (
                       <span className="animate-pulse">|</span>
                     )}
                   </p>
-                  {textIndex >= (moment.config.text || '').length && (
+                  
+                  {/* Question and alternatives */}
+                  {hasQuestion && textComplete && !showFeedback && (
+                    <div className="mt-6">
+                      <h4 className="text-xl font-semibold mb-4">{moment.config.question}</h4>
+                      <div className="space-y-3">
+                        {moment.config.alternatives.map((alt: any, index: number) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            className="w-full text-left justify-start p-4 h-auto"
+                            onClick={() => handleAnswerSelect(alt.text, alt.correct)}
+                            disabled={selectedAnswer !== null}
+                          >
+                            {alt.text}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Feedback actions */}
+                  {showFeedback && (
+                    <div className="mt-4 space-x-3">
+                      {!moment.config.alternatives.find((alt: any) => alt.text === selectedAnswer)?.correct && (
+                        <Button variant="outline" onClick={resetQuestion}>
+                          Försök igen
+                        </Button>
+                      )}
+                      <Button onClick={onNext}>
+                        Fortsätt
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Default continue button for text-only */}
+                  {!hasQuestion && textComplete && (
                     <Button onClick={onNext} className="mt-4">
                       Fortsätt
                     </Button>

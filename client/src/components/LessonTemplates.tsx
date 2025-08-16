@@ -121,6 +121,51 @@ const LESSON_TEMPLATES: LessonTemplate[] = [
         }
       }
     ]
+  },
+  {
+    id: 'pratbubbla-quiz',
+    name: 'Pratbubbla med Frågor',
+    description: 'Exempel på hur man använder pratbubbla med interaktiva frågor',
+    wordClass: 'mixed',
+    difficulty: 'easy',
+    estimatedTime: '10 min',
+    tags: ['pratbubbla', 'interaktiv', 'frågor'],
+    moments: [
+      {
+        type: 'pratbubbla',
+        title: 'Vad är ordklasser?',
+        config: {
+          text: 'Hej! Idag ska vi lära oss om ordklasser. Ordklasser är olika grupper som vi delar in ord i.',
+          characterImage: '🏴‍☠️',
+          animationSpeed: 50,
+          question: 'Vad tror du substantiv är för typ av ord?',
+          alternatives: [
+            { text: 'Ord som beskriver saker, personer, djur och platser', correct: true },
+            { text: 'Ord som beskriver handlingar', correct: false },
+            { text: 'Ord som beskriver hur något ser ut', correct: false }
+          ],
+          correctFeedback: 'Rätt! Substantiv är ord som beskriver saker, personer, djur och platser.',
+          incorrectFeedback: 'Inte riktigt. Tänk på vad ord som "hund", "bil" och "skola" beskriver.'
+        }
+      },
+      {
+        type: 'pratbubbla',
+        title: 'Om verb',
+        config: {
+          text: 'Verb är handlingsord - de beskriver vad någon eller något gör.',
+          characterImage: '👨‍🏫',
+          animationSpeed: 50,
+          question: 'Vilket av dessa ord är ett verb?',
+          alternatives: [
+            { text: 'springer', correct: true },
+            { text: 'hund', correct: false },
+            { text: 'röd', correct: false }
+          ],
+          correctFeedback: 'Precis! "Springer" är ett verb eftersom det beskriver en handling.',
+          incorrectFeedback: 'Försök igen. Vilket ord beskriver en handling eller vad någon gör?'
+        }
+      }
+    ]
   }
 ];
 
