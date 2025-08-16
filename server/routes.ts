@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema } from "@shared/schema";
 
@@ -327,8 +328,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/lessons/publish", async (req, res) => {
     try {
       const validatedData = insertPublishedLessonSchema.parse(req.body);
-      const lesson = await storage.createPublishedLesson(validatedData);
-      res.json(lesson);
+      
+      // Generera HTML-fil för lektionen
+      const lessonGenerator = new LessonGenerator();
+      const fileName = lessonGenerator.generateFileName(validatedData.title, validatedData.wordClass || 'unknown');
+      
+      try {
+        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
+        
+        // Lägg till filnamn och sökväg till databasen
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: filePath
+        };
+        
+        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
+        res.json({ ...lesson, fileName, filePath });
+      } catch (fileError) {
+        console.error("Failed to generate lesson file:", fileError);
+        
+        // Publicera utan fil om filgenereringen misslyckas
+        const lessonDataWithFile = {
+          ...validatedData,
+          fileName: fileName,
+          filePath: null
+        };
+        
+        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
+        res.json({ ...lesson, fileName, warning: "File generation failed" });
+      }
     } catch (error) {
       console.error("Failed to publish lesson:", error);
       res.status(500).json({ message: "Failed to publish lesson" });

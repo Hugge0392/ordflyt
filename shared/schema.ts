@@ -91,6 +91,8 @@ export const publishedLessons = pgTable("published_lessons", {
   wordClass: varchar("word_class"), // vilken ordklass lektionen tillhör
   difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
   content: jsonb("content").notNull(), // hela lektionsstrukturen
+  fileName: varchar("file_name").notNull(), // Namn på den genererade filen
+  filePath: varchar("file_path"), // Sökväg till filen (om sparad)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
