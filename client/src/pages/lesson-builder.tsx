@@ -1362,23 +1362,68 @@ export default function LessonBuilder() {
         );
 
       case 'korsord':
+        const gridData = moment.config.grid || [];
+        const gridSize = 15;
+        
+        const getCellData = (x: number, y: number) => {
+          return gridData.find((cell: any) => cell.x === x && cell.y === y);
+        };
+        
         return (
-          <div className="max-w-2xl mx-auto text-center">
+          <div className="max-w-4xl mx-auto text-center">
             <h3 className="text-xl font-bold mb-6">Korsord</h3>
             <div className="bg-white border rounded-lg p-6">
-              <div className="grid grid-cols-10 gap-1 mb-6">
-                {Array.from({length: 100}).map((_, i) => (
-                  <div key={i} className="w-6 h-6 border border-gray-300 bg-gray-50"></div>
-                ))}
+              <div className="grid gap-1 mb-6 max-w-2xl mx-auto" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
+                {Array.from({length: gridSize * gridSize}).map((_, index) => {
+                  const x = index % gridSize;
+                  const y = Math.floor(index / gridSize);
+                  const cellData = getCellData(x, y);
+                  
+                  return (
+                    <div key={`${x}-${y}`} className="relative">
+                      {cellData?.isInputBox ? (
+                        <div className="w-8 h-8 border-2 border-gray-800 bg-white relative flex items-center justify-center">
+                          <Input
+                            className="w-full h-full p-0 text-center text-lg font-bold border-0 bg-transparent focus:ring-0 focus:border-0"
+                            maxLength={1}
+                            style={{ fontSize: '16px' }}
+                          />
+                          {cellData?.number && (
+                            <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 pointer-events-none bg-white px-1">
+                              {cellData.number}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 border border-gray-300 bg-gray-100"></div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-left">
-                <h4 className="font-semibold mb-2">Ledtrådar:</h4>
-                {(moment.config.clues || []).map((clue: any, i: number) => (
-                  <div key={i} className="text-sm mb-1">
-                    {i + 1}. {clue.question}
+              
+              {(moment.config.clues || []).length > 0 && (
+                <div className="text-left max-w-2xl mx-auto">
+                  <h4 className="font-semibold mb-3 text-lg">Ledtrådar:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {(moment.config.clues || []).map((clue: any, i: number) => (
+                      <div key={i} className="text-sm mb-2 p-2 bg-gray-50 rounded">
+                        <span className="font-semibold">{i + 1}.</span> {clue.question}
+                        <div className="text-xs text-gray-600 mt-1">
+                          ({clue.answer?.length || 0} bokstäver)
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+              
+              {!(moment.config.clues || []).length && (
+                <div className="text-gray-500 text-center py-8">
+                  <div className="text-2xl mb-2">🔤</div>
+                  <p>Lägg till korsordsfrågor för att se dem här</p>
+                </div>
+              )}
             </div>
           </div>
         );
