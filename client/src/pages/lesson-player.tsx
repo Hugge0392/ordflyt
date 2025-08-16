@@ -132,6 +132,7 @@ export default function LessonPlayer() {
             <CardContent>
               <InteractivePreview 
                 moment={currentMomentData}
+                onNext={nextMoment}
                 isPlaying={true}
               />
             </CardContent>
