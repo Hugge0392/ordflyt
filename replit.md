@@ -23,6 +23,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **New Landing Page Architecture (August 2025)**: Created beautiful category-based homepage at root with ordflyt.se branding, moved word classes to /grammatik as grammar subsection, added placeholder pages for future development (reading comprehension, writing, speaking, Nordic languages, source criticism)
 - **Reading Comprehension Admin Tool (August 2025)**: Built comprehensive admin interface for creating reading lessons with text content, multiple question types (multiple choice, true/false, open questions), word definitions, and pre-reading questions ("Innan du läser") that activate prior knowledge before reading
 - **Blog-Style Content Editor (August 2025)**: Transformed reading comprehension admin into intuitive blog-like editor with RichTextEditor component supporting text blocks, images, headings, quotes, and lists. Added ObjectUploader for seamless image integration with featured image support and rich formatting capabilities
+- **Functional Object Storage Integration (August 2025)**: Fixed image upload errors by implementing proper object storage API calls, replacing mock data with real presigned URLs from Google Cloud Storage bucket, ensuring persistent image storage for lessons
 
 # User Preferences
 

@@ -268,9 +268,17 @@ export default function ReadingAdmin() {
 
   const handleFeaturedImageUpload = async () => {
     try {
-      const response = await apiRequest("/api/objects/upload", {
+      const response = await fetch("/api/objects/upload", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       return {
         method: "PUT" as const,
@@ -292,8 +300,11 @@ export default function ReadingAdmin() {
       const uploadURL = result.successful[0].uploadURL;
       if (uploadURL) {
         // Process the upload URL to get the object path
-        apiRequest("/api/lesson-images", {
+        fetch("/api/lesson-images", {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ imageURL: uploadURL }),
         })
         .then(response => response.json())
