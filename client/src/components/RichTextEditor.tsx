@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,16 +29,139 @@ interface ContentBlock {
   };
 }
 
+// Function to parse HTML content back to blocks
+const parseHTMLToBlocks = (html: string): ContentBlock[] => {
+  if (!html) return [{ id: '1', type: 'text', content: '' }];
+  
+  const blocks: ContentBlock[] = [];
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  let blockId = 1;
+  
+  // Helper function to generate unique IDs
+  const getId = () => (blockId++).toString();
+  
+  // Process each child element
+  Array.from(tempDiv.children).forEach((element) => {
+    const tag = element.tagName.toLowerCase();
+    
+    switch (tag) {
+      case 'h1':
+        blocks.push({
+          id: getId(),
+          type: 'heading',
+          content: element.textContent || '',
+          metadata: { level: 1 }
+        });
+        break;
+      case 'h2':
+        blocks.push({
+          id: getId(),
+          type: 'heading',
+          content: element.textContent || '',
+          metadata: { level: 2 }
+        });
+        break;
+      case 'h3':
+        blocks.push({
+          id: getId(),
+          type: 'heading',
+          content: element.textContent || '',
+          metadata: { level: 3 }
+        });
+        break;
+      case 'blockquote':
+        blocks.push({
+          id: getId(),
+          type: 'quote',
+          content: element.textContent || ''
+        });
+        break;
+      case 'ol':
+        const orderedItems = Array.from(element.querySelectorAll('li')).map(li => li.textContent || '').join('\n');
+        blocks.push({
+          id: getId(),
+          type: 'list',
+          content: orderedItems,
+          metadata: { listType: 'ordered' }
+        });
+        break;
+      case 'ul':
+        const unorderedItems = Array.from(element.querySelectorAll('li')).map(li => li.textContent || '').join('\n');
+        blocks.push({
+          id: getId(),
+          type: 'list',
+          content: unorderedItems,
+          metadata: { listType: 'unordered' }
+        });
+        break;
+      case 'img':
+        const img = element as HTMLImageElement;
+        blocks.push({
+          id: getId(),
+          type: 'image',
+          content: img.src,
+          metadata: { alt: img.alt }
+        });
+        break;
+      case 'div':
+        // Check if it's a page break
+        if (element.classList.contains('page-break') || element.hasAttribute('data-page-break')) {
+          blocks.push({
+            id: getId(),
+            type: 'page-break',
+            content: ''
+          });
+        } else {
+          // Treat as text
+          const textContent = element.textContent || '';
+          if (textContent.trim()) {
+            blocks.push({
+              id: getId(),
+              type: 'text',
+              content: textContent
+            });
+          }
+        }
+        break;
+      case 'p':
+      default:
+        const textContent = element.textContent || '';
+        if (textContent.trim()) {
+          blocks.push({
+            id: getId(),
+            type: 'text',
+            content: textContent
+          });
+        }
+        break;
+    }
+  });
+  
+  // If no blocks were created, create a default text block
+  if (blocks.length === 0) {
+    return [{ id: '1', type: 'text', content: html }];
+  }
+  
+  return blocks;
+};
+
 export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className }: RichTextEditorProps) {
   const [blocks, setBlocks] = useState<ContentBlock[]>(() => {
-    if (!value) return [{ id: '1', type: 'text', content: '' }];
-    
-    // Parse existing content to blocks (simplified - in real implementation would parse HTML)
-    return [{ id: '1', type: 'text', content: value }];
+    return parseHTMLToBlocks(value || '');
   });
   
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Re-parse when the value prop changes (e.g., when loading existing content)
+  useEffect(() => {
+    if (value !== undefined) {
+      const newBlocks = parseHTMLToBlocks(value);
+      setBlocks(newBlocks);
+    }
+  }, [value]);
 
   const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
     const newBlocks = blocks.map(block => 
