@@ -131,7 +131,7 @@ export default function PublishedLessonPage() {
     if (match && params?.lessonId) {
       fetchPublishedLesson(params.lessonId);
     }
-  }, [match, params]);
+  }, [match, params?.lessonId]);
 
   const fetchPublishedLesson = async (lessonId: string) => {
     try {
