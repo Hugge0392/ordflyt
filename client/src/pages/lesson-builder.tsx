@@ -204,21 +204,15 @@ export default function LessonBuilder() {
       }
     },
     onSuccess: (response) => {
-      const lessonUrl = `${window.location.origin}/published/${response.id}`;
       toast({
         title: editingLessonId ? "Lektion uppdaterad!" : "Lektion publicerad!",
         description: editingLessonId 
           ? "Lektionen har uppdaterats framgångsrikt." 
-          : `Lektionen är publicerad! Länk: ${lessonUrl}`,
+          : "Lektionen är nu tillgänglig i ordklassmenyn!",
       });
       
-      // Copy link to clipboard
-      navigator.clipboard.writeText(lessonUrl).then(() => {
-        toast({
-          title: "Länk kopierad!",
-          description: "Länken till den publicerade lektionen har kopierats till urklipp.",
-        });
-      });
+      // Stäng publiceringsdialogen
+      setShowPublishDialog(false);
       
       setShowPublishDialog(false);
       setEditingLessonId(null);
