@@ -175,7 +175,7 @@ export default function ReadingExercises() {
                 onClick={() => setSelectedLevel(level)}
                 data-testid={`button-filter-${level}`}
               >
-                Årskurs {level}
+                {getDifficultyText(level)}
               </Button>
             ))}
           </div>
@@ -241,7 +241,7 @@ export default function ReadingExercises() {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="w-3 h-3" />
-                        Årskurs {lesson.gradeLevel}
+                        {getDifficultyText(lesson.gradeLevel)}
                       </div>
                       <div className="flex items-center gap-1">
                         <Target className="w-3 h-3" />
