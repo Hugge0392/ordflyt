@@ -113,6 +113,33 @@ export default function ReadingAdmin() {
     },
   });
 
+  const unpublishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/reading-lessons/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isPublished: 0 }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+      toast({ title: "Lektion avpublicerad!", description: "Lektionen är nu ett utkast igen." });
+    },
+    onError: () => {
+      toast({ 
+        title: "Fel", 
+        description: "Kunde inte avpublicera lektionen. Försök igen.",
+        variant: "destructive"
+      });
+    },
+  });
+
   const handleCreateLesson = () => {
     setIsCreating(true);
     setEditingLesson({
@@ -849,69 +876,221 @@ export default function ReadingAdmin() {
             <p className="mt-2 text-muted-foreground">Laddar lektioner...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lessons?.map((lesson) => (
-              <Card key={lesson.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{lesson.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {lesson.description || "Ingen beskrivning"}
-                      </CardDescription>
-                    </div>
-                    <Badge variant={lesson.isPublished ? "default" : "secondary"}>
-                      {lesson.isPublished ? "Publicerad" : "Utkast"}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                    <div>Årskurs: {lesson.gradeLevel}</div>
-                    {lesson.subject && <div>Ämne: {lesson.subject}</div>}
-                    {lesson.readingTime && <div>Läsningstid: {lesson.readingTime} min</div>}
-                    <div>Innan du läser: {lesson.preReadingQuestions.length}</div>
-                    <div>Frågor: {lesson.questions.length}</div>
-                    <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
-                  </div>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">Alla lektioner</TabsTrigger>
+              <TabsTrigger value="published">Publicerade</TabsTrigger>
+              <TabsTrigger value="drafts">Utkast</TabsTrigger>
+            </TabsList>
 
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditLesson(lesson)}
-                      data-testid={`button-edit-${lesson.id}`}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(lesson.id)}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-${lesson.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
+            <TabsContent value="all" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {lessons?.map((lesson) => (
+                  <Card key={lesson.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{lesson.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {lesson.description || "Ingen beskrivning"}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={lesson.isPublished ? "default" : "secondary"}>
+                          {lesson.isPublished ? "Publicerad" : "Utkast"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div>Årskurs: {lesson.gradeLevel}</div>
+                        {lesson.subject && <div>Ämne: {lesson.subject}</div>}
+                        {lesson.readingTime && <div>Läsningstid: {lesson.readingTime} min</div>}
+                        <div>Innan du läser: {lesson.preReadingQuestions.length}</div>
+                        <div>Frågor: {lesson.questions.length}</div>
+                        <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditLesson(lesson)}
+                          data-testid={`button-edit-${lesson.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(lesson.id)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-${lesson.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {(!lessons || lessons.length === 0) && !isLoading && (
+                  <div className="col-span-full text-center py-12">
+                    <BookOpen className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Inga lektioner ännu</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Skapa din första läsförståelselektion för att komma igång.
+                    </p>
+                    <Button onClick={handleCreateLesson} data-testid="button-create-first-lesson">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Skapa första lektionen
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {(!lessons || lessons.length === 0) && !isLoading && (
-              <div className="col-span-full text-center py-12">
-                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Inga lektioner ännu</h3>
-                <p className="text-muted-foreground mb-4">
-                  Skapa din första läsförståelselektion för att komma igång.
-                </p>
-                <Button onClick={handleCreateLesson} data-testid="button-create-first-lesson">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Skapa första lektionen
-                </Button>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="published" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {lessons?.filter(lesson => lesson.isPublished).map((lesson) => (
+                  <Card key={lesson.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{lesson.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {lesson.description || "Ingen beskrivning"}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="default">Publicerad</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div>Årskurs: {lesson.gradeLevel}</div>
+                        {lesson.subject && <div>Ämne: {lesson.subject}</div>}
+                        {lesson.readingTime && <div>Läsningstid: {lesson.readingTime} min</div>}
+                        <div>Innan du läser: {lesson.preReadingQuestions.length}</div>
+                        <div>Frågor: {lesson.questions.length}</div>
+                        <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/lasforstaelse/${lesson.id}`}>
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditLesson(lesson)}
+                          data-testid={`button-edit-published-${lesson.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => unpublishMutation.mutate(lesson.id)}
+                          disabled={unpublishMutation.isPending}
+                          data-testid={`button-unpublish-${lesson.id}`}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(lesson.id)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-published-${lesson.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {lessons?.filter(lesson => lesson.isPublished).length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <BookOpen className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Inga publicerade lektioner</h3>
+                    <p className="text-muted-foreground">
+                      Publicera en lektion för att se den här.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="drafts" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {lessons?.filter(lesson => !lesson.isPublished).map((lesson) => (
+                  <Card key={lesson.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{lesson.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            {lesson.description || "Ingen beskrivning"}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="secondary">Utkast</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        <div>Årskurs: {lesson.gradeLevel}</div>
+                        {lesson.subject && <div>Ämne: {lesson.subject}</div>}
+                        {lesson.readingTime && <div>Läsningstid: {lesson.readingTime} min</div>}
+                        <div>Innan du läser: {lesson.preReadingQuestions.length}</div>
+                        <div>Frågor: {lesson.questions.length}</div>
+                        <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditLesson(lesson)}
+                          data-testid={`button-edit-draft-${lesson.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(lesson.id)}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-draft-${lesson.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {lessons?.filter(lesson => !lesson.isPublished).length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <BookOpen className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Inga utkast</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Skapa en ny lektion för att se den här.
+                    </p>
+                    <Button onClick={handleCreateLesson} data-testid="button-create-lesson-from-drafts">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Skapa ny lektion
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>
