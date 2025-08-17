@@ -104,6 +104,7 @@
   word-spacing: var(--accessibility-word-spacing) !important;
   letter-spacing: var(--accessibility-letter-spacing) !important;
   color: var(--accessibility-text-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
 }
 
 /* Large text styles for reading content */

@@ -13,7 +13,7 @@ interface AccessibilitySettings {
   lineHeight: number;
   fontFamily: 'standard' | 'dyslexia-friendly';
   contrast: 'normal' | 'high';
-  backgroundColor: 'white' | 'beige' | 'light-gray';
+  backgroundColor: 'white' | 'beige' | 'light-gray' | 'black-white' | 'black-light-red' | 'yellow-blue' | 'black-light-blue';
   wordSpacing: number;
   letterSpacing: number;
 }
@@ -84,20 +84,24 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
     // Apply letter spacing
     root.style.setProperty('--accessibility-letter-spacing', `${settings.letterSpacing}px`);
     
-    // Apply background color
-    const bgColors = {
-      'white': '#ffffff',
-      'beige': '#f5f5dc',
-      'light-gray': '#f8f9fa'
+    // Apply background and text colors
+    const colorSchemes = {
+      'white': { bg: '#ffffff', text: '#000000' },
+      'beige': { bg: '#f5f5dc', text: '#000000' },
+      'light-gray': { bg: '#f8f9fa', text: '#000000' },
+      'black-white': { bg: '#000000', text: '#ffffff' },
+      'black-light-red': { bg: '#ffcccb', text: '#000000' },
+      'yellow-blue': { bg: '#0066cc', text: '#ffff99' },
+      'black-light-blue': { bg: '#add8e6', text: '#000000' }
     };
-    root.style.setProperty('--accessibility-bg-color', bgColors[settings.backgroundColor]);
+    const scheme = colorSchemes[settings.backgroundColor];
+    root.style.setProperty('--accessibility-bg-color', scheme.bg);
+    root.style.setProperty('--accessibility-text-color', scheme.text);
     
-    // Apply contrast
+    // Apply contrast (only affects border, text color is set by color scheme)
     if (settings.contrast === 'high') {
-      root.style.setProperty('--accessibility-text-color', '#000000');
-      root.style.setProperty('--accessibility-border-color', '#000000');
+      root.style.setProperty('--accessibility-border-color', scheme.text);
     } else {
-      root.style.setProperty('--accessibility-text-color', 'inherit');
       root.style.setProperty('--accessibility-border-color', 'inherit');
     }
 
@@ -293,6 +297,10 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
                 <SelectItem value="white">Vit</SelectItem>
                 <SelectItem value="beige">Beige</SelectItem>
                 <SelectItem value="light-gray">Ljusgrå</SelectItem>
+                <SelectItem value="black-white">Svart bakgrund, vit text</SelectItem>
+                <SelectItem value="black-light-red">Svart text på ljusröd bakgrund</SelectItem>
+                <SelectItem value="yellow-blue">Ljusgul text på blå bakgrund</SelectItem>
+                <SelectItem value="black-light-blue">Svart text på ljusblå bakgrund</SelectItem>
               </SelectContent>
             </Select>
           </div>
