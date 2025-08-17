@@ -111,6 +111,8 @@
 .prose-lg {
   font-size: 1.25rem !important;
   line-height: 1.8 !important;
+  max-width: none !important;
+  text-align: left !important;
 }
 
 .prose-lg p {
@@ -124,6 +126,15 @@
 .prose-lg h3 { font-size: 1.5rem !important; }
 .prose-lg h4 { font-size: 1.375rem !important; }
 .prose-lg li { font-size: 1.25rem !important; line-height: 1.8 !important; }
+
+/* Centered layout adjustments */
+@media (min-width: 1024px) {
+  .reading-content-centered {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+}
 
 .accessibility-enhanced {
   background-color: var(--accessibility-bg-color) !important;
