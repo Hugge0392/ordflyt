@@ -653,6 +653,304 @@ export class LessonGenerator {
     }
   }
 
+  private generateReactPlayerApp(lessonContent: LessonContent): string {
+    return `<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${lessonContent.title}</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: ${this.getBackgroundStyle(lessonContent.background)};
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .speech-bubble {
+            position: relative;
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 24px;
+        }
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 24px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 8px solid #f3f4f6;
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Lesson data embedded
+        const lessonData = ${JSON.stringify(lessonContent, null, 2)};
+        
+        function LessonPlayer() {
+            const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
+            const [currentText, setCurrentText] = useState("");
+            const [textIndex, setTextIndex] = useState(0);
+            const [currentItemIndex, setCurrentItemIndex] = useState(0);
+            const [itemCompleted, setItemCompleted] = useState(false);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [feedbackText, setFeedbackText] = useState('');
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            
+            const currentMoment = lessonData.moments[currentMomentIndex];
+            
+            // Reset states when moment or item changes
+            useEffect(() => {
+                if (currentMoment?.type === 'pratbubbla') {
+                    setTextIndex(0);
+                    setCurrentText('');
+                    setItemCompleted(false);
+                    setShowFeedback(false);
+                    setSelectedAnswer(null);
+                }
+            }, [currentMomentIndex, currentItemIndex]);
+            
+            // Get current item based on index
+            const getCurrentItem = () => {
+                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    return sortedItems[currentItemIndex] || null;
+                }
+                return null;
+            };
+            
+            // Typewriter effect
+            useEffect(() => {
+                if (currentMoment?.type === 'pratbubbla') {
+                    const currentItem = getCurrentItem();
+                    let text = '';
+                    
+                    if (currentItem && (currentItem.type === 'text' || currentItem.type === 'question')) {
+                        text = currentItem.content || '';
+                    } else if (!currentMoment.config.items) {
+                        text = currentMoment.config.text || '';
+                    }
+                    
+                    if (text && textIndex < text.length) {
+                        const timeout = setTimeout(() => {
+                            setCurrentText(text.slice(0, textIndex + 1));
+                            setTextIndex(textIndex + 1);
+                        }, currentMoment.config.animationSpeed || 50);
+                        return () => clearTimeout(timeout);
+                    } else if (text && textIndex >= text.length) {
+                        setItemCompleted(true);
+                    }
+                }
+            }, [textIndex, currentMoment, currentItemIndex]);
+            
+            const handleAnswerSelect = (answer, isCorrect) => {
+                setSelectedAnswer(answer);
+                setShowFeedback(true);
+                
+                const currentItem = getCurrentItem();
+                if (isCorrect) {
+                    setFeedbackText(currentItem?.correctFeedback || 'Rätt! Bra jobbat!');
+                } else {
+                    setFeedbackText(currentItem?.incorrectFeedback || 'Fel svar. Försök igen!');
+                }
+            };
+            
+            const resetQuestion = () => {
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setFeedbackText('');
+            };
+            
+            const goToNextItem = () => {
+                if (currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    if (currentItemIndex < sortedItems.length - 1) {
+                        setCurrentItemIndex(currentItemIndex + 1);
+                    } else {
+                        goToNextMoment();
+                    }
+                } else {
+                    goToNextMoment();
+                }
+            };
+            
+            const goToNextMoment = () => {
+                if (currentMomentIndex < lessonData.moments.length - 1) {
+                    setCurrentMomentIndex(currentMomentIndex + 1);
+                    setCurrentItemIndex(0);
+                }
+            };
+            
+            const isLastItem = () => {
+                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    return currentItemIndex === sortedItems.length - 1;
+                }
+                return false;
+            };
+            
+            if (!currentMoment) {
+                return React.createElement('div', {
+                    className: 'flex items-center justify-center h-screen text-2xl'
+                }, 'Lektion slutförd! 🎉');
+            }
+            
+            if (currentMoment.type === 'pratbubbla') {
+                const currentItem = getCurrentItem();
+                const isCurrentItemQuestion = currentItem?.type === 'question';
+                const isCurrentItemText = currentItem?.type === 'text';
+                
+                let hasQuestion = false;
+                let currentAlternatives = [];
+                
+                if (isCurrentItemQuestion) {
+                    hasQuestion = true;
+                    currentAlternatives = currentItem?.alternatives || [];
+                } else if (!currentMoment.config.items && currentMoment.config.question && currentMoment.config.alternatives) {
+                    hasQuestion = true;
+                    currentAlternatives = currentMoment.config.alternatives || [];
+                }
+                
+                const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? itemCompleted : true;
+                
+                return React.createElement('div', {
+                    className: 'w-full h-screen flex',
+                    style: { minHeight: '100vh' }
+                }, 
+                    // Text area - 3/4 of screen
+                    React.createElement('div', {
+                        className: 'w-3/4 flex items-start justify-center pt-16 p-8'
+                    },
+                        React.createElement('div', {
+                            className: 'bg-white rounded-2xl p-8 shadow-lg max-w-3xl w-full',
+                            style: { border: '4px solid #93c5fd' }
+                        },
+                            React.createElement('div', {
+                                className: 'speech-bubble'
+                            },
+                                // Text content
+                                React.createElement('p', {
+                                    className: 'text-2xl leading-relaxed whitespace-pre-wrap'
+                                }, 
+                                    showFeedback ? feedbackText : currentText,
+                                    !showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && 
+                                        React.createElement('span', { className: 'animate-pulse' }, '|')
+                                ),
+                                
+                                // Question and alternatives
+                                hasQuestion && isCurrentItemQuestion && textComplete && !showFeedback &&
+                                    React.createElement('div', { className: 'mt-6' },
+                                        React.createElement('div', { className: 'space-y-3' },
+                                            currentAlternatives.map((alt, index) =>
+                                                React.createElement('button', {
+                                                    key: index,
+                                                    className: 'w-full text-left justify-start p-4 h-auto bg-white border border-gray-300 rounded hover:bg-gray-50',
+                                                    onClick: () => handleAnswerSelect(alt.text, alt.correct),
+                                                    disabled: selectedAnswer !== null
+                                                }, alt.text)
+                                            )
+                                        )
+                                    ),
+                                
+                                // Feedback actions
+                                showFeedback &&
+                                    React.createElement('div', { className: 'mt-4 space-x-3' },
+                                        !currentAlternatives.find(alt => alt.text === selectedAnswer)?.correct ? 
+                                            React.createElement('button', {
+                                                className: 'px-4 py-2 border border-gray-300 rounded hover:bg-gray-50',
+                                                onClick: resetQuestion
+                                            }, 'Försök igen') :
+                                            isLastItem() ?
+                                                React.createElement('button', {
+                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                                    onClick: goToNextMoment
+                                                }, 'Slutför momentet') :
+                                                React.createElement('button', {
+                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                                    onClick: goToNextItem
+                                                }, 'Nästa')
+                                    ),
+                                
+                                // Continue button for text items
+                                !hasQuestion && itemCompleted && !isLastItem() &&
+                                    React.createElement('div', { className: 'mt-4' },
+                                        React.createElement('button', {
+                                            className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                            onClick: goToNextItem
+                                        }, 'Fortsätt')
+                                    ),
+                                
+                                // Final button for last text item
+                                !hasQuestion && itemCompleted && isLastItem() &&
+                                    React.createElement('div', { className: 'mt-4' },
+                                        React.createElement('button', {
+                                            className: 'px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600',
+                                            onClick: goToNextMoment
+                                        }, 'Slutför momentet')
+                                    )
+                            )
+                        )
+                    ),
+                    
+                    // Character area - 1/4 of screen  
+                    React.createElement('div', {
+                        className: 'w-1/4 flex items-center justify-center p-8'
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            React.createElement('div', {
+                                className: 'mb-4',
+                                style: { fontSize: '8rem' }
+                            }, '🏴‍☠️'),
+                            React.createElement('div', {
+                                className: 'bg-white rounded-lg p-4 shadow-lg'
+                            },
+                                React.createElement('p', {
+                                    className: 'font-bold text-gray-700'
+                                }, currentMoment.config.characterName || 'Kapten Matilda')
+                            )
+                        )
+                    )
+                );
+            }
+            
+            // Other moment types can be handled here
+            return React.createElement('div', {
+                className: 'p-8'
+            }, 
+                React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, currentMoment.title),
+                React.createElement('p', null, 'Moment typ: ' + currentMoment.type),
+                React.createElement('button', {
+                    className: 'mt-4 px-4 py-2 bg-blue-500 text-white rounded',
+                    onClick: goToNextMoment
+                }, 'Nästa moment')
+            );
+        }
+        
+        ReactDOM.render(React.createElement(LessonPlayer), document.getElementById('root'));
+    </script>
+</body>
+</html>`;
+  }
+
   private generateJavaScript(lessonContent: LessonContent): string {
     return `
       let currentMoment = 0;
@@ -723,7 +1021,7 @@ export class LessonGenerator {
       // Mappen finns redan
     }
 
-    const htmlContent = this.generateHTMLTemplate(lessonContent);
+    const htmlContent = this.generateReactPlayerApp(lessonContent);
     const filePath = join(outputDir, fileName);
     
     try {

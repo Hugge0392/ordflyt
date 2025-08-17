@@ -61,13 +61,19 @@
         }
 
         .moment-container {
-            padding: 40px;
-            min-height: 400px;
             display: none;
         }
 
         .moment-container.active {
             display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        /* Layout for non-pratbubbla moments */
+        .standard-moment {
+            padding: 40px;
+            min-height: 400px;
         }
 
         .moment-title {
@@ -319,22 +325,20 @@
         
         <div class="moment-container active" id="moment0">
           
-          <h2 class="moment-title">Pratbubbla</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="display: flex; align-items: flex-start; gap: 20px;">
-                <div style="font-size: 4rem; flex-shrink: 0;">
-                  🏴‍☠️
-                </div>
-                <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
-                  <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
+          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
+            <!-- Text area - 3/4 of screen -->
+            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
+              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
+                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
+                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
                   
-                  
-                  
-                  <p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">Hallå på dig, landkrabba!</p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Jag heter Kapten Matilda och jag styr den här substantivskutan! 🏴‍☠️ 
-Alla på mitt skepp ÄLSKAR substantiv. </p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Varför det, tror du? </p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Jo, vi pirater gillar saker mer än allt annat – och substantiv och saker hör ihop som kniv och gaffel! </p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Vad är då ett substantiv?
+                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
+                    
+                    
+                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Hallå på dig, landkrabba!</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jag heter Kapten Matilda och jag styr den här substantivskutan! 🏴‍☠️ 
+Alla på mitt skepp ÄLSKAR substantiv. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Varför det, tror du? </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jo, vi pirater gillar saker mer än allt annat – och substantiv och saker hör ihop som kniv och gaffel! </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Vad är då ett substantiv?
 
-Ett substantiv är ett ord som berättar vad saker, personer, djur, platser eller känslor heter. Jag heter till exempel Matilda och mitt namn är ett substantiv. Jag har också en hatt på mig och det är också ett ord som är ett substantiv. </p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Andra exempel på substantiv kan vara:
+Ett substantiv är ett ord som berättar vad saker, personer, djur, platser eller känslor heter. Jag heter till exempel Matilda och mitt namn är ett substantiv. Jag har också en hatt på mig och det är också ett ord som är ett substantiv. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Andra exempel på substantiv kan vara:
 
 Saker: boll, bord, dator 
 
@@ -344,48 +348,44 @@ Djur: katt, ko, fisk, papegoja
 
 Platser: Stockholm, skogen, havet, simhallen
 
-Känslor: glädje, kärlek, ilska</p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">👉 Kom ihåg denna lilla ramsa: 
+Känslor: glädje, kärlek, ilska</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">👉 Kom ihåg denna lilla ramsa: 
 “Substantiv är namn på ting, som stol, katt och en ring.” </p>
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Boll ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Simmade 
-                              </div>
-                            
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Boll
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Simmade
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt svar: Boll - för det är ju ett namn på en sak. Bra där!</p>
-                        </div>
-                      
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Kanske 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                När 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Bok ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Usch! 
-                              </div>
-                            
+                        
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Kanske
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  När
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Bok
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Usch!
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      <p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Nu verkar du få lite koll, eller som vi säger "få sjöben". 
+                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Nu verkar du få lite koll, eller som vi säger "få sjöben". 
 
 Jag har både en katt och en papegoja. Båda är väldigt trevliga! 🐱🦜
 Namn på djur är också substantiv.
@@ -393,58 +393,67 @@ Namn på djur är också substantiv.
 Exempel:
 
 Katt, ko, åsna, kamel, fjäril, fisk.</p>
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Aj! 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Min 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Katt ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Bet 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Mig 
-                              </div>
-                            
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Aj!
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Min
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Katt
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Bet
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Mig
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Kräftan ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Låg 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Bara 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Där 
-                              </div>
-                            
+                        
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Kräftan
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Låg
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Bara
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Där
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      
+                        
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Character area - 1/4 of screen -->
+            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
+              <div style="text-align: center;">
+                <div style="font-size: 8rem; margin-bottom: 16px;">
+                  🏴‍☠️
+                </div>
+                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
                 </div>
               </div>
             </div>
@@ -454,25 +463,23 @@ Katt, ko, åsna, kamel, fjäril, fisk.</p>
       
         <div class="moment-container" id="moment1">
           
-          <h2 class="moment-title">Pratbubbla</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="display: flex; align-items: flex-start; gap: 20px;">
-                <div style="font-size: 4rem; flex-shrink: 0;">
-                  🏴‍☠️
-                </div>
-                <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
-                  <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
+          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
+            <!-- Text area - 3/4 of screen -->
+            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
+              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
+                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
+                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
                   
-                  
-                  
-                  <p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">Topp! Nu har du koll på att namn både levande varelser och saker är substantiv. 
+                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
+                    
+                    
+                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Topp! Nu har du koll på att namn både levande varelser och saker är substantiv. 
 
 Det finns även andra grejer som är substantiv. 
 
 Alla namn på människor är substantiv: Erik, Sara, Greta, Kondrad, Matilda
 
-Även alla namn på platser är substantiv: Simhallen, Malmö, men även ord som skogen och havet. </p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Jag kanske kommer från Söderhavet och du från någon helt annan plats.
+Även alla namn på platser är substantiv: Simhallen, Malmö, men även ord som skogen och havet. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jag kanske kommer från Söderhavet och du från någon helt annan plats.
 Men en sak är säker: namnet på en plats är alltid ett substantiv!
 
 Exempel på städer:
@@ -484,54 +491,63 @@ Men även mindre ställen är också exempel på substantiv:
 Ridhuset
 Simhallen
 Gretas grill</p>
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Vi 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Åkte 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Till 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Göteborg ✓
-                              </div>
-                            
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Vi
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Åkte
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Till
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Göteborg
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Nej! 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Ridhuset ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Har 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Stängt 
-                              </div>
-                            
+                        
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Nej!
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Ridhuset
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Har
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Stängt
+                                </button>
+                              
+                            </div>
                           </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      <p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Nu ska vi se ifall du kan gräva upp ett par skatter som jag har gömt... </p>
+                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Nu ska vi se ifall du kan gräva upp ett par skatter som jag har gömt... </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Character area - 1/4 of screen -->
+            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
+              <div style="text-align: center;">
+                <div style="font-size: 8rem; margin-bottom: 16px;">
+                  🏴‍☠️
+                </div>
+                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
                 </div>
               </div>
             </div>
@@ -557,68 +573,75 @@ Gretas grill</p>
       
         <div class="moment-container" id="moment3">
           
-          <h2 class="moment-title">Pratbubbla</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="display: flex; align-items: flex-start; gap: 20px;">
-                <div style="font-size: 4rem; flex-shrink: 0;">
+          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
+            <!-- Text area - 3/4 of screen -->
+            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
+              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
+                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
+                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
+                  
+                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
+                    
+                    
+                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Jag mår lite dåligt... Det känns som jag håller på att bli sjösjuk!
+Sjösjuka är en obehaglig känsla – och namn på känslor är också substantiv.</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Känslor som glädje, ilska, kärlek, illamående, håll och tandvärk är också substantiv.</p>
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Glädjen
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Fyllde
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Hela
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  rummet
+                                </button>
+                              
+                            </div>
+                          </div>
+                        
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Han
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Fylldes
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
+                                  Av
+                                </button>
+                              
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
+                                  Ilska
+                                </button>
+                              
+                            </div>
+                          </div>
+                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Toppenbra jobbat! Nu har det äntligen dags för ditt slutprov!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Character area - 1/4 of screen -->
+            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
+              <div style="text-align: center;">
+                <div style="font-size: 8rem; margin-bottom: 16px;">
                   🏴‍☠️
                 </div>
-                <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
-                  <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
-                  
-                  
-                  
-                  <p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">Jag mår lite dåligt... Det känns som jag håller på att bli sjösjuk!
-Sjösjuka är en obehaglig känsla – och namn på känslor är också substantiv.</p><p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Känslor som glädje, ilska, kärlek, illamående, håll och tandvärk är också substantiv.</p>
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Glädjen ✓
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Fyllde 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Hela 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                rummet 
-                              </div>
-                            
-                          </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;"></p>
-                          <div style="space-y: 8px;">
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Han 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Fylldes 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #e5e7eb;">
-                                Av 
-                              </div>
-                            
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #10b981;">
-                                Ilska ✓
-                              </div>
-                            
-                          </div>
-                          <p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: Rätt! Bra jobbat!</p>
-                        </div>
-                      <p style="font-size: 1.1rem; line-height: 1.6; margin: 15px 0 0 0;">Toppenbra jobbat! Nu har det äntligen dags för ditt slutprov!</p>
+                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
                 </div>
               </div>
             </div>
