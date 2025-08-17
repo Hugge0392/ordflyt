@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight } from "lucide-react";
-import { AccessibilityControls } from "@/components/ui/accessibility-controls";
+import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
@@ -148,11 +149,11 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-      {/* Accessibility Controls */}
-      <AccessibilityControls />
+      {/* Accessibility Sidebar */}
+      <AccessibilitySidebar onToggle={setSidebarOpen} />
       {/* Header */}
       <div className="border-b bg-background">
-        <div className="max-w-4xl mx-auto p-4">
+        <div className={`max-w-4xl mx-auto p-4 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-0'}`}>
           <div className="flex items-center gap-3">
             <Link href="/lasforstaelse/ovningar" className="text-sm text-muted-foreground hover:text-foreground">
               ← Tillbaka till övningar
@@ -168,7 +169,7 @@ export default function ReadingLessonViewer() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto p-6">
+      <div className={`max-w-4xl mx-auto p-6 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-0'}`}>
         {/* Lesson Info */}
         <Card className="mb-6">
           <CardHeader>
