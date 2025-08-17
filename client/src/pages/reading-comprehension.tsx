@@ -305,8 +305,8 @@ function Header({ progress, theme, setTheme }: { progress: number, theme: string
   return (
     <div className="flex items-center justify-between gap-4 p-4 border-b bg-background sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <span>←</span> Tillbaka till startsidan
+        <Link href="/lasforstaelse" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <span>←</span> Tillbaka till läsförståelse
         </Link>
         <div className="w-px h-6 bg-border"></div>
         <BookOpen className="w-6 h-6" />
