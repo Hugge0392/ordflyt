@@ -175,10 +175,47 @@ export default function Home() {
         .footer a{color:#4b6cb7; text-underline-offset:3px}
 
         /* Berg i bakgrunden */
-        .bg-mountains{position:fixed; inset:0; z-index:-1; display:block; width:100%; height:100%;}
+        .bg-mountains{position:fixed; inset:0; z-index:-1; display:block; width:100%; height:100%; opacity: 0.8;}
         .layer.green{fill:url(#gradGreen)}
         .layer.gray{fill:url(#gradGray)}
         .layer.white{fill:url(#gradWhite)}
+        
+        /* Extra bakgrundslager för mer djup */
+        .bg-landscape{position:fixed; bottom:0; left:0; right:0; height:60%; z-index:-2;}
+        .grass-layer{
+          position:absolute; bottom:0; left:0; right:0; height:35%; 
+          background:linear-gradient(180deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+          box-shadow: inset 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .mountain-back{
+          position:absolute; bottom:25%; left:0; right:0; height:65%; 
+          background:linear-gradient(180deg, #cbd5e1 0%, #94a3b8 50%, #64748b 100%); 
+          clip-path: polygon(0% 100%, 10% 45%, 20% 65%, 35% 25%, 50% 55%, 65% 35%, 80% 70%, 95% 50%, 100% 100%);
+          opacity: 0.8;
+        }
+        .mountain-mid{
+          position:absolute; bottom:30%; left:0; right:0; height:50%; 
+          background:linear-gradient(180deg, #9ca3af 0%, #6b7280 50%, #4b5563 100%); 
+          clip-path: polygon(0% 100%, 15% 65%, 30% 35%, 45% 75%, 60% 30%, 75% 60%, 90% 45%, 100% 100%);
+          opacity: 0.9;
+        }
+        .mountain-front{
+          position:absolute; bottom:32%; left:0; right:0; height:40%; 
+          background:linear-gradient(180deg, #6b7280 0%, #374151 50%, #1f2937 100%); 
+          clip-path: polygon(0% 100%, 20% 55%, 40% 85%, 55% 40%, 70% 70%, 85% 45%, 100% 65%, 100% 100%);
+        }
+        
+        /* Träd silhuetter */
+        .trees{
+          position: absolute; bottom:35%; left:0; right:0; height:15%;
+          background-image: 
+            radial-gradient(circle at 15% 100%, #064e3b 0%, transparent 8%),
+            radial-gradient(circle at 25% 100%, #065f46 0%, transparent 6%),
+            radial-gradient(circle at 45% 100%, #064e3b 0%, transparent 10%),
+            radial-gradient(circle at 65% 100%, #065f46 0%, transparent 7%),
+            radial-gradient(circle at 85% 100%, #064e3b 0%, transparent 9%);
+          opacity: 0.6;
+        }
 
         @media (prefers-color-scheme: dark){
           .home-body{background:linear-gradient(180deg, #0f1b2d 0%, #182538 70%)}
@@ -207,6 +244,15 @@ export default function Home() {
       `}</style>
 
       <div className="home-body">
+        {/* Extra bakgrundslager */}
+        <div className="bg-landscape" aria-hidden="true">
+          <div className="grass-layer"></div>
+          <div className="mountain-back"></div>
+          <div className="mountain-mid"></div>
+          <div className="mountain-front"></div>
+          <div className="trees"></div>
+        </div>
+        
         {/* Dekorativ bakgrund med berg */}
         <svg className="bg-mountains" viewBox="0 0 1440 1100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
