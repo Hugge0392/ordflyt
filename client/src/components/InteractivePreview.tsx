@@ -591,7 +591,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                   <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
                   
                   {/* Text content */}
-                  <p className="text-2xl leading-relaxed whitespace-pre-wrap font-mono">
+                  <p className="whitespace-pre-wrap font-mono font-semibold text-[26px]">
                     {showFeedback ? feedbackText : currentText}
                     {!showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && (
                       <span className="animate-pulse">|</span>
@@ -661,7 +661,6 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                 </div>
               </div>
             </div>
-            
             {/* Character area - större yta för piraten */}
             <div className="w-2/5 flex items-center justify-start pl-4">
               <div className="flex-shrink-0">
