@@ -1965,9 +1965,6 @@ export default function LessonBuilder() {
                   </div>
                 </div>
               )}
-              <div className="text-sm text-gray-500">
-                Datum: {new Date().toLocaleDateString('sv-SE')}
-              </div>
             </div>
           </div>
         );

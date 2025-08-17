@@ -93,24 +93,7 @@ export function Slutdiplom({ moment, onNext, correctAnswers = 0, wrongAnswers = 
               </div>
             )}
             
-            {/* Date and signature */}
-            <div className="space-y-4 pt-6 border-t-2 border-yellow-200">
-              <div className="text-gray-600">
-                <p className="font-medium">Datum: {new Date().toLocaleDateString('sv-SE')}</p>
-              </div>
-              
-              <div className="flex justify-center items-center space-x-8">
-                <div className="text-center">
-                  <div className="h-px w-32 bg-gray-400 mb-2"></div>
-                  <p className="text-sm text-gray-600 font-medium">Lärare</p>
-                </div>
-                <div className="text-4xl">🏅</div>
-                <div className="text-center">
-                  <div className="h-px w-32 bg-gray-400 mb-2"></div>
-                  <p className="text-sm text-gray-600 font-medium">Elev</p>
-                </div>
-              </div>
-            </div>
+
             
             {/* Action button */}
             {onNext && (
