@@ -200,10 +200,9 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
               data-testid="slider-font-size"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Liten (12px)</span>
-              <span>Normal (16px)</span>
-              <span>Stor (24px)</span>
-              <span>Mycket stor (36px)</span>
+              <span>Liten</span>
+              <span>Normal</span>
+              <span>Stor</span>
             </div>
           </div>
 
