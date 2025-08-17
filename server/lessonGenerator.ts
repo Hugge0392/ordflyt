@@ -296,6 +296,27 @@ export class LessonGenerator {
             color: #991b1b;
         }
 
+        .content-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .content-card h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+
+        .content-card p {
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -381,17 +402,19 @@ export class LessonGenerator {
 
       case 'memory':
         const wordPairs = moment.config.wordPairs || [];
-        const words = [...wordPairs, ...wordPairs].sort(() => Math.random() - 0.5);
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <p>Hitta matchande par av ord!</p>
-            <div class="memory-game" id="memoryGame${index}">
-              ${words.map((word, i) => `
-                <div class="memory-card" data-word="${word}" onclick="flipCard(this, ${index})">
-                  ?
-                </div>
-              `).join('')}
+            <div class="content-card">
+              <h3>Memory-spel: ${moment.config.difficulty || 'Medel'}</h3>
+              <p>Ordpar som ska matchas:</p>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                ${wordPairs.map((pair: string) => `
+                  <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; text-align: center; border: 2px solid #e5e7eb;">
+                    <strong>${pair}</strong>
+                  </div>
+                `).join('')}
+              </div>
             </div>
           </div>
         `;
@@ -400,11 +423,13 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <p><strong>Instruktion:</strong> ${moment.config.instruction || 'Klicka på orden som tillhör målordklassen.'}</p>
-            <div class="interactive-text" id="interactiveText${index}">
-              ${this.generateClickableText(moment.config.text || '', moment.config.targetWords || [])}
+            <div class="content-card">
+              <p><strong>Uppgift:</strong> ${moment.config.instruction || 'Hitta orden som tillhör målordklassen'}</p>
+              <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 15px 0; line-height: 1.8; font-size: 1.1rem;">
+                ${moment.config.text || 'Ingen text angiven'}
+              </div>
+              <p><strong>Målord:</strong> ${(moment.config.targetWords || []).join(', ')}</p>
             </div>
-            <p id="feedback${index}"></p>
           </div>
         `;
 
@@ -412,11 +437,15 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <p>Tema: ${moment.config.theme || 'Allmänt'}</p>
-            <div class="word-cloud">
-              ${(moment.config.words || []).map(word => `
-                <span class="word-cloud-item" onclick="highlightWord(this)">${word}</span>
-              `).join('')}
+            <div class="content-card">
+              <h3>Ordmoln: ${moment.config.theme || 'Allmänt'}</h3>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px;">
+                ${(moment.config.words || []).map(word => `
+                  <span style="background: #ede9fe; color: #6b21a8; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                    ${word}
+                  </span>
+                `).join('')}
+              </div>
             </div>
           </div>
         `;
@@ -425,20 +454,19 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <div style="background: linear-gradient(135deg, #fef3c7, #fed7aa); border: 4px solid #f59e0b; border-radius: 20px; padding: 40px; text-align: center; max-width: 600px; margin: 0 auto;">
-              <div style="font-size: 4rem; margin-bottom: 20px;">🏆</div>
-              <h3 style="font-size: 2rem; color: #92400e; margin-bottom: 15px;">
-                ${moment.config.diplomaTitle || 'Grattis!'}
-              </h3>
-              <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                <h4 style="font-size: 1.5rem; color: #92400e; margin-bottom: 10px;">
+            <div class="content-card">
+              <div style="text-align: center; padding: 20px;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🏆</div>
+                <h3 style="font-size: 2rem; color: #92400e; margin-bottom: 15px;">
+                  ${moment.config.diplomaTitle || 'Grattis!'}
+                </h3>
+                <h4 style="font-size: 1.5rem; margin-bottom: 10px;">
                   ${moment.config.courseName || 'Kursen'}
                 </h4>
-                <p style="color: #78716c;">Genomförd med utmärkt resultat</p>
+                <p style="font-size: 1.1rem; margin: 20px 0;">
+                  ${moment.config.message || 'Du har slutfört kursen med framgång!'}
+                </p>
               </div>
-              <p style="font-size: 1.1rem; color: #374151; margin: 20px 0;">
-                ${moment.config.message || 'Du har slutfört kursen med framgång!'}
-              </p>
             </div>
           </div>
         `;
@@ -447,18 +475,13 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <div style="background: linear-gradient(135deg, #fef3c7, #fed7aa); border: 3px solid #f59e0b; border-radius: 15px; padding: 30px; text-align: center;">
-              <div style="font-size: 3rem; margin-bottom: 20px;">🏴‍☠️</div>
-              <h3 style="color: #92400e; margin-bottom: 15px;">Piratgräv</h3>
-              <p style="margin-bottom: 20px;">Hjälp piraten att gräva fram skatten genom att svara rätt!</p>
-              <div id="piratQuestion${index}" style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                <p style="font-size: 1.2rem; margin-bottom: 15px;">${moment.config.question || 'Är det ett substantiv?'}</p>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                  <button class="btn btn-success" onclick="piratAnswer(${index}, true)">✓ Ja</button>
-                  <button class="btn btn-danger" onclick="piratAnswer(${index}, false)">✗ Nej</button>
-                </div>
+            <div class="content-card">
+              <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🏴‍☠️</div>
+                <h3>Piratgräv</h3>
+                <p><strong>Fråga:</strong> ${moment.config.question || 'Är det ett substantiv?'}</p>
+                <p style="margin-top: 15px; color: #6b7280;">Detta är ett interaktivt spel som fungerar bäst i huvudapplikationen.</p>
               </div>
-              <p id="piratFeedback${index}"></p>
             </div>
           </div>
         `;
@@ -467,41 +490,45 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <div style="background: #f3f4f6; border: 2px solid #d1d5db; border-radius: 15px; padding: 30px; text-align: center;">
-              <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
-              <h3 style="color: #374151; margin-bottom: 15px;">Slutprov</h3>
-              <p style="margin-bottom: 20px;">Visa vad du har lärt dig i detta slutprov!</p>
-              <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                <p>Detta är en förenklad version av slutprovet.</p>
-                <p>Komplett interaktivitet finns i huvudapplikationen.</p>
+            <div class="content-card">
+              <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
+                <h3>Slutprov</h3>
+                <p>Tidsbegränsat test för att visa vad du har lärt dig.</p>
+                <p style="margin-top: 15px; color: #6b7280;">Fullt funktionell version finns i huvudapplikationen.</p>
               </div>
             </div>
           </div>
         `;
 
       case 'quiz':
+        const questions = moment.config.questions || [];
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <div style="background: #ede9fe; border: 2px solid #a855f7; border-radius: 15px; padding: 30px;">
-              <div style="font-size: 3rem; text-align: center; margin-bottom: 20px;">❓</div>
-              <h3 style="color: #7c2d12; text-align: center; margin-bottom: 20px;">Quiz</h3>
-              ${(moment.config.questions || []).slice(0, 1).map((q: any, i: number) => `
-                <div style="background: white; border-radius: 10px; padding: 20px; margin: 15px 0;">
-                  <p style="font-weight: bold; margin-bottom: 15px;">${q.question || 'Fråga'}</p>
-                  <div style="display: grid; gap: 10px;">
+            <div class="content-card">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">❓</div>
+                <h3>Quiz</h3>
+              </div>
+              ${questions.slice(0, 3).map((q: any, i: number) => `
+                <div style="background: #f9fafb; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                  <p style="font-weight: bold; margin-bottom: 10px;">${q.question || 'Fråga'}</p>
+                  <ul style="list-style-type: none; padding: 0;">
                     ${(q.alternatives || []).map((alt: any, j: number) => `
-                      <button class="btn btn-outline" onclick="selectQuizAnswer(${index}, ${i}, ${j})" style="text-align: left;">
-                        ${alt.text || 'Alternativ'}
-                      </button>
+                      <li style="margin: 5px 0; padding: 8px; background: white; border-radius: 4px; ${alt.correct ? 'border-left: 4px solid #10b981;' : ''}">
+                        ${alt.text || 'Alternativ'} ${alt.correct ? '✓' : ''}
+                      </li>
                     `).join('')}
-                  </div>
+                  </ul>
                 </div>
               `).join('')}
+              ${questions.length > 3 ? `<p style="text-align: center; color: #6b7280;">...och ${questions.length - 3} frågor till</p>` : ''}
             </div>
           </div>
         `;
 
+      // Förenkla alla andra spel-typer
       case 'ordracet':
       case 'mening-pussel':
       case 'gissa-ordet':
@@ -510,16 +537,28 @@ export class LessonGenerator {
       case 'motsatser':
       case 'stavning':
       case 'berattelse':
+      case 'korsord':
+      case 'fyll-mening':
+      case 'dra-ord':
+      case 'sortera-korgar':
+      case 'ordkedja':
+      case 'bokstavs-jakt':
+      case 'ordlangd':
+      case 'bild-ord':
+      case 'ordbok':
+      case 'ljudspel':
+      case 'ordform':
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 15px; padding: 30px; text-align: center;">
-              <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
-              <h3 style="color: #0c4a6e; margin-bottom: 15px;">${moment.title}</h3>
-              <p style="margin-bottom: 20px;">${moment.config.instruction || 'Interaktivt spel'}</p>
-              <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                <p>Detta spel är optimerat för den interaktiva miljön.</p>
-                <p>Besök huvudapplikationen för fullständig funktionalitet.</p>
+            <div class="content-card">
+              <div style="text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
+                <h3>${moment.title}</h3>
+                <p>${moment.config.instruction || 'Interaktivt språkspel'}</p>
+                <div style="margin: 20px 0; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                  <p style="color: #6b7280;">Detta är ett interaktivt spel som fungerar bäst i huvudapplikationen med full funktionalitet.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -535,14 +574,7 @@ export class LessonGenerator {
     }
   }
 
-  private generateClickableText(text: string, targetWords: string[]): string {
-    const words = text.split(' ');
-    return words.map(word => {
-      const cleanWord = word.replace(/[.,!?;:]/g, '');
-      const isTarget = targetWords.includes(cleanWord);
-      return `<span class="clickable-word" data-target="${isTarget}" onclick="checkWord(this)">${word}</span>`;
-    }).join(' ');
-  }
+  // Removed complex interactive functions for simplified export
 
   private generateJavaScript(lessonContent: LessonContent): string {
     return `
@@ -598,91 +630,6 @@ export class LessonGenerator {
         document.getElementById('completionScreen').classList.remove('active');
         document.querySelector('.controls').style.display = 'flex';
         showMoment(0);
-      }
-
-      // Memory game funktioner
-      let flippedCards = [];
-      let matchedPairs = 0;
-
-      function flipCard(card, momentIndex) {
-        if (card.classList.contains('flipped') || flippedCards.length >= 2) return;
-        
-        card.classList.add('flipped');
-        card.textContent = card.dataset.word;
-        flippedCards.push(card);
-
-        if (flippedCards.length === 2) {
-          setTimeout(() => {
-            if (flippedCards[0].dataset.word === flippedCards[1].dataset.word) {
-              matchedPairs++;
-              const totalPairs = document.querySelectorAll('#memoryGame' + momentIndex + ' .memory-card').length / 2;
-              if (matchedPairs === totalPairs) {
-                alert('Bra jobbat! Alla par hittade!');
-              }
-            } else {
-              flippedCards.forEach(card => {
-                card.classList.remove('flipped');
-                card.textContent = '?';
-              });
-            }
-            flippedCards = [];
-          }, 1000);
-        }
-      }
-
-      // Ordklassklickning
-      function checkWord(element) {
-        const isTarget = element.dataset.target === 'true';
-        element.classList.remove('correct', 'incorrect');
-        element.classList.add(isTarget ? 'correct' : 'incorrect');
-        
-        const feedback = element.closest('.moment-content').querySelector('[id^="feedback"]');
-        if (isTarget) {
-          feedback.textContent = 'Rätt! Bra jobbat!';
-          feedback.style.color = '#065f46';
-        } else {
-          feedback.textContent = 'Det var inte rätt ord. Försök igen!';
-          feedback.style.color = '#991b1b';
-        }
-      }
-
-      // Ordmoln markering
-      function highlightWord(element) {
-        element.style.background = element.style.background === 'rgb(107, 33, 168)' ? '#ede9fe' : '#6b21a8';
-        element.style.color = element.style.color === 'white' ? '#6b21a8' : 'white';
-      }
-
-      // Piratgräv funktioner
-      function piratAnswer(momentIndex, answer) {
-        const feedback = document.getElementById('piratFeedback' + momentIndex);
-        if (answer) {
-          feedback.innerHTML = '<span style="color: #059669;">🏆 Rätt! Piraten hittar skatten!</span>';
-        } else {
-          feedback.innerHTML = '<span style="color: #dc2626;">❌ Fel svar. Piraten fortsätter gräva...</span>';
-        }
-        
-        setTimeout(() => {
-          if (answer) {
-            nextMoment();
-          }
-        }, 2000);
-      }
-
-      // Quiz funktioner
-      function selectQuizAnswer(momentIndex, questionIndex, answerIndex) {
-        const buttons = document.querySelectorAll('#moment' + momentIndex + ' button[onclick*="selectQuizAnswer"]');
-        buttons.forEach(btn => {
-          btn.style.background = '#f3f4f6';
-          btn.style.color = '#374151';
-        });
-        
-        const selectedButton = buttons[answerIndex];
-        selectedButton.style.background = '#3b82f6';
-        selectedButton.style.color = 'white';
-        
-        setTimeout(() => {
-          nextMoment();
-        }, 1500);
       }
 
       // Initialisera
