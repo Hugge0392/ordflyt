@@ -385,15 +385,42 @@ export class LessonGenerator {
 
       case 'pratbubbla':
         const items = moment.config.items || [];
-        const textItems = items.filter((item: any) => item.type === 'text');
+        // Kontrollera om det finns gamla enkla text-konfigurationen också
+        const simpleText = moment.config.text;
+        
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
             <div class="content-card">
-              <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                <div style="font-size: 3rem;">${moment.config.characterImage || '👨‍🏫'}</div>
-                <div style="flex: 1;">
-                  ${textItems.map((item: any) => `<p style="margin-bottom: 10px;">${item.content || ''}</p>`).join('')}
+              <div style="display: flex; align-items: flex-start; gap: 20px;">
+                <div style="font-size: 4rem; flex-shrink: 0;">
+                  ${moment.config.characterImage || '👨‍🏫'}
+                </div>
+                <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
+                  <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
+                  
+                  ${simpleText ? `<p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">${simpleText}</p>` : ''}
+                  
+                  ${items.map((item: any, index: number) => {
+                    if (item.type === 'text') {
+                      return `<p style="font-size: 1.1rem; line-height: 1.6; margin: ${index > 0 ? '15px 0 0 0' : '0'};">${item.content || ''}</p>`;
+                    } else if (item.type === 'question') {
+                      return `
+                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
+                          <p style="font-weight: bold; margin-bottom: 15px;">${item.question || ''}</p>
+                          <div style="space-y: 8px;">
+                            ${(item.alternatives || []).map((alt: any) => `
+                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: ${alt.correct ? '4px solid #10b981' : '4px solid #e5e7eb'};">
+                                ${alt.text} ${alt.correct ? '✓' : ''}
+                              </div>
+                            `).join('')}
+                          </div>
+                          ${item.correctFeedback ? `<p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: ${item.correctFeedback}</p>` : ''}
+                        </div>
+                      `;
+                    }
+                    return '';
+                  }).join('')}
                 </div>
               </div>
             </div>
