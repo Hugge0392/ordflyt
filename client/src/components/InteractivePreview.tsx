@@ -9,6 +9,7 @@ import {
   BeratttelsePreview 
 } from "@/components/GamePreviews";
 import Piratgrav from "@/components/Piratgrav";
+import { Slutdiplom } from "@/components/Slutdiplom";
 import beachBackground from "@assets/backgrounds/beach.webp";
 
 interface MemoryCard {
@@ -935,6 +936,9 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
 
       case 'piratgrav':
         return <Piratgrav moment={moment} onNext={onNext} />;
+
+      case 'slutdiplom':
+        return <Slutdiplom moment={moment} onNext={onNext} />;
 
       case 'slutprov':
         return (

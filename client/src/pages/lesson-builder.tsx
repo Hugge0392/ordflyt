@@ -29,7 +29,7 @@ import {
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'slutprov';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'slutprov' | 'slutdiplom';
   title: string;
   order: number;
   config: any;
@@ -70,7 +70,8 @@ const MOMENT_TYPES = [
   { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
   { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' },
   { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' },
-  { id: 'slutprov', name: 'Slutprov', icon: '📝', description: 'Tidsbegränsad slutexamination med meningar' }
+  { id: 'slutprov', name: 'Slutprov', icon: '📝', description: 'Tidsbegränsad slutexamination med meningar' },
+  { id: 'slutdiplom', name: 'Slutdiplom', icon: '🏆', description: 'Pampigt diplom för kursgenom­förande' }
 ];
 
 const WORD_CLASSES = [
@@ -547,20 +548,16 @@ export default function LessonBuilder() {
       }))];
       
       // Add current lesson moments at the end
-      if (mergeOptions.insertPosition !== 'replace') {
-        combinedMoments = [...combinedMoments, ...currentLesson.moments.map((moment: any) => ({
-          ...moment,
-          order: nextOrder++
-        }))];
-      }
+      combinedMoments = [...combinedMoments, ...currentLesson.moments.map((moment: any) => ({
+        ...moment,
+        order: nextOrder++
+      }))];
     } else if (mergeOptions.insertPosition === 'end') {
-      // Keep current lesson moments first (if not replacing)
-      if (mergeOptions.insertPosition !== 'replace') {
-        combinedMoments = [...currentLesson.moments.map((moment: any) => ({
-          ...moment,
-          order: nextOrder++
-        }))];
-      }
+      // Keep current lesson moments first
+      combinedMoments = [...currentLesson.moments.map((moment: any) => ({
+        ...moment,
+        order: nextOrder++
+      }))];
       
       // Add lesson1 moments
       combinedMoments = [...combinedMoments, ...lesson1Moments.map((moment: any) => ({
@@ -1691,6 +1688,47 @@ export default function LessonBuilder() {
           </div>
         );
 
+      case 'slutdiplom':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label>Kursnamn</Label>
+              <Input
+                value={moment.config.courseName || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, courseName: e.target.value })}
+                placeholder="t.ex. Substantivkursen, Ordklasser nivå 1"
+              />
+            </div>
+            <div>
+              <Label>Diplom-titel</Label>
+              <Input
+                value={moment.config.diplomaTitle || 'Grattis!'}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, diplomaTitle: e.target.value })}
+                placeholder="Grattis!"
+              />
+            </div>
+            <div>
+              <Label>Meddelande</Label>
+              <Textarea
+                value={moment.config.message || 'Du har slutfört kursen med framgång!'}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, message: e.target.value })}
+                placeholder="Du har slutfört kursen med framgång!"
+                className="min-h-[80px]"
+              />
+            </div>
+            <div>
+              <Label>Visa detaljerad statistik</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  checked={moment.config.showStats !== false}
+                  onCheckedChange={(checked) => updateMomentConfig(moment.id, { ...moment.config, showStats: !!checked })}
+                />
+                <Label className="text-sm">Visa antal rätt och fel svar</Label>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return <p className="text-gray-500">Konfiguration för {moment.type} kommer snart...</p>;
     }
@@ -1897,6 +1935,39 @@ export default function LessonBuilder() {
                   <p>Lägg till korsordsfrågor för att se dem här</p>
                 </div>
               )}
+            </div>
+          </div>
+        );
+
+      case 'slutdiplom':
+        return (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-4 border-yellow-400 rounded-2xl p-8 text-center">
+              <div className="text-4xl mb-4">🏆</div>
+              <h3 className="text-2xl font-bold text-yellow-700 mb-2">
+                {moment.config.diplomaTitle || 'Grattis!'}
+              </h3>
+              <div className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-4 mb-4">
+                <h4 className="font-bold text-lg text-yellow-800">
+                  {moment.config.courseName || 'Kursnamn'}
+                </h4>
+              </div>
+              <p className="text-gray-700 mb-4">
+                {moment.config.message || 'Du har slutfört kursen med framgång!'}
+              </p>
+              {moment.config.showStats !== false && (
+                <div className="bg-white border-2 border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="text-sm text-gray-600 mb-2">📊 Resultatstatistik</div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="bg-green-100 p-2 rounded">Rätt svar</div>
+                    <div className="bg-red-100 p-2 rounded">Fel svar</div>
+                    <div className="bg-blue-100 p-2 rounded">Resultat %</div>
+                  </div>
+                </div>
+              )}
+              <div className="text-sm text-gray-500">
+                Datum: {new Date().toLocaleDateString('sv-SE')}
+              </div>
             </div>
           </div>
         );
