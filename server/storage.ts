@@ -48,6 +48,7 @@ export interface IStorage {
   // Published lesson methods
   createPublishedLesson(lesson: InsertPublishedLesson): Promise<PublishedLesson>;
   getPublishedLessons(): Promise<PublishedLesson[]>;
+  getPublishedLesson(id: string): Promise<PublishedLesson | undefined>;
   getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]>;
   updatePublishedLesson(id: string, lesson: Partial<InsertPublishedLesson>): Promise<PublishedLesson>;
   deletePublishedLesson(id: string): Promise<void>;
@@ -400,6 +401,11 @@ export class DatabaseStorage implements IStorage {
 
   async getPublishedLessons(): Promise<PublishedLesson[]> {
     return await db.select().from(publishedLessons);
+  }
+
+  async getPublishedLesson(id: string): Promise<PublishedLesson | undefined> {
+    const result = await db.select().from(publishedLessons).where(eq(publishedLessons.id, id));
+    return result[0];
   }
 
   async getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]> {

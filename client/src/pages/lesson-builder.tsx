@@ -203,13 +203,23 @@ export default function LessonBuilder() {
         return response.json();
       }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const lessonUrl = `${window.location.origin}/published/${response.id}`;
       toast({
         title: editingLessonId ? "Lektion uppdaterad!" : "Lektion publicerad!",
         description: editingLessonId 
           ? "Lektionen har uppdaterats framgångsrikt." 
-          : "Lektionen är nu tillgänglig i huvudmenyn under vald ordklass.",
+          : `Lektionen är publicerad! Länk: ${lessonUrl}`,
       });
+      
+      // Copy link to clipboard
+      navigator.clipboard.writeText(lessonUrl).then(() => {
+        toast({
+          title: "Länk kopierad!",
+          description: "Länken till den publicerade lektionen har kopierats till urklipp.",
+        });
+      });
+      
       setShowPublishDialog(false);
       setEditingLessonId(null);
       // Remove local editing state

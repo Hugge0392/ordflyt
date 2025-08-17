@@ -333,37 +333,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertPublishedLessonSchema.parse(req.body);
       console.log("Validated data:", validatedData);
       
-      // Generera HTML-fil för lektionen
-      const lessonGenerator = new LessonGenerator();
-      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
-      console.log("Generated filename:", fileName);
+      // Skapa bara en databas-post - ingen filgenerering behövs
+      const lesson = await storage.createPublishedLesson(validatedData);
+      console.log("Created published lesson:", lesson.id);
       
-      try {
-        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
-        console.log("Generated file at:", filePath);
-        
-        // Lägg till filnamn och sökväg till databasen
-        const lessonDataWithFile = {
-          ...validatedData,
-          fileName: fileName,
-          filePath: filePath
-        };
-        
-        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
-        res.json({ ...lesson, fileName, filePath });
-      } catch (fileError) {
-        console.error("Failed to generate lesson file:", fileError);
-        
-        // Publicera utan fil om filgenereringen misslyckas
-        const lessonDataWithFile = {
-          ...validatedData,
-          fileName: fileName,
-          filePath: null
-        };
-        
-        const lesson = await storage.createPublishedLesson(lessonDataWithFile);
-        res.json({ ...lesson, fileName, warning: "File generation failed" });
-      }
+      res.json(lesson);
     } catch (error) {
       console.error("Failed to publish lesson:", error);
       res.status(500).json({ message: "Failed to publish lesson" });
@@ -377,6 +351,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch published lessons:", error);
       res.status(500).json({ message: "Failed to fetch published lessons" });
+    }
+  });
+
+  app.get("/api/lessons/published/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const lesson = await storage.getPublishedLesson(id);
+      if (!lesson) {
+        return res.status(404).json({ message: "Published lesson not found" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Failed to fetch published lesson:", error);
+      res.status(500).json({ message: "Failed to fetch published lesson" });
     }
   });
 
@@ -396,33 +384,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received update request for lesson:", req.params.id, req.body);
       const validatedData = insertPublishedLessonSchema.parse(req.body);
       
-      // Generera nytt filnamn för den uppdaterade lektionen
-      const lessonGenerator = new LessonGenerator();
-      const fileName = lessonGenerator.generateFileName(validatedData.title || 'untitled', validatedData.wordClass || 'unknown');
+      // Uppdatera bara databas-posten - ingen filgenerering behövs
+      const lesson = await storage.updatePublishedLesson(req.params.id, validatedData);
+      console.log("Updated published lesson:", lesson.id);
       
-      try {
-        const filePath = lessonGenerator.generateLessonFile(validatedData.content, fileName);
-        
-        const lessonDataWithFile = {
-          ...validatedData,
-          fileName: fileName,
-          filePath: filePath
-        };
-        
-        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
-        res.json({ ...lesson, fileName, filePath });
-      } catch (fileError) {
-        console.error("Failed to regenerate lesson file:", fileError);
-        
-        const lessonDataWithFile = {
-          ...validatedData,
-          fileName: fileName,
-          filePath: null
-        };
-        
-        const lesson = await storage.updatePublishedLesson(req.params.id, lessonDataWithFile);
-        res.json({ ...lesson, fileName, warning: "File generation failed" });
-      }
+      res.json(lesson);
     } catch (error) {
       console.error("Failed to update published lesson:", error);
       res.status(500).json({ message: "Failed to update published lesson" });
