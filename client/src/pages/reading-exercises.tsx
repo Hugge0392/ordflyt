@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { BookOpen, Clock, Target, Award, User, Search, Filter } from "lucide-react";
 import { Link } from "wouter";
+import { AccessibilityControls } from "@/components/ui/accessibility-controls";
 import type { ReadingLesson } from "@shared/schema";
 
 export default function ReadingExercises() {
@@ -116,6 +117,8 @@ export default function ReadingExercises() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Accessibility Controls */}
+      <AccessibilityControls />
       {/* Header */}
       <div className="border-b bg-background">
         <div className="max-w-6xl mx-auto p-4">

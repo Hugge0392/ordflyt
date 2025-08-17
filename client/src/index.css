@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +50,16 @@
   --purple-500: hsl(271.4286 81.0345% 55.8824%);
   --pink-500: hsl(329.6970 85.7143% 70.1961%);
   --emerald-400: hsl(159.7826 100% 36.0784%);
+  
+  /* Accessibility settings variables - will be overridden by JavaScript */
+  --accessibility-font-size: 16px;
+  --accessibility-line-height: 1.5;
+  --accessibility-font-family: system-ui, -apple-system, sans-serif;
+  --accessibility-word-spacing: 0px;
+  --accessibility-letter-spacing: 0px;
+  --accessibility-bg-color: #ffffff;
+  --accessibility-text-color: inherit;
+  --accessibility-border-color: inherit;
 }
 
 /* Word button styles for multiple choice sentences */
@@ -71,6 +82,35 @@
 .word-button.incorrect {
   @apply border-red-400 bg-red-100 text-red-700 shadow-lg ring-2 ring-red-300;
 }
+
+/* Accessibility enhanced styles */
+.accessibility-enhanced .prose,
+.accessibility-enhanced .prose p,
+.accessibility-enhanced .prose div,
+.accessibility-enhanced .prose span,
+.accessibility-enhanced .card-content,
+.accessibility-enhanced .card-header,
+.accessibility-enhanced .card-title,
+.accessibility-enhanced .card-description {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+  font-family: var(--accessibility-font-family) !important;
+  word-spacing: var(--accessibility-word-spacing) !important;
+  letter-spacing: var(--accessibility-letter-spacing) !important;
+  color: var(--accessibility-text-color) !important;
+}
+
+.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+.accessibility-enhanced .card,
+.accessibility-enhanced .border {
+  border-color: var(--accessibility-border-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+/* Dyslexia-friendly font is imported at top of file */
 
 .dark {
   --background: hsl(0 0% 0%);

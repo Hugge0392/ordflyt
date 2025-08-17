@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { AccessibilityControls } from "@/components/ui/accessibility-controls";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 export default function ReadingLessonViewer() {
@@ -147,6 +148,8 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
+      {/* Accessibility Controls */}
+      <AccessibilityControls />
       {/* Header */}
       <div className="border-b bg-background">
         <div className="max-w-4xl mx-auto p-4">
