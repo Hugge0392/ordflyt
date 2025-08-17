@@ -660,9 +660,6 @@ export class LessonGenerator {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${lessonContent.title}</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -672,11 +669,37 @@ export class LessonGenerator {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
+        .pratbubbla-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+        }
+        
+        .text-area {
+            width: 75%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 4rem;
+            padding: 2rem;
+        }
+        
+        .speech-bubble-wrapper {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            max-width: 48rem;
+            width: 100%;
+            border: 4px solid #93c5fd;
+        }
+        
         .speech-bubble {
             position: relative;
             background: #f3f4f6;
-            border-radius: 8px;
-            padding: 24px;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
         }
         
         .speech-bubble::after {
@@ -691,261 +714,339 @@ export class LessonGenerator {
             border-left: 8px solid #f3f4f6;
         }
         
-        .typewriter {
-            overflow: hidden;
+        .character-area {
+            width: 25%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .character-info {
+            text-align: center;
+        }
+        
+        .character-emoji {
+            font-size: 8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .character-name {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            color: #374151;
+        }
+        
+        .text-display {
+            font-size: 1.5rem;
+            line-height: 1.6;
             white-space: pre-wrap;
+        }
+        
+        .typing-cursor {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .alternative-button {
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .alternative-button:hover {
+            background: #f9fafb;
+        }
+        
+        .action-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            margin-right: 0.75rem;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background: #f9fafb;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="lesson-container"></div>
     
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        
+    <script>
         // Lesson data embedded
         const lessonData = ${JSON.stringify(lessonContent, null, 2)};
         
-        function LessonPlayer() {
-            const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
-            const [currentText, setCurrentText] = useState("");
-            const [textIndex, setTextIndex] = useState(0);
-            const [currentItemIndex, setCurrentItemIndex] = useState(0);
-            const [itemCompleted, setItemCompleted] = useState(false);
-            const [showFeedback, setShowFeedback] = useState(false);
-            const [feedbackText, setFeedbackText] = useState('');
-            const [selectedAnswer, setSelectedAnswer] = useState(null);
+        class LessonPlayer {
+            constructor() {
+                this.currentMomentIndex = 0;
+                this.currentText = "";
+                this.textIndex = 0;
+                this.currentItemIndex = 0;
+                this.itemCompleted = false;
+                this.showFeedback = false;
+                this.feedbackText = '';
+                this.selectedAnswer = null;
+                this.typewriterInterval = null;
+                
+                this.container = document.getElementById('lesson-container');
+                this.render();
+                this.startTypewriter();
+            }
             
-            const currentMoment = lessonData.moments[currentMomentIndex];
+            getCurrentMoment() {
+                return lessonData.moments[this.currentMomentIndex];
+            }
             
-            // Reset states when moment or item changes
-            useEffect(() => {
-                if (currentMoment?.type === 'pratbubbla') {
-                    setTextIndex(0);
-                    setCurrentText('');
-                    setItemCompleted(false);
-                    setShowFeedback(false);
-                    setSelectedAnswer(null);
-                }
-            }, [currentMomentIndex, currentItemIndex]);
-            
-            // Get current item based on index
-            const getCurrentItem = () => {
-                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
-                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
-                    return sortedItems[currentItemIndex] || null;
+            getCurrentItem() {
+                const moment = this.getCurrentMoment();
+                if (moment?.type === 'pratbubbla' && moment.config.items && moment.config.items.length > 0) {
+                    const sortedItems = [...moment.config.items].sort((a, b) => a.order - b.order);
+                    return sortedItems[this.currentItemIndex] || null;
                 }
                 return null;
-            };
+            }
             
-            // Typewriter effect
-            useEffect(() => {
-                if (currentMoment?.type === 'pratbubbla') {
-                    const currentItem = getCurrentItem();
+            startTypewriter() {
+                this.clearTypewriter();
+                const moment = this.getCurrentMoment();
+                if (moment?.type === 'pratbubbla') {
+                    const currentItem = this.getCurrentItem();
                     let text = '';
                     
                     if (currentItem && (currentItem.type === 'text' || currentItem.type === 'question')) {
                         text = currentItem.content || '';
-                    } else if (!currentMoment.config.items) {
-                        text = currentMoment.config.text || '';
+                    } else if (!moment.config.items) {
+                        text = moment.config.text || '';
                     }
                     
-                    if (text && textIndex < text.length) {
-                        const timeout = setTimeout(() => {
-                            setCurrentText(text.slice(0, textIndex + 1));
-                            setTextIndex(textIndex + 1);
-                        }, currentMoment.config.animationSpeed || 50);
-                        return () => clearTimeout(timeout);
-                    } else if (text && textIndex >= text.length) {
-                        setItemCompleted(true);
+                    if (text) {
+                        this.textIndex = 0;
+                        this.currentText = '';
+                        this.itemCompleted = false;
+                        const speed = moment.config.animationSpeed || 50;
+                        
+                        this.typewriterInterval = setInterval(() => {
+                            if (this.textIndex < text.length) {
+                                this.currentText = text.slice(0, this.textIndex + 1);
+                                this.textIndex++;
+                                this.updateTextDisplay();
+                            } else {
+                                this.itemCompleted = true;
+                                this.clearTypewriter();
+                                this.render();
+                            }
+                        }, speed);
                     }
                 }
-            }, [textIndex, currentMoment, currentItemIndex]);
+            }
             
-            const handleAnswerSelect = (answer, isCorrect) => {
-                setSelectedAnswer(answer);
-                setShowFeedback(true);
+            clearTypewriter() {
+                if (this.typewriterInterval) {
+                    clearInterval(this.typewriterInterval);
+                    this.typewriterInterval = null;
+                }
+            }
+            
+            updateTextDisplay() {
+                const textElement = document.getElementById('text-display');
+                if (textElement) {
+                    textElement.innerHTML = this.currentText + (this.itemCompleted ? '' : '<span class="typing-cursor">|</span>');
+                }
+            }
+            
+            handleAnswerSelect(answer, isCorrect) {
+                this.selectedAnswer = answer;
+                this.showFeedback = true;
                 
-                const currentItem = getCurrentItem();
+                const currentItem = this.getCurrentItem();
                 if (isCorrect) {
-                    setFeedbackText(currentItem?.correctFeedback || 'Rätt! Bra jobbat!');
+                    this.feedbackText = currentItem?.correctFeedback || 'Rätt! Bra jobbat!';
                 } else {
-                    setFeedbackText(currentItem?.incorrectFeedback || 'Fel svar. Försök igen!');
+                    this.feedbackText = currentItem?.incorrectFeedback || 'Fel svar. Försök igen!';
                 }
-            };
+                this.render();
+            }
             
-            const resetQuestion = () => {
-                setSelectedAnswer(null);
-                setShowFeedback(false);
-                setFeedbackText('');
-            };
+            resetQuestion() {
+                this.selectedAnswer = null;
+                this.showFeedback = false;
+                this.feedbackText = '';
+                this.render();
+            }
             
-            const goToNextItem = () => {
-                if (currentMoment.config.items && currentMoment.config.items.length > 0) {
-                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
-                    if (currentItemIndex < sortedItems.length - 1) {
-                        setCurrentItemIndex(currentItemIndex + 1);
+            goToNextItem() {
+                const moment = this.getCurrentMoment();
+                if (moment.config.items && moment.config.items.length > 0) {
+                    const sortedItems = [...moment.config.items].sort((a, b) => a.order - b.order);
+                    if (this.currentItemIndex < sortedItems.length - 1) {
+                        this.currentItemIndex++;
+                        this.render();
+                        this.startTypewriter();
                     } else {
-                        goToNextMoment();
+                        this.goToNextMoment();
                     }
                 } else {
-                    goToNextMoment();
+                    this.goToNextMoment();
                 }
-            };
+            }
             
-            const goToNextMoment = () => {
-                if (currentMomentIndex < lessonData.moments.length - 1) {
-                    setCurrentMomentIndex(currentMomentIndex + 1);
-                    setCurrentItemIndex(0);
+            goToNextMoment() {
+                if (this.currentMomentIndex < lessonData.moments.length - 1) {
+                    this.currentMomentIndex++;
+                    this.currentItemIndex = 0;
+                    this.showFeedback = false;
+                    this.selectedAnswer = null;
+                    this.render();
+                    this.startTypewriter();
                 }
-            };
+            }
             
-            const isLastItem = () => {
-                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
-                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
-                    return currentItemIndex === sortedItems.length - 1;
+            isLastItem() {
+                const moment = this.getCurrentMoment();
+                if (moment?.type === 'pratbubbla' && moment.config.items && moment.config.items.length > 0) {
+                    const sortedItems = [...moment.config.items].sort((a, b) => a.order - b.order);
+                    return this.currentItemIndex === sortedItems.length - 1;
                 }
                 return false;
-            };
-            
-            if (!currentMoment) {
-                return React.createElement('div', {
-                    className: 'flex items-center justify-center h-screen text-2xl'
-                }, 'Lektion slutförd! 🎉');
             }
             
-            if (currentMoment.type === 'pratbubbla') {
-                const currentItem = getCurrentItem();
-                const isCurrentItemQuestion = currentItem?.type === 'question';
-                const isCurrentItemText = currentItem?.type === 'text';
+            render() {
+                const moment = this.getCurrentMoment();
                 
-                let hasQuestion = false;
-                let currentAlternatives = [];
-                
-                if (isCurrentItemQuestion) {
-                    hasQuestion = true;
-                    currentAlternatives = currentItem?.alternatives || [];
-                } else if (!currentMoment.config.items && currentMoment.config.question && currentMoment.config.alternatives) {
-                    hasQuestion = true;
-                    currentAlternatives = currentMoment.config.alternatives || [];
+                if (!moment) {
+                    this.container.innerHTML = \`
+                        <div class="flex items-center justify-center h-screen text-2xl">
+                            Lektion slutförd! 🎉
+                        </div>
+                    \`;
+                    return;
                 }
                 
-                const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? itemCompleted : true;
-                
-                return React.createElement('div', {
-                    className: 'w-full h-screen flex',
-                    style: { minHeight: '100vh' }
-                }, 
-                    // Text area - 3/4 of screen
-                    React.createElement('div', {
-                        className: 'w-3/4 flex items-start justify-center pt-16 p-8'
-                    },
-                        React.createElement('div', {
-                            className: 'bg-white rounded-2xl p-8 shadow-lg max-w-3xl w-full',
-                            style: { border: '4px solid #93c5fd' }
-                        },
-                            React.createElement('div', {
-                                className: 'speech-bubble'
-                            },
-                                // Text content
-                                React.createElement('p', {
-                                    className: 'text-2xl leading-relaxed whitespace-pre-wrap'
-                                }, 
-                                    showFeedback ? feedbackText : currentText,
-                                    !showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && 
-                                        React.createElement('span', { className: 'animate-pulse' }, '|')
-                                ),
-                                
-                                // Question and alternatives
-                                hasQuestion && isCurrentItemQuestion && textComplete && !showFeedback &&
-                                    React.createElement('div', { className: 'mt-6' },
-                                        React.createElement('div', { className: 'space-y-3' },
-                                            currentAlternatives.map((alt, index) =>
-                                                React.createElement('button', {
-                                                    key: index,
-                                                    className: 'w-full text-left justify-start p-4 h-auto bg-white border border-gray-300 rounded hover:bg-gray-50',
-                                                    onClick: () => handleAnswerSelect(alt.text, alt.correct),
-                                                    disabled: selectedAnswer !== null
-                                                }, alt.text)
-                                            )
-                                        )
-                                    ),
-                                
-                                // Feedback actions
-                                showFeedback &&
-                                    React.createElement('div', { className: 'mt-4 space-x-3' },
-                                        !currentAlternatives.find(alt => alt.text === selectedAnswer)?.correct ? 
-                                            React.createElement('button', {
-                                                className: 'px-4 py-2 border border-gray-300 rounded hover:bg-gray-50',
-                                                onClick: resetQuestion
-                                            }, 'Försök igen') :
-                                            isLastItem() ?
-                                                React.createElement('button', {
-                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
-                                                    onClick: goToNextMoment
-                                                }, 'Slutför momentet') :
-                                                React.createElement('button', {
-                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
-                                                    onClick: goToNextItem
-                                                }, 'Nästa')
-                                    ),
-                                
-                                // Continue button for text items
-                                !hasQuestion && itemCompleted && !isLastItem() &&
-                                    React.createElement('div', { className: 'mt-4' },
-                                        React.createElement('button', {
-                                            className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
-                                            onClick: goToNextItem
-                                        }, 'Fortsätt')
-                                    ),
-                                
-                                // Final button for last text item
-                                !hasQuestion && itemCompleted && isLastItem() &&
-                                    React.createElement('div', { className: 'mt-4' },
-                                        React.createElement('button', {
-                                            className: 'px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600',
-                                            onClick: goToNextMoment
-                                        }, 'Slutför momentet')
-                                    )
-                            )
-                        )
-                    ),
+                if (moment.type === 'pratbubbla') {
+                    const currentItem = this.getCurrentItem();
+                    const isCurrentItemQuestion = currentItem?.type === 'question';
+                    const isCurrentItemText = currentItem?.type === 'text';
                     
-                    // Character area - 1/4 of screen  
-                    React.createElement('div', {
-                        className: 'w-1/4 flex items-center justify-center p-8'
-                    },
-                        React.createElement('div', { className: 'text-center' },
-                            React.createElement('div', {
-                                className: 'mb-4',
-                                style: { fontSize: '8rem' }
-                            }, '🏴‍☠️'),
-                            React.createElement('div', {
-                                className: 'bg-white rounded-lg p-4 shadow-lg'
-                            },
-                                React.createElement('p', {
-                                    className: 'font-bold text-gray-700'
-                                }, currentMoment.config.characterName || 'Kapten Matilda')
-                            )
-                        )
-                    )
-                );
+                    let hasQuestion = false;
+                    let currentAlternatives = [];
+                    
+                    if (isCurrentItemQuestion) {
+                        hasQuestion = true;
+                        currentAlternatives = currentItem?.alternatives || [];
+                    } else if (!moment.config.items && moment.config.question && moment.config.alternatives) {
+                        hasQuestion = true;
+                        currentAlternatives = moment.config.alternatives || [];
+                    }
+                    
+                    const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? this.itemCompleted : true;
+                    
+                    this.container.innerHTML = \`
+                        <div class="pratbubbla-container">
+                            <div class="text-area">
+                                <div class="speech-bubble-wrapper">
+                                    <div class="speech-bubble">
+                                        <div id="text-display" class="text-display">
+                                            \${this.showFeedback ? this.feedbackText : this.currentText}\${!this.showFeedback && !this.itemCompleted ? '<span class="typing-cursor">|</span>' : ''}
+                                        </div>
+                                        
+                                        \${hasQuestion && isCurrentItemQuestion && textComplete && !this.showFeedback ? \`
+                                            <div style="margin-top: 1.5rem;">
+                                                \${currentAlternatives.map((alt, index) => \`
+                                                    <button class="alternative-button" onclick="player.handleAnswerSelect('\${alt.text}', \${alt.correct})">
+                                                        \${alt.text}
+                                                    </button>
+                                                \`).join('')}
+                                            </div>
+                                        \` : ''}
+                                        
+                                        \${this.showFeedback ? \`
+                                            <div style="margin-top: 1rem;">
+                                                \${!currentAlternatives.find(alt => alt.text === this.selectedAnswer)?.correct ? \`
+                                                    <button class="action-button btn-secondary" onclick="player.resetQuestion()">Försök igen</button>
+                                                \` : \`
+                                                    <button class="action-button btn-primary" onclick="player.\${this.isLastItem() ? 'goToNextMoment' : 'goToNextItem'}()">
+                                                        \${this.isLastItem() ? 'Slutför momentet' : 'Nästa'}
+                                                    </button>
+                                                \`}
+                                            </div>
+                                        \` : ''}
+                                        
+                                        \${!hasQuestion && this.itemCompleted && !this.isLastItem() ? \`
+                                            <div style="margin-top: 1rem;">
+                                                <button class="action-button btn-primary" onclick="player.goToNextItem()">Fortsätt</button>
+                                            </div>
+                                        \` : ''}
+                                        
+                                        \${!hasQuestion && this.itemCompleted && this.isLastItem() ? \`
+                                            <div style="margin-top: 1rem;">
+                                                <button class="action-button btn-success" onclick="player.goToNextMoment()">Slutför momentet</button>
+                                            </div>
+                                        \` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="character-area">
+                                <div class="character-info">
+                                    <div class="character-emoji">🏴‍☠️</div>
+                                    <div class="character-name">
+                                        \${moment.config.characterName || 'Kapten Matilda'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    \`;
+                } else {
+                    this.container.innerHTML = \`
+                        <div style="padding: 2rem;">
+                            <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">\${moment.title}</h2>
+                            <p>Moment typ: \${moment.type}</p>
+                            <button class="action-button btn-primary" onclick="player.goToNextMoment()" style="margin-top: 1rem;">Nästa moment</button>
+                        </div>
+                    \`;
+                }
             }
-            
-            // Other moment types can be handled here
-            return React.createElement('div', {
-                className: 'p-8'
-            }, 
-                React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, currentMoment.title),
-                React.createElement('p', null, 'Moment typ: ' + currentMoment.type),
-                React.createElement('button', {
-                    className: 'mt-4 px-4 py-2 bg-blue-500 text-white rounded',
-                    onClick: goToNextMoment
-                }, 'Nästa moment')
-            );
         }
         
-        ReactDOM.render(React.createElement(LessonPlayer), document.getElementById('root'));
+        // Start the lesson player
+        const player = new LessonPlayer();
     </script>
 </body>
 </html>`;
