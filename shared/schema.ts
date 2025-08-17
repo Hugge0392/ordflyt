@@ -92,8 +92,8 @@ export const publishedLessons = pgTable("published_lessons", {
   difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
   background: varchar("background").default("beach"), // bakgrund för lektionen
   content: jsonb("content").notNull(), // hela lektionsstrukturen
-  fileName: varchar("file_name").notNull(), // Namn på den genererade filen
-  filePath: varchar("file_path"), // Sökväg till filen (om sparad)
+  fileName: varchar("file_name"), // Namn på den genererade filen (valfri)
+  filePath: varchar("file_path"), // Sökväg till filen (valfri)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
