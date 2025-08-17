@@ -129,22 +129,22 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
 
   return (
     <>
-      {/* Toggle Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-4 z-50 transition-all duration-300 ${
-          isOpen ? 'left-[21rem]' : 'left-4'
-        }`}
-        data-testid="button-accessibility-toggle"
-      >
-        {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        {!isOpen && <span className="ml-2">Tillgänglighet</span>}
-        {isModified && !isOpen && (
-          <Badge variant="secondary" className="ml-2 w-2 h-2 p-0 rounded-full bg-blue-500" />
-        )}
-      </Button>
+      {/* Toggle Button - Only show when closed */}
+      {!isOpen && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsOpen(true)}
+          className="fixed top-4 left-4 z-50"
+          data-testid="button-accessibility-toggle"
+        >
+          <ChevronRight className="w-4 h-4" />
+          <span className="ml-2">Tillgänglighet</span>
+          {isModified && (
+            <Badge variant="secondary" className="ml-2 w-2 h-2 p-0 rounded-full bg-blue-500" />
+          )}
+        </Button>
+      )}
 
       {/* Sidebar */}
       <div
@@ -153,13 +153,25 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
         }`}
       >
         <div className="p-4 space-y-6">
-          <div className="pt-12">
-            <div className="flex items-center gap-2 mb-4">
-              <Eye className="w-5 h-5" />
-              <h2 className="text-lg font-semibold">Tillgänglighetsinställningar</h2>
-              {isModified && (
-                <Badge variant="secondary" className="w-2 h-2 p-0 rounded-full bg-blue-500" />
-              )}
+          <div className="pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                <h2 className="text-lg font-semibold">Tillgänglighetsinställningar</h2>
+                {isModified && (
+                  <Badge variant="secondary" className="w-2 h-2 p-0 rounded-full bg-blue-500" />
+                )}
+              </div>
+              {/* Close button inside sidebar */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsOpen(false)}
+                className="p-1 h-auto"
+                data-testid="button-accessibility-close"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               Anpassa texten för bättre läsbarhet
