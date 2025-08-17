@@ -1,4 +1,4 @@
-/* Använder system-typsnitt för textäventyrskänsla */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,8 +36,8 @@
   --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
   --sidebar-border: hsl(205.0000 25.0000% 90.5882%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Courier New', 'Consolas', 'Monaco', monospace;
-  --font-serif: 'Times New Roman', 'Book Antiqua', serif;
+  --font-sans: 'Inter', 'Open Sans', sans-serif;
+  --font-serif: Georgia, serif;
   --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
   --radius: 1.3rem;
   --success: hsl(142.1053 76.2712% 36.2745%);
@@ -105,8 +105,8 @@
   --sidebar-accent-foreground: hsl(203.7736 87.6033% 52.5490%);
   --sidebar-border: hsl(205.7143 15.7895% 26.0784%);
   --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Courier New', 'Consolas', 'Monaco', monospace;
-  --font-serif: 'Times New Roman', 'Book Antiqua', serif;
+  --font-sans: 'Inter', 'Open Sans', sans-serif;
+  --font-serif: Georgia, serif;
   --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
   --radius: 1.3rem;
   --success: hsl(142.1053 76.2712% 36.2745%);
