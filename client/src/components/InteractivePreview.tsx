@@ -591,7 +591,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                   <div className="absolute -right-2 top-6 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-100"></div>
                   
                   {/* Text content */}
-                  <p className="text-2xl leading-relaxed whitespace-pre-wrap">
+                  <p className="text-2xl leading-relaxed whitespace-pre-wrap font-mono">
                     {showFeedback ? feedbackText : currentText}
                     {!showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && (
                       <span className="animate-pulse">|</span>
