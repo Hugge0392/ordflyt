@@ -107,8 +107,23 @@ export default function Home() {
         .grid{
           display:grid; 
           gap:24px; 
-          grid-template-columns:repeat( auto-fit, minmax(220px,1fr) ); 
+          grid-template-columns:repeat(3, 1fr); 
+          max-width: 900px;
+          margin: 0 auto;
           align-items:stretch;
+        }
+        
+        @media (max-width: 768px) {
+          .grid {
+            grid-template-columns: 1fr;
+            max-width: 400px;
+          }
+        }
+        
+        @media (max-width: 900px) {
+          .grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
 
         .tile{
@@ -131,7 +146,12 @@ export default function Home() {
         .tile:hover{transform:translateY(-3px) rotate(-0.5deg) scale(1.01); box-shadow:0 14px 30px rgba(22,46,77,.20)}
         .tile:active{transform:translateY(0) scale(.98)}
 
-        .icon{width:84px; height:84px; margin:6px auto 14px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.15));}
+        .icon{
+          font-size: 64px; 
+          margin: 6px auto 14px; 
+          filter: drop-shadow(0 6px 10px rgba(0,0,0,.15));
+          display: block;
+        }
         .label{font-size:22px; font-weight:700; letter-spacing:.3px;}
 
         @keyframes pop {
@@ -232,21 +252,27 @@ export default function Home() {
 
           <section className="grid" aria-label="Kategorier">
             <Link className="tile puzzle" href="/grammatik">
+              <div className="icon">📚</div>
               <div className="label">Grammatik</div>
             </Link>
             <Link className="tile read" href="/lasforstaelse">
+              <div className="icon">📖</div>
               <div className="label">Läsförståelse</div>
             </Link>
             <Link className="tile write" href="/skrivande">
+              <div className="icon">✏️</div>
               <div className="label">Skrivande</div>
             </Link>
             <Link className="tile speak" href="/muntligt">
+              <div className="icon">🎤</div>
               <div className="label">Muntligt framförande</div>
             </Link>
             <Link className="tile nordic" href="/nordiska-sprak">
+              <div className="icon">🌍</div>
               <div className="label">Nordiska språk</div>
             </Link>
             <Link className="tile source" href="/kallkritik">
+              <div className="icon">🔍</div>
               <div className="label">Källkritik</div>
             </Link>
           </section>
