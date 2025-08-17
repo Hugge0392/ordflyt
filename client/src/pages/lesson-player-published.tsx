@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { InteractivePreview } from "@/components/InteractivePreview";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ interface PublishedLessonPlayerProps {
 
 export function PublishedLessonPlayer({ lesson }: PublishedLessonPlayerProps) {
   const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
+  const [, setLocation] = useLocation();
   
   if (!lesson?.content?.moments) {
     return (
@@ -30,6 +31,9 @@ export function PublishedLessonPlayer({ lesson }: PublishedLessonPlayerProps) {
   const goToNextMoment = () => {
     if (!isLastMoment) {
       setCurrentMomentIndex(currentMomentIndex + 1);
+    } else if (currentMoment?.type === 'slutdiplom') {
+      // Navigera tillbaka till menyn när slutdiplomet är klart
+      setLocation('/');
     }
   };
 
