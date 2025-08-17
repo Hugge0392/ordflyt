@@ -29,11 +29,19 @@ export default function ReadingAdmin() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (lesson: InsertReadingLesson) => 
-      apiRequest("/api/reading-lessons", {
+    mutationFn: async (lesson: InsertReadingLesson) => {
+      const response = await fetch("/api/reading-lessons", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(lesson),
-      }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
       setIsCreating(false);
@@ -51,11 +59,19 @@ export default function ReadingAdmin() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, lesson }: { id: string, lesson: Partial<InsertReadingLesson> }) => 
-      apiRequest(`/api/reading-lessons/${id}`, {
+    mutationFn: async ({ id, lesson }: { id: string, lesson: Partial<InsertReadingLesson> }) => {
+      const response = await fetch(`/api/reading-lessons/${id}`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(lesson),
-      }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
       setSelectedLesson(null);
@@ -73,10 +89,15 @@ export default function ReadingAdmin() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => 
-      apiRequest(`/api/reading-lessons/${id}`, {
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/reading-lessons/${id}`, {
         method: "DELETE",
-      }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.ok;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
       setSelectedLesson(null);

@@ -131,8 +131,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
   const handleImageUploadComplete = (blockId: string) => {
     return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-      if (result.successful.length > 0) {
-        const uploadURL = result.successful[0].uploadURL;
+      if (result.successful && result.successful.length > 0) {
+        const uploadURL = result.successful?.[0]?.uploadURL;
         if (uploadURL) {
           // Process the upload URL to get the object path
           fetch("/api/lesson-images", {
