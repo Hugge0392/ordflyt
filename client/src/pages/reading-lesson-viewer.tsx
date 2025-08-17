@@ -234,153 +234,157 @@ export default function ReadingLessonViewer() {
           </Card>
         )}
 
-        {/* Main Content */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Läs texten</span>
+        {/* Two-Column Layout for Desktop/Tablet - Side by side text and questions */}
+        {/* Uses lg: for desktop (1024px+) and md: for tablet landscape (768px+) but only when orientation is landscape */}
+        <div className="md:landscape:grid md:landscape:grid-cols-2 lg:grid lg:grid-cols-2 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
+          {/* Main Content - Left Column */}
+          <Card className="mb-6 md:landscape:mb-0 lg:mb-0">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Läs texten</span>
+                {pages.length > 1 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Sida {currentPage + 1} av {pages.length}</span>
+                  </div>
+                )}
+              </CardTitle>
+              {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+                <CardDescription>
+                  💡 Ord med prickad understrykning har förklaringar - håll musen över dem
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="relative">
+              <div 
+                className="prose dark:prose-invert max-w-none min-h-[400px]"
+                dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                onMouseOver={handleContentMouseOver}
+                onMouseOut={handleContentMouseOut}
+              />
+              
+              {/* Page Navigation */}
               {pages.length > 1 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Sida {currentPage + 1} av {pages.length}</span>
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Föregående sida
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {pages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentPage(index)}
+                        className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                          index === currentPage
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
+                    disabled={currentPage === pages.length - 1}
+                    className="flex items-center gap-2"
+                  >
+                    Nästa sida
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
-            </CardTitle>
-            {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-              <CardDescription>
-                💡 Ord med prickad understrykning har förklaringar - håll musen över dem
-              </CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="relative">
-            <div 
-              className="prose dark:prose-invert max-w-none min-h-[400px]"
-              dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-              onMouseOver={handleContentMouseOver}
-              onMouseOut={handleContentMouseOut}
-            />
-            
-            {/* Page Navigation */}
-            {pages.length > 1 && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                  disabled={currentPage === 0}
-                  className="flex items-center gap-2"
+              
+              {/* Custom tooltip */}
+              {hoveredWord && (
+                <div
+                  className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
+                  style={{
+                    left: `${hoveredWord.x}px`,
+                    top: `${hoveredWord.y}px`,
+                    transform: 'translate(-50%, -100%)'
+                  }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  Föregående sida
-                </Button>
-                
-                <div className="flex items-center gap-1">
-                  {pages.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentPage(index)}
-                      className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                        index === currentPage
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+                  <div className="font-semibold">{hoveredWord.word}</div>
+                  <div className="text-gray-200">{hoveredWord.definition}</div>
+                  {/* Arrow pointing down */}
+                  <div 
+                    className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
+                  />
                 </div>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                  disabled={currentPage === pages.length - 1}
-                  className="flex items-center gap-2"
-                >
-                  Nästa sida
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            
-            {/* Custom tooltip */}
-            {hoveredWord && (
-              <div
-                className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
-                style={{
-                  left: `${hoveredWord.x}px`,
-                  top: `${hoveredWord.y}px`,
-                  transform: 'translate(-50%, -100%)'
-                }}
-              >
-                <div className="font-semibold">{hoveredWord.word}</div>
-                <div className="text-gray-200">{hoveredWord.definition}</div>
-                {/* Arrow pointing down */}
-                <div 
-                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Questions */}
-        {lesson.questions && lesson.questions.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Förståelsefrågor</CardTitle>
-              <CardDescription>
-                Svara på frågorna för att kontrollera din förståelse
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {lesson.questions.map((question, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-3">
-                      {index + 1}. {question.question}
-                    </h4>
-                    
-                    {question.type === 'multiple_choice' && question.options && (
-                      <div className="space-y-2">
-                        {question.options.map((option, optionIndex) => (
-                          <div key={optionIndex} className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                              {String.fromCharCode(65 + optionIndex)}
-                            </div>
-                            <span>{option}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {question.type === 'true_false' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                            S
-                          </div>
-                          <span>Sant</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                            F
-                          </div>
-                          <span>Falskt</span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {question.type === 'open_ended' && (
-                      <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
-                        <p className="text-sm text-muted-foreground">
-                          Skriv ditt svar här...
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              )}
             </CardContent>
           </Card>
-        )}
+
+          {/* Questions - Right Column */}
+          {lesson.questions && lesson.questions.length > 0 && (
+            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Förståelsefrågor</CardTitle>
+                <CardDescription>
+                  Svara på frågorna för att kontrollera din förståelse
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+                  {lesson.questions.map((question, index) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-3">
+                        {index + 1}. {question.question}
+                      </h4>
+                      
+                      {question.type === 'multiple_choice' && question.options && (
+                        <div className="space-y-2">
+                          {question.options.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                {String.fromCharCode(65 + optionIndex)}
+                              </div>
+                              <span>{option}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {question.type === 'true_false' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                              S
+                            </div>
+                            <span>Sant</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                              F
+                            </div>
+                            <span>Falskt</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {question.type === 'open_ended' && (
+                        <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
+                          <p className="text-sm text-muted-foreground">
+                            Skriv ditt svar här...
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Word Definitions */}
         {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
