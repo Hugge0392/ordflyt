@@ -238,13 +238,10 @@ export default function ReadingLessonViewer() {
           </Card>
         )}
 
-        {/* Two-Column Layout for Desktop/Tablet - Centered text with questions on right */}
+        {/* Two-Column Layout for Desktop/Tablet - Text takes 2/3, questions take 1/3 */}
         {/* Uses lg: for desktop (1024px+) and md: for tablet landscape (768px+) but only when orientation is landscape */}
-        <div className="md:landscape:grid md:landscape:grid-cols-4 lg:grid lg:grid-cols-4 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
-          {/* Empty space for centering */}
-          <div className="hidden md:landscape:block lg:block"></div>
-          
-          {/* Main Content - Center Column (takes 2/4 of space) */}
+        <div className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
+          {/* Main Content - Left Column (takes 2/3 of space) */}
           <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
@@ -334,7 +331,7 @@ export default function ReadingLessonViewer() {
 
           {/* Questions - Right Column */}
           {lesson.questions && lesson.questions.length > 0 && (
-            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 md:landscape:col-span-1 lg:col-span-1">
+            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6">
               <CardHeader>
                 <CardTitle className="text-lg">Förståelsefrågor</CardTitle>
                 <CardDescription>
