@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BookOpen, Clock, ArrowLeft, User, Target } from "lucide-react";
-import type { ReadingLesson } from "@shared/schema";
+import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +15,54 @@ export default function ReadingLessonViewer() {
     queryKey: [`/api/reading-lessons/${id}`],
     enabled: !!id,
   });
+
+  // Create interactive content with word definitions
+  const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
+    if (!definitions.length) return content;
+
+    // Create a map of words to definitions for quick lookup
+    const defMap = new Map(definitions.map(def => [def.word.toLowerCase(), def.definition]));
+    
+    // Process the HTML content to add tooltips to defined words
+    let processedContent = content;
+    
+    definitions.forEach(({ word, definition }) => {
+      // Create a regex that matches the word as a whole word (case insensitive)
+      const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
+      
+      // Replace with tooltip-wrapped version
+      processedContent = processedContent.replace(regex, (match) => {
+        return `<span class="defined-word" data-word="${word}" data-definition="${definition.replace(/"/g, '&quot;')}" style="color: #3b82f6; text-decoration: underline; text-decoration-style: dotted; cursor: help;">${match}</span>`;
+      });
+    });
+    
+    return processedContent;
+  };
+
+  const [hoveredWord, setHoveredWord] = useState<{word: string, definition: string, x: number, y: number} | null>(null);
+
+  // Handle mouse events for word definitions
+  const handleContentMouseOver = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('defined-word')) {
+      const word = target.getAttribute('data-word') || '';
+      const definition = target.getAttribute('data-definition') || '';
+      const rect = target.getBoundingClientRect();
+      setHoveredWord({
+        word,
+        definition,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+    }
+  };
+
+  const handleContentMouseOut = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('defined-word')) {
+      setHoveredWord(null);
+    }
+  };
 
   const getDifficultyColor = (level: string) => {
     switch (level) {
@@ -79,7 +129,8 @@ export default function ReadingLessonViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-background">
         <div className="max-w-4xl mx-auto p-4">
@@ -171,12 +222,38 @@ export default function ReadingLessonViewer() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg">Läs texten</CardTitle>
+            {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+              <CardDescription>
+                💡 Ord med prickad understrykning har förklaringar - håll musen över dem
+              </CardDescription>
+            )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative">
             <div 
               className="prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: lesson.content }}
+              dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(lesson.content, lesson.wordDefinitions) }}
+              onMouseOver={handleContentMouseOver}
+              onMouseOut={handleContentMouseOut}
             />
+            
+            {/* Custom tooltip */}
+            {hoveredWord && (
+              <div
+                className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
+                style={{
+                  left: `${hoveredWord.x}px`,
+                  top: `${hoveredWord.y}px`,
+                  transform: 'translate(-50%, -100%)'
+                }}
+              >
+                <div className="font-semibold">{hoveredWord.word}</div>
+                <div className="text-gray-200">{hoveredWord.definition}</div>
+                {/* Arrow pointing down */}
+                <div 
+                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -264,5 +341,6 @@ export default function ReadingLessonViewer() {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
