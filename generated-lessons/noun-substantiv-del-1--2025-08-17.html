@@ -4,763 +4,736 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Substantiv - del 1 </title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #f59e0b 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .lesson-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .lesson-header {
-            background: linear-gradient(45deg, #4f46e5, #7c3aed);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .lesson-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .lesson-subtitle {
-            opacity: 0.9;
-            font-size: 1.2rem;
-        }
-
-        .progress-bar {
-            background: rgba(255,255,255,0.2);
-            height: 8px;
-            border-radius: 4px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            background: #10b981;
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        .moment-container {
-            display: none;
-        }
-
-        .moment-container.active {
-            display: block;
-            width: 100%;
-            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
-        /* Layout for non-pratbubbla moments */
-        .standard-moment {
-            padding: 40px;
-            min-height: 400px;
-        }
-
-        .moment-title {
-            font-size: 1.8rem;
-            color: #1f2937;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .moment-content {
-            font-size: 1.1rem;
-            line-height: 1.6;
-            color: #374151;
-            text-align: center;
-        }
-
-        .controls {
-            padding: 20px 40px;
-            background: #f9fafb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: #4f46e5;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #4338ca;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d5db;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .character-bubble {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            margin: 20px 0;
-        }
-
-        .character-image {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
         .speech-bubble {
-            flex: 1;
-            background: #f0f9ff;
-            border: 2px solid #0ea5e9;
-            border-radius: 20px;
-            padding: 20px;
             position: relative;
-            font-size: 1.1rem;
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 24px;
         }
-
-        .speech-bubble::before {
+        
+        .speech-bubble::after {
             content: '';
             position: absolute;
-            left: -10px;
-            top: 20px;
+            right: -8px;
+            top: 24px;
             width: 0;
             height: 0;
-            border-top: 10px solid transparent;
-            border-bottom: 10px solid transparent;
-            border-right: 10px solid #0ea5e9;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 8px solid #f3f4f6;
         }
-
-        .memory-game {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .memory-card {
-            aspect-ratio: 1;
-            background: #f3f4f6;
-            border: 2px solid #d1d5db;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .memory-card:hover {
-            border-color: #4f46e5;
-            transform: scale(1.05);
-        }
-
-        .memory-card.flipped {
-            background: #4f46e5;
-            color: white;
-        }
-
-        .completion-screen {
-            text-align: center;
-            padding: 60px 40px;
-            display: none;
-        }
-
-        .completion-screen.active {
-            display: block;
-        }
-
-        .completion-icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
-        }
-
-        .completion-title {
-            font-size: 2.5rem;
-            color: #059669;
-            margin-bottom: 15px;
-        }
-
-        .completion-message {
-            font-size: 1.2rem;
-            color: #374151;
-            margin-bottom: 30px;
-        }
-
-        .word-cloud {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .word-cloud-item {
-            background: #ede9fe;
-            color: #6b21a8;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .word-cloud-item:hover {
-            background: #6b21a8;
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .interactive-text {
-            font-size: 1.3rem;
-            line-height: 1.8;
-            margin: 20px 0;
-        }
-
-        .clickable-word {
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .clickable-word:hover {
-            background: #fef3c7;
-        }
-
-        .clickable-word.correct {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .clickable-word.incorrect {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .content-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .content-card h3 {
-            color: #374151;
-            margin-bottom: 15px;
-            font-size: 1.25rem;
-        }
-
-        .content-card p {
-            color: #6b7280;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .moment-container.active {
-            animation: slideIn 0.5s ease-out;
+        
+        .typewriter {
+            overflow: hidden;
+            white-space: pre-wrap;
         }
     </style>
 </head>
 <body>
-    <div class="lesson-container">
-        <div class="lesson-header">
-            <h1 class="lesson-title">Substantiv - del 1 </h1>
-            <p class="lesson-subtitle">Ordklass: noun</p>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <p id="progressText">Moment 1 av 6</p>
-        </div>
-
-        
-        <div class="moment-container active" id="moment0">
-          
-          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
-            <!-- Text area - 3/4 of screen -->
-            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
-              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
-                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
-                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
-                  
-                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
-                    
-                    
-                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Hallå på dig, landkrabba!</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jag heter Kapten Matilda och jag styr den här substantivskutan! 🏴‍☠️ 
-Alla på mitt skepp ÄLSKAR substantiv. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Varför det, tror du? </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jo, vi pirater gillar saker mer än allt annat – och substantiv och saker hör ihop som kniv och gaffel! </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Vad är då ett substantiv?
-
-Ett substantiv är ett ord som berättar vad saker, personer, djur, platser eller känslor heter. Jag heter till exempel Matilda och mitt namn är ett substantiv. Jag har också en hatt på mig och det är också ett ord som är ett substantiv. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Andra exempel på substantiv kan vara:
-
-Saker: boll, bord, dator 
-
-Personer: Erik, Matilda, Tomas
-
-Djur: katt, ko, fisk, papegoja
-
-Platser: Stockholm, skogen, havet, simhallen
-
-Känslor: glädje, kärlek, ilska</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">👉 Kom ihåg denna lilla ramsa: 
-“Substantiv är namn på ting, som stol, katt och en ring.” </p>
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Boll
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Simmade
-                                </button>
-                              
-                            </div>
-                          </div>
-                        
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Kanske
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  När
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Bok
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Usch!
-                                </button>
-                              
-                            </div>
-                          </div>
-                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Nu verkar du få lite koll, eller som vi säger "få sjöben". 
-
-Jag har både en katt och en papegoja. Båda är väldigt trevliga! 🐱🦜
-Namn på djur är också substantiv.
-
-Exempel:
-
-Katt, ko, åsna, kamel, fjäril, fisk.</p>
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Aj!
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Min
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Katt
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Bet
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Mig
-                                </button>
-                              
-                            </div>
-                          </div>
-                        
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Kräftan
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Låg
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Bara
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Där
-                                </button>
-                              
-                            </div>
-                          </div>
-                        
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Character area - 1/4 of screen -->
-            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
-              <div style="text-align: center;">
-                <div style="font-size: 8rem; margin-bottom: 16px;">
-                  🏴‍☠️
-                </div>
-                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment1">
-          
-          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
-            <!-- Text area - 3/4 of screen -->
-            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
-              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
-                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
-                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
-                  
-                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
-                    
-                    
-                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Topp! Nu har du koll på att namn både levande varelser och saker är substantiv. 
-
-Det finns även andra grejer som är substantiv. 
-
-Alla namn på människor är substantiv: Erik, Sara, Greta, Kondrad, Matilda
-
-Även alla namn på platser är substantiv: Simhallen, Malmö, men även ord som skogen och havet. </p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Jag kanske kommer från Söderhavet och du från någon helt annan plats.
-Men en sak är säker: namnet på en plats är alltid ett substantiv!
-
-Exempel på städer:
-Stockholm
-Gävle
-Falun
-
-Men även mindre ställen är också exempel på substantiv:
-Ridhuset
-Simhallen
-Gretas grill</p>
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Vi
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Åkte
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Till
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Göteborg
-                                </button>
-                              
-                            </div>
-                          </div>
-                        
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Nej!
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Ridhuset
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Har
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Stängt
-                                </button>
-                              
-                            </div>
-                          </div>
-                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Nu ska vi se ifall du kan gräva upp ett par skatter som jag har gömt... </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Character area - 1/4 of screen -->
-            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
-              <div style="text-align: center;">
-                <div style="font-size: 8rem; margin-bottom: 16px;">
-                  🏴‍☠️
-                </div>
-                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment2">
-          
-          <h2 class="moment-title">Piratgräv</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 20px;">🏴‍☠️</div>
-                <h3>Piratgräv</h3>
-                <p><strong>Fråga:</strong> Är det ett substantiv?</p>
-                <p style="margin-top: 15px; color: #6b7280;">Detta är ett interaktivt spel som fungerar bäst i huvudapplikationen.</p>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment3">
-          
-          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
-            <!-- Text area - 3/4 of screen -->
-            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
-              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
-                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
-                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
-                  
-                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
-                    
-                    
-                    <p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">Jag mår lite dåligt... Det känns som jag håller på att bli sjösjuk!
-Sjösjuka är en obehaglig känsla – och namn på känslor är också substantiv.</p><p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Känslor som glädje, ilska, kärlek, illamående, håll och tandvärk är också substantiv.</p>
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Glädjen
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Fyllde
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Hela
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  rummet
-                                </button>
-                              
-                            </div>
-                          </div>
-                        
-                          <div style="margin-top: 24px;">
-                            <div style="margin-bottom: 12px;">
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Han
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Fylldes
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ">
-                                  Av
-                                </button>
-                              
-                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; border-color: #10b981; background-color: #f0fdf4;">
-                                  Ilska
-                                </button>
-                              
-                            </div>
-                          </div>
-                        <p style="font-size: 1.5rem; line-height: 1.6; margin: 24px 0 0 0;">Toppenbra jobbat! Nu har det äntligen dags för ditt slutprov!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Character area - 1/4 of screen -->
-            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
-              <div style="text-align: center;">
-                <div style="font-size: 8rem; margin-bottom: 16px;">
-                  🏴‍☠️
-                </div>
-                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                  <p style="font-weight: bold; color: #374151; margin: 0;">Kapten Matilda</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment4">
-          
-          <h2 class="moment-title">Slutprov</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
-                <h3>Slutprov</h3>
-                <p>Tidsbegränsat test för att visa vad du har lärt dig.</p>
-                <p style="margin-top: 15px; color: #6b7280;">Fullt funktionell version finns i huvudapplikationen.</p>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-        <div class="moment-container" id="moment5">
-          
-          <h2 class="moment-title">Slutdiplom</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="text-align: center; padding: 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">🏆</div>
-                <h3 style="font-size: 2rem; color: #92400e; margin-bottom: 15px;">
-                  Grattis!
-                </h3>
-                <h4 style="font-size: 1.5rem; margin-bottom: 10px;">
-                  Substantiv - del 1 
-                </h4>
-                <p style="font-size: 1.1rem; margin: 20px 0;">
-                  Du har slutfört kursen med framgång!
-                </p>
-              </div>
-            </div>
-          </div>
-        
-        </div>
-      
-
-        <div class="completion-screen" id="completionScreen">
-            <div class="completion-icon">🎉</div>
-            <h2 class="completion-title">Grattis!</h2>
-            <p class="completion-message">Du har slutfört lektionen "Substantiv - del 1 "</p>
-            <button class="btn btn-primary" onclick="restartLesson()">Börja om</button>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-secondary" id="prevBtn" onclick="previousMoment()" disabled>⬅ Föregående</button>
-            <span id="momentCounter">1 / 6</span>
-            <button class="btn btn-primary" id="nextBtn" onclick="nextMoment()">Nästa ➡</button>
-        </div>
-    </div>
-
-    <script>
-        
-      let currentMoment = 0;
-      const totalMoments = 6;
-      let completedMoments = new Set();
-
-      function updateProgress() {
-        const progress = ((currentMoment + 1) / totalMoments) * 100;
-        document.getElementById('progressFill').style.width = progress + '%';
-        document.getElementById('progressText').textContent = `Moment ${currentMoment + 1} av ${totalMoments}`;
-        document.getElementById('momentCounter').textContent = `${currentMoment + 1} / ${totalMoments}`;
-        
-        document.getElementById('prevBtn').disabled = currentMoment === 0;
-        document.getElementById('nextBtn').disabled = currentMoment === totalMoments - 1;
-      }
-
-      function showMoment(index) {
-        // Göm alla moment
-        document.querySelectorAll('.moment-container').forEach(moment => {
-          moment.classList.remove('active');
-        });
-        
-        // Visa valt moment
-        document.getElementById('moment' + index).classList.add('active');
-        currentMoment = index;
-        updateProgress();
-      }
-
-      function nextMoment() {
-        if (currentMoment < totalMoments - 1) {
-          completedMoments.add(currentMoment);
-          showMoment(currentMoment + 1);
-        } else {
-          // Visa slutskärm
-          document.querySelectorAll('.moment-container').forEach(moment => {
-            moment.classList.remove('active');
-          });
-          document.getElementById('completionScreen').classList.add('active');
-          document.querySelector('.controls').style.display = 'none';
-        }
-      }
-
-      function previousMoment() {
-        if (currentMoment > 0) {
-          showMoment(currentMoment - 1);
-        }
-      }
-
-      function restartLesson() {
-        currentMoment = 0;
-        completedMoments.clear();
-        document.getElementById('completionScreen').classList.remove('active');
-        document.querySelector('.controls').style.display = 'flex';
-        showMoment(0);
-      }
-
-      // Initialisera
-      updateProgress();
+    <div id="root"></div>
     
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Lesson data embedded
+        const lessonData = {
+  "title": "Substantiv - del 1 ",
+  "moments": [
+    {
+      "id": "merged1_1755383020389_0",
+      "type": "pratbubbla",
+      "order": 0,
+      "title": "Pratbubbla",
+      "config": {
+        "items": [
+          {
+            "id": "item-1",
+            "type": "text",
+            "order": 1,
+            "content": "Hallå på dig, landkrabba!"
+          },
+          {
+            "id": "item-1755375850475",
+            "type": "text",
+            "order": 2,
+            "content": "Jag heter Kapten Matilda och jag styr den här substantivskutan! 🏴‍☠️ \nAlla på mitt skepp ÄLSKAR substantiv. "
+          },
+          {
+            "id": "item-1755375851635",
+            "type": "text",
+            "order": 3,
+            "content": "Varför det, tror du? "
+          },
+          {
+            "id": "item-1755375851794",
+            "type": "text",
+            "order": 4,
+            "content": "Jo, vi pirater gillar saker mer än allt annat – och substantiv och saker hör ihop som kniv och gaffel! "
+          },
+          {
+            "id": "item-1755375851964",
+            "type": "text",
+            "order": 5,
+            "content": "Vad är då ett substantiv?\n\nEtt substantiv är ett ord som berättar vad saker, personer, djur, platser eller känslor heter. Jag heter till exempel Matilda och mitt namn är ett substantiv. Jag har också en hatt på mig och det är också ett ord som är ett substantiv. "
+          },
+          {
+            "id": "item-1755375852121",
+            "type": "text",
+            "order": 6,
+            "content": "Andra exempel på substantiv kan vara:\n\nSaker: boll, bord, dator \n\nPersoner: Erik, Matilda, Tomas\n\nDjur: katt, ko, fisk, papegoja\n\nPlatser: Stockholm, skogen, havet, simhallen\n\nKänslor: glädje, kärlek, ilska"
+          },
+          {
+            "id": "item-1755375852360",
+            "type": "text",
+            "order": 7,
+            "content": "👉 Kom ihåg denna lilla ramsa: \n“Substantiv är namn på ting, som stol, katt och en ring.” "
+          },
+          {
+            "id": "item-1755376105582",
+            "type": "question",
+            "order": 8,
+            "content": "Får se kommer du ihåg?\n\nVilket av dessa ord är ett substantiv?",
+            "alternatives": [
+              {
+                "text": "Boll",
+                "correct": true
+              },
+              {
+                "text": "Simmade",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt svar: Boll - för det är ju ett namn på en sak. Bra där!",
+            "incorrectFeedback": "Tyvärr fel... Simma är ju något man gör och det är inte ett substantiv (verb)"
+          },
+          {
+            "id": "item-1755383608528",
+            "type": "question",
+            "order": 9,
+            "content": "Vilket ord är substantivet",
+            "alternatives": [
+              {
+                "text": "Kanske",
+                "correct": false
+              },
+              {
+                "text": "När",
+                "correct": false
+              },
+              {
+                "text": "Bok",
+                "correct": true
+              },
+              {
+                "text": "Usch!",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755376261972",
+            "type": "text",
+            "order": 10,
+            "content": "Nu verkar du få lite koll, eller som vi säger \"få sjöben\". \n\nJag har både en katt och en papegoja. Båda är väldigt trevliga! 🐱🦜\nNamn på djur är också substantiv.\n\nExempel:\n\nKatt, ko, åsna, kamel, fjäril, fisk."
+          },
+          {
+            "id": "item-1755384675065",
+            "type": "question",
+            "order": 11,
+            "content": "Vad är substantivet i denna mening?\n\nAj! Min katt bet mig!",
+            "alternatives": [
+              {
+                "text": "Aj!",
+                "correct": false
+              },
+              {
+                "text": "Min",
+                "correct": false
+              },
+              {
+                "text": "Katt",
+                "correct": true
+              },
+              {
+                "text": "Bet",
+                "correct": false
+              },
+              {
+                "text": "Mig",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755384729408",
+            "type": "question",
+            "order": 12,
+            "content": "Vad är substantivet i denna mening?\n\nKräftan låg bara där",
+            "alternatives": [
+              {
+                "text": "Kräftan",
+                "correct": true
+              },
+              {
+                "text": "Låg",
+                "correct": false
+              },
+              {
+                "text": "Bara",
+                "correct": false
+              },
+              {
+                "text": "Där",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          }
+        ],
+        "animationSpeed": 25,
+        "characterImage": "/@fs/home/runner/workspace/attached_assets/Pirat%20h%C3%B6ger_1755326212023.png"
+      }
+    },
+    {
+      "id": "merged1_1755383020389_1",
+      "type": "pratbubbla",
+      "order": 1,
+      "title": "Pratbubbla",
+      "config": {
+        "items": [
+          {
+            "id": "item-1",
+            "type": "text",
+            "order": 1,
+            "content": "Topp! Nu har du koll på att namn både levande varelser och saker är substantiv. \n\nDet finns även andra grejer som är substantiv. \n\nAlla namn på människor är substantiv: Erik, Sara, Greta, Kondrad, Matilda\n\nÄven alla namn på platser är substantiv: Simhallen, Malmö, men även ord som skogen och havet. "
+          },
+          {
+            "id": "item-1755384109366",
+            "type": "text",
+            "order": 4,
+            "content": "Jag kanske kommer från Söderhavet och du från någon helt annan plats.\nMen en sak är säker: namnet på en plats är alltid ett substantiv!\n\nExempel på städer:\nStockholm\nGävle\nFalun\n\nMen även mindre ställen är också exempel på substantiv:\nRidhuset\nSimhallen\nGretas grill"
+          },
+          {
+            "id": "item-1755383941466",
+            "type": "question",
+            "order": 5,
+            "content": "Vilket ord i denna mening är ett substantiv?\n\nVi åkte till Göteborg",
+            "alternatives": [
+              {
+                "text": "Vi",
+                "correct": false
+              },
+              {
+                "text": "Åkte",
+                "correct": false
+              },
+              {
+                "text": "Till",
+                "correct": false
+              },
+              {
+                "text": "Göteborg",
+                "correct": true
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755384018937",
+            "type": "question",
+            "order": 6,
+            "content": "Vilket ord i denna mening är ett substantiv?\n\nNej! Ridhuset har stängt",
+            "alternatives": [
+              {
+                "text": "Nej!",
+                "correct": false
+              },
+              {
+                "text": "Ridhuset",
+                "correct": true
+              },
+              {
+                "text": "Har",
+                "correct": false
+              },
+              {
+                "text": "Stängt",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755377657324",
+            "type": "text",
+            "order": 7,
+            "content": "Nu ska vi se ifall du kan gräva upp ett par skatter som jag har gömt... "
+          }
+        ],
+        "animationSpeed": 25,
+        "characterImage": "/@fs/home/runner/workspace/attached_assets/Pirat%20h%C3%B6ger_1755326212023.png"
+      }
+    },
+    {
+      "id": "merged1_1755383020389_2",
+      "type": "piratgrav",
+      "order": 2,
+      "title": "Piratgräv",
+      "config": {
+        "words": [
+          {
+            "n": true,
+            "w": "Matilda"
+          },
+          {
+            "n": false,
+            "w": "Springa"
+          },
+          {
+            "n": true,
+            "w": "Stockholm"
+          },
+          {
+            "n": false,
+            "w": "Röd"
+          },
+          {
+            "n": true,
+            "w": "Tomas"
+          },
+          {
+            "n": false,
+            "w": "Snäll"
+          },
+          {
+            "n": true,
+            "w": "Katt"
+          },
+          {
+            "n": false,
+            "w": "Grön"
+          },
+          {
+            "n": true,
+            "w": "Böcker"
+          },
+          {
+            "n": false,
+            "w": "Dålig"
+          },
+          {
+            "n": true,
+            "w": "Simhall"
+          },
+          {
+            "n": false,
+            "w": "Eller"
+          }
+        ],
+        "instruction": "Gräv fram ord och avgör om de är substantiv"
+      }
+    },
+    {
+      "id": "merged1_1755383020389_3",
+      "type": "pratbubbla",
+      "order": 3,
+      "title": "Pratbubbla",
+      "config": {
+        "items": [
+          {
+            "id": "item-1",
+            "type": "text",
+            "order": 1,
+            "content": "Jag mår lite dåligt... Det känns som jag håller på att bli sjösjuk!\nSjösjuka är en obehaglig känsla – och namn på känslor är också substantiv."
+          },
+          {
+            "id": "item-1755379557807",
+            "type": "text",
+            "order": 2,
+            "content": "Känslor som glädje, ilska, kärlek, illamående, håll och tandvärk är också substantiv."
+          },
+          {
+            "id": "item-1755384876559",
+            "type": "question",
+            "order": 3,
+            "content": "Vilket ord är ett substantiv\n\nGlädjen fyllde hela rummet.",
+            "alternatives": [
+              {
+                "text": "Glädjen",
+                "correct": true
+              },
+              {
+                "text": "Fyllde",
+                "correct": false
+              },
+              {
+                "text": "Hela",
+                "correct": false
+              },
+              {
+                "text": "rummet",
+                "correct": false
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755384960258",
+            "type": "question",
+            "order": 4,
+            "content": "Vilket ord är ett substantiv\n\nHan fylldes av ilska",
+            "alternatives": [
+              {
+                "text": "Han",
+                "correct": false
+              },
+              {
+                "text": "Fylldes",
+                "correct": false
+              },
+              {
+                "text": "Av",
+                "correct": false
+              },
+              {
+                "text": "Ilska",
+                "correct": true
+              }
+            ],
+            "correctFeedback": "Rätt! Bra jobbat!",
+            "incorrectFeedback": "Fel svar. Försök igen!"
+          },
+          {
+            "id": "item-1755379699695",
+            "type": "text",
+            "order": 5,
+            "content": "Toppenbra jobbat! Nu har det äntligen dags för ditt slutprov!"
+          }
+        ],
+        "animationSpeed": 25,
+        "characterImage": "/@fs/home/runner/workspace/attached_assets/Pirat%20h%C3%B6ger_1755326212023.png"
+      }
+    },
+    {
+      "id": "merged2_1755383020389_4",
+      "type": "slutprov",
+      "order": 4,
+      "title": "Slutprov",
+      "config": {
+        "sentences": [
+          "Jag har en anka",
+          "Min nya bil vill inte starta",
+          "Titta en skog!",
+          "Solstolen välte genast",
+          "Kalmar vann inte igår",
+          "Jag spillde på mina byxor!",
+          "Glädjen sprider sig",
+          "Frankrike är fint",
+          "Inska är tråkigt",
+          "Zebran sprang iväg",
+          "Spring Jonas, spring!",
+          "Se på havet!",
+          "Min katt är den finaste!",
+          "Jag har köpt en ny cykel",
+          "Kärlek är fint"
+        ],
+        "timeLimit": 120,
+        "instruction": "Klicka på substantivet i meningen",
+        "targetWords": [
+          "anka",
+          "bil",
+          "skog!",
+          "Solstolen",
+          "Kalmar",
+          "byxor!",
+          "Glädjen",
+          "Frankrike",
+          "Ilska",
+          "Zebran",
+          "Jonas",
+          "Havet",
+          "katt",
+          "Cykel",
+          "Kärlek"
+        ],
+        "penaltySeconds": 10,
+        "requiredCorrect": 12
+      }
+    },
+    {
+      "id": "moment_1755411742452",
+      "type": "slutdiplom",
+      "order": 5,
+      "title": "Slutdiplom",
+      "config": {
+        "courseName": "Substantiv - del 1 "
+      }
+    }
+  ],
+  "wordClass": "noun",
+  "background": "beach"
+};
+        
+        function LessonPlayer() {
+            const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
+            const [currentText, setCurrentText] = useState("");
+            const [textIndex, setTextIndex] = useState(0);
+            const [currentItemIndex, setCurrentItemIndex] = useState(0);
+            const [itemCompleted, setItemCompleted] = useState(false);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [feedbackText, setFeedbackText] = useState('');
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            
+            const currentMoment = lessonData.moments[currentMomentIndex];
+            
+            // Reset states when moment or item changes
+            useEffect(() => {
+                if (currentMoment?.type === 'pratbubbla') {
+                    setTextIndex(0);
+                    setCurrentText('');
+                    setItemCompleted(false);
+                    setShowFeedback(false);
+                    setSelectedAnswer(null);
+                }
+            }, [currentMomentIndex, currentItemIndex]);
+            
+            // Get current item based on index
+            const getCurrentItem = () => {
+                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    return sortedItems[currentItemIndex] || null;
+                }
+                return null;
+            };
+            
+            // Typewriter effect
+            useEffect(() => {
+                if (currentMoment?.type === 'pratbubbla') {
+                    const currentItem = getCurrentItem();
+                    let text = '';
+                    
+                    if (currentItem && (currentItem.type === 'text' || currentItem.type === 'question')) {
+                        text = currentItem.content || '';
+                    } else if (!currentMoment.config.items) {
+                        text = currentMoment.config.text || '';
+                    }
+                    
+                    if (text && textIndex < text.length) {
+                        const timeout = setTimeout(() => {
+                            setCurrentText(text.slice(0, textIndex + 1));
+                            setTextIndex(textIndex + 1);
+                        }, currentMoment.config.animationSpeed || 50);
+                        return () => clearTimeout(timeout);
+                    } else if (text && textIndex >= text.length) {
+                        setItemCompleted(true);
+                    }
+                }
+            }, [textIndex, currentMoment, currentItemIndex]);
+            
+            const handleAnswerSelect = (answer, isCorrect) => {
+                setSelectedAnswer(answer);
+                setShowFeedback(true);
+                
+                const currentItem = getCurrentItem();
+                if (isCorrect) {
+                    setFeedbackText(currentItem?.correctFeedback || 'Rätt! Bra jobbat!');
+                } else {
+                    setFeedbackText(currentItem?.incorrectFeedback || 'Fel svar. Försök igen!');
+                }
+            };
+            
+            const resetQuestion = () => {
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setFeedbackText('');
+            };
+            
+            const goToNextItem = () => {
+                if (currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    if (currentItemIndex < sortedItems.length - 1) {
+                        setCurrentItemIndex(currentItemIndex + 1);
+                    } else {
+                        goToNextMoment();
+                    }
+                } else {
+                    goToNextMoment();
+                }
+            };
+            
+            const goToNextMoment = () => {
+                if (currentMomentIndex < lessonData.moments.length - 1) {
+                    setCurrentMomentIndex(currentMomentIndex + 1);
+                    setCurrentItemIndex(0);
+                }
+            };
+            
+            const isLastItem = () => {
+                if (currentMoment?.type === 'pratbubbla' && currentMoment.config.items && currentMoment.config.items.length > 0) {
+                    const sortedItems = [...currentMoment.config.items].sort((a, b) => a.order - b.order);
+                    return currentItemIndex === sortedItems.length - 1;
+                }
+                return false;
+            };
+            
+            if (!currentMoment) {
+                return React.createElement('div', {
+                    className: 'flex items-center justify-center h-screen text-2xl'
+                }, 'Lektion slutförd! 🎉');
+            }
+            
+            if (currentMoment.type === 'pratbubbla') {
+                const currentItem = getCurrentItem();
+                const isCurrentItemQuestion = currentItem?.type === 'question';
+                const isCurrentItemText = currentItem?.type === 'text';
+                
+                let hasQuestion = false;
+                let currentAlternatives = [];
+                
+                if (isCurrentItemQuestion) {
+                    hasQuestion = true;
+                    currentAlternatives = currentItem?.alternatives || [];
+                } else if (!currentMoment.config.items && currentMoment.config.question && currentMoment.config.alternatives) {
+                    hasQuestion = true;
+                    currentAlternatives = currentMoment.config.alternatives || [];
+                }
+                
+                const textComplete = (isCurrentItemText || isCurrentItemQuestion) ? itemCompleted : true;
+                
+                return React.createElement('div', {
+                    className: 'w-full h-screen flex',
+                    style: { minHeight: '100vh' }
+                }, 
+                    // Text area - 3/4 of screen
+                    React.createElement('div', {
+                        className: 'w-3/4 flex items-start justify-center pt-16 p-8'
+                    },
+                        React.createElement('div', {
+                            className: 'bg-white rounded-2xl p-8 shadow-lg max-w-3xl w-full',
+                            style: { border: '4px solid #93c5fd' }
+                        },
+                            React.createElement('div', {
+                                className: 'speech-bubble'
+                            },
+                                // Text content
+                                React.createElement('p', {
+                                    className: 'text-2xl leading-relaxed whitespace-pre-wrap'
+                                }, 
+                                    showFeedback ? feedbackText : currentText,
+                                    !showFeedback && (isCurrentItemText || isCurrentItemQuestion) && !itemCompleted && 
+                                        React.createElement('span', { className: 'animate-pulse' }, '|')
+                                ),
+                                
+                                // Question and alternatives
+                                hasQuestion && isCurrentItemQuestion && textComplete && !showFeedback &&
+                                    React.createElement('div', { className: 'mt-6' },
+                                        React.createElement('div', { className: 'space-y-3' },
+                                            currentAlternatives.map((alt, index) =>
+                                                React.createElement('button', {
+                                                    key: index,
+                                                    className: 'w-full text-left justify-start p-4 h-auto bg-white border border-gray-300 rounded hover:bg-gray-50',
+                                                    onClick: () => handleAnswerSelect(alt.text, alt.correct),
+                                                    disabled: selectedAnswer !== null
+                                                }, alt.text)
+                                            )
+                                        )
+                                    ),
+                                
+                                // Feedback actions
+                                showFeedback &&
+                                    React.createElement('div', { className: 'mt-4 space-x-3' },
+                                        !currentAlternatives.find(alt => alt.text === selectedAnswer)?.correct ? 
+                                            React.createElement('button', {
+                                                className: 'px-4 py-2 border border-gray-300 rounded hover:bg-gray-50',
+                                                onClick: resetQuestion
+                                            }, 'Försök igen') :
+                                            isLastItem() ?
+                                                React.createElement('button', {
+                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                                    onClick: goToNextMoment
+                                                }, 'Slutför momentet') :
+                                                React.createElement('button', {
+                                                    className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                                    onClick: goToNextItem
+                                                }, 'Nästa')
+                                    ),
+                                
+                                // Continue button for text items
+                                !hasQuestion && itemCompleted && !isLastItem() &&
+                                    React.createElement('div', { className: 'mt-4' },
+                                        React.createElement('button', {
+                                            className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600',
+                                            onClick: goToNextItem
+                                        }, 'Fortsätt')
+                                    ),
+                                
+                                // Final button for last text item
+                                !hasQuestion && itemCompleted && isLastItem() &&
+                                    React.createElement('div', { className: 'mt-4' },
+                                        React.createElement('button', {
+                                            className: 'px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600',
+                                            onClick: goToNextMoment
+                                        }, 'Slutför momentet')
+                                    )
+                            )
+                        )
+                    ),
+                    
+                    // Character area - 1/4 of screen  
+                    React.createElement('div', {
+                        className: 'w-1/4 flex items-center justify-center p-8'
+                    },
+                        React.createElement('div', { className: 'text-center' },
+                            React.createElement('div', {
+                                className: 'mb-4',
+                                style: { fontSize: '8rem' }
+                            }, '🏴‍☠️'),
+                            React.createElement('div', {
+                                className: 'bg-white rounded-lg p-4 shadow-lg'
+                            },
+                                React.createElement('p', {
+                                    className: 'font-bold text-gray-700'
+                                }, currentMoment.config.characterName || 'Kapten Matilda')
+                            )
+                        )
+                    )
+                );
+            }
+            
+            // Other moment types can be handled here
+            return React.createElement('div', {
+                className: 'p-8'
+            }, 
+                React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, currentMoment.title),
+                React.createElement('p', null, 'Moment typ: ' + currentMoment.type),
+                React.createElement('button', {
+                    className: 'mt-4 px-4 py-2 bg-blue-500 text-white rounded',
+                    onClick: goToNextMoment
+                }, 'Nästa moment')
+            );
+        }
+        
+        ReactDOM.render(React.createElement(LessonPlayer), document.getElementById('root'));
     </script>
 </body>
 </html>
