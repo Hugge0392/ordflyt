@@ -161,7 +161,7 @@ export interface ReadingQuestion {
   type: "multiple_choice" | "open_ended" | "true_false";
   question: string;
   options?: string[]; // for multiple choice
-  correctAnswer?: string | number; // for multiple choice (index) or true/false
+  correctAnswer?: string | number | boolean; // for multiple choice (index) or true/false
   explanation?: string; // optional explanation for the answer
 }
 

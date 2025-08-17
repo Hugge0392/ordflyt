@@ -344,7 +344,7 @@ export default function ReadingAdmin() {
   };
 
   const handleFeaturedImageComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    if (result.successful.length > 0) {
+    if (result.successful && result.successful.length > 0) {
       const uploadURL = result.successful[0].uploadURL;
       if (uploadURL) {
         // Process the upload URL to get the object path
@@ -419,10 +419,12 @@ export default function ReadingAdmin() {
                 </Button>
                 <Button
                   onClick={() => {
-                    setEditingLesson({ ...editingLesson, isPublished: 1 });
-                    setTimeout(() => handleSaveLesson(), 100);
+                    if (editingLesson) {
+                      setEditingLesson({ ...editingLesson, isPublished: 1 });
+                      setTimeout(() => handleSaveLesson(), 100);
+                    }
                   }}
-                  disabled={createMutation.isPending || updateMutation.isPending || !editingLesson.title || !editingLesson.gradeLevel || !editingLesson.content}
+                  disabled={createMutation.isPending || updateMutation.isPending || !editingLesson?.title || !editingLesson?.gradeLevel || !editingLesson?.content}
                   data-testid="button-publish-lesson"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
@@ -449,8 +451,8 @@ export default function ReadingAdmin() {
                   <Label htmlFor="title">Titel *</Label>
                   <Input
                     id="title"
-                    value={editingLesson.title || ""}
-                    onChange={(e) => setEditingLesson({ ...editingLesson, title: e.target.value })}
+                    value={editingLesson?.title || ""}
+                    onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, title: e.target.value })}
                     placeholder="T.ex. Sommaräventyret"
                     data-testid="input-title"
                   />
@@ -459,8 +461,8 @@ export default function ReadingAdmin() {
                 <div className="space-y-2">
                   <Label htmlFor="gradeLevel">Årskurs *</Label>
                   <Select
-                    value={editingLesson.gradeLevel || ""}
-                    onValueChange={(value) => setEditingLesson({ ...editingLesson, gradeLevel: value })}
+                    value={editingLesson?.gradeLevel || ""}
+                    onValueChange={(value) => editingLesson && setEditingLesson({ ...editingLesson, gradeLevel: value })}
                   >
                     <SelectTrigger data-testid="select-grade-level">
                       <SelectValue placeholder="Välj årskurs" />
@@ -477,8 +479,8 @@ export default function ReadingAdmin() {
                   <Label htmlFor="subject">Ämne</Label>
                   <Input
                     id="subject"
-                    value={editingLesson.subject || ""}
-                    onChange={(e) => setEditingLesson({ ...editingLesson, subject: e.target.value })}
+                    value={editingLesson?.subject || ""}
+                    onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, subject: e.target.value })}
                     placeholder="T.ex. Svenska, Naturkunskap"
                     data-testid="input-subject"
                   />
@@ -489,8 +491,8 @@ export default function ReadingAdmin() {
                   <Input
                     id="readingTime"
                     type="number"
-                    value={editingLesson.readingTime || ""}
-                    onChange={(e) => setEditingLesson({ ...editingLesson, readingTime: parseInt(e.target.value) || null })}
+                    value={editingLesson?.readingTime || ""}
+                    onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, readingTime: parseInt(e.target.value) || null })}
                     placeholder="5"
                     data-testid="input-reading-time"
                   />
@@ -501,8 +503,8 @@ export default function ReadingAdmin() {
                 <Label htmlFor="description">Beskrivning</Label>
                 <Textarea
                   id="description"
-                  value={editingLesson.description || ""}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, description: e.target.value })}
+                  value={editingLesson?.description || ""}
+                  onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, description: e.target.value })}
                   placeholder="En kort beskrivning av lektionen..."
                   rows={3}
                   data-testid="textarea-description"
@@ -511,13 +513,13 @@ export default function ReadingAdmin() {
 
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${editingLesson.isPublished === 1 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <div className={`w-3 h-3 rounded-full ${editingLesson?.isPublished === 1 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                   <div>
                     <p className="font-medium">
-                      {editingLesson.isPublished === 1 ? 'Publicerad' : 'Utkast'}
+                      {editingLesson?.isPublished === 1 ? 'Publicerad' : 'Utkast'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {editingLesson.isPublished === 1 
+                      {editingLesson?.isPublished === 1 
                         ? 'Lektionen är synlig för elever i läsförståelse-sektionen' 
                         : 'Lektionen är sparad som utkast och inte synlig för elever än'}
                     </p>
@@ -527,8 +529,8 @@ export default function ReadingAdmin() {
                   <input
                     type="checkbox"
                     id="published"
-                    checked={editingLesson.isPublished === 1}
-                    onChange={(e) => setEditingLesson({ ...editingLesson, isPublished: e.target.checked ? 1 : 0 })}
+                    checked={editingLesson?.isPublished === 1}
+                    onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, isPublished: e.target.checked ? 1 : 0 })}
                     data-testid="checkbox-published"
                   />
                   <Label htmlFor="published">Publicerad</Label>
@@ -540,7 +542,7 @@ export default function ReadingAdmin() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Huvudbild (valfri)</Label>
-                  {editingLesson.featuredImage ? (
+                  {editingLesson?.featuredImage ? (
                     <div className="space-y-3">
                       <img
                         src={editingLesson.featuredImage}
@@ -551,7 +553,7 @@ export default function ReadingAdmin() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setEditingLesson({...editingLesson, featuredImage: null})}
+                          onClick={() => editingLesson && setEditingLesson({...editingLesson, featuredImage: null})}
                         >
                           Ta bort bild
                         </Button>
@@ -578,8 +580,8 @@ export default function ReadingAdmin() {
                 </div>
 
                 <RichTextEditor
-                  value={editingLesson.content || ""}
-                  onChange={(content) => setEditingLesson({...editingLesson, content})}
+                  value={editingLesson?.content || ""}
+                  onChange={(content) => editingLesson && setEditingLesson({...editingLesson, content})}
                   placeholder="Skriv ditt textinnehåll här..."
                   className="min-h-[400px]"
                 />
@@ -588,7 +590,7 @@ export default function ReadingAdmin() {
 
             <TabsContent value="prereading" className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Innan du läser ({editingLesson.preReadingQuestions?.length || 0})</h3>
+                <h3 className="text-lg font-semibold">Innan du läser ({editingLesson?.preReadingQuestions?.length || 0})</h3>
                 <Button variant="outline" onClick={addPreReadingQuestion} data-testid="button-add-prereading-question">
                   <Plus className="w-4 h-4 mr-2" />
                   Lägg till fråga
@@ -604,8 +606,8 @@ export default function ReadingAdmin() {
               </div>
 
               <div className="space-y-4">
-                {editingLesson.preReadingQuestions?.map((question, index) => (
-                  <Card key={question.id}>
+                {editingLesson?.preReadingQuestions?.map((question, index) => (
+                  <Card key={(question as PreReadingQuestion).id}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
                         <h4 className="font-medium">Fråga {index + 1}</h4>
@@ -622,7 +624,7 @@ export default function ReadingAdmin() {
                       <div className="space-y-2">
                         <Label>Fråga</Label>
                         <Textarea
-                          value={question.question}
+                          value={(question as PreReadingQuestion).question}
                           onChange={(e) => updatePreReadingQuestion(index, { question: e.target.value })}
                           placeholder="T.ex. Vad tror du att texten handlar om baserat på rubriken?"
                           rows={2}
@@ -633,7 +635,7 @@ export default function ReadingAdmin() {
                       <div className="space-y-2">
                         <Label>Syfte</Label>
                         <Input
-                          value={question.purpose}
+                          value={(question as PreReadingQuestion).purpose}
                           onChange={(e) => updatePreReadingQuestion(index, { purpose: e.target.value })}
                           placeholder="T.ex. Aktivera förkunskaper om ämnet"
                           data-testid={`input-prereading-purpose-${index}`}
@@ -643,7 +645,7 @@ export default function ReadingAdmin() {
                   </Card>
                 ))}
 
-                {(!editingLesson.preReadingQuestions || editingLesson.preReadingQuestions.length === 0) && (
+                {(!editingLesson?.preReadingQuestions || editingLesson.preReadingQuestions.length === 0) && (
                   <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
                     <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-500 mb-3">Inga "Innan du läser"-frågor ännu</p>
@@ -658,7 +660,7 @@ export default function ReadingAdmin() {
 
             <TabsContent value="questions" className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Frågor ({editingLesson.questions?.length || 0})</h3>
+                <h3 className="text-lg font-semibold">Frågor ({editingLesson?.questions?.length || 0})</h3>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => addQuestion("multiple_choice")} data-testid="button-add-multiple-choice">
                     + Flervalsfrågna
@@ -673,14 +675,14 @@ export default function ReadingAdmin() {
               </div>
 
               <div className="space-y-4">
-                {editingLesson.questions?.map((question, index) => (
-                  <Card key={question.id}>
+                {editingLesson?.questions?.map((question, index) => (
+                  <Card key={(question as ReadingQuestion).id}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <Badge variant="outline">
-                          {question.type === "multiple_choice" && "Flervalsfrågna"}
-                          {question.type === "true_false" && "Sant/Falskt"}
-                          {question.type === "open_ended" && "Öppen fråga"}
+                          {(question as ReadingQuestion).type === "multiple_choice" && "Flervalsfrågna"}
+                          {(question as ReadingQuestion).type === "true_false" && "Sant/Falskt"}
+                          {(question as ReadingQuestion).type === "open_ended" && "Öppen fråga"}
                         </Badge>
                         <Button
                           variant="ghost"
@@ -696,29 +698,29 @@ export default function ReadingAdmin() {
                       <div className="space-y-2">
                         <Label>Fråga</Label>
                         <Input
-                          value={question.question}
+                          value={(question as ReadingQuestion).question}
                           onChange={(e) => updateQuestion(index, { question: e.target.value })}
                           placeholder="Skriv din fråga här..."
                           data-testid={`input-question-${index}`}
                         />
                       </div>
 
-                      {question.type === "multiple_choice" && (
+                      {(question as ReadingQuestion).type === "multiple_choice" && (
                         <div className="space-y-2">
                           <Label>Svarsalternativ</Label>
-                          {question.options?.map((option, optionIndex) => (
+                          {(question as ReadingQuestion).options?.map((option: string, optionIndex: number) => (
                             <div key={optionIndex} className="flex items-center gap-2">
                               <input
                                 type="radio"
-                                name={`correct-${question.id}`}
-                                checked={question.correctAnswer === optionIndex}
+                                name={`correct-${(question as ReadingQuestion).id}`}
+                                checked={(question as ReadingQuestion).correctAnswer === optionIndex}
                                 onChange={() => updateQuestion(index, { correctAnswer: optionIndex })}
                                 data-testid={`radio-correct-${index}-${optionIndex}`}
                               />
                               <Input
                                 value={option}
                                 onChange={(e) => {
-                                  const newOptions = [...(question.options || [])];
+                                  const newOptions = [...((question as ReadingQuestion).options || [])];
                                   newOptions[optionIndex] = e.target.value;
                                   updateQuestion(index, { options: newOptions });
                                 }}
@@ -726,22 +728,22 @@ export default function ReadingAdmin() {
                                 data-testid={`input-option-${index}-${optionIndex}`}
                               />
                               <span className="text-xs text-muted-foreground">
-                                {question.correctAnswer === optionIndex ? "(Rätt)" : ""}
+                                {(question as ReadingQuestion).correctAnswer === optionIndex ? "(Rätt)" : ""}
                               </span>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      {question.type === "true_false" && (
+                      {(question as ReadingQuestion).type === "true_false" && (
                         <div className="space-y-2">
                           <Label>Korrekt svar</Label>
                           <div className="flex gap-4">
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
-                                name={`tf-${question.id}`}
-                                checked={question.correctAnswer === true}
+                                name={`tf-${(question as ReadingQuestion).id}`}
+                                checked={(question as ReadingQuestion).correctAnswer === true}
                                 onChange={() => updateQuestion(index, { correctAnswer: true })}
                                 data-testid={`radio-true-${index}`}
                               />
@@ -750,8 +752,8 @@ export default function ReadingAdmin() {
                             <label className="flex items-center gap-2">
                               <input
                                 type="radio"
-                                name={`tf-${question.id}`}
-                                checked={question.correctAnswer === false}
+                                name={`tf-${(question as ReadingQuestion).id}`}
+                                checked={(question as ReadingQuestion).correctAnswer === false}
                                 onChange={() => updateQuestion(index, { correctAnswer: false })}
                                 data-testid={`radio-false-${index}`}
                               />
@@ -764,7 +766,7 @@ export default function ReadingAdmin() {
                       <div className="space-y-2">
                         <Label>Förklaring (valfri)</Label>
                         <Textarea
-                          value={question.explanation || ""}
+                          value={(question as ReadingQuestion).explanation || ""}
                           onChange={(e) => updateQuestion(index, { explanation: e.target.value })}
                           placeholder="Förklara varför svaret är korrekt..."
                           rows={2}
@@ -779,7 +781,7 @@ export default function ReadingAdmin() {
 
             <TabsContent value="definitions" className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Ordförklaringar ({editingLesson.wordDefinitions?.length || 0})</h3>
+                <h3 className="text-lg font-semibold">Ordförklaringar ({editingLesson?.wordDefinitions?.length || 0})</h3>
                 <Button variant="outline" onClick={addWordDefinition} data-testid="button-add-word-definition">
                   <Plus className="w-4 h-4 mr-2" />
                   Lägg till ordförklaring
@@ -787,7 +789,7 @@ export default function ReadingAdmin() {
               </div>
 
               <div className="space-y-4">
-                {editingLesson.wordDefinitions?.map((definition, index) => (
+                {editingLesson?.wordDefinitions?.map((definition, index) => (
                   <Card key={index}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
@@ -806,7 +808,7 @@ export default function ReadingAdmin() {
                         <div className="space-y-2">
                           <Label>Ord</Label>
                           <Input
-                            value={definition.word}
+                            value={(definition as WordDefinition).word}
                             onChange={(e) => updateWordDefinition(index, { word: e.target.value })}
                             placeholder="t.ex. mystisk"
                             data-testid={`input-word-${index}`}
@@ -815,7 +817,7 @@ export default function ReadingAdmin() {
                         <div className="space-y-2">
                           <Label>Förklaring</Label>
                           <Input
-                            value={definition.definition}
+                            value={(definition as WordDefinition).definition}
                             onChange={(e) => updateWordDefinition(index, { definition: e.target.value })}
                             placeholder="t.ex. hemlighetsfull, gåtfull"
                             data-testid={`input-definition-${index}`}
@@ -826,7 +828,7 @@ export default function ReadingAdmin() {
                       <div className="space-y-2">
                         <Label>Kontext (valfri)</Label>
                         <Input
-                          value={definition.context || ""}
+                          value={(definition as WordDefinition).context || ""}
                           onChange={(e) => updateWordDefinition(index, { context: e.target.value })}
                           placeholder="Meningen där ordet förekommer..."
                           data-testid={`input-context-${index}`}
