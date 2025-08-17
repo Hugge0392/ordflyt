@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { ReadingLesson, InsertReadingLesson, ReadingQuestion, WordDefinition } from "@shared/schema";
+import type { ReadingLesson, InsertReadingLesson, ReadingQuestion, WordDefinition, PreReadingQuestion } from "@shared/schema";
 
 export default function ReadingAdmin() {
   const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
@@ -98,6 +98,7 @@ export default function ReadingAdmin() {
       gradeLevel: "4-6",
       subject: "Svenska",
       readingTime: 5,
+      preReadingQuestions: [],
       questions: [],
       wordDefinitions: [],
       isPublished: 0
@@ -132,6 +133,7 @@ export default function ReadingAdmin() {
       gradeLevel: lesson.gradeLevel,
       subject: lesson.subject,
       readingTime: lesson.readingTime,
+      preReadingQuestions: lesson.preReadingQuestions,
       questions: lesson.questions,
       wordDefinitions: lesson.wordDefinitions,
       isPublished: lesson.isPublished
@@ -220,6 +222,45 @@ export default function ReadingAdmin() {
     });
   };
 
+  const addPreReadingQuestion = () => {
+    if (!editingLesson) return;
+    
+    const newQuestion: PreReadingQuestion = {
+      id: `pre_${Date.now()}`,
+      question: "",
+      purpose: ""
+    };
+
+    setEditingLesson({
+      ...editingLesson,
+      preReadingQuestions: [...(editingLesson.preReadingQuestions || []), newQuestion]
+    });
+  };
+
+  const updatePreReadingQuestion = (index: number, updates: Partial<PreReadingQuestion>) => {
+    if (!editingLesson) return;
+    
+    const questions = [...(editingLesson.preReadingQuestions || [])];
+    questions[index] = { ...questions[index], ...updates };
+    
+    setEditingLesson({
+      ...editingLesson,
+      preReadingQuestions: questions
+    });
+  };
+
+  const removePreReadingQuestion = (index: number) => {
+    if (!editingLesson) return;
+    
+    const questions = [...(editingLesson.preReadingQuestions || [])];
+    questions.splice(index, 1);
+    
+    setEditingLesson({
+      ...editingLesson,
+      preReadingQuestions: questions
+    });
+  };
+
   if (editingLesson || isCreating) {
     return (
       <div className="min-h-screen bg-background">
@@ -264,9 +305,10 @@ export default function ReadingAdmin() {
 
         <div className="max-w-6xl mx-auto p-6">
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="basic">Grundinfo</TabsTrigger>
               <TabsTrigger value="content">Innehåll</TabsTrigger>
+              <TabsTrigger value="prereading">Innan du läser</TabsTrigger>
               <TabsTrigger value="questions">Frågor</TabsTrigger>
               <TabsTrigger value="definitions">Ordförklaringar</TabsTrigger>
             </TabsList>
@@ -364,6 +406,76 @@ export default function ReadingAdmin() {
                 <p className="text-sm text-muted-foreground">
                   Tips: Skriv en intressant och välstrukturerad text anpassad för vald årskurs.
                 </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="prereading" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Innan du läser ({editingLesson.preReadingQuestions?.length || 0})</h3>
+                <Button variant="outline" onClick={addPreReadingQuestion} data-testid="button-add-prereading-question">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Lägg till fråga
+                </Button>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Om "Innan du läser"-frågor</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Dessa frågor ställs innan eleven läser texten för att aktivera förkunskaper, väcka nyfikenhet och ge en riktning för läsningen. 
+                  De hjälper eleven att fokusera på viktiga teman och förbereder för bättre textförståelse.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {editingLesson.preReadingQuestions?.map((question, index) => (
+                  <Card key={question.id}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium">Fråga {index + 1}</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePreReadingQuestion(index)}
+                          data-testid={`button-remove-prereading-${index}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Fråga</Label>
+                        <Textarea
+                          value={question.question}
+                          onChange={(e) => updatePreReadingQuestion(index, { question: e.target.value })}
+                          placeholder="T.ex. Vad tror du att texten handlar om baserat på rubriken?"
+                          rows={2}
+                          data-testid={`textarea-prereading-question-${index}`}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Syfte</Label>
+                        <Input
+                          value={question.purpose}
+                          onChange={(e) => updatePreReadingQuestion(index, { purpose: e.target.value })}
+                          placeholder="T.ex. Aktivera förkunskaper om ämnet"
+                          data-testid={`input-prereading-purpose-${index}`}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {(!editingLesson.preReadingQuestions || editingLesson.preReadingQuestions.length === 0) && (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                    <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-500 mb-3">Inga "Innan du läser"-frågor ännu</p>
+                    <Button variant="outline" onClick={addPreReadingQuestion} data-testid="button-add-first-prereading">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Lägg till första frågan
+                    </Button>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -608,6 +720,7 @@ export default function ReadingAdmin() {
                     <div>Årskurs: {lesson.gradeLevel}</div>
                     {lesson.subject && <div>Ämne: {lesson.subject}</div>}
                     {lesson.readingTime && <div>Läsningstid: {lesson.readingTime} min</div>}
+                    <div>Innan du läser: {lesson.preReadingQuestions.length}</div>
                     <div>Frågor: {lesson.questions.length}</div>
                     <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
                   </div>

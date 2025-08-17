@@ -140,12 +140,19 @@ export const readingLessons = pgTable("reading_lessons", {
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
   subject: varchar("subject"), // e.g. "Svenska", "Naturkunskap"
   readingTime: integer("reading_time"), // estimated reading time in minutes
+  preReadingQuestions: jsonb("pre_reading_questions").notNull().$type<PreReadingQuestion[]>().default([]),
   questions: jsonb("questions").notNull().$type<ReadingQuestion[]>().default([]),
   wordDefinitions: jsonb("word_definitions").notNull().$type<WordDefinition[]>().default([]),
   isPublished: integer("is_published").default(0), // 0 = draft, 1 = published
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export interface PreReadingQuestion {
+  id: string;
+  question: string;
+  purpose: string; // why this question is asked before reading
+}
 
 export interface ReadingQuestion {
   id: string;

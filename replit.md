@@ -21,6 +21,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Categorized Game Selection**: Organized activities into themed categories (Popular Games, Language Games, Storytelling, Word Class Games, Advanced Games) for better user experience
 - **Simplified Lesson Publishing (August 2025)**: Implemented streamlined publishing system where lessons are saved to database and accessible via shareable links, integrated into word class menu without opening new tabs
 - **New Landing Page Architecture (August 2025)**: Created beautiful category-based homepage at root with ordflyt.se branding, moved word classes to /grammatik as grammar subsection, added placeholder pages for future development (reading comprehension, writing, speaking, Nordic languages, source criticism)
+- **Reading Comprehension Admin Tool (August 2025)**: Built comprehensive admin interface for creating reading lessons with text content, multiple question types (multiple choice, true/false, open questions), word definitions, and pre-reading questions ("Innan du läser") that activate prior knowledge before reading
 
 # User Preferences
 

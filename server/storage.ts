@@ -370,6 +370,7 @@ export class MemStorage implements IStorage {
       description: lesson.description || null,
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
+      preReadingQuestions: lesson.preReadingQuestions || [],
       questions: lesson.questions || [],
       wordDefinitions: lesson.wordDefinitions || [],
       isPublished: lesson.isPublished || 0
@@ -393,6 +394,7 @@ export class MemStorage implements IStorage {
       ...existing, 
       ...lesson, 
       updatedAt: new Date(),
+      preReadingQuestions: lesson.preReadingQuestions || existing.preReadingQuestions,
       questions: lesson.questions || existing.questions,
       wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions
     };
