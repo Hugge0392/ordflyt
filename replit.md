@@ -20,6 +20,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Expanded Game Library**: Added 25+ interactive activity types including ordracet, quiz maker, word guessing, rhyme games, synonyms, spelling, interactive stories, crosswords, and advanced language exercises
 - **Categorized Game Selection**: Organized activities into themed categories (Popular Games, Language Games, Storytelling, Word Class Games, Advanced Games) for better user experience
 - **Simplified Lesson Publishing (August 2025)**: Implemented streamlined publishing system where lessons are saved to database and accessible via shareable links, integrated into word class menu without opening new tabs
+- **New Landing Page Architecture (August 2025)**: Created beautiful category-based homepage at root with ordflyt.se branding, moved word classes to /grammatik as grammar subsection, added placeholder pages for future development (reading comprehension, writing, speaking, Nordic languages, source criticism)
 
 # User Preferences
 
@@ -29,11 +30,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-The client-side is built with **React 18** using a modern component-based architecture:
+The client-side is built with **React 18** using a modern component-based architecture with multi-page routing:
 
 - **Vite** as the build tool and development server for fast hot module replacement
 - **TypeScript** for type safety throughout the application
-- **Wouter** for lightweight client-side routing (single route to Game component)
+- **Wouter** for lightweight client-side routing with category-based navigation:
+  - `/` - Main landing page with subject categories
+  - `/grammatik` - Grammar section (word classes and lessons)
+  - Placeholder routes for future subjects (/lasforstaelse, /skrivande, etc.)
 - **TanStack Query** for server state management and API caching
 - **Tailwind CSS** with **shadcn/ui** component library for styling
 - **Radix UI** primitives for accessible UI components

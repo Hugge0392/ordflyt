@@ -46,13 +46,16 @@ export default function Menu() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg text-[#41bb64]">
+      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg text-white relative">
+        <Link href="/" className="absolute left-4 top-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+          <span>←</span> Tillbaka till startsidan
+        </Link>
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="text-center">
             <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl inline-block mb-6">
               <i className="fas fa-graduation-cap text-4xl"></i>
             </div>
-            <h1 className="text-5xl font-bold mb-4">Välkommen till Ordklasser!</h1>
+            <h1 className="text-5xl font-bold mb-4">Grammatik - Ordklasser</h1>
             <p className="text-xl mb-4">Lär dig svenska grammatik genom roliga spel och övningar</p>
             <div className="bg-white/10 rounded-xl p-4 max-w-2xl mx-auto">
               <p className="text-lg">
