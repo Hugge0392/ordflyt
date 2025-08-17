@@ -46,7 +46,7 @@ export default function Menu() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg">
+      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg text-[#41bb64]">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="text-center">
             <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl inline-block mb-6">
@@ -64,7 +64,6 @@ export default function Menu() {
           </div>
         </div>
       </header>
-
       <main className="max-w-6xl mx-auto px-4 py-12">
         {/* Individual Word Class Training */}
         <section className="mb-16">
@@ -235,7 +234,6 @@ export default function Menu() {
           </div>
         </section>
       </main>
-
       {/* Word Class Dialog with Lessons */}
       <Dialog open={!!selectedWordClass} onOpenChange={() => setSelectedWordClass(null)}>
         <DialogContent className="max-w-2xl">
