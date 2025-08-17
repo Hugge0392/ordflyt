@@ -35,7 +35,7 @@ export class LessonGenerator {
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: ${this.getBackgroundStyle(lessonContent.background)};
             min-height: 100vh;
             padding: 20px;
         }
@@ -394,7 +394,7 @@ export class LessonGenerator {
             <div class="content-card">
               <div style="display: flex; align-items: flex-start; gap: 20px;">
                 <div style="font-size: 4rem; flex-shrink: 0;">
-                  ${moment.config.characterImage || '👨‍🏫'}
+                  ${this.getCharacterDisplay(moment.config.characterImage)}
                 </div>
                 <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
                   <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
@@ -602,6 +602,40 @@ export class LessonGenerator {
   }
 
   // Removed complex interactive functions for simplified export
+
+  private getCharacterDisplay(characterImage?: string): string {
+    if (!characterImage) return '👨‍🏫';
+    
+    // Om det är en emoji (kort sträng utan fil-extension), returnera den direkt
+    if (characterImage.length <= 4 && !characterImage.includes('.') && !characterImage.includes('/')) {
+      return characterImage;
+    }
+    
+    // Om det är en bildlänk, konvertera till passande emoji
+    if (characterImage.includes('Pirat') || characterImage.includes('pirat')) {
+      return '🏴‍☠️';
+    }
+    
+    // Standard emoji för andra bilder
+    return '👨‍🏫';
+  }
+
+  private getBackgroundStyle(background?: string): string {
+    switch (background) {
+      case 'beach':
+        return 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #f59e0b 100%)';
+      case 'forest':
+        return 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 50%, #10b981 100%)';
+      case 'castle':
+        return 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #6366f1 100%)';
+      case 'library':
+        return 'linear-gradient(135deg, #fef7cd 0%, #fde68a 50%, #f59e0b 100%)';
+      case 'space':
+        return 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #6366f1 100%)';
+      default:
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }
+  }
 
   private generateJavaScript(lessonContent: LessonContent): string {
     return `
