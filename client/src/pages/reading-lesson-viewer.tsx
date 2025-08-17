@@ -260,7 +260,8 @@ export default function ReadingLessonViewer() {
             </CardHeader>
             <CardContent className="relative">
               <div 
-                className="prose dark:prose-invert max-w-none min-h-[400px]"
+                className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg"
+                style={{ fontSize: '1.25rem', lineHeight: '1.8' }}
                 dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
                 onMouseOver={handleContentMouseOver}
                 onMouseOut={handleContentMouseOut}

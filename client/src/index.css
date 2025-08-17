@@ -88,6 +88,12 @@
 .accessibility-enhanced .prose p,
 .accessibility-enhanced .prose div,
 .accessibility-enhanced .prose span,
+.accessibility-enhanced .prose h1,
+.accessibility-enhanced .prose h2,
+.accessibility-enhanced .prose h3,
+.accessibility-enhanced .prose h4,
+.accessibility-enhanced .prose h5,
+.accessibility-enhanced .prose h6,
 .accessibility-enhanced .card-content,
 .accessibility-enhanced .card-header,
 .accessibility-enhanced .card-title,
@@ -99,6 +105,24 @@
   letter-spacing: var(--accessibility-letter-spacing) !important;
   color: var(--accessibility-text-color) !important;
 }
+
+/* Large text styles for reading content */
+.prose-lg {
+  font-size: 1.25rem !important;
+  line-height: 1.8 !important;
+}
+
+.prose-lg p {
+  font-size: 1.25rem !important;
+  line-height: 1.8 !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.prose-lg h1 { font-size: 2rem !important; }
+.prose-lg h2 { font-size: 1.75rem !important; }
+.prose-lg h3 { font-size: 1.5rem !important; }
+.prose-lg h4 { font-size: 1.375rem !important; }
+.prose-lg li { font-size: 1.25rem !important; line-height: 1.8 !important; }
 
 .accessibility-enhanced {
   background-color: var(--accessibility-bg-color) !important;
