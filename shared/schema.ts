@@ -130,3 +130,43 @@ export const insertLessonDraftSchema = createInsertSchema(lessonDrafts).omit({
 
 export type LessonDraft = typeof lessonDrafts.$inferSelect;
 export type InsertLessonDraft = z.infer<typeof insertLessonDraftSchema>;
+
+// Reading comprehension lessons table
+export const readingLessons = pgTable("reading_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  content: text("content").notNull(), // The main text content
+  gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
+  subject: varchar("subject"), // e.g. "Svenska", "Naturkunskap"
+  readingTime: integer("reading_time"), // estimated reading time in minutes
+  questions: jsonb("questions").notNull().$type<ReadingQuestion[]>().default([]),
+  wordDefinitions: jsonb("word_definitions").notNull().$type<WordDefinition[]>().default([]),
+  isPublished: integer("is_published").default(0), // 0 = draft, 1 = published
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export interface ReadingQuestion {
+  id: string;
+  type: "multiple_choice" | "open_ended" | "true_false";
+  question: string;
+  options?: string[]; // for multiple choice
+  correctAnswer?: string | number; // for multiple choice (index) or true/false
+  explanation?: string; // optional explanation for the answer
+}
+
+export interface WordDefinition {
+  word: string;
+  definition: string;
+  context?: string; // the sentence context where the word appears
+}
+
+export const insertReadingLessonSchema = createInsertSchema(readingLessons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ReadingLesson = typeof readingLessons.$inferSelect;
+export type InsertReadingLesson = z.infer<typeof insertReadingLessonSchema>;

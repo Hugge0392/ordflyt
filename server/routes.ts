@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema } from "@shared/schema";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -457,6 +457,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to delete lesson draft:", error);
       res.status(500).json({ message: "Failed to delete lesson draft" });
+    }
+  });
+
+  // ===== READING LESSON ENDPOINTS =====
+
+  // Create reading lesson
+  app.post("/api/reading-lessons", async (req, res) => {
+    try {
+      const validatedData = insertReadingLessonSchema.parse(req.body);
+      const lesson = await storage.createReadingLesson(validatedData);
+      res.status(201).json(lesson);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid reading lesson data", errors: error.errors });
+      }
+      console.error("Error creating reading lesson:", error);
+      res.status(500).json({ message: "Failed to create reading lesson" });
+    }
+  });
+
+  // Get all reading lessons
+  app.get("/api/reading-lessons", async (req, res) => {
+    try {
+      const lessons = await storage.getReadingLessons();
+      res.json(lessons);
+    } catch (error) {
+      console.error("Error fetching reading lessons:", error);
+      res.status(500).json({ message: "Failed to fetch reading lessons" });
+    }
+  });
+
+  // Get published reading lessons
+  app.get("/api/reading-lessons/published", async (req, res) => {
+    try {
+      const lessons = await storage.getPublishedReadingLessons();
+      res.json(lessons);
+    } catch (error) {
+      console.error("Error fetching published reading lessons:", error);
+      res.status(500).json({ message: "Failed to fetch published reading lessons" });
+    }
+  });
+
+  // Get single reading lesson
+  app.get("/api/reading-lessons/:id", async (req, res) => {
+    try {
+      const lesson = await storage.getReadingLesson(req.params.id);
+      if (!lesson) {
+        return res.status(404).json({ message: "Reading lesson not found" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Error fetching reading lesson:", error);
+      res.status(500).json({ message: "Failed to fetch reading lesson" });
+    }
+  });
+
+  // Update reading lesson
+  app.put("/api/reading-lessons/:id", async (req, res) => {
+    try {
+      const validatedData = insertReadingLessonSchema.parse(req.body);
+      const lesson = await storage.updateReadingLesson(req.params.id, validatedData);
+      res.json(lesson);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid reading lesson data", errors: error.errors });
+      }
+      console.error("Error updating reading lesson:", error);
+      res.status(500).json({ message: "Failed to update reading lesson" });
+    }
+  });
+
+  // Delete reading lesson
+  app.delete("/api/reading-lessons/:id", async (req, res) => {
+    try {
+      await storage.deleteReadingLesson(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting reading lesson:", error);
+      res.status(500).json({ message: "Failed to delete reading lesson" });
     }
   });
 

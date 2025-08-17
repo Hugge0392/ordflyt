@@ -5,6 +5,7 @@ import {
   type ErrorReport,
   type PublishedLesson,
   type LessonDraft,
+  type ReadingLesson,
   type Word,
   type InsertSentence,
   type InsertWordClass,
@@ -12,11 +13,12 @@ import {
   type InsertErrorReport,
   type InsertPublishedLesson,
   type InsertLessonDraft,
+  type InsertReadingLesson,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -59,12 +61,24 @@ export interface IStorage {
   getLessonDraft(id: string): Promise<LessonDraft | undefined>;
   updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft>;
   deleteLessonDraft(id: string): Promise<void>;
+
+  // Reading lesson methods
+  createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson>;
+  getReadingLessons(): Promise<ReadingLesson[]>;
+  getReadingLesson(id: string): Promise<ReadingLesson | undefined>;
+  updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson>;
+  deleteReadingLesson(id: string): Promise<void>;
+  getPublishedReadingLessons(): Promise<ReadingLesson[]>;
 }
 
 export class MemStorage implements IStorage {
   private wordClasses: Map<string, WordClass> = new Map();
   private sentences: Map<string, Sentence> = new Map();
   private gameProgress: GameProgress;
+  private errorReports: Map<string, ErrorReport> = new Map();
+  private publishedLessons: Map<string, PublishedLesson> = new Map();
+  private lessonDrafts: Map<string, LessonDraft> = new Map();
+  private readingLessons: Map<string, ReadingLesson> = new Map();
 
   constructor() {
     this.gameProgress = this.createEmptyProgress();
@@ -158,22 +172,22 @@ export class MemStorage implements IStorage {
   }
 
   async getWordClasses(): Promise<WordClass[]> {
-    return [...this.wordClasses.values()];
+    return Array.from(this.wordClasses.values());
   }
 
   async getSentences(): Promise<Sentence[]> {
-    return [...this.sentences.values()];
+    return Array.from(this.sentences.values());
   }
 
   async getSentencesByLevel(level: number): Promise<Sentence[]> {
-    return [...this.sentences.values()].filter((s) => s.level === level);
+    return Array.from(this.sentences.values()).filter((s) => s.level === level);
   }
 
   async getSentencesByWordClassAndLevel(
     wordClass: string,
     level: number,
   ): Promise<Sentence[]> {
-    let filtered = [...this.sentences.values()].filter(
+    let filtered = Array.from(this.sentences.values()).filter(
       (s) => s.wordClassType === wordClass && s.level === level,
     );
     filtered = this.shuffleArray(filtered);
@@ -203,6 +217,195 @@ export class MemStorage implements IStorage {
   async resetGameProgress(): Promise<GameProgress> {
     this.gameProgress = this.createEmptyProgress();
     return { ...this.gameProgress };
+  }
+
+  // Admin methods for sentences
+  async createSentence(sentence: InsertSentence): Promise<Sentence> {
+    const id = randomUUID();
+    const newSentence = { ...sentence, id };
+    this.sentences.set(id, newSentence);
+    return newSentence;
+  }
+
+  async updateSentence(id: string, sentence: Partial<InsertSentence>): Promise<Sentence> {
+    const existing = this.sentences.get(id);
+    if (!existing) throw new Error("Sentence not found");
+    const updated = { ...existing, ...sentence };
+    this.sentences.set(id, updated);
+    return updated;
+  }
+
+  async deleteSentence(id: string): Promise<void> {
+    this.sentences.delete(id);
+  }
+
+  async getSentenceById(id: string): Promise<Sentence | undefined> {
+    return this.sentences.get(id);
+  }
+
+  // Error report methods
+  async createErrorReport(report: InsertErrorReport): Promise<ErrorReport> {
+    const id = randomUUID();
+    const newReport: ErrorReport = { 
+      ...report, 
+      id, 
+      createdAt: new Date(), 
+      reviewedAt: null,
+      status: report.status || "pending",
+      sentenceId: report.sentenceId || null,
+      reportedWord: report.reportedWord || null,
+      expectedWordClass: report.expectedWordClass || null,
+      actualWordClass: report.actualWordClass || null,
+      playerEmail: report.playerEmail || null,
+      reviewNotes: report.reviewNotes || null
+    };
+    this.errorReports.set(id, newReport);
+    return newReport;
+  }
+
+  async getErrorReports(): Promise<ErrorReport[]> {
+    return Array.from(this.errorReports.values());
+  }
+
+  async updateErrorReport(id: string, report: Partial<ErrorReport>): Promise<ErrorReport> {
+    const existing = this.errorReports.get(id);
+    if (!existing) throw new Error("Error report not found");
+    const updated = { ...existing, ...report };
+    this.errorReports.set(id, updated);
+    return updated;
+  }
+
+  async deleteErrorReport(id: string): Promise<void> {
+    this.errorReports.delete(id);
+  }
+
+  // Published lesson methods
+  async createPublishedLesson(lesson: InsertPublishedLesson): Promise<PublishedLesson> {
+    const id = randomUUID();
+    const newLesson: PublishedLesson = { 
+      ...lesson, 
+      id, 
+      createdAt: new Date(), 
+      updatedAt: new Date(), 
+      fileName: null, 
+      filePath: null,
+      description: lesson.description || null,
+      wordClass: lesson.wordClass || null,
+      difficulty: lesson.difficulty || "medium",
+      background: lesson.background || "beach"
+    };
+    this.publishedLessons.set(id, newLesson);
+    return newLesson;
+  }
+
+  async getPublishedLessons(): Promise<PublishedLesson[]> {
+    return Array.from(this.publishedLessons.values());
+  }
+
+  async getPublishedLesson(id: string): Promise<PublishedLesson | undefined> {
+    return this.publishedLessons.get(id);
+  }
+
+  async getPublishedLessonsByWordClass(wordClass: string): Promise<PublishedLesson[]> {
+    return Array.from(this.publishedLessons.values()).filter(l => l.wordClass === wordClass);
+  }
+
+  async updatePublishedLesson(id: string, lesson: Partial<InsertPublishedLesson>): Promise<PublishedLesson> {
+    const existing = this.publishedLessons.get(id);
+    if (!existing) throw new Error("Published lesson not found");
+    const updated = { ...existing, ...lesson, updatedAt: new Date() };
+    this.publishedLessons.set(id, updated);
+    return updated;
+  }
+
+  async deletePublishedLesson(id: string): Promise<void> {
+    this.publishedLessons.delete(id);
+  }
+
+  // Draft lesson methods
+  async createLessonDraft(draft: InsertLessonDraft): Promise<LessonDraft> {
+    const id = randomUUID();
+    const newDraft: LessonDraft = { 
+      ...draft, 
+      id, 
+      createdAt: new Date(), 
+      updatedAt: new Date(),
+      description: draft.description || null,
+      wordClass: draft.wordClass || null,
+      difficulty: draft.difficulty || "medium",
+      background: draft.background || "beach"
+    };
+    this.lessonDrafts.set(id, newDraft);
+    return newDraft;
+  }
+
+  async getLessonDrafts(): Promise<LessonDraft[]> {
+    return Array.from(this.lessonDrafts.values());
+  }
+
+  async getLessonDraft(id: string): Promise<LessonDraft | undefined> {
+    return this.lessonDrafts.get(id);
+  }
+
+  async updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft> {
+    const existing = this.lessonDrafts.get(id);
+    if (!existing) throw new Error("Lesson draft not found");
+    const updated = { ...existing, ...draft, updatedAt: new Date() };
+    this.lessonDrafts.set(id, updated);
+    return updated;
+  }
+
+  async deleteLessonDraft(id: string): Promise<void> {
+    this.lessonDrafts.delete(id);
+  }
+
+  // Reading lesson methods
+  async createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson> {
+    const id = randomUUID();
+    const newLesson: ReadingLesson = { 
+      ...lesson, 
+      id, 
+      createdAt: new Date(), 
+      updatedAt: new Date(),
+      description: lesson.description || null,
+      subject: lesson.subject || null,
+      readingTime: lesson.readingTime || null,
+      questions: lesson.questions || [],
+      wordDefinitions: lesson.wordDefinitions || [],
+      isPublished: lesson.isPublished || 0
+    };
+    this.readingLessons.set(id, newLesson);
+    return newLesson;
+  }
+
+  async getReadingLessons(): Promise<ReadingLesson[]> {
+    return Array.from(this.readingLessons.values());
+  }
+
+  async getReadingLesson(id: string): Promise<ReadingLesson | undefined> {
+    return this.readingLessons.get(id);
+  }
+
+  async updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson> {
+    const existing = this.readingLessons.get(id);
+    if (!existing) throw new Error("Reading lesson not found");
+    const updated: ReadingLesson = { 
+      ...existing, 
+      ...lesson, 
+      updatedAt: new Date(),
+      questions: lesson.questions || existing.questions,
+      wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions
+    };
+    this.readingLessons.set(id, updated);
+    return updated;
+  }
+
+  async deleteReadingLesson(id: string): Promise<void> {
+    this.readingLessons.delete(id);
+  }
+
+  async getPublishedReadingLessons(): Promise<ReadingLesson[]> {
+    return Array.from(this.readingLessons.values()).filter(l => l.isPublished === 1);
   }
 }
 
@@ -449,6 +652,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLessonDraft(id: string): Promise<void> {
     await db.delete(lessonDrafts).where(eq(lessonDrafts.id, id));
+  }
+
+  // Reading lesson methods
+  async createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson> {
+    const [newLesson] = await db.insert(readingLessons).values(lesson).returning();
+    return newLesson;
+  }
+
+  async getReadingLessons(): Promise<ReadingLesson[]> {
+    return await db.select().from(readingLessons).orderBy(readingLessons.updatedAt);
+  }
+
+  async getReadingLesson(id: string): Promise<ReadingLesson | undefined> {
+    const [lesson] = await db.select().from(readingLessons).where(eq(readingLessons.id, id));
+    return lesson;
+  }
+
+  async updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson> {
+    const [updatedLesson] = await db.update(readingLessons)
+      .set({ ...lesson, updatedAt: new Date() })
+      .where(eq(readingLessons.id, id))
+      .returning();
+    return updatedLesson;
+  }
+
+  async deleteReadingLesson(id: string): Promise<void> {
+    await db.delete(readingLessons).where(eq(readingLessons.id, id));
+  }
+
+  async getPublishedReadingLessons(): Promise<ReadingLesson[]> {
+    return await db.select().from(readingLessons).where(eq(readingLessons.isPublished, 1));
   }
 }
 
