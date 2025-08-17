@@ -194,15 +194,16 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
               value={[settings.fontSize]}
               onValueChange={([value]) => updateSetting('fontSize', value)}
               min={12}
-              max={24}
+              max={36}
               step={1}
               className="w-full"
               data-testid="slider-font-size"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Liten</span>
-              <span>Normal</span>
-              <span>Stor</span>
+              <span>Liten (12px)</span>
+              <span>Normal (16px)</span>
+              <span>Stor (24px)</span>
+              <span>Mycket stor (36px)</span>
             </div>
           </div>
 
