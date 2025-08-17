@@ -123,7 +123,7 @@ export default function ReadingExercises() {
       <AccessibilitySidebar onToggle={setSidebarOpen} />
       {/* Header */}
       <div className="border-b bg-background">
-        <div className={`max-w-6xl mx-auto p-4 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-0'}`}>
+        <div className={`max-w-7xl mx-auto p-4 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80 lg:mr-4' : 'lg:ml-4 lg:mr-4'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link href="/lasforstaelse" className="text-sm text-muted-foreground hover:text-foreground">
@@ -143,7 +143,7 @@ export default function ReadingExercises() {
       </div>
 
       {/* Filters and Search */}
-      <div className={`max-w-6xl mx-auto p-6 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80' : 'lg:ml-0'}`}>
+      <div className={`max-w-7xl mx-auto p-6 transition-all duration-300 ${sidebarOpen ? 'lg:ml-80 lg:mr-4' : 'lg:ml-4 lg:mr-4'}`}>
         <div className="mb-6 space-y-4">
           {/* Search */}
           <div className="relative">
