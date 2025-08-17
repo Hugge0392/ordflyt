@@ -83,13 +83,19 @@ export class LessonGenerator {
         }
 
         .moment-container {
-            padding: 40px;
-            min-height: 400px;
             display: none;
         }
 
         .moment-container.active {
             display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        /* Layout for non-pratbubbla moments */
+        .standard-moment {
+            padding: 40px;
+            min-height: 400px;
         }
 
         .moment-title {
@@ -375,52 +381,62 @@ export class LessonGenerator {
     switch (moment.type) {
       case 'textruta':
         return `
-          <h2 class="moment-title">${moment.title}</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <p>${moment.config.text || 'Ingen text angiven.'}</p>
+          <div class="standard-moment">
+            <h2 class="moment-title">${moment.title}</h2>
+            <div class="moment-content">
+              <div class="content-card">
+                <p>${moment.config.text || 'Ingen text angiven.'}</p>
+              </div>
             </div>
           </div>
         `;
 
       case 'pratbubbla':
         const items = moment.config.items || [];
-        // Kontrollera om det finns gamla enkla text-konfigurationen också
         const simpleText = moment.config.text;
         
         return `
-          <h2 class="moment-title">${moment.title}</h2>
-          <div class="moment-content">
-            <div class="content-card">
-              <div style="display: flex; align-items: flex-start; gap: 20px;">
-                <div style="font-size: 4rem; flex-shrink: 0;">
+          <div style="display: flex; width: 100%; height: 100vh; min-height: 600px;">
+            <!-- Text area - 3/4 of screen -->
+            <div style="width: 75%; display: flex; align-items: flex-start; justify-content: center; padding-top: 64px; padding: 32px;">
+              <div style="background: white; border-radius: 16px; border: 4px solid #93c5fd; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 768px; width: 100%;">
+                <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; position: relative;">
+                  <div style="position: absolute; right: -8px; top: 24px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 8px solid #f3f4f6;"></div>
+                  
+                  <div style="font-size: 1.5rem; line-height: 1.6; white-space: pre-wrap;">
+                    ${simpleText ? `<p style="font-size: 1.5rem; line-height: 1.6; margin: 0;">${simpleText}</p>` : ''}
+                    
+                    ${items.map((item: any, index: number) => {
+                      if (item.type === 'text') {
+                        return `<p style="font-size: 1.5rem; line-height: 1.6; margin: ${index > 0 || simpleText ? '24px 0 0 0' : '0'};">${item.content || ''}</p>`;
+                      } else if (item.type === 'question') {
+                        return `
+                          <div style="margin-top: 24px;">
+                            <div style="margin-bottom: 12px;">
+                              ${(item.alternatives || []).map((alt: any) => `
+                                <button style="width: 100%; text-align: left; justify-content: flex-start; padding: 16px; height: auto; margin-bottom: 12px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; ${alt.correct ? 'border-color: #10b981; background-color: #f0fdf4;' : ''}">
+                                  ${alt.text}
+                                </button>
+                              `).join('')}
+                            </div>
+                          </div>
+                        `;
+                      }
+                      return '';
+                    }).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Character area - 1/4 of screen -->
+            <div style="width: 25%; display: flex; align-items: center; justify-content: center; padding: 32px;">
+              <div style="text-align: center;">
+                <div style="font-size: 8rem; margin-bottom: 16px;">
                   ${this.getCharacterDisplay(moment.config.characterImage)}
                 </div>
-                <div style="flex: 1; background: #f3f4f6; border-radius: 15px; padding: 20px; position: relative;">
-                  <div style="position: absolute; left: -10px; top: 20px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-right: 10px solid #f3f4f6;"></div>
-                  
-                  ${simpleText ? `<p style="font-size: 1.1rem; line-height: 1.6; margin: 0;">${simpleText}</p>` : ''}
-                  
-                  ${items.map((item: any, index: number) => {
-                    if (item.type === 'text') {
-                      return `<p style="font-size: 1.1rem; line-height: 1.6; margin: ${index > 0 ? '15px 0 0 0' : '0'};">${item.content || ''}</p>`;
-                    } else if (item.type === 'question') {
-                      return `
-                        <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
-                          <p style="font-weight: bold; margin-bottom: 15px;">${item.question || ''}</p>
-                          <div style="space-y: 8px;">
-                            ${(item.alternatives || []).map((alt: any) => `
-                              <div style="padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; border-left: ${alt.correct ? '4px solid #10b981' : '4px solid #e5e7eb'};">
-                                ${alt.text} ${alt.correct ? '✓' : ''}
-                              </div>
-                            `).join('')}
-                          </div>
-                          ${item.correctFeedback ? `<p style="margin-top: 10px; color: #059669; font-style: italic;">Rätt svar: ${item.correctFeedback}</p>` : ''}
-                        </div>
-                      `;
-                    }
-                    return '';
-                  }).join('')}
+                <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                  <p style="font-weight: bold; color: #374151; margin: 0;">${moment.config.characterName || 'Kapten Matilda'}</p>
                 </div>
               </div>
             </div>
