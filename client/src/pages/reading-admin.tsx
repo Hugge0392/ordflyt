@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Plus, BookOpen, Eye, Edit, Trash2, Save, X } from "lucide-react";
+import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import type { ReadingLesson, InsertReadingLesson, ReadingQuestion, WordDefinition, PreReadingQuestion } from "@shared/schema";
+import type { UploadResult } from "@uppy/core";
 
 export default function ReadingAdmin() {
   const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
@@ -98,6 +101,7 @@ export default function ReadingAdmin() {
       gradeLevel: "4-6",
       subject: "Svenska",
       readingTime: 5,
+      featuredImage: null,
       preReadingQuestions: [],
       questions: [],
       wordDefinitions: [],
@@ -133,6 +137,7 @@ export default function ReadingAdmin() {
       gradeLevel: lesson.gradeLevel,
       subject: lesson.subject,
       readingTime: lesson.readingTime,
+      featuredImage: lesson.featuredImage,
       preReadingQuestions: lesson.preReadingQuestions,
       questions: lesson.questions,
       wordDefinitions: lesson.wordDefinitions,
@@ -259,6 +264,59 @@ export default function ReadingAdmin() {
       ...editingLesson,
       preReadingQuestions: questions
     });
+  };
+
+  const handleFeaturedImageUpload = async () => {
+    try {
+      const response = await apiRequest("/api/objects/upload", {
+        method: "POST",
+      });
+      const data = await response.json();
+      return {
+        method: "PUT" as const,
+        url: data.uploadURL,
+      };
+    } catch (error) {
+      toast({
+        title: "Fel",
+        description: "Kunde inte förbereda bilduppladdning",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleFeaturedImageComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (result.successful.length > 0) {
+      const uploadURL = result.successful[0].uploadURL;
+      if (uploadURL) {
+        // Process the upload URL to get the object path
+        apiRequest("/api/lesson-images", {
+          method: "PUT",
+          body: JSON.stringify({ imageURL: uploadURL }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
+          setEditingLesson(prev => prev ? {
+            ...prev,
+            featuredImage: imagePath
+          } : prev);
+          toast({
+            title: "Bild uppladdad!",
+            description: "Huvudbilden har lagts till.",
+          });
+        })
+        .catch(error => {
+          console.error("Error processing featured image:", error);
+          toast({
+            title: "Fel",
+            description: "Kunde inte bearbeta bilden",
+            variant: "destructive",
+          });
+        });
+      }
+    }
   };
 
   if (editingLesson || isCreating) {
@@ -392,20 +450,52 @@ export default function ReadingAdmin() {
             </TabsContent>
 
             <TabsContent value="content" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="content">Textinnehåll *</Label>
-                <Textarea
-                  id="content"
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Huvudbild (valfri)</Label>
+                  {editingLesson.featuredImage ? (
+                    <div className="space-y-3">
+                      <img
+                        src={editingLesson.featuredImage}
+                        alt="Huvudbild"
+                        className="w-full max-w-md h-48 object-cover rounded-lg border"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingLesson({...editingLesson, featuredImage: null})}
+                        >
+                          Ta bort bild
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <ObjectUploader
+                      maxNumberOfFiles={1}
+                      maxFileSize={5 * 1024 * 1024} // 5MB
+                      onGetUploadParameters={handleFeaturedImageUpload}
+                      onComplete={handleFeaturedImageComplete}
+                      buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-gray-500">
+                        <ImageIcon className="h-8 w-8" />
+                        <span>Ladda upp huvudbild</span>
+                        <span className="text-xs">JPG, PNG eller GIF (max 5MB)</span>
+                      </div>
+                    </ObjectUploader>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Huvudbilden visas överst i lektionen för att fånga elevernas uppmärksamhet.
+                  </p>
+                </div>
+
+                <RichTextEditor
                   value={editingLesson.content || ""}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, content: e.target.value })}
-                  placeholder="Skriv eller klistra in texten som eleverna ska läsa..."
-                  rows={20}
-                  className="font-mono"
-                  data-testid="textarea-content"
+                  onChange={(content) => setEditingLesson({...editingLesson, content})}
+                  placeholder="Skriv ditt textinnehåll här..."
+                  className="min-h-[400px]"
                 />
-                <p className="text-sm text-muted-foreground">
-                  Tips: Skriv en intressant och välstrukturerad text anpassad för vald årskurs.
-                </p>
               </div>
             </TabsContent>
 

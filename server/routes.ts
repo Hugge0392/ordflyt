@@ -542,6 +542,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve generated lesson files statically
   app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
 
+  // Object storage endpoints for lesson images
+  app.post("/api/objects/upload", async (req, res) => {
+    try {
+      // This would normally use object storage service
+      // For now, return a mock URL that can be processed
+      const uploadURL = `https://storage.googleapis.com/mock-bucket/uploads/${Date.now()}.jpg`;
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.put("/api/lesson-images", async (req, res) => {
+    try {
+      const { imageURL } = req.body;
+      if (!imageURL) {
+        return res.status(400).json({ error: "imageURL is required" });
+      }
+
+      // Process the URL to create an object path
+      // For now, just return a simple path
+      const objectPath = `/objects/uploads/${Date.now()}.jpg`;
+
+      res.status(200).json({
+        objectPath: objectPath,
+      });
+    } catch (error) {
+      console.error("Error processing lesson image:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

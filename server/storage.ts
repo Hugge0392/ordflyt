@@ -370,6 +370,7 @@ export class MemStorage implements IStorage {
       description: lesson.description || null,
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
+      featuredImage: lesson.featuredImage || null,
       preReadingQuestions: lesson.preReadingQuestions || [],
       questions: lesson.questions || [],
       wordDefinitions: lesson.wordDefinitions || [],
@@ -394,6 +395,7 @@ export class MemStorage implements IStorage {
       ...existing, 
       ...lesson, 
       updatedAt: new Date(),
+      featuredImage: lesson.featuredImage !== undefined ? lesson.featuredImage : existing.featuredImage,
       preReadingQuestions: lesson.preReadingQuestions || existing.preReadingQuestions,
       questions: lesson.questions || existing.questions,
       wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions

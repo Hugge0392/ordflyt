@@ -136,7 +136,8 @@ export const readingLessons = pgTable("reading_lessons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description"),
-  content: text("content").notNull(), // The main text content
+  content: text("content").notNull(), // The main text content (can include HTML for rich formatting)
+  featuredImage: text("featured_image"), // URL to featured/header image
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
   subject: varchar("subject"), // e.g. "Svenska", "Naturkunskap"
   readingTime: integer("reading_time"), // estimated reading time in minutes
