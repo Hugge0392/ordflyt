@@ -29,6 +29,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Admin Lesson Management Tabs (August 2025)**: Added organized tab system in admin panel with separate views for "Alla lektioner", "Publicerade", and "Utkast", featuring specialized controls for each category including view, edit, unpublish, and delete functionality for published lessons
 - **RichTextEditor Content Preservation (August 2025)**: Fixed issue where saved lessons with structured content (text blocks, images, headings, page breaks) were flattened into single text blocks when reopened. Implemented proper HTML parsing to restore original block structure when loading existing content
 - **Responsive Two-Column Layout (August 2025)**: Implemented side-by-side layout for reading lessons with text on left and questions on right column for desktop (1024px+) and tablets in landscape mode (768px+). Mobile devices continue to show stacked layout. Questions panel is sticky for easy reference while reading
+- **Fixed Layout with Accessibility Sidebar (August 2025)**: Content maintains fixed position with static left margin (20px) regardless of accessibility sidebar state. Sidebar opens by default and includes comprehensive reading adjustments including background/text color combinations (black/white, black on light red, yellow on blue, black on light blue). Text size doubled to 20px with 1.8 line height for improved readability
 
 # User Preferences
 
