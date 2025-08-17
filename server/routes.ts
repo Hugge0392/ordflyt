@@ -488,6 +488,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single reading lesson
+  app.get("/api/reading-lessons/:id", async (req, res) => {
+    try {
+      const lesson = await storage.getReadingLessonById(req.params.id);
+      if (!lesson) {
+        return res.status(404).json({ message: "Reading lesson not found" });
+      }
+      res.json(lesson);
+    } catch (error) {
+      console.error("Error fetching reading lesson:", error);
+      res.status(500).json({ message: "Failed to fetch reading lesson" });
+    }
+  });
+
   // Get published reading lessons
   app.get("/api/reading-lessons/published", async (req, res) => {
     try {

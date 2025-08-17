@@ -66,6 +66,7 @@ export interface IStorage {
   createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson>;
   getReadingLessons(): Promise<ReadingLesson[]>;
   getReadingLesson(id: string): Promise<ReadingLesson | undefined>;
+  getReadingLessonById(id: string): Promise<ReadingLesson | undefined>;
   updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson>;
   deleteReadingLesson(id: string): Promise<void>;
   getPublishedReadingLessons(): Promise<ReadingLesson[]>;
@@ -388,6 +389,10 @@ export class MemStorage implements IStorage {
     return this.readingLessons.get(id);
   }
 
+  async getReadingLessonById(id: string): Promise<ReadingLesson | undefined> {
+    return this.getReadingLesson(id);
+  }
+
   async updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson> {
     const existing = this.readingLessons.get(id);
     if (!existing) throw new Error("Reading lesson not found");
@@ -671,6 +676,10 @@ export class DatabaseStorage implements IStorage {
   async getReadingLesson(id: string): Promise<ReadingLesson | undefined> {
     const [lesson] = await db.select().from(readingLessons).where(eq(readingLessons.id, id));
     return lesson;
+  }
+
+  async getReadingLessonById(id: string): Promise<ReadingLesson | undefined> {
+    return this.getReadingLesson(id);
   }
 
   async updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson> {

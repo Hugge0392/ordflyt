@@ -9,6 +9,8 @@ import Menu from "@/pages/menu";
 import Placeholder from "@/pages/placeholder";
 import ReadingHome from "@/pages/reading-home";
 import ReadingComprehension from "@/pages/reading-comprehension";
+import ReadingExercises from "@/pages/reading-exercises";
+import ReadingLessonViewer from "@/pages/reading-lesson-viewer";
 import ReadingAdmin from "@/pages/reading-admin";
 import ReadingPlaceholder from "@/pages/reading-placeholder";
 import Practice from "@/pages/practice";
@@ -27,7 +29,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/grammatik" component={Menu} />
       <Route path="/lasforstaelse" component={ReadingHome} />
-      <Route path="/lasforstaelse/ovningar" component={ReadingComprehension} />
+      <Route path="/lasforstaelse/ovningar" component={ReadingExercises} />
+      <Route path="/lasforstaelse/lektion/:id" component={ReadingLessonViewer} />
       <Route path="/lasforstaelse/deckargator" component={() => <ReadingPlaceholder type="deckargator" />} />
       <Route path="/lasforstaelse/admin" component={ReadingAdmin} />
       <Route path="/skrivande" component={() => <Placeholder category="skrivande" />} />
