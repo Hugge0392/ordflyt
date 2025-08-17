@@ -19,6 +19,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Comprehensive Lesson Builder**: Major overhaul with lesson templates, validation system, save/load functionality, export capabilities, moment duplication, and enhanced UI
 - **Expanded Game Library**: Added 25+ interactive activity types including ordracet, quiz maker, word guessing, rhyme games, synonyms, spelling, interactive stories, crosswords, and advanced language exercises
 - **Categorized Game Selection**: Organized activities into themed categories (Popular Games, Language Games, Storytelling, Word Class Games, Advanced Games) for better user experience
+- **Simplified Lesson Publishing (August 2025)**: Implemented streamlined publishing system where lessons are saved to database and accessible via shareable links, integrated into word class menu without opening new tabs
 
 # User Preferences
 
