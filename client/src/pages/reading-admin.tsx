@@ -277,6 +277,7 @@ export default function ReadingAdmin() {
         url: data.uploadURL,
       };
     } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Fel",
         description: "Kunde inte förbereda bilduppladdning",

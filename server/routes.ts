@@ -545,9 +545,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object storage endpoints for lesson images
   app.post("/api/objects/upload", async (req, res) => {
     try {
-      // This would normally use object storage service
-      // For now, return a mock URL that can be processed
-      const uploadURL = `https://storage.googleapis.com/mock-bucket/uploads/${Date.now()}.jpg`;
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
       console.error("Error getting upload URL:", error);
@@ -562,9 +562,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "imageURL is required" });
       }
 
-      // Process the URL to create an object path
-      // For now, just return a simple path
-      const objectPath = `/objects/uploads/${Date.now()}.jpg`;
+      const { ObjectStorageService } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetLessonImagePath(imageURL);
 
       res.status(200).json({
         objectPath: objectPath,
@@ -572,6 +572,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing lesson image:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Serve private objects
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof Error && error.name === "ObjectNotFoundError") {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
     }
   });
 

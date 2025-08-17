@@ -110,6 +110,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           url: data.uploadURL,
         };
       } catch (error) {
+        console.error("Upload error:", error);
         toast({
           title: "Fel",
           description: "Kunde inte förbereda bilduppladdning",
