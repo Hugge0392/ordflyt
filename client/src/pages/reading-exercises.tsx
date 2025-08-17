@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { BookOpen, Clock, Target, Award, User, Search, Filter } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson } from "@shared/schema";
 
@@ -13,6 +13,7 @@ export default function ReadingExercises() {
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [, setLocation] = useLocation();
 
   const { data: lessons, isLoading, error } = useQuery<ReadingLesson[]>({
     queryKey: ["/api/reading-lessons"],
@@ -206,7 +207,7 @@ export default function ReadingExercises() {
               <Card 
                 key={lesson.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer group"
-                onClick={() => window.open(`/lasforstaelse/lektion/${lesson.id}`, '_blank')}
+                onClick={() => setLocation(`/lasforstaelse/lektion/${lesson.id}`)}
                 data-testid={`card-lesson-${lesson.id}`}
               >
                 <CardHeader className="pb-3">
