@@ -24,6 +24,7 @@ This is a comprehensive Swedish grammar learning game application that teaches w
 - **Reading Comprehension Admin Tool (August 2025)**: Built comprehensive admin interface for creating reading lessons with text content, multiple question types (multiple choice, true/false, open questions), word definitions, and pre-reading questions ("Innan du läser") that activate prior knowledge before reading
 - **Blog-Style Content Editor (August 2025)**: Transformed reading comprehension admin into intuitive blog-like editor with RichTextEditor component supporting text blocks, images, headings, quotes, and lists. Added ObjectUploader for seamless image integration with featured image support and rich formatting capabilities
 - **Functional Object Storage Integration (August 2025)**: Fixed image upload errors by implementing proper object storage API calls, replacing mock data with real presigned URLs from Google Cloud Storage bucket, ensuring persistent image storage for lessons
+- **Complete Lesson Publishing System (August 2025)**: Added dedicated reading exercises page showing all published lessons with search/filtering, individual lesson viewer with full content display, clear publish/unpublish controls in admin panel, and seamless integration between content creation and student access
 
 # User Preferences
 

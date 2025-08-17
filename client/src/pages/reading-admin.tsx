@@ -382,12 +382,24 @@ export default function ReadingAdmin() {
                   Avbryt
                 </Button>
                 <Button
+                  variant="outline"
                   onClick={handleSaveLesson}
                   disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-save-lesson"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  Spara lektion
+                  Spara utkast
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingLesson({ ...editingLesson, isPublished: 1 });
+                    setTimeout(() => handleSaveLesson(), 100);
+                  }}
+                  disabled={createMutation.isPending || updateMutation.isPending || !editingLesson.title || !editingLesson.gradeLevel || !editingLesson.content}
+                  data-testid="button-publish-lesson"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Publicera lektion
                 </Button>
               </div>
             </div>
@@ -470,15 +482,30 @@ export default function ReadingAdmin() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="published"
-                  checked={editingLesson.isPublished === 1}
-                  onChange={(e) => setEditingLesson({ ...editingLesson, isPublished: e.target.checked ? 1 : 0 })}
-                  data-testid="checkbox-published"
-                />
-                <Label htmlFor="published">Publicerad (synlig för elever)</Label>
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${editingLesson.isPublished === 1 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <div>
+                    <p className="font-medium">
+                      {editingLesson.isPublished === 1 ? 'Publicerad' : 'Utkast'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {editingLesson.isPublished === 1 
+                        ? 'Lektionen är synlig för elever i läsförståelse-sektionen' 
+                        : 'Lektionen är sparad som utkast och inte synlig för elever än'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="published"
+                    checked={editingLesson.isPublished === 1}
+                    onChange={(e) => setEditingLesson({ ...editingLesson, isPublished: e.target.checked ? 1 : 0 })}
+                    data-testid="checkbox-published"
+                  />
+                  <Label htmlFor="published">Publicerad</Label>
+                </div>
               </div>
             </TabsContent>
 
