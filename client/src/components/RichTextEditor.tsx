@@ -115,24 +115,26 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
           });
         } else {
           // Treat as text
+          const htmlContent = element.innerHTML || '';
           const textContent = element.textContent || '';
           if (textContent.trim()) {
             blocks.push({
               id: getId(),
               type: 'text',
-              content: textContent
+              content: htmlContent || textContent
             });
           }
         }
         break;
       case 'p':
       default:
+        const htmlContent = element.innerHTML || '';
         const textContent = element.textContent || '';
         if (textContent.trim()) {
           blocks.push({
             id: getId(),
             type: 'text',
-            content: textContent
+            content: htmlContent || textContent
           });
         }
         break;
@@ -188,7 +190,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           return `<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>`;
         case 'text':
         default:
-          return `<p>${block.content}</p>`;
+          // If content already contains HTML tags, use it as is, otherwise wrap in paragraph
+          const content = block.content.trim();
+          if (content.includes('<') && content.includes('>')) {
+            return content;
+          } else {
+            // Convert line breaks to <br> tags and wrap in paragraph
+            const contentWithBreaks = content.replace(/\n/g, '<br>');
+            return `<p>${contentWithBreaks}</p>`;
+          }
       }
     }).join('\n');
     
@@ -372,13 +382,22 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
         {/* Block Content */}
         {block.type === 'text' && (
-          <Textarea
-            value={block.content}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-            placeholder={placeholder}
-            className="border-none p-0 resize-none min-h-[100px] focus-visible:ring-0"
-            data-testid={`textarea-block-${block.id}`}
-          />
+          <div className="space-y-2">
+            <Textarea
+              value={block.content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '')}
+              onChange={(e) => {
+                // Convert line breaks back to <br> tags when saving
+                const newContent = e.target.value.replace(/\n/g, '<br>');
+                updateBlock(block.id, { content: newContent });
+              }}
+              placeholder={placeholder}
+              className="border-none p-0 resize-none min-h-[100px] focus-visible:ring-0"
+              data-testid={`textarea-block-${block.id}`}
+            />
+            <div className="text-xs text-muted-foreground">
+              Tips: Tryck Enter för radbrytning
+            </div>
+          </div>
         )}
 
         {block.type === 'heading' && (
