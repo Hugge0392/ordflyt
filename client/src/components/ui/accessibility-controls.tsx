@@ -117,7 +117,7 @@ export function AccessibilityControls() {
   const isModified = JSON.stringify(settings) !== JSON.stringify(defaultSettings);
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-[9999]">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <Button
@@ -135,7 +135,7 @@ export function AccessibilityControls() {
         </CollapsibleTrigger>
         
         <CollapsibleContent className="mt-2">
-          <Card className="w-80 bg-background border-2 shadow-xl">
+          <Card className="w-80 bg-background border-2 shadow-xl z-[9999] relative">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Eye className="w-5 h-5" />
