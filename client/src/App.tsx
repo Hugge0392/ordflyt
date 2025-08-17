@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Menu from "@/pages/menu";
 import Placeholder from "@/pages/placeholder";
+import ReadingComprehension from "@/pages/reading-comprehension";
 import Practice from "@/pages/practice";
 import Test from "@/pages/test";
 import WordClassLevels from "@/pages/word-class-levels";
@@ -22,7 +23,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/grammatik" component={Menu} />
-      <Route path="/lasforstaelse" component={() => <Placeholder category="lasforstaelse" />} />
+      <Route path="/lasforstaelse" component={ReadingComprehension} />
       <Route path="/skrivande" component={() => <Placeholder category="skrivande" />} />
       <Route path="/muntligt" component={() => <Placeholder category="muntligt" />} />
       <Route path="/nordiska-sprak" component={() => <Placeholder category="nordiska-sprak" />} />
