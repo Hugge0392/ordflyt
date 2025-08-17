@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { Bold, Italic, List, ListOrdered, Image, Type, Quote, Trash2, Minus } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Image, Type, Quote, Trash2, Minus, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { UploadResult } from "@uppy/core";
@@ -19,7 +19,7 @@ interface RichTextEditorProps {
 
 interface ContentBlock {
   id: string;
-  type: 'text' | 'image' | 'heading' | 'quote' | 'list';
+  type: 'text' | 'image' | 'heading' | 'quote' | 'list' | 'page-break';
   content: string;
   metadata?: {
     level?: 1 | 2 | 3; // for headings
@@ -61,6 +61,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           return `<${tag}>${items}</${tag}>`;
         case 'image':
           return `<img src="${block.content}" alt="${block.metadata?.alt || ''}" />`;
+        case 'page-break':
+          return `<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>`;
         case 'text':
         default:
           return `<p>${block.content}</p>`;
@@ -223,6 +225,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             >
               <List className="h-3 w-3" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => addBlock('page-break', block.id)}
+              className="h-6 w-6 p-0"
+              title="Lägg till ny sida"
+            >
+              <FileText className="h-3 w-3" />
+            </Button>
             <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 my-1" />
             <Button
               variant="ghost"
@@ -349,6 +360,22 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             )}
           </div>
         )}
+
+        {block.type === 'page-break' && (
+          <div className="py-4 text-center">
+            <div className="flex items-center gap-3 justify-center">
+              <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-20"></div>
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium">
+                <FileText className="h-4 w-4" />
+                <span>Ny sida</span>
+              </div>
+              <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-20"></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Läsarna kommer att bläddra till nästa sida här
+            </p>
+          </div>
+        )}
       </div>
     );
   };
@@ -375,6 +402,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           >
             <Image className="h-4 w-4 mr-2" />
             Bild
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => addBlock('page-break')}
+            data-testid="button-add-page-break"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Ny sida
           </Button>
         </div>
       </div>

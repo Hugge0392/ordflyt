@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BookOpen, Clock, ArrowLeft, User, Target } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 export default function ReadingLessonViewer() {
@@ -40,6 +40,22 @@ export default function ReadingLessonViewer() {
   };
 
   const [hoveredWord, setHoveredWord] = useState<{word: string, definition: string, x: number, y: number} | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // Split content into pages based on page break markers
+  const pages = useMemo(() => {
+    if (!lesson?.content) return [];
+    
+    const pageBreakMarker = '<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>';
+    const contentParts = lesson.content.split(pageBreakMarker);
+    
+    if (contentParts.length === 1) {
+      // No page breaks, return single page
+      return [contentParts[0]];
+    }
+    
+    return contentParts.filter(part => part.trim().length > 0);
+  }, [lesson?.content]);
 
   // Handle mouse events for word definitions
   const handleContentMouseOver = (e: React.MouseEvent) => {
@@ -221,7 +237,14 @@ export default function ReadingLessonViewer() {
         {/* Main Content */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Läs texten</CardTitle>
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>Läs texten</span>
+              {pages.length > 1 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Sida {currentPage + 1} av {pages.length}</span>
+                </div>
+              )}
+            </CardTitle>
             {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
               <CardDescription>
                 💡 Ord med prickad understrykning har förklaringar - håll musen över dem
@@ -230,11 +253,52 @@ export default function ReadingLessonViewer() {
           </CardHeader>
           <CardContent className="relative">
             <div 
-              className="prose dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(lesson.content, lesson.wordDefinitions) }}
+              className="prose dark:prose-invert max-w-none min-h-[400px]"
+              dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
             />
+            
+            {/* Page Navigation */}
+            {pages.length > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Föregående sida
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {pages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentPage(index)}
+                      className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                        index === currentPage
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
+                  disabled={currentPage === pages.length - 1}
+                  className="flex items-center gap-2"
+                >
+                  Nästa sida
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             
             {/* Custom tooltip */}
             {hoveredWord && (
