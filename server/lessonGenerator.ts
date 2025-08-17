@@ -413,6 +413,110 @@ export class LessonGenerator {
           </div>
         `;
 
+      case 'slutdiplom':
+        return `
+          <h2 class="moment-title">${moment.title}</h2>
+          <div class="moment-content">
+            <div style="background: linear-gradient(135deg, #fef3c7, #fed7aa); border: 4px solid #f59e0b; border-radius: 20px; padding: 40px; text-align: center; max-width: 600px; margin: 0 auto;">
+              <div style="font-size: 4rem; margin-bottom: 20px;">🏆</div>
+              <h3 style="font-size: 2rem; color: #92400e; margin-bottom: 15px;">
+                ${moment.config.diplomaTitle || 'Grattis!'}
+              </h3>
+              <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <h4 style="font-size: 1.5rem; color: #92400e; margin-bottom: 10px;">
+                  ${moment.config.courseName || 'Kursen'}
+                </h4>
+                <p style="color: #78716c;">Genomförd med utmärkt resultat</p>
+              </div>
+              <p style="font-size: 1.1rem; color: #374151; margin: 20px 0;">
+                ${moment.config.message || 'Du har slutfört kursen med framgång!'}
+              </p>
+            </div>
+          </div>
+        `;
+
+      case 'piratgrav':
+        return `
+          <h2 class="moment-title">${moment.title}</h2>
+          <div class="moment-content">
+            <div style="background: linear-gradient(135deg, #fef3c7, #fed7aa); border: 3px solid #f59e0b; border-radius: 15px; padding: 30px; text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: 20px;">🏴‍☠️</div>
+              <h3 style="color: #92400e; margin-bottom: 15px;">Piratgräv</h3>
+              <p style="margin-bottom: 20px;">Hjälp piraten att gräva fram skatten genom att svara rätt!</p>
+              <div id="piratQuestion${index}" style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <p style="font-size: 1.2rem; margin-bottom: 15px;">${moment.config.question || 'Är det ett substantiv?'}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                  <button class="btn btn-success" onclick="piratAnswer(${index}, true)">✓ Ja</button>
+                  <button class="btn btn-danger" onclick="piratAnswer(${index}, false)">✗ Nej</button>
+                </div>
+              </div>
+              <p id="piratFeedback${index}"></p>
+            </div>
+          </div>
+        `;
+
+      case 'slutprov':
+        return `
+          <h2 class="moment-title">${moment.title}</h2>
+          <div class="moment-content">
+            <div style="background: #f3f4f6; border: 2px solid #d1d5db; border-radius: 15px; padding: 30px; text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
+              <h3 style="color: #374151; margin-bottom: 15px;">Slutprov</h3>
+              <p style="margin-bottom: 20px;">Visa vad du har lärt dig i detta slutprov!</p>
+              <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <p>Detta är en förenklad version av slutprovet.</p>
+                <p>Komplett interaktivitet finns i huvudapplikationen.</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+      case 'quiz':
+        return `
+          <h2 class="moment-title">${moment.title}</h2>
+          <div class="moment-content">
+            <div style="background: #ede9fe; border: 2px solid #a855f7; border-radius: 15px; padding: 30px;">
+              <div style="font-size: 3rem; text-align: center; margin-bottom: 20px;">❓</div>
+              <h3 style="color: #7c2d12; text-align: center; margin-bottom: 20px;">Quiz</h3>
+              ${(moment.config.questions || []).slice(0, 1).map((q: any, i: number) => `
+                <div style="background: white; border-radius: 10px; padding: 20px; margin: 15px 0;">
+                  <p style="font-weight: bold; margin-bottom: 15px;">${q.question || 'Fråga'}</p>
+                  <div style="display: grid; gap: 10px;">
+                    ${(q.alternatives || []).map((alt: any, j: number) => `
+                      <button class="btn btn-outline" onclick="selectQuizAnswer(${index}, ${i}, ${j})" style="text-align: left;">
+                        ${alt.text || 'Alternativ'}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+      case 'ordracet':
+      case 'mening-pussel':
+      case 'gissa-ordet':
+      case 'rim-spel':
+      case 'synonymer':
+      case 'motsatser':
+      case 'stavning':
+      case 'berattelse':
+        return `
+          <h2 class="moment-title">${moment.title}</h2>
+          <div class="moment-content">
+            <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 15px; padding: 30px; text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
+              <h3 style="color: #0c4a6e; margin-bottom: 15px;">${moment.title}</h3>
+              <p style="margin-bottom: 20px;">${moment.config.instruction || 'Interaktivt spel'}</p>
+              <div style="background: white; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <p>Detta spel är optimerat för den interaktiva miljön.</p>
+                <p>Besök huvudapplikationen för fullständig funktionalitet.</p>
+              </div>
+            </div>
+          </div>
+        `;
+
       default:
         return `
           <h2 class="moment-title">${moment.title}</h2>
@@ -538,6 +642,39 @@ export class LessonGenerator {
       function highlightWord(element) {
         element.style.background = element.style.background === 'rgb(107, 33, 168)' ? '#ede9fe' : '#6b21a8';
         element.style.color = element.style.color === 'white' ? '#6b21a8' : 'white';
+      }
+
+      // Piratgräv funktioner
+      function piratAnswer(momentIndex, answer) {
+        const feedback = document.getElementById('piratFeedback' + momentIndex);
+        if (answer) {
+          feedback.innerHTML = '<span style="color: #059669;">🏆 Rätt! Piraten hittar skatten!</span>';
+        } else {
+          feedback.innerHTML = '<span style="color: #dc2626;">❌ Fel svar. Piraten fortsätter gräva...</span>';
+        }
+        
+        setTimeout(() => {
+          if (answer) {
+            nextMoment();
+          }
+        }, 2000);
+      }
+
+      // Quiz funktioner
+      function selectQuizAnswer(momentIndex, questionIndex, answerIndex) {
+        const buttons = document.querySelectorAll('#moment' + momentIndex + ' button[onclick*="selectQuizAnswer"]');
+        buttons.forEach(btn => {
+          btn.style.background = '#f3f4f6';
+          btn.style.color = '#374151';
+        });
+        
+        const selectedButton = buttons[answerIndex];
+        selectedButton.style.background = '#3b82f6';
+        selectedButton.style.color = 'white';
+        
+        setTimeout(() => {
+          nextMoment();
+        }, 1500);
       }
 
       // Initialisera
