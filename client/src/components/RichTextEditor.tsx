@@ -135,8 +135,11 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         const uploadURL = result.successful[0].uploadURL;
         if (uploadURL) {
           // Process the upload URL to get the object path
-          apiRequest("/api/lesson-images", {
+          fetch("/api/lesson-images", {
             method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({ imageURL: uploadURL }),
           })
           .then(response => response.json())
