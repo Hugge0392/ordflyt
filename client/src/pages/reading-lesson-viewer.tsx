@@ -238,11 +238,11 @@ export default function ReadingLessonViewer() {
           </Card>
         )}
 
-        {/* Two-Column Layout for Desktop/Tablet - Side by side text and questions */}
+        {/* Two-Column Layout for Desktop/Tablet - Text takes 2/3, questions take 1/3 */}
         {/* Uses lg: for desktop (1024px+) and md: for tablet landscape (768px+) but only when orientation is landscape */}
-        <div className="md:landscape:grid md:landscape:grid-cols-2 lg:grid lg:grid-cols-2 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
-          {/* Main Content - Left Column */}
-          <Card className="mb-6 md:landscape:mb-0 lg:mb-0">
+        <div className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
+          {/* Main Content - Left Column (takes 2/3 of space) */}
+          <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>Läs texten</span>
