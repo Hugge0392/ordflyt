@@ -371,9 +371,9 @@ export class MemStorage implements IStorage {
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
       featuredImage: lesson.featuredImage || null,
-      preReadingQuestions: lesson.preReadingQuestions || [],
-      questions: lesson.questions || [],
-      wordDefinitions: lesson.wordDefinitions || [],
+      preReadingQuestions: lesson.preReadingQuestions || [] as PreReadingQuestion[],
+      questions: lesson.questions || [] as ReadingQuestion[],
+      wordDefinitions: lesson.wordDefinitions || [] as WordDefinition[],
       isPublished: lesson.isPublished || 0
     };
     this.readingLessons.set(id, newLesson);
@@ -396,9 +396,9 @@ export class MemStorage implements IStorage {
       ...lesson, 
       updatedAt: new Date(),
       featuredImage: lesson.featuredImage !== undefined ? lesson.featuredImage : existing.featuredImage,
-      preReadingQuestions: lesson.preReadingQuestions || existing.preReadingQuestions,
-      questions: lesson.questions || existing.questions,
-      wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions
+      preReadingQuestions: lesson.preReadingQuestions || existing.preReadingQuestions as PreReadingQuestion[],
+      questions: lesson.questions || existing.questions as ReadingQuestion[],
+      wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions as WordDefinition[]
     };
     this.readingLessons.set(id, updated);
     return updated;
