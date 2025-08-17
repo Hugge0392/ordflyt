@@ -6,13 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { BookOpen, Clock, Target, Award, User, Search, Filter } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
+
 import type { ReadingLesson } from "@shared/schema";
 
 export default function ReadingExercises() {
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const [, setLocation] = useLocation();
 
   const { data: lessons, isLoading, error } = useQuery<ReadingLesson[]>({
@@ -119,11 +119,10 @@ export default function ReadingExercises() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Accessibility Sidebar */}
-      <AccessibilitySidebar onToggle={setSidebarOpen} />
+
       {/* Header */}
       <div className="border-b bg-background">
-        <div className="max-w-7xl mx-auto p-4 lg:ml-80 lg:mr-4">
+        <div className="max-w-6xl mx-auto p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link href="/lasforstaelse" className="text-sm text-muted-foreground hover:text-foreground">
@@ -143,7 +142,7 @@ export default function ReadingExercises() {
       </div>
 
       {/* Filters and Search */}
-      <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
+      <div className="max-w-6xl mx-auto p-6">
         <div className="mb-6 space-y-4">
           {/* Search */}
           <div className="relative">
