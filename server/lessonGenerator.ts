@@ -356,17 +356,25 @@ export class LessonGenerator {
         return `
           <h2 class="moment-title">${moment.title}</h2>
           <div class="moment-content">
-            <p>${moment.config.text || 'Ingen text angiven.'}</p>
+            <div class="content-card">
+              <p>${moment.config.text || 'Ingen text angiven.'}</p>
+            </div>
           </div>
         `;
 
       case 'pratbubbla':
+        const items = moment.config.items || [];
+        const textItems = items.filter((item: any) => item.type === 'text');
         return `
           <h2 class="moment-title">${moment.title}</h2>
-          <div class="character-bubble">
-            <img src="${moment.config.characterImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iNjAiIGZpbGw9IiM2MzY2ZjEiLz4KPHN2ZyB4PSIzMCIgeT0iMzAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik0xMiAyQzEzLjEgMiAxNCAyLjkgMTQgNEMxNCA1LjEgMTMuMSA2IDEyIDZDMTAuOSA2IDEwIDUuMSAxMCA0QzEwIDIuOSAxMC45IDIgMTIgMlpNMjEgOVYyMkgxOVYxNkgxNFYyMkgxMFYxNkg1VjIySDNWOUgxTDEyIDJMMjMgOUgyMVoiLz4KPHN2Zz4KPHN2Zz4K'}" class="character-image" alt="Karaktär">
-            <div class="speech-bubble">
-              <p id="bubbleText${index}">${moment.config.text || 'Ingen text angiven.'}</p>
+          <div class="moment-content">
+            <div class="content-card">
+              <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div style="font-size: 3rem;">${moment.config.characterImage || '👨‍🏫'}</div>
+                <div style="flex: 1;">
+                  ${textItems.map((item: any) => `<p style="margin-bottom: 10px;">${item.content || ''}</p>`).join('')}
+                </div>
+              </div>
             </div>
           </div>
         `;
