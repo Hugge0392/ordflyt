@@ -1,7 +1,110 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// User role enum
+export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'LARARE', 'ELEV']);
+
+// Users table - core authentication
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 255 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: userRoleEnum("role").notNull().default('ELEV'),
+  mfaSecret: text("mfa_secret"),
+  mfaEnabled: boolean("mfa_enabled").default(false),
+  emailVerified: boolean("email_verified").default(false),
+  email: varchar("email", { length: 255 }),
+  isActive: boolean("is_active").default(true),
+  mustChangePassword: boolean("must_change_password").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  usernameIdx: uniqueIndex("username_idx").on(table.username),
+  emailIdx: uniqueIndex("email_idx").on(table.email),
+}));
+
+// Sessions table - server-side session storage
+export const sessions = pgTable("sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionToken: varchar("session_token", { length: 512 }).notNull().unique(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  deviceFingerprint: varchar("device_fingerprint", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+}, (table) => ({
+  sessionTokenIdx: uniqueIndex("session_token_idx").on(table.sessionToken),
+  userIdIdx: uniqueIndex("user_sessions_idx").on(table.userId),
+}));
+
+// Failed login attempts for rate limiting
+export const failedLogins = pgTable("failed_logins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+  deviceFingerprint: varchar("device_fingerprint", { length: 255 }),
+  attemptTime: timestamp("attempt_time").defaultNow(),
+  reason: varchar("reason", { length: 255 }),
+});
+
+// Audit log for security events
+export const auditLog = pgTable("audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  timestamp: timestamp("timestamp").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  action: varchar("action", { length: 100 }).notNull(), // LOGIN_SUCCESS, LOGIN_FAIL, LOGOUT, MFA_ENABLED, etc.
+  subjectType: varchar("subject_type", { length: 100 }),
+  subjectId: varchar("subject_id"),
+  ipAddressHash: varchar("ip_address_hash", { length: 64 }), // SHA256 hashed IP
+  userAgent: text("user_agent"),
+  details: jsonb("details").$type<Record<string, any>>(),
+  success: boolean("success").default(true),
+});
+
+// CSRF tokens
+export const csrfTokens = pgTable("csrf_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  token: varchar("token", { length: 512 }).notNull().unique(),
+  sessionId: varchar("session_id").notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+});
+
+// Classes for teacher-student relationships
+export const classes = pgTable("classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id),
+  term: varchar("term", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  archivedAt: timestamp("archived_at"),
+});
+
+// Students linked to classes
+export const students = pgTable("students", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alias: varchar("alias", { length: 255 }).notNull(),
+  classId: varchar("class_id").notNull().references(() => classes.id),
+  userId: varchar("user_id").references(() => users.id),
+  claimToken: varchar("claim_token", { length: 512 }),
+  claimTokenExpires: timestamp("claim_token_expires"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Password reset tokens
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+});
 
 export const wordClasses = pgTable("word_classes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -36,6 +139,46 @@ export interface Word {
   wordClass: string;
   isPunctuation?: boolean;
 }
+
+// Insert schemas for authentication tables
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSessionSchema = createInsertSchema(sessions).omit({
+  id: true,
+  createdAt: true,
+  lastActivityAt: true,
+});
+
+export const insertAuditLogSchema = createInsertSchema(auditLog).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertClassSchema = createInsertSchema(classes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentSchema = createInsertSchema(students).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for authentication
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type InsertAuditLogEntry = z.infer<typeof insertAuditLogSchema>;
+export type Class = typeof classes.$inferSelect;
+export type InsertClass = z.infer<typeof insertClassSchema>;
+export type Student = typeof students.$inferSelect;
+export type InsertStudent = z.infer<typeof insertStudentSchema>;
 
 export const insertWordClassSchema = createInsertSchema(wordClasses).omit({
   id: true,

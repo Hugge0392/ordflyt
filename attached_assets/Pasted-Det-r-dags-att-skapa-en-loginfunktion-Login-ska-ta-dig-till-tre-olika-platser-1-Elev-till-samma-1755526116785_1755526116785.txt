@@ -1,0 +1,345 @@
+Det är dags att skapa en loginfunktion. Login ska ta dig till tre olika platser 1. Elev - till samma sida som nu med alla övningar 2. Lärare - till en blank sida 3. Admin till en adminstida där adminverktyg för skapande av grammatik och läsförståelseövningar finns. admin - admin larare - larare elev - elev samma användarnamnt som lösenord alltså Jag vill att fokus ska vara på säkerhet. säkerhet är det absolut viktigaste så att det inte går att bypassa login på något sätt.
+
+
+Tekniska säkerhetskrav
+Transport & headers
+
+
+Tvinga HTTPS överallt (HSTS med preload, redirecta 80→443).
+
+
+Sätt säkra headers: Content-Security-Policy (minst no inline), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy minimalt.
+
+
+Sessions & cookies
+
+
+Använd server-side sessions (eller säkra tokens) med ”Secure”, “HttpOnly”, “SameSite=Strict”.
+
+
+Rotera session-ID direkt efter login (skydd mot session fixation).
+
+
+Kort livslängd + sliding expiration.
+
+
+Separat CSRF-token i egen cookie/header för state-ändrande POST/PUT/DELETE.
+
+
+Lösenord & inloggning
+
+
+Lagra aldrig plaintext. Hasha med Argon2id (rekommenderad work-faktor) + unik salt; valfri server-pepper via miljövariabel.
+
+
+Mot brute force: rate-limit per konto + IP + device-fingerprint; progressiv backoff; kortvarig konto-cooldown efter X fel (utan att låsa ut helt).
+
+
+Felmeddelanden ska vara lika oavsett om användare finns eller ej (förhindra enumeration).
+
+
+Lägg till valbar TOTP-MFA (t.ex. med autentiseringsapp).
+
+
+Logga inte misslyckade lösenord; logga bara metadata (tid, IP (pseudonymiserad), user-id om finns).
+
+
+Auktorisation (RBAC)
+
+
+Definiera roller: ELEV, LARARE, ADMIN.
+
+
+Middleware som kontrollerar roll innan varje skyddad route (server-side).
+
+
+No IDOR: åtkomst till resurser måste validera både session och ägarskap/roll på servern.
+
+
+Servern bestämmer redirect efter login baserat på roll (inte klienten).
+
+
+Databas & input
+
+
+Endast parametriserade queries/ORM (inga strängkonkatenerade SQL).
+
+
+Normalisera/validera input (längder, format, allow-list).
+
+
+Indexera unika fält; lagra tidsstämplar för loginförsök; använd transaktioner vid behov.
+
+
+Återställning & registrering
+
+
+Säker lösenordsåterställning med engångstoken (kort TTL, single-use) och neutral UX-respons (“om adressen finns…”).
+
+
+E-postverifiering innan konto blir aktivt (om registrering finns).
+
+
+Lösenordspolicy: minlängd, blockera läckta lösenord (k-anonymity-kontroll mot lokal hashliste-dump).
+
+
+Sekretess & nycklar
+
+
+Alla hemligheter i miljövariabler/secrets manager, inte i koden.
+
+
+Separata konfigar för prod/stage/dev; debug off i prod; detaljerade fel får inte läcka till klient.
+
+
+Loggning & spårbarhet
+
+
+Auditlogg för: login (ok/fail), logout, MFA-ändringar, rolländringar, adminåtgärder.
+
+
+Skydda loggar från manipulation; sätt rimlig retention.
+
+
+Test & hårdning
+
+
+Skriv enhetstester + integrationstester för: korrekt hashning, sessionrotation, CSRF-skydd, rate-limit, RBAC-blockering, IDOR-skydd, redirect per roll.
+
+
+SAST/DAST där möjligt; baseline-scan mot OWASP Top 10.
+
+
+Default-deny på endpoints; endast explicita allow-lists.
+
+
+UX & felhantering
+
+
+Använd generell text för fel (“Felaktiga inloggningsuppgifter”) och samma svarstid för lyckat/misslyckat (minimera timing-läckor).
+
+
+Tillgängliga formulär, men utan att exponera säkerhetsdetaljer.
+
+
+Funktionella krav
+Loginformulär: användarnamn + lösenord (+ MFA om aktiverat).
+
+
+Efter lyckad auth:
+
+
+ELEV → övningssidan (nuvarande).
+
+
+LARARE → tom/placeholder-sida för lärare.
+
+
+ADMIN → adminsida för att skapa grammatik- och läsförståelseövningar.
+
+
+Logout ska ogiltigförklara sessionen server-side (revocation) och rensa cookies.
+
+
+Säker default-data (för test, inte i prod)
+Skapa tre testkonton: admin, larare, elev med unika, starka lösenord (inte samma som användarnamnet).
+
+
+Ge instruktion hur man slår av dessa konton i prod-build.
+
+
+Leverabler
+Ren kod + config-exempel (.env.sample) + migrations.
+
+
+Middleware för RBAC.
+
+
+CSRF-skydd aktivt.
+
+
+En uppsättning automatiska tester som körs via CI.
+
+
+Säkerhetsdokument: “Threat model & mitigations” + “Deploy-checklist”.
+
+
+Kodskisser (gör detta i korrekt språk/ramverk jag använder)
+Datamodell: users(id, username UNIQUE, pwd_hash, role ENUM, mfa_secret NULL, created_at, ... ), failed_logins(user_id, ts, ip), audit_log(...).
+
+
+Routes:
+
+
+POST /login (validering, rate-limit, hash-verify, session-rotation, optional MFA, auditlog).
+
+
+POST /logout
+
+
+Registrering & kontohantering (lärare registrerar, elever förprovisioneras)
+Lärarregistrering
+
+
+Endast via e-post + e-postverifiering. Kräv MFA obligatoriskt för lärare (TOTP).
+
+
+(Valfritt) Domänallow-list (t.ex. skolans domän) eller manuell admin-godkännande innan kontot blir LARARE.
+
+
+Elevkonton (förprovisionerade)
+
+
+Skapas av lärare via UI eller CSV-import (minsta möjliga data: förnamn, ev. anonymt elev-ID/alias).
+
+
+Systemet genererar unika engångs-”claim-länkar” eller engångskoder per elev (inte lösenord i klartext).
+
+
+
+
+
+
+Roller & rättigheter
+
+
+ADMIN = systemadministration och verktyg för att skapa övningar.
+
+
+LARARE = kurshantering, elevprovisionering, lösenordsåterställning (via ny claim-länk). Ingen åtkomst till adminverktyg.
+
+
+ELEV = endast övningssidan.
+
+
+Servern avgör redirect efter login baserat på roll (inte klienten).
+
+
+
+
+
+Livscykel
+
+
+
+
+
+Rate-limit & missbruk
+
+
+Separata ramar för ELEV vs LARARE   Elev kan vara inlooggad medan lärare behöver logga in igen
+
+
+Progressiv backoff och neutral feltext (“Felaktiga inloggningsuppgifter”).
+
+
+Klassrums-hotbild (praktiskt)
+
+
+Dölja lösenord (”show/hide”).
+
+
+Kiosk-läge/”endast en flik”-tips och snabb logout-knapp på varje sida.
+
+
+Förhindra ”Back-button bypass”: alla skyddade sidor måste verifiera session/roll på serversidan; ingen caching (Cache-Control: no-store).
+
+
+Sekretess/GDPR
+
+
+Dataminimering: använd alias/elev-ID hellre än fullständiga personuppgifter.
+
+
+Laglig grund: utbildningsuppdrag; dokumentera personuppgiftsbiträdesavtal om molnleverantörer används.
+
+
+Logga IP adresser hashat/pseudonymiserat; radera/arkivera persondata enligt retention-policy.
+
+
+Datamodell (utökning)
+classes(id, name, teacher_id, term, created_at, archived_at)
+
+
+students(id, alias, class_id, user_id NULL) – user_id kopplas först när claim slutförts
+
+
+users(id, username UNIQUE, pwd_hash, role ENUM, mfa_secret NULL, created_at, ...)
+
+
+claim_tokens(id, student_id, token_hash, expires_at, used_at NULL, created_by)
+
+
+audit_log(id, ts, actor_user_id NULL, action, subject_type, subject_id, ip_hash, details_json)
+
+
+API-endpoints (komplettering)
+POST /teachers/register → e-postverifiering + MFA‐setup
+
+
+POST /classes (LARARE) – skapa klass
+
+
+POST /students/bulk (LARARE) – CSV-import (validera schema)
+
+
+POST /students/:id/claim-token (LARARE) – generera engångslänk/kod
+
+
+POST /claim – byter token → sätter elevens lösenord (Argon2id), roterar session, markerar token used
+
+
+POST /students/:id/reset (LARARE) – ogiltigför befintliga sessions + ny claim-token
+
+
+POST /login, POST /logout (som i originalprompten)
+
+
+Acceptanskriterier & tester (lägg till i ”Leverabler”)
+
+
+
+Åtkomstkontroll
+
+
+Elev kan inte nå LARARE/ADMIN-sidor (RBAC-middleware testad).
+
+
+Direkt-URL till adminsida utan roll ⇒ 403 och auditloggpost.
+
+
+Rate-limit
+
+
+Över tröskel ⇒ 429 + auditlogg, samtliga felmeddelanden är tidsmässigt ”uniforma”.
+
+
+Cache/Back-bypass
+
+
+Skyddade svar skickar Cache-Control: no-store, Pragma: no-cache.
+
+
+Browser back-cache visar inte privata sidor efter logout.
+
+
+Säker distribution
+
+
+Export av QR/PDF innehåller endast token/alias/klass. Ingen PII.
+
+
+PDF skyddas med kortlivad nedladdnings-URL och kräver lärares session.
+
+
+UI-detaljer för lärarflöden
+CSV-mall i UI (visa exakt kolumnordning, validera och redovisa felrad).
+
+
+Lista elever med status: ”Ej claimad”, ”Aktiv”, ”Återställning skickad”, ”Länk utgången”.
+
+
+
+
+”Skriv ut kort” → genererar en zip med per-elev-PDF.
+
