@@ -24,8 +24,8 @@ declare global {
 const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
 const TEACHER_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for teachers/admins
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
-const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 5 : 20; // More lenient in development
-const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 15 * 60 * 1000 : 5 * 60 * 1000; // 5 minutes in dev, 15 in production
+const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 10 : 100; // Very lenient in development
+const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1 * 60 * 1000; // 1 minute in dev, 5 in production
 
 // Environment variables for security - use fixed values for development
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev_session_secret_12345';
@@ -346,7 +346,7 @@ export async function requireCsrf(req: Request, res: Response, next: NextFunctio
 // Rate limiting configurations
 export const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
+  max: process.env.NODE_ENV === 'production' ? 10 : 1000, // Much higher limit in dev
   message: 'För många inloggningsförsök, försök igen senare',
   standardHeaders: true,
   legacyHeaders: false,
