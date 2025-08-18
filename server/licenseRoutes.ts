@@ -18,7 +18,7 @@ import {
 } from './licenseDb';
 import { requireAuth, requireRole } from './auth';
 import { Request, Response } from 'express';
-import { oneTimeCodes } from '@shared/schema';
+import { oneTimeCodes, teacherLicenses, teacherClasses } from '@shared/schema';
 import { eq, desc } from 'drizzle-orm';
 
 const router = Router();
@@ -376,6 +376,99 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
     }, req.user?.id || 'unknown', req.ip || 'unknown');
 
     res.status(500).json({ error: 'Serverfel vid generering av kod' });
+  }
+});
+
+// DELETE /api/license/admin/codes/:id - Ta bort engångskod (Admin only)
+router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
+  try {
+    const codeId = req.params.id;
+    const userId = req.user.id;
+
+    // Kontrollera om koden finns
+    const [code] = await licenseDb
+      .select()
+      .from(oneTimeCodes)
+      .where(eq(oneTimeCodes.id, codeId))
+      .limit(1);
+
+    if (!code) {
+      return res.status(404).json({ error: 'Kod hittades inte' });
+    }
+
+    // Ta bort koden
+    await licenseDb
+      .delete(oneTimeCodes)
+      .where(eq(oneTimeCodes.id, codeId));
+
+    // Logga aktivitet
+    await logLicenseActivity(null, 'code_deleted', {
+      code_id: codeId,
+      recipient_email: code.recipientEmail,
+      was_redeemed: !!code.redeemedAt
+    }, userId, req.ip || 'unknown');
+
+    res.json({ 
+      success: true, 
+      message: 'Engångskod borttagen' 
+    });
+
+  } catch (error: any) {
+    console.error('Delete code error:', error);
+    res.status(500).json({ error: 'Serverfel vid borttagning av kod' });
+  }
+});
+
+// DELETE /api/license/admin/licenses/:id - Ta bort lärarlicens (Admin only)
+router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
+  try {
+    const licenseId = req.params.id;
+    const userId = req.user.id;
+
+    // Kontrollera om licensen finns
+    const [license] = await licenseDb
+      .select()
+      .from(teacherLicenses)
+      .where(eq(teacherLicenses.id, licenseId))
+      .limit(1);
+
+    if (!license) {
+      return res.status(404).json({ error: 'Licens hittades inte' });
+    }
+
+    // Kontrollera om läraren har klasser
+    const classes = await licenseDb
+      .select()
+      .from(teacherClasses)
+      .where(eq(teacherClasses.teacherId, license.userId));
+
+    if (classes.length > 0) {
+      return res.status(400).json({ 
+        error: 'Kan inte ta bort licens',
+        message: `Läraren har ${classes.length} aktiv(a) klass(er). Ta bort klasserna först.`
+      });
+    }
+
+    // Ta bort licensen
+    await licenseDb
+      .delete(teacherLicenses)
+      .where(eq(teacherLicenses.id, licenseId));
+
+    // Logga aktivitet
+    await logLicenseActivity(null, 'license_deleted', {
+      license_id: licenseId,
+      user_id: license.userId,
+      license_key: license.licenseKey
+    }, userId, req.ip || 'unknown');
+
+    res.json({ 
+      success: true, 
+      message: 'Lärarlicens borttagen' 
+    });
+
+  } catch (error: any) {
+    console.error('Delete license error:', error);
+    res.status(500).json({ error: 'Serverfel vid borttagning av licens' });
   }
 });
 

@@ -14,7 +14,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Users, UserPlus, Key, Shield, Plus, Copy, CheckCircle, AlertCircle, Clock, Mail, Database, Settings } from 'lucide-react';
+import { ArrowLeft, Users, UserPlus, Key, Shield, Plus, Copy, CheckCircle, AlertCircle, Clock, Mail, Database, Settings, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { apiRequest } from '@/lib/queryClient';
 
 const generateCodeSchema = z.object({
@@ -61,6 +72,27 @@ export default function AdminAccounts() {
     onError: (error: any) => {
       toast({
         title: 'Fel vid generering',
+        description: error.message || 'Ett oväntat fel inträffade',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mutation för att ta bort kod
+  const deleteCodeMutation = useMutation({
+    mutationFn: async (codeId: string) => {
+      return apiRequest('DELETE', `/api/license/admin/codes/${codeId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/license/admin/codes'] });
+      toast({
+        title: 'Kod borttagen',
+        description: 'Engångskoden har tagits bort permanent',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Fel vid borttagning',
         description: error.message || 'Ett oväntat fel inträffade',
         variant: 'destructive',
       });
@@ -271,12 +303,13 @@ export default function AdminAccounts() {
                         <TableHead>Går ut</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Inlöst av</TableHead>
+                        <TableHead>Åtgärder</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(codesData as any)?.codes?.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                             Inga engångskoder har genererats än
                           </TableCell>
                         </TableRow>
@@ -304,6 +337,46 @@ export default function AdminAccounts() {
                                   <span className="text-sm text-gray-500">Väntar</span>
                                 </div>
                               )}
+                            </TableCell>
+                            <TableCell>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Ta bort engångskod</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Är du säker på att du vill ta bort denna engångskod för{' '}
+                                      <strong>{code.recipientEmail}</strong>?
+                                      {code.redeemedAt ? (
+                                        <span className="block mt-2 text-amber-600">
+                                          ⚠️ Koden har redan lösts in och är kopplad till en aktiv licens.
+                                        </span>
+                                      ) : (
+                                        <span className="block mt-2 text-red-600">
+                                          Denna åtgärd kan inte ångras.
+                                        </span>
+                                      )}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteCodeMutation.mutate(code.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Ta bort
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </TableCell>
                           </TableRow>
                         ))
