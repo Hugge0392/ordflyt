@@ -61,8 +61,11 @@ export default function AdminAccounts() {
       return apiRequest('POST', '/api/license/admin/generate', data);
     },
     onSuccess: (data) => {
+      console.log('Generate code success:', data);
       const responseData = data as any;
+      console.log('Response data code:', responseData?.code);
       if (responseData?.code) {
+        console.log('Setting generated code:', responseData.code);
         setGeneratedCode(responseData.code);
         setIsGenerateDialogOpen(false); // Stäng dialogen
         queryClient.invalidateQueries({ queryKey: ['/api/license/admin/codes'] });
@@ -71,6 +74,8 @@ export default function AdminAccounts() {
           title: 'Engångskod genererad!',
           description: `Koden har skapats för ${responseData.code.recipientEmail}`,
         });
+      } else {
+        console.log('No code in response data:', responseData);
       }
     },
     onError: (error: any) => {
@@ -251,7 +256,7 @@ export default function AdminAccounts() {
 
             {/* Visa genererad kod */}
             {generatedCode && (
-              <Alert className="mb-6 border-green-200 bg-green-50">
+              <Alert className="mb-6 border-green-200 bg-green-50">{/* Debug: {JSON.stringify(generatedCode)} */}
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="space-y-3">
                   <div>
