@@ -342,7 +342,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
     const result = await createOneTimeCode(recipientEmail, validityDays);
     
     // Logga aktivitet
-    await logLicenseActivity('code_gen', 'code_generated', {
+    await logLicenseActivity(null, 'code_generated', {
       recipient_email: recipientEmail,
       validity_days: validityDays,
       code_id: result.id
@@ -370,7 +370,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
       });
     }
 
-    await logLicenseActivity('failed_gen', 'code_generation_failed', { 
+    await logLicenseActivity(null, 'code_generation_failed', { 
       error: error.message,
       attempted_by: req.user?.id
     }, req.user?.id || 'unknown', req.ip || 'unknown');

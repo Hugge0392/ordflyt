@@ -158,7 +158,7 @@ export const studentAccounts = pgTable("student_accounts", {
 export const licenseLog = pgTable("license_log", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   licenseId: varchar("license_id").references(() => teacherLicenses.id),
-  action: varchar("action", { length: 50 }).notNull(), // 'created', 'redeemed', 'revoked', 'renewed'
+  action: varchar("action", { length: 50 }).notNull(), // 'created', 'redeemed', 'revoked', 'renewed', 'code_generated', 'code_generation_failed'
   details: jsonb("details"),
   performedBy: varchar("performed_by").references(() => users.id),
   ipAddress: varchar("ip_address", { length: 45 }),

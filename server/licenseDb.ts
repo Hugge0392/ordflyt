@@ -217,7 +217,7 @@ export async function updateStudentPassword(
 
 // License logging
 export async function logLicenseActivity(
-  licenseId: string,
+  licenseId: string | null,
   action: string,
   details: any,
   performedBy?: string,
