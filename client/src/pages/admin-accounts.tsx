@@ -161,6 +161,15 @@ export default function AdminAccounts() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Information om registreringslänkar */}
+            <Alert className="mb-6 border-blue-200 bg-blue-50">
+              <CheckCircle className="w-4 h-4 text-blue-600" />
+              <AlertDescription className="text-blue-700">
+                <strong>Viktigt:</strong> Registreringslänkar visas bara vid kodgenerering av säkerhetsskäl. 
+                När du genererar en ny kod får du både koden och den fullständiga länken att kopiera och skicka till läraren.
+              </AlertDescription>
+            </Alert>
+
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-sm text-gray-600">
@@ -324,13 +333,14 @@ export default function AdminAccounts() {
                         <TableHead>Går ut</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Inlöst av</TableHead>
+                        <TableHead>Registreringslänk</TableHead>
                         <TableHead>Åtgärder</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(codesData as any)?.codes?.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                             Inga engångskoder har genererats än
                           </TableCell>
                         </TableRow>
@@ -357,6 +367,22 @@ export default function AdminAccounts() {
                                   <Clock className="w-4 h-4 text-gray-400" />
                                   <span className="text-sm text-gray-500">Väntar</span>
                                 </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {!code.redeemedAt && new Date() < new Date(code.expiresAt) ? (
+                                <div className="text-center">
+                                  <span className="text-xs text-amber-600 font-medium">
+                                    Länk bara tillgänglig vid kodgenerering
+                                  </span>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Generera ny kod för att få länk
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">
+                                  {code.redeemedAt ? 'Redan använd' : 'Utgången'}
+                                </span>
                               )}
                             </TableCell>
                             <TableCell>

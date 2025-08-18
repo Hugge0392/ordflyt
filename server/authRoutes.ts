@@ -279,9 +279,9 @@ router.post("/api/auth/register", async (req, res) => {
     }, newUser.id, ipAddress);
 
     // Create session and log the user in
-    const sessionData = await createSession(newUser.id, ipAddress, userAgent);
+    const sessionData = await createSession(newUser.id, ipAddress, userAgent, req.headers['user-agent'], undefined);
     
-    req.session!.sessionId = sessionData.sessionToken;
+    req.session!.sessionToken = sessionData.sessionToken;
     req.session!.userId = newUser.id;
 
     // Log audit event
