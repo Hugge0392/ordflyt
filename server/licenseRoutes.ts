@@ -12,10 +12,14 @@ import {
   createStudentAccounts,
   getStudentByUsername,
   updateStudentPassword,
-  logLicenseActivity
+  logLicenseActivity,
+  createOneTimeCode,
+  licenseDb
 } from './licenseDb';
-import { requireAuth } from './auth';
+import { requireAuth, requireRole } from './auth';
 import { Request, Response } from 'express';
+import { oneTimeCodes } from '@shared/schema';
+import { eq, desc } from 'drizzle-orm';
 
 const router = Router();
 
@@ -38,6 +42,11 @@ const studentLoginSchema = z.object({
 
 const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'Lösenord måste vara minst 6 tecken'),
+});
+
+const generateCodeSchema = z.object({
+  recipientEmail: z.string().email('Ogiltig e-postadress'),
+  validityDays: z.number().min(1).max(365).default(30),
 });
 
 // Middleware för att kontrollera aktiv licens
@@ -277,6 +286,96 @@ router.post('/classes', requireAuth, requireActiveLicense, async (req: any, res:
     }
 
     res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// Hjälpfunktion för att generera säkra lösenord
+// Admin endpoints för att hantera licenser och koder
+
+// GET /api/license/admin/codes - Visa alla engångskoder (Admin only)
+router.get('/admin/codes', requireAuth, requireRole(['ADMIN']), async (req: any, res: Response) => {
+  try {
+    const codes = await licenseDb
+      .select({
+        id: oneTimeCodes.id,
+        recipientEmail: oneTimeCodes.recipientEmail,
+        createdAt: oneTimeCodes.createdAt,
+        expiresAt: oneTimeCodes.expiresAt,
+        redeemedAt: oneTimeCodes.redeemedAt,
+        redeemedBy: oneTimeCodes.redeemedBy,
+      })
+      .from(oneTimeCodes)
+      .orderBy(desc(oneTimeCodes.createdAt))
+      .limit(50);
+
+    res.json({ codes });
+  } catch (error) {
+    console.error('Get codes error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/admin/generate - Generera ny engångskod (Admin only)
+router.post('/admin/generate', requireAuth, requireRole(['ADMIN']), async (req: any, res: Response) => {
+  try {
+    const { recipientEmail, validityDays } = generateCodeSchema.parse(req.body);
+    const userId = req.user.id;
+
+    // Kontrollera om det redan finns en aktiv kod för denna e-post
+    const existingCodes = await licenseDb
+      .select()
+      .from(oneTimeCodes)
+      .where(eq(oneTimeCodes.recipientEmail, recipientEmail));
+
+    const activeCodes = existingCodes.filter(code => 
+      !code.redeemedAt && new Date() < code.expiresAt
+    );
+
+    if (activeCodes.length > 0) {
+      return res.status(400).json({ 
+        error: 'Aktiv kod finns redan',
+        message: `Det finns redan en aktiv kod för ${recipientEmail}. Koden går ut: ${activeCodes[0].expiresAt.toLocaleDateString('sv-SE')}`
+      });
+    }
+
+    // Generera ny kod
+    const result = await createOneTimeCode(recipientEmail, validityDays);
+    
+    // Logga aktivitet
+    await logLicenseActivity(null, 'code_generated', {
+      recipient_email: recipientEmail,
+      validity_days: validityDays,
+      code_id: result.id
+    }, userId, req.ip);
+
+    res.json({
+      success: true,
+      message: 'Engångskod genererad!',
+      code: {
+        id: result.id,
+        code: result.clearTextCode,
+        recipientEmail,
+        expiresAt: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000),
+        validityDays
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Generate code error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga data',
+        details: error.errors.map(e => e.message)
+      });
+    }
+
+    await logLicenseActivity(null, 'code_generation_failed', { 
+      error: error.message,
+      attempted_by: req.user?.id
+    }, req.user?.id, req.ip);
+
+    res.status(500).json({ error: 'Serverfel vid generering av kod' });
   }
 });
 
