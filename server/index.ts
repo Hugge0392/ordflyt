@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import authRoutes from "./authRoutes";
 import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
+import { initializeDatabase } from "./initDatabase";
 
 const app = express();
 
@@ -61,6 +62,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialisera databasen med nödvändiga användare
+  await initializeDatabase();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
