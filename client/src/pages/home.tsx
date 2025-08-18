@@ -173,6 +173,43 @@ export default function Home() {
 
         .footer{margin-top:26px; color:#5c6b7a; font-size:14px}
         .footer a{color:#4b6cb7; text-underline-offset:3px}
+        
+        /* Login button */
+        .login-btn {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 10;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 25px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          transition: all 0.3s ease;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .login-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .login-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+        
+        .login-icon {
+          font-size: 18px;
+        }
 
         /* Berg i bakgrunden */
         .bg-mountains{position:fixed; inset:0; z-index:-1; display:block; width:100%; height:100%; opacity: 0.8;}
@@ -244,6 +281,12 @@ export default function Home() {
       `}</style>
 
       <div className="home-body">
+        {/* Login button */}
+        <Link href="/login" className="login-btn" data-testid="button-login">
+          <span className="login-icon">👤</span>
+          Logga in
+        </Link>
+        
         {/* Extra bakgrundslager */}
         <div className="bg-landscape" aria-hidden="true">
           <div className="grass-layer"></div>
