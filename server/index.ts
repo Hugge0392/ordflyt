@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import authRoutes from "./authRoutes";
+import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
 
 const app = express();
@@ -25,6 +26,9 @@ app.use('/api/', apiRateLimit);
 
 // Authentication routes (before other routes)
 app.use(authRoutes);
+
+// License management routes
+app.use('/api/license', licenseRoutes);
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, BookOpen, Settings } from "lucide-react";
+import { LogOut, Users, BookOpen, Settings, Key } from "lucide-react";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherPage() {
@@ -112,6 +113,29 @@ export default function TeacherPage() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center">
+                <Key className="h-5 w-5 mr-2 text-orange-600" />
+                Licens
+              </CardTitle>
+              <CardDescription>
+                Aktivera och hantera din lärarlicens
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Lös in din engångskod för att aktivera din lärarlicens och börja använda alla funktioner.
+              </p>
+              <Link href="/license">
+                <Button className="w-full">
+                  <Key className="h-4 w-4 mr-2" />
+                  Hantera licens
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 mr-2 text-blue-600" />
                 Mina klasser
               </CardTitle>
@@ -123,9 +147,12 @@ export default function TeacherPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Skapa nya klasser, lägg till elever och följ deras framsteg.
               </p>
-              <Button variant="outline" className="w-full" disabled>
-                Kommer snart
-              </Button>
+              <Link href="/teacher/classes">
+                <Button className="w-full">
+                  <Users className="h-4 w-4 mr-2" />
+                  Hantera klasser
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

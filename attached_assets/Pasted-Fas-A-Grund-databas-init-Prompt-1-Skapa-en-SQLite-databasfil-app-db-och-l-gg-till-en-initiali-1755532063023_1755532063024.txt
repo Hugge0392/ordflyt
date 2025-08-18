@@ -1,0 +1,95 @@
+Fas A: Grund (databas + init)
+
+Prompt 1
+“Skapa en SQLite-databasfil app.db och lägg till en initialisering som kör ett schema vid serverstart. Skapa en fil schema.sql för tabeller till lärare, engångskoder, licenser, klasser och elever. Använd säkra fält, unika index där det behövs och tidsstämplar.”
+
+Prompt 2
+“Skapa en modul db.js som öppnar app.db, läser in schema.sql och kör det vid import. Exportera en databasinstans som jag kan använda i resten av appen. Lägg även till nödvändiga npm-paket för SQLite och id-generering.”
+
+Fas B: Adminflöde för engångskoder
+
+Prompt 3
+“Bygg ett litet adminskript som kan generera läsvänliga engångskoder (4×4 tecken med bindestreck), hash:a dem med SHA-256 och spara hash + mottagarens e-post + utgångsdatum i tabellen one_time_codes. Skriptet ska skriva ut klartextkoden i terminalen. Gör det körbart via node scripts/generate_code.js <lararens-email> [giltighet-dagar].”
+
+Prompt 4
+“Lägg till validering i adminskriptet: förhindra dubletter, se till att koder inte blir förutsägbara, och logga tydliga fel om e-post saknas eller DB-insert misslyckas.”
+
+Fas C: Inlösning av kod → licens
+
+Prompt 5
+“Skapa en POST-endpoint /redeem där en inloggad lärare kan skicka in sin engångskod. Endpoints logik: kontrollera hash mot DB, kolla att koden inte gått ut eller redan använts, markera den som förbrukad och skapa en aktiv licens kopplad till lärarens konto. Returnera en ny licensnyckel.”
+
+Prompt 6
+“Lägg till begränsning: en kod får bara lösas in en gång. Om läraren redan har en aktiv licens, returnera ett tydligt felmeddelande. Logga alla försök (tid, ip om möjligt) för felsökning.”
+
+Fas D: Lärarens licenssida + klasshanterare
+
+Prompt 7
+“Skapa en skyddad sida /license där läraren kan klistra in sin engångskod och trycka ‘Lös in’. Visa success/fel och, vid success, licensstatus och giltighet (om licenser har utgångsdatum).”
+
+Prompt 8
+“Skapa en skyddad vy /classes (‘Klasshanteraren’) som bara är åtkomlig om läraren har en aktiv licens. Visa lista på klasser och en knapp ‘Skapa ny klass’.”
+
+Fas E: Skapa klass + generera elevkonton
+
+Prompt 9
+“På sidan ‘Skapa ny klass’: gör ett enkelt formulär där läraren skriver klassnamn och en multiline-text med elevnamn (ett per rad). När man sparar: skapa klassen, generera unika elev-användarnamn och starka engångslösenord till varje elev, och spara hashade lösenord i DB. Visa resultatet i en tabell.”
+
+Prompt 10
+“Lägg till funktion ‘Exportera CSV’ på klassidan som laddar ner en CSV med kolumnerna: elevnamn, användarnamn, engångslösenord. Visa en varning om att lösenorden bara visas i klartext vid skapande/export, inte senare.”
+
+Fas F: Elevinlogg + lösenordsbyte
+
+Prompt 11
+“Skapa elev-loginruta (separat från lärarlogin) som accepterar elevens användarnamn och lösenord. När en elev loggar in första gången, tvinga dem att byta till ett eget lösenord och rensa ev. ‘engångsflagga’.”
+
+Prompt 12
+“Lägg till rate limiting och låsning av konto efter X misslyckade försök (med gradvis upplåsning) för elevlogins. Logga försök på ett säkert sätt.”
+
+Fas G: Licenskontroller i backend
+
+Prompt 13
+“Inför en middleware som kontrollerar att läraren har en aktiv licens innan de kan nå endpoints för klass- och elevhantering. Om licensen saknas eller är ogiltig: returnera 403 och en vänlig förklaring.”
+
+Prompt 14
+“Lägg till en adminvy eller CLI-kommandon för att lista, inaktivera eller förnya licenser (t.ex. ‘revoke’, ‘renew’, ‘extend’).”
+
+Fas H: E-post och engångskoder (valfritt men bra)
+
+Prompt 15
+“Lägg till ett CLI-kommando som skickar ut den genererade engångskoden via e-post till läraren (använd ett enkelt e-postbibliotek). Inkludera giltighetstid och kort instruktion ‘Gå till /license och klistra in koden’.”
+
+Prompt 16
+“Lägg till mallar för e-post (köpt licens, kod påminnelse, licens på väg att löpa ut) och gör utskicken idempotenta så att samma mejl inte skickas dubbelt av misstag.”
+
+Fas I: Kvalitet, säkerhet, och loggning
+
+Prompt 17
+“Implementera server-sidig inputvalidering för alla formulär. Sanera och begränsa fältlängder, och visa vänliga felmeddelanden i UI.”
+
+Prompt 18
+“Lägg till en ordentlig felhanterare (‘error boundary’) i frontend och en global Express-error handler i backend som inte läcker stacktraces i produktion.”
+
+Prompt 19
+“Inför strukturerad loggning (t.ex. JSON-loggar) för viktiga händelser: kod genererad, kod inlöst, licens skapad/revoked, klass skapad, elevkonton genererade.”
+
+Prompt 20
+“Skapa några enhetstester för de kritiska delarna: kodgenerering (format, unikhet), inlösningsflödet (happy path + felvägar), elevkontogenerering (unika usernames), och licensmiddleware.”
+
+Fas J: Admin-manual i appen
+
+Prompt 21
+“Lägg till en hjälpsida ‘Så här kommer du igång’ som visar: 1) hur man löser in kod, 2) skapar klass, 3) klistrar in elevlistan, 4) exporterar CSV och delar ut inlogg.”
+
+Prompt 22
+“Lägg in en enkel ‘testläge’-knapp i adminvyn som skapar en demoklass med fejkade elever så jag snabbt kan demo:a flödet.”
+
+Tips när du pratar med chatboten
+
+Var explicit: “Skapa fil X”, “lägg till endpoint Y”, “visa Z i UI:t”.
+
+Säg “visa mig diffen” om du vill se exakt vad som ändrades, men be den att inte klistra in full kod om du vill undvika kodmassa.
+
+Efter varje prompt: kör appen, prova flödet, anteckna vad som saknas och be den justera.
+
+Vill du att jag portionerar ut två prompts i taget medan du bygger, så kör vi i rätt tempo – säg bara till så börjar vi med Prompt 1–2.

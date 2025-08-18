@@ -106,6 +106,65 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at"),
 });
 
+// One-time codes for license redemption
+export const oneTimeCodes = pgTable("one_time_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  codeHash: varchar("code_hash", { length: 64 }).notNull().unique(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  redeemedAt: timestamp("redeemed_at"),
+  redeemedBy: varchar("redeemed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Teacher licenses
+export const teacherLicenses = pgTable("teacher_licenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  licenseKey: varchar("license_key", { length: 64 }).notNull().unique(),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  oneTimeCodeId: varchar("one_time_code_id").references(() => oneTimeCodes.id),
+});
+
+// Classes created by teachers
+export const teacherClasses = pgTable("teacher_classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  licenseId: varchar("license_id").notNull().references(() => teacherLicenses.id, { onDelete: 'cascade' }),
+  term: varchar("term", { length: 50 }),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  archivedAt: timestamp("archived_at"),
+});
+
+// Student accounts created by teachers
+export const studentAccounts = pgTable("student_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  studentName: varchar("student_name", { length: 255 }).notNull(),
+  classId: varchar("class_id").notNull().references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  mustChangePassword: boolean("must_change_password").default(true),
+  failedLoginAttempts: integer("failed_login_attempts").default(0),
+  lockedUntil: timestamp("locked_until"),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// License activity log
+export const licenseLog = pgTable("license_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  licenseId: varchar("license_id").references(() => teacherLicenses.id),
+  action: varchar("action", { length: 50 }).notNull(), // 'created', 'redeemed', 'revoked', 'renewed'
+  details: jsonb("details"),
+  performedBy: varchar("performed_by").references(() => users.id),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const wordClasses = pgTable("word_classes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -168,11 +227,49 @@ export const insertStudentSchema = createInsertSchema(students).omit({
   createdAt: true,
 });
 
+// Insert schemas for license system
+export const insertOneTimeCodeSchema = createInsertSchema(oneTimeCodes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTeacherLicenseSchema = createInsertSchema(teacherLicenses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTeacherClassSchema = createInsertSchema(teacherClasses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentAccountSchema = createInsertSchema(studentAccounts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLicenseLogSchema = createInsertSchema(licenseLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types for authentication
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
+
+// Types for license system
+export type OneTimeCode = typeof oneTimeCodes.$inferSelect;
+export type InsertOneTimeCode = z.infer<typeof insertOneTimeCodeSchema>;
+export type TeacherLicense = typeof teacherLicenses.$inferSelect;
+export type InsertTeacherLicense = z.infer<typeof insertTeacherLicenseSchema>;
+export type TeacherClass = typeof teacherClasses.$inferSelect;
+export type InsertTeacherClass = z.infer<typeof insertTeacherClassSchema>;
+export type StudentAccount = typeof studentAccounts.$inferSelect;
+export type InsertStudentAccount = z.infer<typeof insertStudentAccountSchema>;
+export type LicenseLog = typeof licenseLog.$inferSelect;
+export type InsertLicenseLog = z.infer<typeof insertLicenseLogSchema>;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type InsertAuditLogEntry = z.infer<typeof insertAuditLogSchema>;
 export type Class = typeof classes.$inferSelect;

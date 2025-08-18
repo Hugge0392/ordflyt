@@ -29,6 +29,8 @@ import PublishedLessonPage from "@/pages/lesson-player-published";
 
 import LoginPage from "@/pages/login";
 import TeacherPage from "@/pages/teacher";
+import LicensePage from "@/pages/license";
+import TeacherClassesPage from "@/pages/teacher-classes";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 function Router() {
@@ -101,6 +103,16 @@ function Router() {
       <Route path="/teacher">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
           <TeacherPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/license">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <LicensePage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/teacher/classes">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <TeacherClassesPage />
         </ProtectedRoute>
       </Route>
       
