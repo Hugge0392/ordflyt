@@ -168,13 +168,14 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
 
 // Teacher registration endpoint
 router.post("/api/auth/register", async (req, res) => {
-  const { username, email, password, code } = req.body;
+  const { username, email, password, code, oneTimeCode } = req.body;
+  const actualCode = code || oneTimeCode; // Support both field names
   const ipAddress = req.ip || 'unknown';
   const userAgent = req.headers['user-agent'];
   
   try {
     // Validate input
-    if (!username || !email || !password || !code) {
+    if (!username || !email || !password || !actualCode) {
       return res.status(400).json({ error: 'Alla fält krävs' });
     }
 
@@ -205,7 +206,7 @@ router.post("/api/auth/register", async (req, res) => {
     }
 
     // Find and validate one-time code
-    const codeHash = hashCode(code);
+    const codeHash = hashCode(actualCode);
     const oneTimeCode = await findOneTimeCode(codeHash);
 
     if (!oneTimeCode) {
@@ -279,7 +280,8 @@ router.post("/api/auth/register", async (req, res) => {
     }, newUser.id, ipAddress);
 
     // Create session and log the user in
-    const sessionData = await createSession(newUser.id, ipAddress, userAgent, req.headers['user-agent'], undefined);
+    const deviceFingerprint = generateDeviceFingerprint(req);
+    const sessionData = await createSession(newUser.id, ipAddress, userAgent, deviceFingerprint, 'LARARE');
     
     req.session!.sessionToken = sessionData.sessionToken;
     req.session!.userId = newUser.id;
