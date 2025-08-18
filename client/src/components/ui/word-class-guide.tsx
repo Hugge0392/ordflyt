@@ -4,9 +4,10 @@ interface WordClassGuideProps {
   wordClass: WordClass;
   isCorrect?: boolean;
   isWrong?: boolean;
+  onClose?: () => void;
 }
 
-export default function WordClassGuide({ wordClass, isCorrect, isWrong }: WordClassGuideProps) {
+export default function WordClassGuide({ wordClass, isCorrect, isWrong, onClose }: WordClassGuideProps) {
   const getCharacterMood = () => {
     if (isCorrect) return "😊";
     if (isWrong) return "🤔";

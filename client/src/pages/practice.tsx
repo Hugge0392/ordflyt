@@ -6,6 +6,9 @@ import { type Sentence, type WordClass, type GameProgress } from "@shared/schema
 import MultipleChoiceSentence from "@/components/ui/multiple-choice-sentence";
 import WordClassGuide from "@/components/ui/word-class-guide";
 import ErrorReportModal from "@/components/ui/error-report-modal";
+import LoginPrompt from "@/components/LoginPrompt";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export default function Practice() {
   const [matchLevel, paramsLevel] = useRoute("/practice/:wordClass/level/:level");
@@ -28,25 +31,74 @@ export default function Practice() {
   const [countdown, setCountdown] = useState(3);
   const [errorCount, setErrorCount] = useState(0);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
-  // Fetch appropriate sentences based on level
+  // Fetch appropriate sentences based on level (public access)
   const { data: sentences = [], isLoading: sentencesLoading, error: sentencesError } = useQuery<Sentence[]>({
     queryKey: practiceLevel 
       ? [`/api/sentences/wordclass/${specificWordClass}/level/${practiceLevel}`]
       : ["/api/sentences"],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey.join("/"), {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        // For demo purposes, return sample data if not authenticated
+        return [
+          {
+            id: 'demo-1',
+            text: 'Den snabba räven springer över det gröna fältet.',
+            words: [
+              { text: 'Den', wordClass: 'pronomen', isPunctuation: false },
+              { text: 'snabba', wordClass: 'adjektiv', isPunctuation: false },
+              { text: 'räven', wordClass: 'substantiv', isPunctuation: false },
+              { text: 'springer', wordClass: 'verb', isPunctuation: false },
+              { text: 'över', wordClass: 'preposition', isPunctuation: false },
+              { text: 'det', wordClass: 'pronomen', isPunctuation: false },
+              { text: 'gröna', wordClass: 'adjektiv', isPunctuation: false },
+              { text: 'fältet', wordClass: 'substantiv', isPunctuation: false },
+              { text: '.', wordClass: '', isPunctuation: true }
+            ],
+            wordClasses: ['pronomen', 'adjektiv', 'substantiv', 'verb', 'preposition'],
+            level: 1
+          }
+        ];
+      }
+      return response.json();
+    },
   });
 
   const { data: wordClasses = [], isLoading: wordClassesLoading } = useQuery<WordClass[]>({
     queryKey: ["/api/word-classes"],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey.join("/"), {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        // Return demo word classes
+        return [
+          { id: '1', name: 'substantiv', swedishName: 'substantiv', description: 'Ord som betecknar personer, djur, saker eller begrepp', color: '#3b82f6' },
+          { id: '2', name: 'verb', swedishName: 'verb', description: 'Ord som beskriver handlingar eller tillstånd', color: '#ef4444' },
+          { id: '3', name: 'adjektiv', swedishName: 'adjektiv', description: 'Ord som beskriver egenskaper hos substantiv', color: '#10b981' },
+          { id: '4', name: 'pronomen', swedishName: 'pronomen', description: 'Ord som används istället för substantiv', color: '#f59e0b' },
+          { id: '5', name: 'preposition', swedishName: 'preposition', description: 'Ord som visar förhållanden mellan andra ord', color: '#8b5cf6' }
+        ];
+      }
+      return response.json();
+    },
   });
 
+  // Only fetch progress if authenticated
   const { data: gameProgress, isLoading: progressLoading } = useQuery<GameProgress>({
     queryKey: ["/api/game-progress"],
+    enabled: isAuthenticated,
   });
 
-  // Update game progress mutation
+  // Update game progress mutation (only for authenticated users)
   const updateProgressMutation = useMutation({
     mutationFn: async (updates: Partial<GameProgress>) => {
+      if (!isAuthenticated) return null;
       const response = await apiRequest("PATCH", "/api/game-progress", updates);
       return response.json();
     },
@@ -64,11 +116,11 @@ export default function Practice() {
       setCurrentTargetClass(specificWordClass);
     } else if (currentSentence) {
       // For general practice, pick a random word class from the sentence
-      const availableClasses = [...new Set(
+      const availableClasses = Array.from(new Set(
         currentSentence.words
           .filter(word => !word.isPunctuation)
           .map(word => word.wordClass)
-      )];
+      ));
       if (availableClasses.length > 0) {
         setCurrentTargetClass(availableClasses[Math.floor(Math.random() * availableClasses.length)]);
       }
@@ -77,6 +129,12 @@ export default function Practice() {
 
   const handleWordClick = (wordIndex: number, wordClass: string) => {
     if (isSubmitted) return;
+    
+    // Show login prompt for unauthenticated users
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
     
     // For levels 1 and 2, auto-submit on single correct click
     if (practiceLevel && (practiceLevel === 1 || practiceLevel === 2)) {
@@ -621,10 +679,19 @@ export default function Practice() {
       )}
 
       {/* Guide */}
-      {showGuide && guideWordClass && (
+      {showGuide && guideWordClass && currentWordClass && (
         <WordClassGuide
-          wordClass={guideWordClass}
+          wordClass={currentWordClass}
           onClose={() => setShowGuide(false)}
+        />
+      )}
+
+      {/* Login Prompt */}
+      {showLoginPrompt && (
+        <LoginPrompt
+          title="Logga in för att öva"
+          message="För att kunna klicka på ord och öva grammatik behöver du logga in eller skapa ett konto."
+          onClose={() => setShowLoginPrompt(false)}
         />
       )}
     </div>

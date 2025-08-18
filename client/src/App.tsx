@@ -42,62 +42,32 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/registrera" component={RegisterPage} />
       
-      {/* Student routes (requires ELEV role) */}
-      <Route path="/menu">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Menu />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/grammatik">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Menu />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/lasforstaelse">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <ReadingHome />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/lasforstaelse/ovningar">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <ReadingExercises />
-        </ProtectedRoute>
-      </Route>
+      {/* Student routes - now public for exploration */}
+      <Route path="/menu" component={Menu} />
+      <Route path="/grammatik" component={Menu} />
+      <Route path="/lasforstaelse" component={ReadingHome} />
+      <Route path="/lasforstaelse/ovningar" component={ReadingExercises} />
       <Route path="/lasforstaelse/lektion/:id" component={ReadingLessonViewer} />
       <Route path="/lasforstaelse/deckargator">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <ReadingPlaceholder type="deckargator" />
-        </ProtectedRoute>
+        <ReadingPlaceholder type="deckargator" />
       </Route>
       <Route path="/skrivande">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Placeholder category="skrivande" />
-        </ProtectedRoute>
+        <Placeholder category="skrivande" />
       </Route>
       <Route path="/muntligt">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Placeholder category="muntligt" />
-        </ProtectedRoute>
+        <Placeholder category="muntligt" />
       </Route>
       <Route path="/nordiska-sprak">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Placeholder category="nordiska-sprak" />
-        </ProtectedRoute>
+        <Placeholder category="nordiska-sprak" />
       </Route>
       <Route path="/kallkritik">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <Placeholder category="kallkritik" />
-        </ProtectedRoute>
+        <Placeholder category="kallkritik" />
       </Route>
       <Route path="/wordclass/:wordClass" component={WordClassLevels} />
       <Route path="/practice/:wordClass/level/:level" component={Practice} />
       <Route path="/practice/:wordClass?" component={Practice} />
       <Route path="/test/:testType" component={Test} />
-      <Route path="/pirate-course">
-        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-          <PirateCourse />
-        </ProtectedRoute>
-      </Route>
+      <Route path="/pirate-course" component={PirateCourse} />
       <Route path="/lesson/:id" component={LessonPlayer} />
       <Route path="/published/:lessonId" component={PublishedLessonPage} />
       
