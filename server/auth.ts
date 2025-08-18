@@ -27,9 +27,9 @@ const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_COOLDOWN = 15 * 60 * 1000; // 15 minutes cooldown after max attempts
 
-// Environment variables for security
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-const PEPPER = process.env.PASSWORD_PEPPER || crypto.randomBytes(16).toString('hex');
+// Environment variables for security - use fixed values for development
+const SESSION_SECRET = process.env.SESSION_SECRET || 'dev_session_secret_12345';
+const PEPPER = process.env.PASSWORD_PEPPER || 'dev_pepper_12345';
 
 // Hash IP addresses for privacy
 export function hashIpAddress(ip: string): string {

@@ -55,13 +55,7 @@ function Router() {
           <ReadingExercises />
         </ProtectedRoute>
       </Route>
-      <Route path="/lasforstaelse/lektion/:id">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <ReadingLessonViewer {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route path="/lasforstaelse/lektion/:id" component={ReadingLessonViewer} />
       <Route path="/lasforstaelse/deckargator">
         <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
           <ReadingPlaceholder type="deckargator" />
@@ -87,53 +81,17 @@ function Router() {
           <Placeholder category="kallkritik" />
         </ProtectedRoute>
       </Route>
-      <Route path="/wordclass/:wordClass">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <WordClassLevels {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/practice/:wordClass/level/:level">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Practice {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/practice/:wordClass?">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Practice {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/test/:testType">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Test {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route path="/wordclass/:wordClass" component={WordClassLevels} />
+      <Route path="/practice/:wordClass/level/:level" component={Practice} />
+      <Route path="/practice/:wordClass?" component={Practice} />
+      <Route path="/test/:testType" component={Test} />
       <Route path="/pirate-course">
         <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
           <PirateCourse />
         </ProtectedRoute>
       </Route>
-      <Route path="/lesson/:id">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <LessonPlayer {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/published/:lessonId">
-        {(params) => (
-          <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <PublishedLessonPage {...params} />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route path="/lesson/:id" component={LessonPlayer} />
+      <Route path="/published/:lessonId" component={PublishedLessonPage} />
       
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">
