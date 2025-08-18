@@ -261,7 +261,7 @@ export default function AdminAccounts() {
                   </div>
                   <div>
                     <p className="font-medium text-green-800 mb-2">Engångskod:</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-3">
                       <code className="px-3 py-2 bg-white border rounded font-mono text-lg tracking-wider">
                         {generatedCode.code}
                       </code>
@@ -273,6 +273,24 @@ export default function AdminAccounts() {
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-800 mb-2">Registreringslänk:</p>
+                    <div className="flex items-center gap-2">
+                      <code className="px-3 py-2 bg-white border rounded font-mono text-sm break-all">
+                        {`${window.location.origin}/registrera?kod=${generatedCode.code}`}
+                      </code>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => copyToClipboard(`${window.location.origin}/registrera?kod=${generatedCode.code}`)}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Skicka denna länk till läraren för enkel registrering
+                    </p>
                   </div>
                   <div className="text-xs text-green-600">
                     ⚠️ VIKTIGT: Koden visas bara här en gång! Skicka den säkert till läraren.

@@ -28,6 +28,7 @@ import LessonPlayer from "@/pages/lesson-player";
 import PublishedLessonPage from "@/pages/lesson-player-published";
 
 import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import TeacherPage from "@/pages/teacher";
 import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
@@ -39,6 +40,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/" component={Home} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/registrera" component={RegisterPage} />
       
       {/* Student routes (requires ELEV role) */}
       <Route path="/menu">

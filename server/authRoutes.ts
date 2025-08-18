@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "./db";
 import { users, sessions, auditLog } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
 import argon2 from "argon2";
 import {
   hashPassword,
@@ -162,6 +163,153 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ error: 'Ett fel uppstod vid utloggning' });
+  }
+});
+
+// Teacher registration endpoint
+router.post("/api/auth/register", async (req, res) => {
+  const { username, email, password, code } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+  
+  try {
+    // Validate input
+    if (!username || !email || !password || !code) {
+      return res.status(400).json({ error: 'Alla fält krävs' });
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_-]{3,50}$/.test(username)) {
+      return res.status(400).json({ error: 'Ogiltigt användarnamn format' });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Ogiltig e-postadress' });
+    }
+
+    // Validate password strength
+    if (password.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return res.status(400).json({ error: 'Lösenordet uppfyller inte kraven' });
+    }
+
+    // Check if username already exists
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Användarnamnet är redan taget' });
+    }
+
+    // Find and validate one-time code
+    const codeHash = hashCode(code);
+    const oneTimeCode = await findOneTimeCode(codeHash);
+
+    if (!oneTimeCode) {
+      await logLicenseActivity(null, 'registration_failed', { 
+        reason: 'invalid_code',
+        attempted_username: username,
+        attempted_email: email
+      }, undefined, ipAddress);
+      return res.status(400).json({ error: 'Ogiltig engångskod' });
+    }
+
+    // Check if code is already redeemed
+    if (oneTimeCode.redeemedAt) {
+      await logLicenseActivity(null, 'registration_failed', { 
+        reason: 'code_already_redeemed',
+        attempted_username: username,
+        attempted_email: email,
+        code_id: oneTimeCode.id
+      }, undefined, ipAddress);
+      return res.status(400).json({ error: 'Koden har redan använts' });
+    }
+
+    // Check if code has expired
+    if (new Date() > oneTimeCode.expiresAt) {
+      await logLicenseActivity(null, 'registration_failed', { 
+        reason: 'code_expired',
+        attempted_username: username,
+        attempted_email: email,
+        code_id: oneTimeCode.id
+      }, undefined, ipAddress);
+      return res.status(400).json({ error: 'Koden har gått ut' });
+    }
+
+    // Validate email matches code
+    if (oneTimeCode.recipientEmail !== email) {
+      await logLicenseActivity(null, 'registration_failed', { 
+        reason: 'email_mismatch',
+        attempted_username: username,
+        attempted_email: email,
+        code_email: oneTimeCode.recipientEmail,
+        code_id: oneTimeCode.id
+      }, undefined, ipAddress);
+      return res.status(400).json({ 
+        error: 'E-postadressen matchar inte koden',
+        message: `Koden är utställd för ${oneTimeCode.recipientEmail}`
+      });
+    }
+
+    // Hash password and create user
+    const passwordHash = await hashPassword(password);
+    
+    const [newUser] = await db.insert(users).values({
+      username,
+      email,
+      passwordHash,
+      role: 'LARARE',
+      isActive: true,
+      emailVerified: true,
+      mustChangePassword: false
+    }).returning();
+
+    // Redeem the code and create license
+    await redeemOneTimeCode(oneTimeCode.id, newUser.id);
+    const license = await createTeacherLicense(newUser.id, oneTimeCode.id);
+
+    // Log successful registration
+    await logLicenseActivity(license.id, 'teacher_registered', { 
+      username,
+      email,
+      code_id: oneTimeCode.id
+    }, newUser.id, ipAddress);
+
+    // Create session and log the user in
+    const sessionData = await createSession(newUser.id, ipAddress, userAgent);
+    
+    req.session!.sessionId = sessionData.sessionToken;
+    req.session!.userId = newUser.id;
+
+    // Log audit event
+    await logAuditEvent('REGISTRATION', newUser.id, true, ipAddress, userAgent, { email });
+
+    res.json({
+      success: true,
+      message: 'Lärarkonto skapat framgångsrikt',
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Registration error:', error);
+    
+    // Log failed registration
+    await logLicenseActivity(null, 'registration_failed', { 
+      reason: 'server_error',
+      error: error.message,
+      attempted_username: username,
+      attempted_email: email
+    }, undefined, ipAddress);
+
+    res.status(500).json({ error: 'Serverfel vid registrering' });
   }
 });
 
