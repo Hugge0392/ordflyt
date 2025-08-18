@@ -144,6 +144,9 @@ export async function createSession(
   deviceFingerprint: string,
   role: string
 ): Promise<Session> {
+  // Delete any existing sessions for this user first
+  await db.delete(sessions).where(eq(sessions.userId, userId));
+  
   const sessionToken = generateSecureToken();
   const duration = (role === 'LARARE' || role === 'ADMIN') ? TEACHER_SESSION_DURATION : SESSION_DURATION;
   
