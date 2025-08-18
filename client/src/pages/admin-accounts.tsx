@@ -64,6 +64,7 @@ export default function AdminAccounts() {
       const responseData = data as any;
       if (responseData?.code) {
         setGeneratedCode(responseData.code);
+        setIsGenerateDialogOpen(false); // Stäng dialogen
         queryClient.invalidateQueries({ queryKey: ['/api/license/admin/codes'] });
         form.reset();
         toast({
