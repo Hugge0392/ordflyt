@@ -61,13 +61,16 @@ export default function AdminAccounts() {
       return apiRequest('POST', '/api/license/admin/generate', data);
     },
     onSuccess: (data) => {
-      setGeneratedCode((data as any).code);
-      queryClient.invalidateQueries({ queryKey: ['/api/license/admin/codes'] });
-      form.reset();
-      toast({
-        title: 'Engångskod genererad!',
-        description: `Koden har skapats för ${(data as any).code.recipientEmail}`,
-      });
+      const responseData = data as any;
+      if (responseData?.code) {
+        setGeneratedCode(responseData.code);
+        queryClient.invalidateQueries({ queryKey: ['/api/license/admin/codes'] });
+        form.reset();
+        toast({
+          title: 'Engångskod genererad!',
+          description: `Koden har skapats för ${responseData.code.recipientEmail}`,
+        });
+      }
     },
     onError: (error: any) => {
       toast({
