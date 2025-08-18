@@ -94,7 +94,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
     const oneTimeCode = await findOneTimeCode(codeHash);
 
     if (!oneTimeCode) {
-      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
+      await logLicenseActivity(null, 'redeem_failed', { 
         reason: 'code_not_found',
         attempted_by: userId,
         user_email: userEmail
@@ -105,7 +105,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera om koden redan är använd
     if (oneTimeCode.redeemedAt) {
-      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
+      await logLicenseActivity(null, 'redeem_failed', { 
         reason: 'code_already_used',
         attempted_by: userId,
         user_email: userEmail,
@@ -117,7 +117,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera om koden har gått ut
     if (new Date() > oneTimeCode.expiresAt) {
-      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
+      await logLicenseActivity(null, 'redeem_failed', { 
         reason: 'code_expired',
         attempted_by: userId,
         user_email: userEmail,
@@ -129,7 +129,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera att koden är för rätt e-post (om användaren har e-post)
     if (userEmail && oneTimeCode.recipientEmail !== userEmail) {
-      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
+      await logLicenseActivity(null, 'redeem_failed', { 
         reason: 'email_mismatch',
         attempted_by: userId,
         user_email: userEmail,
@@ -173,7 +173,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
       });
     }
 
-    await logLicenseActivity('failed_redeem', 'redeem_failed', { 
+    await logLicenseActivity(null, 'redeem_failed', { 
       reason: 'server_error',
       error: error.message,
       attempted_by: req.user?.id
@@ -402,7 +402,7 @@ router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), async (req:
       .where(eq(oneTimeCodes.id, codeId));
 
     // Logga aktivitet
-    await logLicenseActivity('deleted_code', 'code_deleted', {
+    await logLicenseActivity(null, 'code_deleted', {
       code_id: codeId,
       recipient_email: code.recipientEmail,
       was_redeemed: !!code.redeemedAt
