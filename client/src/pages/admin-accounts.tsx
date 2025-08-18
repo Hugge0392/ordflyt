@@ -354,8 +354,8 @@ export default function AdminAccounts() {
                                     <AlertDialogTitle>Ta bort engångskod</AlertDialogTitle>
                                     <AlertDialogDescription>
                                       Är du säker på att du vill ta bort denna engångskod för{' '}
-                                      <strong>{code.recipientEmail}</strong>?
-                                      {code.redeemedAt ? (
+                                      <strong>{code?.recipientEmail || 'okänd mottagare'}</strong>?
+                                      {code?.redeemedAt ? (
                                         <span className="block mt-2 text-amber-600">
                                           ⚠️ Koden har redan lösts in och är kopplad till en aktiv licens.
                                         </span>
@@ -369,8 +369,9 @@ export default function AdminAccounts() {
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Avbryt</AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => deleteCodeMutation.mutate(code.id)}
+                                      onClick={() => deleteCodeMutation.mutate(code?.id)}
                                       className="bg-red-600 hover:bg-red-700"
+                                      disabled={!code?.id}
                                     >
                                       Ta bort
                                     </AlertDialogAction>

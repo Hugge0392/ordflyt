@@ -94,7 +94,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
     const oneTimeCode = await findOneTimeCode(codeHash);
 
     if (!oneTimeCode) {
-      await logLicenseActivity(null, 'redeem_failed', { 
+      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
         reason: 'code_not_found',
         attempted_by: userId,
         user_email: userEmail
@@ -105,7 +105,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera om koden redan är använd
     if (oneTimeCode.redeemedAt) {
-      await logLicenseActivity(null, 'redeem_failed', { 
+      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
         reason: 'code_already_used',
         attempted_by: userId,
         user_email: userEmail,
@@ -117,7 +117,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera om koden har gått ut
     if (new Date() > oneTimeCode.expiresAt) {
-      await logLicenseActivity(null, 'redeem_failed', { 
+      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
         reason: 'code_expired',
         attempted_by: userId,
         user_email: userEmail,
@@ -129,7 +129,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
 
     // Kontrollera att koden är för rätt e-post (om användaren har e-post)
     if (userEmail && oneTimeCode.recipientEmail !== userEmail) {
-      await logLicenseActivity(null, 'redeem_failed', { 
+      await logLicenseActivity('failed_redeem', 'redeem_failed', { 
         reason: 'email_mismatch',
         attempted_by: userId,
         user_email: userEmail,
@@ -173,7 +173,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
       });
     }
 
-    await logLicenseActivity(null, 'redeem_failed', { 
+    await logLicenseActivity('failed_redeem', 'redeem_failed', { 
       reason: 'server_error',
       error: error.message,
       attempted_by: req.user?.id
@@ -342,7 +342,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
     const result = await createOneTimeCode(recipientEmail, validityDays);
     
     // Logga aktivitet
-    await logLicenseActivity(null, 'code_generated', {
+    await logLicenseActivity('code_gen', 'code_generated', {
       recipient_email: recipientEmail,
       validity_days: validityDays,
       code_id: result.id
@@ -370,7 +370,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
       });
     }
 
-    await logLicenseActivity(null, 'code_generation_failed', { 
+    await logLicenseActivity('failed_gen', 'code_generation_failed', { 
       error: error.message,
       attempted_by: req.user?.id
     }, req.user?.id || 'unknown', req.ip || 'unknown');
@@ -433,7 +433,7 @@ router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), async (r
     }
 
     // Kontrollera om läraren har klasser (använd getTeacherClasses)
-    const classes = await getTeacherClasses(license.userId);
+    const classes = await getTeacherClasses(license.teacherId);
 
     if (classes.length > 0) {
       return res.status(400).json({ 
