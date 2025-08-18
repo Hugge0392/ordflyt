@@ -98,7 +98,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
         reason: 'code_not_found',
         attempted_by: userId,
         user_email: userEmail
-      }, userId, req.ip);
+      }, userId, req.ip || 'unknown');
       
       return res.status(400).json({ error: 'Ogiltig kod' });
     }
@@ -110,7 +110,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
         attempted_by: userId,
         user_email: userEmail,
         code_id: oneTimeCode.id
-      }, userId, req.ip);
+      }, userId, req.ip || 'unknown');
 
       return res.status(400).json({ error: 'Koden har redan använts' });
     }
@@ -122,7 +122,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
         attempted_by: userId,
         user_email: userEmail,
         code_id: oneTimeCode.id
-      }, userId, req.ip);
+      }, userId, req.ip || 'unknown');
 
       return res.status(400).json({ error: 'Koden har gått ut' });
     }
@@ -135,7 +135,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
         user_email: userEmail,
         code_email: oneTimeCode.recipientEmail,
         code_id: oneTimeCode.id
-      }, userId, req.ip);
+      }, userId, req.ip || 'unknown');
 
       return res.status(400).json({ 
         error: 'Koden är inte giltig för ditt konto',
@@ -151,7 +151,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
       user_email: userEmail,
       code_id: oneTimeCode.id,
       code_email: oneTimeCode.recipientEmail
-    }, userId, req.ip);
+    }, userId, req.ip || 'unknown');
 
     res.json({
       success: true,
@@ -177,7 +177,7 @@ router.post('/redeem', requireAuth, async (req: any, res: Response) => {
       reason: 'server_error',
       error: error.message,
       attempted_by: req.user?.id
-    }, req.user?.id, req.ip);
+    }, req.user?.id || 'unknown', req.ip || 'unknown');
 
     res.status(500).json({ error: 'Serverfel' });
   }
@@ -293,7 +293,7 @@ router.post('/classes', requireAuth, requireActiveLicense, async (req: any, res:
 // Admin endpoints för att hantera licenser och koder
 
 // GET /api/license/admin/codes - Visa alla engångskoder (Admin only)
-router.get('/admin/codes', requireAuth, requireRole(['ADMIN']), async (req: any, res: Response) => {
+router.get('/admin/codes', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
   try {
     const codes = await licenseDb
       .select({
@@ -316,7 +316,7 @@ router.get('/admin/codes', requireAuth, requireRole(['ADMIN']), async (req: any,
 });
 
 // POST /api/license/admin/generate - Generera ny engångskod (Admin only)
-router.post('/admin/generate', requireAuth, requireRole(['ADMIN']), async (req: any, res: Response) => {
+router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
   try {
     const { recipientEmail, validityDays } = generateCodeSchema.parse(req.body);
     const userId = req.user.id;
@@ -346,7 +346,7 @@ router.post('/admin/generate', requireAuth, requireRole(['ADMIN']), async (req: 
       recipient_email: recipientEmail,
       validity_days: validityDays,
       code_id: result.id
-    }, userId, req.ip);
+    }, userId, req.ip || 'unknown');
 
     res.json({
       success: true,
@@ -373,7 +373,7 @@ router.post('/admin/generate', requireAuth, requireRole(['ADMIN']), async (req: 
     await logLicenseActivity(null, 'code_generation_failed', { 
       error: error.message,
       attempted_by: req.user?.id
-    }, req.user?.id, req.ip);
+    }, req.user?.id || 'unknown', req.ip || 'unknown');
 
     res.status(500).json({ error: 'Serverfel vid generering av kod' });
   }

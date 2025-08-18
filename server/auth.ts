@@ -302,7 +302,7 @@ export function requireRole(...allowedRoles: string[]) {
         req.user.id,
         false,
         req.ip || 'unknown',
-        req.headers['user-agent'],
+        req.headers['user-agent'] || 'unknown',
         { attemptedPath: req.path, userRole: req.user.role, requiredRoles: allowedRoles }
       );
       
