@@ -47,7 +47,7 @@ export default function AdminAccounts() {
   // Mutation för att generera kod
   const generateCodeMutation = useMutation({
     mutationFn: async (data: GenerateCodeForm) => {
-      return apiRequest('/api/license/admin/generate', 'POST', data);
+      return apiRequest('POST', '/api/license/admin/generate', data);
     },
     onSuccess: (data) => {
       setGeneratedCode((data as any).code);

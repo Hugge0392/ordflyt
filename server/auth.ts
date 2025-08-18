@@ -350,6 +350,7 @@ export const loginRateLimit = rateLimit({
   message: 'För många inloggningsförsök, försök igen senare',
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: false, // Disable trust proxy to fix warning
   handler: async (req, res) => {
     await logAuditEvent(
       'RATE_LIMIT_EXCEEDED',
@@ -369,6 +370,7 @@ export const apiRateLimit = rateLimit({
   message: 'För många förfrågningar',
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: false, // Disable trust proxy to fix warning
 });
 
 // Security headers middleware
