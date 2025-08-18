@@ -58,7 +58,7 @@ function Router() {
       <Route path="/lasforstaelse/lektion/:id">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <ReadingLessonViewer params={params} />
+            <ReadingLessonViewer {...params} />
           </ProtectedRoute>
         )}
       </Route>
@@ -90,28 +90,28 @@ function Router() {
       <Route path="/wordclass/:wordClass">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <WordClassLevels params={params} />
+            <WordClassLevels {...params} />
           </ProtectedRoute>
         )}
       </Route>
       <Route path="/practice/:wordClass/level/:level">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Practice params={params} />
+            <Practice {...params} />
           </ProtectedRoute>
         )}
       </Route>
       <Route path="/practice/:wordClass?">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Practice params={params} />
+            <Practice {...params} />
           </ProtectedRoute>
         )}
       </Route>
       <Route path="/test/:testType">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <Test params={params} />
+            <Test {...params} />
           </ProtectedRoute>
         )}
       </Route>
@@ -123,14 +123,14 @@ function Router() {
       <Route path="/lesson/:id">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <LessonPlayer params={params} />
+            <LessonPlayer {...params} />
           </ProtectedRoute>
         )}
       </Route>
       <Route path="/published/:lessonId">
         {(params) => (
           <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
-            <PublishedLessonPage params={params} />
+            <PublishedLessonPage {...params} />
           </ProtectedRoute>
         )}
       </Route>

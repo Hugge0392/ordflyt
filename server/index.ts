@@ -7,6 +7,9 @@ import { securityHeaders, apiRateLimit } from "./auth";
 
 const app = express();
 
+// Trust proxy for Replit environment
+app.set('trust proxy', true);
+
 // Security headers first
 app.use(securityHeaders);
 
