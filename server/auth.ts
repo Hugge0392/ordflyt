@@ -24,8 +24,8 @@ declare global {
 const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
 const TEACHER_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for teachers/admins
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_COOLDOWN = 15 * 60 * 1000; // 15 minutes cooldown after max attempts
+const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 5 : 20; // More lenient in development
+const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 15 * 60 * 1000 : 5 * 60 * 1000; // 5 minutes in dev, 15 in production
 
 // Environment variables for security - use fixed values for development
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev_session_secret_12345';

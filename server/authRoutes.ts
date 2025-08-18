@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, sessions, auditLog } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, sessions, auditLog, failedLogins } from "@shared/schema";
+import { eq, and, gte } from "drizzle-orm";
 import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
 import argon2 from "argon2";
 import {
@@ -374,6 +374,58 @@ router.post("/api/auth/init-test-users", async (req, res) => {
   } catch (error) {
     console.error('Error creating test users:', error);
     res.status(500).json({ error: 'Failed to create test users' });
+  }
+});
+
+// Debug endpoint för att rensa rate limiting (endast utveckling)
+router.post("/api/auth/clear-rate-limit", async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Not allowed in production' });
+  }
+  
+  try {
+    // Rensa failed logins
+    await db.delete(failedLogins);
+    
+    res.json({ 
+      success: true, 
+      message: 'Rate limiting rensad - du kan nu försöka logga in igen'
+    });
+  } catch (error) {
+    console.error('Error clearing rate limit:', error);
+    res.status(500).json({ error: 'Failed to clear rate limit' });
+  }
+});
+
+// Debug endpoint för att kontrollera rate limit status
+router.get("/api/auth/rate-limit-status", async (req, res) => {
+  try {
+    const ipAddress = req.ip || 'unknown';
+    
+    const recentAttempts = await db
+      .select()
+      .from(failedLogins)
+      .where(
+        and(
+          eq(failedLogins.ipAddress, ipAddress),
+          gte(failedLogins.attemptTime, new Date(Date.now() - 15 * 60 * 1000))
+        )
+      );
+
+    res.json({
+      ip: ipAddress,
+      recentAttempts: recentAttempts.length,
+      maxAllowed: process.env.NODE_ENV === 'production' ? 5 : 20,
+      cooldownMinutes: process.env.NODE_ENV === 'production' ? 15 : 5,
+      attempts: recentAttempts.map(attempt => ({
+        username: attempt.username,
+        time: attempt.attemptTime,
+        reason: attempt.reason
+      }))
+    });
+  } catch (error) {
+    console.error('Error checking rate limit status:', error);
+    res.status(500).json({ error: 'Failed to check rate limit status' });
   }
 });
 
