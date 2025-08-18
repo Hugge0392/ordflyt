@@ -18,6 +18,10 @@ import Test from "@/pages/test";
 import WordClassLevels from "@/pages/word-class-levels";
 
 import Admin from "@/pages/admin";
+import AdminReading from "@/pages/admin-reading";
+import AdminLessons from "@/pages/admin-lessons";
+import AdminAccounts from "@/pages/admin-accounts";
+import AdminSentences from "@/pages/admin-sentences";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
@@ -104,6 +108,26 @@ function Router() {
       <Route path="/admin">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <Admin />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/reading">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminReading />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/lessons">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminLessons />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/accounts">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminAccounts />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/sentences">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminSentences />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">
