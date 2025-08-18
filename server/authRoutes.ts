@@ -19,6 +19,7 @@ import {
   hashIpAddress,
   rotateSession
 } from "./auth";
+import { logRequestInfo } from "./productionCheck";
 
 const router = Router();
 
@@ -28,6 +29,9 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
   const ipAddress = req.ip || 'unknown';
   const userAgent = req.headers['user-agent'];
   const deviceFingerprint = generateDeviceFingerprint(req);
+  
+  // Log request info for debugging in production
+  logRequestInfo(req);
   
   // Input validation
   if (!username || !password) {
@@ -96,14 +100,25 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
     // Log successful login
     await logAuditEvent('LOGIN_SUCCESS', user.id, true, ipAddress, userAgent, { role: user.role });
     
-    // Set secure cookie
-    res.cookie('sessionToken', session.sessionToken, {
+    // Set secure cookie with production-safe settings
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const, // More lenient in production
       maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 30 * 60 * 1000, // 1h for students, 30min for teachers/admins
-      path: '/'
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined // Allow subdomain access in production
+    };
+    
+    console.log('Setting session cookie for login with options:', {
+      ...cookieOptions,
+      domain: cookieOptions.domain || 'default',
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      userRole: user.role
     });
+    
+    res.cookie('sessionToken', session.sessionToken, cookieOptions);
     
     // Determine redirect based on role
     let redirectPath = '/';
@@ -156,8 +171,11 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
       );
     }
     
-    // Clear cookie
-    res.clearCookie('sessionToken');
+    // Clear cookie with proper domain settings
+    res.clearCookie('sessionToken', {
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined
+    });
     
     res.json({ success: true });
   } catch (error) {
@@ -282,9 +300,23 @@ router.post("/api/auth/register", async (req, res) => {
     // Create session and log the user in
     const deviceFingerprint = generateDeviceFingerprint(req);
     const sessionData = await createSession(newUser.id, ipAddress, userAgent, deviceFingerprint, 'LARARE');
+
+    // Set session cookie with production-safe settings  
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const,
+      maxAge: 30 * 60 * 1000, // 30 minutes for teachers
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined
+    };
     
-    req.session!.sessionToken = sessionData.sessionToken;
-    req.session!.userId = newUser.id;
+    console.log('Setting session cookie for registration with options:', {
+      ...cookieOptions,
+      domain: cookieOptions.domain || 'default'
+    });
+    
+    res.cookie('sessionToken', sessionData.sessionToken, cookieOptions);
 
     // Log audit event
     await logAuditEvent('REGISTRATION', newUser.id, true, ipAddress, userAgent, { email });
@@ -297,7 +329,8 @@ router.post("/api/auth/register", async (req, res) => {
         username: newUser.username,
         email: newUser.email,
         role: newUser.role
-      }
+      },
+      redirectPath: '/teacher'
     });
 
   } catch (error: any) {

@@ -31,6 +31,13 @@ const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev_session_secret_12345';
 const PEPPER = process.env.PASSWORD_PEPPER || 'dev_pepper_12345';
 
+console.log('Security config loaded:', {
+  nodeEnv: process.env.NODE_ENV,
+  hasSessionSecret: !!process.env.SESSION_SECRET,
+  hasPepper: !!process.env.PASSWORD_PEPPER,
+  sessionSecretPreview: SESSION_SECRET.substring(0, 10) + '...'
+});
+
 // Hash IP addresses for privacy
 export function hashIpAddress(ip: string): string {
   return createHmac('sha256', SESSION_SECRET)
@@ -346,12 +353,13 @@ export async function requireCsrf(req: Request, res: Response, next: NextFunctio
 // Rate limiting configurations
 export const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 10 : 1000, // Much higher limit in dev
+  max: process.env.NODE_ENV === 'production' ? 50 : 1000, // More lenient even in production
   message: 'För många inloggningsförsök, försök igen senare',
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
   handler: async (req, res) => {
+    console.log('Rate limit exceeded for IP:', req.ip, 'User-Agent:', req.headers['user-agent']);
     await logAuditEvent(
       'RATE_LIMIT_EXCEEDED',
       null,
@@ -387,16 +395,24 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   // Referrer policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Content Security Policy
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self' data:; " +
-    "connect-src 'self'; " +
-    "frame-ancestors 'none';"
-  );
+  // Content Security Policy - more lenient for production
+  const csp = process.env.NODE_ENV === 'production' 
+    ? "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
+      "style-src 'self' 'unsafe-inline' https:; " +
+      "img-src 'self' data: https: blob:; " +
+      "font-src 'self' data: https:; " +
+      "connect-src 'self' https:; " +
+      "frame-ancestors 'none';"
+    : "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self'; " +
+      "frame-ancestors 'none';";
+  
+  res.setHeader('Content-Security-Policy', csp);
   
   // Permissions Policy
   res.setHeader('Permissions-Policy', 

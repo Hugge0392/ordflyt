@@ -6,6 +6,7 @@ import authRoutes from "./authRoutes";
 import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
 import { initializeDatabase } from "./initDatabase";
+import { checkProductionEnvironment, logRequestInfo } from "./productionCheck";
 
 const app = express();
 
@@ -62,6 +63,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Kontrollera produktionsmiljö
+  checkProductionEnvironment();
+  
   // Initialisera databasen med nödvändiga användare
   await initializeDatabase();
   
