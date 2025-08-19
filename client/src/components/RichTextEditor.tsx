@@ -382,7 +382,65 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
         {/* Block Content */}
         {block.type === 'text' && (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {/* Formatting toolbar */}
+            <div className="flex gap-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
+                  if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const selectedText = textarea.value.substring(start, end);
+                    if (selectedText) {
+                      const newText = textarea.value.substring(0, start) + `**${selectedText}**` + textarea.value.substring(end);
+                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                    }
+                  }
+                }}
+                title="Fetstil (markera text först)"
+              >
+                <Bold className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
+                  if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const selectedText = textarea.value.substring(start, end);
+                    if (selectedText) {
+                      const newText = textarea.value.substring(0, start) + `*${selectedText}*` + textarea.value.substring(end);
+                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                    }
+                  }
+                }}
+                title="Kursiv (markera text först)"
+              >
+                <Italic className="h-4 w-4" />
+              </Button>
+              <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 my-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => {
+                  const currentContent = block.content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+                  const newContent = currentContent + '\n• ';
+                  updateBlock(block.id, { content: newContent.replace(/\n/g, '<br>') });
+                }}
+                title="Lägg till punktlista"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+            
             <Textarea
               value={block.content.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '')}
               onChange={(e) => {
@@ -391,11 +449,12 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 updateBlock(block.id, { content: newContent });
               }}
               placeholder={placeholder}
-              className="border-none p-0 resize-none min-h-[100px] focus-visible:ring-0"
+              className="border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed bg-white dark:bg-gray-900 rounded-md border"
               data-testid={`textarea-block-${block.id}`}
             />
-            <div className="text-xs text-muted-foreground">
-              Tips: Tryck Enter för radbrytning
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <div>Tips: Tryck Enter för radbrytning. Markera text och använd verktygsraden för formatering.</div>
+              <div>Tecken: {block.content.replace(/<[^>]*>/g, '').length}</div>
             </div>
           </div>
         )}
@@ -430,7 +489,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             value={block.content}
             onChange={(e) => updateBlock(block.id, { content: e.target.value })}
             placeholder="Skriv ett citat eller viktigt stycke..."
-            className="border-none p-0 italic text-gray-700 dark:text-gray-300 focus-visible:ring-0"
+            className="border-none p-4 italic text-gray-700 dark:text-gray-300 focus-visible:ring-0 min-h-[120px] bg-gray-50 dark:bg-gray-800 rounded-md border-l-4 border-l-blue-500"
             data-testid={`textarea-quote-${block.id}`}
           />
         )}
@@ -453,7 +512,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               value={block.content}
               onChange={(e) => updateBlock(block.id, { content: e.target.value })}
               placeholder="Skriv en punkt per rad..."
-              className="border-none p-0 focus-visible:ring-0"
+              className="border-none p-4 focus-visible:ring-0 min-h-[120px] bg-white dark:bg-gray-900 rounded-md border"
               data-testid={`textarea-list-${block.id}`}
             />
           </div>
@@ -557,7 +616,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         </div>
       </div>
 
-      <div className="space-y-4 max-h-96 overflow-y-auto">
+      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
         {blocks.map(renderBlock)}
       </div>
 
