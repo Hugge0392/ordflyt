@@ -619,9 +619,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               onChange={(e) => updateBlock(block.id, { content: e.target.value })}
               placeholder="Skriv din rubrik här..."
               className={`border-none p-4 focus-visible:ring-0 bg-gray-50 dark:bg-gray-800 rounded-md ${
-                block.metadata?.level === 1 ? 'text-2xl font-bold' :
-                block.metadata?.level === 3 ? 'text-lg font-bold' :
-                'text-xl font-bold'
+                block.metadata?.level === 1 ? 'text-4xl font-bold' :
+                block.metadata?.level === 3 ? 'text-2xl font-bold' :
+                'text-3xl font-bold'
               }`}
               data-testid={`input-heading-${block.id}`}
             />
