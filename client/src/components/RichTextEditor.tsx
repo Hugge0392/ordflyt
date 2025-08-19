@@ -43,14 +43,21 @@ function formatMarkdownToHTML(text: string): string {
 
 // Convert HTML back to markdown for editing
 function convertHTMLToMarkdown(html: string): string {
+  if (!html || typeof html !== 'string') return '';
+  
   let markdown = html;
+  
+  // Handle simple cases first - if already markdown, return as is
+  if (!markdown.includes('<') || !markdown.includes('>')) {
+    return markdown;
+  }
   
   // Convert headings
   markdown = markdown.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1');
   markdown = markdown.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1');
   markdown = markdown.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1');
   
-  // Convert bold and italic
+  // Convert bold and italic - be more careful about nesting
   markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
   markdown = markdown.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
   
@@ -58,15 +65,26 @@ function convertHTMLToMarkdown(html: string): string {
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
   
   // Convert lists
-  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gi, (match, content) => {
-    return content.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1\n');
+  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+    const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1');
+    return items;
   });
   
-  // Remove paragraph tags
+  // Remove paragraph tags but preserve content
   markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n');
+  
+  // Remove any remaining HTML tags
+  markdown = markdown.replace(/<[^>]*>/g, '');
   
   // Clean up extra newlines
   markdown = markdown.replace(/\n\n+/g, '\n\n');
+  
+  // Decode HTML entities
+  markdown = markdown.replace(/&lt;/g, '<')
+                   .replace(/&gt;/g, '>')
+                   .replace(/&amp;/g, '&')
+                   .replace(/&quot;/g, '"')
+                   .replace(/&#39;/g, "'");
   
   return markdown.trim();
 }
@@ -227,8 +245,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   useEffect(() => {
     if (value !== undefined && value !== '') {
-      const newBlocks = parseHTMLToBlocks(value);
-      setBlocks(newBlocks);
+      // Only re-parse if the value is significantly different from current content
+      const currentContent = blocks.map(b => b.content).join('');
+      const newContent = value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      const currentClean = currentContent.replace(/\s+/g, ' ').trim();
+      
+      if (newContent !== currentClean) {
+        const newBlocks = parseHTMLToBlocks(value);
+        setBlocks(newBlocks);
+      }
     }
   }, [value]);
 
