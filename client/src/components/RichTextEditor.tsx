@@ -197,12 +197,11 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
           const htmlContent = element.innerHTML || '';
           const textContent = element.textContent || '';
           if (textContent.trim()) {
-            // Convert HTML content back to markdown for editing
-            const markdownContent = convertHTMLToMarkdown(htmlContent || textContent);
+            // Use text content directly to avoid formatting issues
             blocks.push({
               id: getId(),
               type: 'text',
-              content: markdownContent
+              content: textContent
             });
           }
         }
@@ -212,12 +211,11 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
         const htmlContent = element.innerHTML || '';
         const textContent = element.textContent || '';
         if (textContent.trim()) {
-          // Convert HTML content back to markdown for editing
-          const markdownContent = convertHTMLToMarkdown(htmlContent || textContent);
+          // Use text content directly to avoid formatting issues
           blocks.push({
             id: getId(),
             type: 'text',
-            content: markdownContent
+            content: textContent
           });
         }
         break;
@@ -226,9 +224,9 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
   
   // If no blocks were created, create a default text block with the original content
   if (blocks.length === 0) {
-    // Try to preserve the original content, converting HTML back to markdown if needed
-    const markdownContent = convertHTMLToMarkdown(html);
-    return [{ id: '1', type: 'text', content: markdownContent || html }];
+    // Use plain text content to avoid formatting issues
+    const textContent = tempDiv.textContent || html;
+    return [{ id: '1', type: 'text', content: textContent }];
   }
   
   return blocks;
