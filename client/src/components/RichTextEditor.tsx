@@ -391,7 +391,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 className="h-8 px-2"
                 onClick={() => {
                   const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
-                  if (textarea && textarea.style.display !== 'none') {
+                  if (textarea) {
                     const start = textarea.selectionStart;
                     const end = textarea.selectionEnd;
                     const selectedText = textarea.value.substring(start, end);
@@ -402,13 +402,24 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<strong>${selectedText}</strong>`.length;
+                      const newCursorPos = start + `<strong></strong>`.length + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
+                      textarea.focus();
+                    } else {
+                      // No text selected, insert bold tags at cursor
+                      const cursorPos = start;
+                      const beforeText = textarea.value.substring(0, cursorPos);
+                      const afterText = textarea.value.substring(cursorPos);
+                      const newText = beforeText + '<strong></strong>' + afterText;
+                      textarea.value = newText;
+                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      // Position cursor inside the tags
+                      textarea.setSelectionRange(cursorPos + 8, cursorPos + 8); // Position between <strong> and </strong>
                       textarea.focus();
                     }
                   }
                 }}
-                title="Fetstil (markera text först)"
+                title="Fetstil (markera text för att fetstila, eller klicka för att lägga till fetstilstaggar)"
               >
                 <Bold className="h-4 w-4 mr-1" />
                 <span className="text-xs">Fet</span>
@@ -419,7 +430,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 className="h-8 px-2"
                 onClick={() => {
                   const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
-                  if (textarea && textarea.style.display !== 'none') {
+                  if (textarea) {
                     const start = textarea.selectionStart;
                     const end = textarea.selectionEnd;
                     const selectedText = textarea.value.substring(start, end);
@@ -430,13 +441,24 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<em>${selectedText}</em>`.length;
+                      const newCursorPos = start + `<em></em>`.length + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
+                      textarea.focus();
+                    } else {
+                      // No text selected, insert italic tags at cursor
+                      const cursorPos = start;
+                      const beforeText = textarea.value.substring(0, cursorPos);
+                      const afterText = textarea.value.substring(cursorPos);
+                      const newText = beforeText + '<em></em>' + afterText;
+                      textarea.value = newText;
+                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      // Position cursor inside the tags
+                      textarea.setSelectionRange(cursorPos + 4, cursorPos + 4); // Position between <em> and </em>
                       textarea.focus();
                     }
                   }
                 }}
-                title="Kursiv (markera text först)"
+                title="Kursiv (markera text för att kursivera, eller klicka för att lägga till kursivtaggar)"
               >
                 <Italic className="h-4 w-4 mr-1" />
                 <span className="text-xs">Kursiv</span>
@@ -446,26 +468,38 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 className="h-8 px-2 text-xs border rounded bg-white dark:bg-gray-700"
                 onChange={(e) => {
                   const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
-                  if (textarea && textarea.style.display !== 'none') {
+                  if (textarea && e.target.value) {
                     const start = textarea.selectionStart;
                     const end = textarea.selectionEnd;
                     const selectedText = textarea.value.substring(start, end);
+                    const level = e.target.value;
+                    
                     if (selectedText) {
-                      const level = e.target.value;
                       const beforeText = textarea.value.substring(0, start);
                       const afterText = textarea.value.substring(end);
                       const newText = beforeText + `<h${level}>${selectedText}</h${level}>` + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<h${level}>${selectedText}</h${level}>`.length;
+                      const newCursorPos = start + `<h${level}></h${level}>`.length + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
+                      textarea.focus();
+                    } else {
+                      // No text selected, insert heading tags at cursor
+                      const cursorPos = start;
+                      const beforeText = textarea.value.substring(0, cursorPos);
+                      const afterText = textarea.value.substring(cursorPos);
+                      const newText = beforeText + `<h${level}></h${level}>` + afterText;
+                      textarea.value = newText;
+                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      // Position cursor inside the tags
+                      textarea.setSelectionRange(cursorPos + 4, cursorPos + 4);
                       textarea.focus();
                     }
                   }
                   e.target.value = ''; // Reset selection
                 }}
-                title="Gör markerad text till rubrik"
+                title="Gör markerad text till rubrik eller lägg till rubriktaggar"
               >
                 <option value="">Rubrik</option>
                 <option value="1">H1 - Stor</option>
@@ -478,7 +512,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 className="h-8 px-2"
                 onClick={() => {
                   const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
-                  if (textarea && textarea.style.display !== 'none') {
+                  if (textarea) {
                     const cursorPos = textarea.selectionStart;
                     const beforeText = textarea.value.substring(0, cursorPos);
                     const afterText = textarea.value.substring(cursorPos);
@@ -498,52 +532,32 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               </Button>
             </div>
             
-            {/* Rich text preview/editor */}
+            {/* Rich text editor - always visible */}
             <div className="border rounded-md bg-white dark:bg-gray-900">
-              {/* Preview area */}
-              <div 
-                className="preview-area p-4 min-h-[200px] max-h-[400px] overflow-y-auto text-base leading-relaxed prose max-w-none"
-                dangerouslySetInnerHTML={{ 
-                  __html: block.content.replace(/<br\s*\/?>/gi, '<br>') || `<p class="text-gray-400 italic">${placeholder}</p>`
-                }}
-                onClick={() => {
-                  const container = document.querySelector(`[data-testid="textarea-block-${block.id}"]`)?.parentElement;
-                  if (container) {
-                    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
-                    const preview = container.querySelector('.preview-area') as HTMLElement;
-                    if (textarea && preview) {
-                      textarea.style.display = 'block';
-                      preview.style.display = 'none';
-                      textarea.focus();
-                    }
-                  }
-                }}
-                style={{ cursor: 'text' }}
-              />
-              
-              {/* Edit mode textarea */}
               <Textarea
                 value={block.content.replace(/<br\s*\/?>/gi, '\n')}
                 onChange={(e) => {
                   const newContent = e.target.value.replace(/\n/g, '<br>');
                   updateBlock(block.id, { content: newContent });
                 }}
-                onBlur={() => {
-                  const container = document.querySelector(`[data-testid="textarea-block-${block.id}"]`)?.parentElement;
-                  if (container) {
-                    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
-                    const preview = container.querySelector('.preview-area') as HTMLElement;
-                    if (textarea && preview) {
-                      textarea.style.display = 'none';
-                      preview.style.display = 'block';
-                    }
-                  }
-                }}
                 placeholder={placeholder}
-                className="hidden border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed"
+                className="border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed"
                 data-testid={`textarea-block-${block.id}`}
               />
             </div>
+            
+            {/* Preview area (shows formatted result) */}
+            {block.content && (
+              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
+                <div className="text-xs text-gray-500 mb-2">Förhandsgranskning:</div>
+                <div 
+                  className="prose max-w-none text-sm"
+                  dangerouslySetInnerHTML={{ 
+                    __html: block.content.replace(/<br\s*\/?>/gi, '<br>')
+                  }}
+                />
+              </div>
+            )}
             <div className="flex justify-between text-xs text-muted-foreground">
               <div>Tips: Klicka för att redigera. Markera text och använd verktygsraden för formatering.</div>
               <div>Tecken: {block.content.replace(/<[^>]*>/g, '').length}</div>
