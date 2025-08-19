@@ -14,30 +14,29 @@ import type { UploadResult } from "@uppy/core";
 function formatMarkdownToHTML(text: string): string {
   let html = text;
   
-  // Convert headings (### H3, ## H2, # H1)
+  // Convert headings - only at start of line followed by space
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
   
-  // Convert bold (**text**)
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Convert bold (**text**) - must have content between
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   
-  // Convert italic (*text*)
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Convert italic (*text*) - must have content between and not interfere with bold
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
   
   // Convert line breaks
   html = html.replace(/\n/g, '<br>');
   
-  // Convert bullet points
+  // Convert bullet points - only at start of line
   html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
-  // Wrap consecutive li elements in ul tags
-  html = html.replace(/(<li>.*?<\/li>)/g, function(match) {
-    return match;
+  
+  // Group consecutive list items into ul tags
+  html = html.replace(/(<li>.*?<\/li>)(<br>)*(<li>.*?<\/li>)*/g, function(match) {
+    // Remove br tags between list items and wrap in ul
+    const cleanedMatch = match.replace(/<br>/g, '');
+    return `<ul>${cleanedMatch}</ul>`;
   });
-  // Simple ul wrapping - will need refinement for multiple lists
-  if (html.includes('<li>')) {
-    html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
-  }
   
   return html;
 }
