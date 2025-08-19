@@ -348,6 +348,10 @@ export default function Home() {
               <div className="icon">📖</div>
               <div className="label">Läsförståelse</div>
             </Link>
+            <Link className="tile read" href="/laslogg">
+              <div className="icon">📚</div>
+              <div className="label">Läslogg</div>
+            </Link>
             <Link className="tile write" href="/skrivande">
               <div className="icon">✏️</div>
               <div className="label">Skrivande</div>

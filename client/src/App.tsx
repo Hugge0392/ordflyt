@@ -13,6 +13,7 @@ import ReadingExercises from "@/pages/reading-exercises";
 import ReadingLessonViewer from "@/pages/reading-lesson-viewer";
 import ReadingAdmin from "@/pages/reading-admin";
 import ReadingPlaceholder from "@/pages/reading-placeholder";
+import ReadingLog from "@/pages/ReadingLog";
 import Practice from "@/pages/practice";
 import Test from "@/pages/test";
 import WordClassLevels from "@/pages/word-class-levels";
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/kallkritik">
         <Placeholder category="kallkritik" />
       </Route>
+      <Route path="/laslogg" component={ReadingLog} />
       <Route path="/wordclass/:wordClass" component={WordClassLevels} />
       <Route path="/practice/:wordClass/level/:level" component={Practice} />
       <Route path="/practice/:wordClass?" component={Practice} />
