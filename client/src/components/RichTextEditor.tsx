@@ -41,6 +41,36 @@ function formatMarkdownToHTML(text: string): string {
   return html;
 }
 
+// Convert HTML back to markdown for editing
+function convertHTMLToMarkdown(html: string): string {
+  let markdown = html;
+  
+  // Convert headings
+  markdown = markdown.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1');
+  markdown = markdown.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1');
+  markdown = markdown.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1');
+  
+  // Convert bold and italic
+  markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+  markdown = markdown.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+  
+  // Convert line breaks
+  markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Convert lists
+  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gi, (match, content) => {
+    return content.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1\n');
+  });
+  
+  // Remove paragraph tags
+  markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n');
+  
+  // Clean up extra newlines
+  markdown = markdown.replace(/\n\n+/g, '\n\n');
+  
+  return markdown.trim();
+}
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -62,7 +92,7 @@ interface ContentBlock {
 
 // Function to parse HTML content back to blocks
 const parseHTMLToBlocks = (html: string): ContentBlock[] => {
-  if (!html) return [{ id: '1', type: 'text', content: '' }];
+  if (!html || html.trim() === '') return [{ id: '1', type: 'text', content: '' }];
   
   const blocks: ContentBlock[] = [];
   const tempDiv = document.createElement('div');
@@ -149,10 +179,12 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
           const htmlContent = element.innerHTML || '';
           const textContent = element.textContent || '';
           if (textContent.trim()) {
+            // Convert HTML content back to markdown for editing
+            const markdownContent = convertHTMLToMarkdown(htmlContent || textContent);
             blocks.push({
               id: getId(),
               type: 'text',
-              content: htmlContent || textContent
+              content: markdownContent
             });
           }
         }
@@ -162,19 +194,23 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
         const htmlContent = element.innerHTML || '';
         const textContent = element.textContent || '';
         if (textContent.trim()) {
+          // Convert HTML content back to markdown for editing
+          const markdownContent = convertHTMLToMarkdown(htmlContent || textContent);
           blocks.push({
             id: getId(),
             type: 'text',
-            content: htmlContent || textContent
+            content: markdownContent
           });
         }
         break;
     }
   });
   
-  // If no blocks were created, create a default text block
+  // If no blocks were created, create a default text block with the original content
   if (blocks.length === 0) {
-    return [{ id: '1', type: 'text', content: html }];
+    // Try to preserve the original content, converting HTML back to markdown if needed
+    const markdownContent = convertHTMLToMarkdown(html);
+    return [{ id: '1', type: 'text', content: markdownContent || html }];
   }
   
   return blocks;
@@ -190,7 +226,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   useEffect(() => {
-    if (value !== undefined) {
+    if (value !== undefined && value !== '') {
       const newBlocks = parseHTMLToBlocks(value);
       setBlocks(newBlocks);
     }
