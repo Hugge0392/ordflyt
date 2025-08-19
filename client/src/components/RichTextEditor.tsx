@@ -10,6 +10,31 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { UploadResult } from "@uppy/core";
 
+// Simple markdown-to-HTML converter for preview
+function formatMarkdownToHTML(text: string): string {
+  let html = text;
+  
+  // Convert headings (### H3, ## H2, # H1)
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
+  // Convert bold (**text**)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert italic (*text*)
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // Convert line breaks
+  html = html.replace(/\n/g, '<br>');
+  
+  // Convert bullet points
+  html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  
+  return html;
+}
+
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -398,31 +423,31 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                     if (selectedText) {
                       const beforeText = textarea.value.substring(0, start);
                       const afterText = textarea.value.substring(end);
-                      const newText = beforeText + `<strong>${selectedText}</strong>` + afterText;
+                      const newText = beforeText + `**${selectedText}**` + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<strong></strong>`.length + selectedText.length;
+                      const newCursorPos = start + 4 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
                       textarea.focus();
                     } else {
-                      // No text selected, insert bold tags at cursor
+                      // No text selected, insert bold markers at cursor
                       const cursorPos = start;
                       const beforeText = textarea.value.substring(0, cursorPos);
                       const afterText = textarea.value.substring(cursorPos);
-                      const newText = beforeText + '<strong></strong>' + afterText;
+                      const newText = beforeText + '****' + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
-                      // Position cursor inside the tags
-                      textarea.setSelectionRange(cursorPos + 8, cursorPos + 8); // Position between <strong> and </strong>
+                      // Position cursor between the markers
+                      textarea.setSelectionRange(cursorPos + 2, cursorPos + 2);
                       textarea.focus();
                     }
                   }
                 }}
-                title="Fetstil (markera text för att fetstila, eller klicka för att lägga till fetstilstaggar)"
+                title="Fetstil - använd **text** för att fetstila"
               >
                 <Bold className="h-4 w-4 mr-1" />
-                <span className="text-xs">Fet</span>
+                <span className="text-xs">**Fet**</span>
               </Button>
               <Button
                 variant="ghost"
@@ -437,31 +462,31 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                     if (selectedText) {
                       const beforeText = textarea.value.substring(0, start);
                       const afterText = textarea.value.substring(end);
-                      const newText = beforeText + `<em>${selectedText}</em>` + afterText;
+                      const newText = beforeText + `*${selectedText}*` + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<em></em>`.length + selectedText.length;
+                      const newCursorPos = start + 2 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
                       textarea.focus();
                     } else {
-                      // No text selected, insert italic tags at cursor
+                      // No text selected, insert italic markers at cursor
                       const cursorPos = start;
                       const beforeText = textarea.value.substring(0, cursorPos);
                       const afterText = textarea.value.substring(cursorPos);
-                      const newText = beforeText + '<em></em>' + afterText;
+                      const newText = beforeText + '**' + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
-                      // Position cursor inside the tags
-                      textarea.setSelectionRange(cursorPos + 4, cursorPos + 4); // Position between <em> and </em>
+                      // Position cursor between the markers
+                      textarea.setSelectionRange(cursorPos + 1, cursorPos + 1);
                       textarea.focus();
                     }
                   }
                 }}
-                title="Kursiv (markera text för att kursivera, eller klicka för att lägga till kursivtaggar)"
+                title="Kursiv - använd *text* för att kursivera"
               >
                 <Italic className="h-4 w-4 mr-1" />
-                <span className="text-xs">Kursiv</span>
+                <span className="text-xs">*Kursiv*</span>
               </Button>
               <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 my-1" />
               <select
@@ -473,38 +498,39 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                     const end = textarea.selectionEnd;
                     const selectedText = textarea.value.substring(start, end);
                     const level = e.target.value;
+                    const hashes = '#'.repeat(parseInt(level));
                     
                     if (selectedText) {
                       const beforeText = textarea.value.substring(0, start);
                       const afterText = textarea.value.substring(end);
-                      const newText = beforeText + `<h${level}>${selectedText}</h${level}>` + afterText;
+                      const newText = beforeText + `${hashes} ${selectedText}` + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
                       // Keep focus and update cursor position
-                      const newCursorPos = start + `<h${level}></h${level}>`.length + selectedText.length;
+                      const newCursorPos = start + hashes.length + 1 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
                       textarea.focus();
                     } else {
-                      // No text selected, insert heading tags at cursor
+                      // No text selected, insert heading markers at cursor
                       const cursorPos = start;
                       const beforeText = textarea.value.substring(0, cursorPos);
                       const afterText = textarea.value.substring(cursorPos);
-                      const newText = beforeText + `<h${level}></h${level}>` + afterText;
+                      const newText = beforeText + `${hashes} ` + afterText;
                       textarea.value = newText;
                       updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
-                      // Position cursor inside the tags
-                      textarea.setSelectionRange(cursorPos + 4, cursorPos + 4);
+                      // Position cursor after the markers
+                      textarea.setSelectionRange(cursorPos + hashes.length + 1, cursorPos + hashes.length + 1);
                       textarea.focus();
                     }
                   }
                   e.target.value = ''; // Reset selection
                 }}
-                title="Gör markerad text till rubrik eller lägg till rubriktaggar"
+                title="Gör markerad text till rubrik - använd # för H1, ## för H2, ### för H3"
               >
                 <option value="">Rubrik</option>
-                <option value="1">H1 - Stor</option>
-                <option value="2">H2 - Medium</option>
-                <option value="3">H3 - Liten</option>
+                <option value="1"># H1 - Stor</option>
+                <option value="2">## H2 - Medium</option>
+                <option value="3">### H3 - Liten</option>
               </select>
               <Button
                 variant="ghost"
@@ -553,13 +579,13 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 <div 
                   className="prose max-w-none text-sm"
                   dangerouslySetInnerHTML={{ 
-                    __html: block.content.replace(/<br\s*\/?>/gi, '<br>')
+                    __html: formatMarkdownToHTML(block.content.replace(/<br\s*\/?>/gi, '\n'))
                   }}
                 />
               </div>
             )}
             <div className="flex justify-between text-xs text-muted-foreground">
-              <div>Tips: Klicka för att redigera. Markera text och använd verktygsraden för formatering.</div>
+              <div>Tips: Använd **fetstil**, *kursiv*, # rubriker och • listor</div>
               <div>Tecken: {block.content.replace(/<[^>]*>/g, '').length}</div>
             </div>
           </div>
