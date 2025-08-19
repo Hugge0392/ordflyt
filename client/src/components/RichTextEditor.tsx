@@ -664,6 +664,27 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                   // Keep newlines as actual newlines, don't convert to <br> immediately
                   updateBlock(block.id, { content: e.target.value });
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    // Let the default behavior handle the newline insertion
+                    e.preventDefault();
+                    const textarea = e.target as HTMLTextAreaElement;
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const value = textarea.value;
+                    
+                    // Insert newline at cursor position
+                    const newValue = value.substring(0, start) + '\n' + value.substring(end);
+                    textarea.value = newValue;
+                    
+                    // Update the cursor position
+                    const newCursorPos = start + 1;
+                    textarea.setSelectionRange(newCursorPos, newCursorPos);
+                    
+                    // Update the block content
+                    updateBlock(block.id, { content: newValue });
+                  }
+                }}
                 placeholder={placeholder}
                 className="border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed"
                 data-testid={`textarea-block-${block.id}`}
