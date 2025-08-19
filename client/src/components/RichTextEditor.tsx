@@ -12,6 +12,8 @@ import type { UploadResult } from "@uppy/core";
 
 // Simple markdown-to-HTML converter for preview
 function formatMarkdownToHTML(text: string): string {
+  if (!text) return '';
+  
   let html = text;
   
   // Convert headings - only at start of line followed by space
@@ -19,24 +21,44 @@ function formatMarkdownToHTML(text: string): string {
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
   
-  // Convert bold (**text**) - must have content between
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Convert bold (**text**) - must have content between, non-greedy
+  html = html.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
   
-  // Convert italic (*text*) - must have content between and not interfere with bold
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  
-  // Convert line breaks
-  html = html.replace(/\n/g, '<br>');
+  // Convert italic (*text*) - must have content between, avoid bold conflicts
+  html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
   
   // Convert bullet points - only at start of line
   html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
   
-  // Group consecutive list items into ul tags
-  html = html.replace(/(<li>.*?<\/li>)(<br>)*(<li>.*?<\/li>)*/g, function(match) {
-    // Remove br tags between list items and wrap in ul
-    const cleanedMatch = match.replace(/<br>/g, '');
-    return `<ul>${cleanedMatch}</ul>`;
-  });
+  // Group consecutive list items - simple approach
+  if (html.includes('<li>')) {
+    // Split by lines, group li elements
+    const lines = html.split('\n');
+    const grouped = [];
+    let inList = false;
+    
+    for (const line of lines) {
+      if (line.includes('<li>')) {
+        if (!inList) {
+          grouped.push('<ul>');
+          inList = true;
+        }
+        grouped.push(line);
+      } else {
+        if (inList) {
+          grouped.push('</ul>');
+          inList = false;
+        }
+        grouped.push(line);
+      }
+    }
+    if (inList) grouped.push('</ul>');
+    
+    html = grouped.join('\n');
+  }
+  
+  // Convert line breaks (after list processing)
+  html = html.replace(/\n/g, '<br>');
   
   return html;
 }
@@ -283,14 +305,21 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         default:
           // Convert markdown to HTML before saving
           const content = block.content.trim();
+          if (!content) return '';
+          
           if (content.includes('<') && content.includes('>')) {
             return content;
           } else {
             // Convert markdown formatting to HTML
             const htmlContent = formatMarkdownToHTML(content);
-            return htmlContent.startsWith('<h') || htmlContent.includes('<strong>') || htmlContent.includes('<em>') || htmlContent.includes('<ul>') 
-              ? htmlContent 
-              : `<p>${htmlContent}</p>`;
+            
+            // Only wrap in <p> if it doesn't already contain block elements
+            if (htmlContent.startsWith('<h') || htmlContent.startsWith('<ul>') || htmlContent.includes('</h')) {
+              return htmlContent;
+            } else {
+              // Wrap in paragraph but avoid double-wrapping formatted content
+              return `<p>${htmlContent}</p>`;
+            }
           }
       }
     }).join('\n');
