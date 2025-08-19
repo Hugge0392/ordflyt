@@ -65,7 +65,7 @@ function convertHTMLToMarkdown(html: string): string {
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
   
   // Convert lists
-  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+  markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gi, (match, content) => {
     const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1');
     return items;
   });
@@ -243,17 +243,18 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   useEffect(() => {
     if (value !== undefined && value !== '') {
-      // Only re-parse if the value is significantly different from current content
-      const currentContent = blocks.map(b => b.content).join('');
-      const newContent = value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-      const currentClean = currentContent.replace(/\s+/g, ' ').trim();
+      // Create a simple text block without complex HTML parsing
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = value;
+      const plainText = tempDiv.textContent || tempDiv.innerText || value;
       
-      if (newContent !== currentClean) {
-        const newBlocks = parseHTMLToBlocks(value);
-        setBlocks(newBlocks);
+      // Only update if this is genuinely new content
+      const currentText = blocks.map(b => b.content).join('').trim();
+      if (plainText.trim() !== currentText) {
+        setBlocks([{ id: '1', type: 'text', content: plainText }]);
       }
     }
-  }, [value]);
+  }, [value, blocks]);
 
   const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
     const newBlocks = blocks.map(block => 
