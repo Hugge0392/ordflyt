@@ -30,7 +30,14 @@ function formatMarkdownToHTML(text: string): string {
   
   // Convert bullet points
   html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  // Wrap consecutive li elements in ul tags
+  html = html.replace(/(<li>.*?<\/li>)/g, function(match) {
+    return match;
+  });
+  // Simple ul wrapping - will need refinement for multiple lists
+  if (html.includes('<li>')) {
+    html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+  }
   
   return html;
 }
@@ -215,14 +222,16 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           return `<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>`;
         case 'text':
         default:
-          // If content already contains HTML tags, use it as is, otherwise wrap in paragraph
+          // Convert markdown to HTML before saving
           const content = block.content.trim();
           if (content.includes('<') && content.includes('>')) {
             return content;
           } else {
-            // Convert line breaks to <br> tags and wrap in paragraph
-            const contentWithBreaks = content.replace(/\n/g, '<br>');
-            return `<p>${contentWithBreaks}</p>`;
+            // Convert markdown formatting to HTML
+            const htmlContent = formatMarkdownToHTML(content);
+            return htmlContent.startsWith('<h') || htmlContent.includes('<strong>') || htmlContent.includes('<em>') || htmlContent.includes('<ul>') 
+              ? htmlContent 
+              : `<p>${htmlContent}</p>`;
           }
       }
     }).join('\n');

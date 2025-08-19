@@ -9,6 +9,34 @@ import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight } f
 import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
+// Simple markdown-to-HTML converter for displaying lesson content
+function formatMarkdownToHTML(text: string): string {
+  let html = text;
+  
+  // Convert headings (### H3, ## H2, # H1)
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
+  // Convert bold (**text**)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert italic (*text*)
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // Convert line breaks
+  html = html.replace(/\n/g, '<br>');
+  
+  // Convert bullet points
+  html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
+  // Simple ul wrapping - will need refinement for multiple lists
+  if (html.includes('<li>')) {
+    html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+  }
+  
+  return html;
+}
+
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -20,14 +48,15 @@ export default function ReadingLessonViewer() {
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
-    if (!definitions.length) return content;
+    // First convert markdown to HTML
+    let processedContent = formatMarkdownToHTML(content);
+    
+    if (!definitions.length) return processedContent;
 
     // Create a map of words to definitions for quick lookup
     const defMap = new Map(definitions.map(def => [def.word.toLowerCase(), def.definition]));
     
     // Process the HTML content to add tooltips to defined words
-    let processedContent = content;
-    
     definitions.forEach(({ word, definition }) => {
       // Create a regex that matches the word as a whole word (case insensitive)
       const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
