@@ -57,8 +57,9 @@ function formatMarkdownToHTML(text: string): string {
     html = grouped.join('\n');
   }
   
-  // Convert line breaks (after list processing)
-  html = html.replace(/\n/g, '<br>');
+  // Convert line breaks (after list processing) - but preserve paragraph structure
+  html = html.replace(/\n\n+/g, '</p><p>'); // Double newlines become paragraph breaks
+  html = html.replace(/\n/g, '<br>'); // Single newlines become line breaks
   
   return html;
 }
@@ -314,7 +315,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             const htmlContent = formatMarkdownToHTML(content);
             
             // Only wrap in <p> if it doesn't already contain block elements
-            if (htmlContent.startsWith('<h') || htmlContent.startsWith('<ul>') || htmlContent.includes('</h')) {
+            if (htmlContent.startsWith('<h') || htmlContent.startsWith('<ul>') || htmlContent.includes('</h') || htmlContent.includes('<p>')) {
               return htmlContent;
             } else {
               // Wrap in paragraph but avoid double-wrapping formatted content
@@ -660,8 +661,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               <Textarea
                 value={block.content.replace(/<br\s*\/?>/gi, '\n')}
                 onChange={(e) => {
-                  const newContent = e.target.value.replace(/\n/g, '<br>');
-                  updateBlock(block.id, { content: newContent });
+                  // Keep newlines as actual newlines, don't convert to <br> immediately
+                  updateBlock(block.id, { content: e.target.value });
                 }}
                 placeholder={placeholder}
                 className="border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed"
