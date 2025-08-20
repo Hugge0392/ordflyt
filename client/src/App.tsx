@@ -33,6 +33,8 @@ import RegisterPage from "@/pages/register";
 import TeacherPage from "@/pages/teacher";
 import KlassKampPage from "@/pages/klasskamp";
 import SpelaPage from "@/pages/spela";
+import KlassKampHostPage from "@/pages/klasskamp-host";
+import KlassKampPlayPage from "@/pages/klasskamp-play";
 import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -75,6 +77,8 @@ function Router() {
       <Route path="/lesson/:id" component={LessonPlayer} />
       <Route path="/published/:lessonId" component={PublishedLessonPage} />
       <Route path="/klasskamp" component={KlassKampPage} />
+      <Route path="/klasskamp/host/:code" component={KlassKampHostPage} />
+      <Route path="/klasskamp/play/:code" component={KlassKampPlayPage} />
       <Route path="/spela" component={SpelaPage} />
       
       {/* Teacher routes (requires LARARE role) */}
