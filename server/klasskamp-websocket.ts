@@ -20,6 +20,8 @@ export class KlassKampWebSocket {
   private wss: WebSocketServer;
   private clients = new Map<WebSocket, ConnectedClient>();
   private gameStates = new Map<string, any>();
+  private gameTimers = new Map<string, NodeJS.Timeout>();
+  private questionTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(server: HttpServer) {
     this.wss = new WebSocketServer({ 
@@ -140,12 +142,29 @@ export class KlassKampWebSocket {
         currentQuestionIndex: 0
       });
 
+      // Start 5-minute game timer
+      const gameTimer = setTimeout(async () => {
+        await this.endGame(client.gameId!);
+      }, 300000); // 5 minutes
+      
+      this.gameTimers.set(client.gameId, gameTimer);
+
       await this.updateGameState(client.gameId);
       
-      // Start first question
+      // Start first question immediately
       await this.sendNextQuestion(client.gameId);
       
-      console.log(`Game ${client.gameId} started`);
+      // Broadcast game start with timer info
+      this.broadcastToGame(client.gameId, {
+        type: 'game_started',
+        data: { 
+          message: 'Spelet har startat! Svara på så många frågor som möjligt på 5 minuter!',
+          gameDurationSeconds: 300,
+          startTime: Date.now()
+        }
+      });
+      
+      console.log(`Game ${client.gameId} started with 5-minute timer`);
     } catch (error) {
       console.error('Error starting game:', error);
       this.sendError(ws, 'Kunde inte starta spel');
@@ -191,7 +210,7 @@ export class KlassKampWebSocket {
 
       // Update player score
       if (isCorrect) {
-        const player = gameState.players.find(p => p.id === client.playerId);
+        const player = gameState.players.find((p: any) => p.id === client.playerId);
         if (player) {
           await storage.updateKlassKampPlayer(client.playerId, {
             score: (player.score || 0) + points,
@@ -206,6 +225,14 @@ export class KlassKampWebSocket {
         type: 'answer_result',
         data: { isCorrect, points, correctWords }
       });
+
+      // Auto-advance to next question after 3 seconds
+      setTimeout(async () => {
+        const currentGame = await db.select().from(klassKampGames).where(eq(klassKampGames.id, client.gameId!)).limit(1);
+        if (currentGame[0]?.status === 'playing') {
+          await this.autoNextQuestion(client.gameId!);
+        }
+      }, 3000);
 
       console.log(`Player ${client.playerId} answered ${isCorrect ? 'correctly' : 'incorrectly'} for ${points} points`);
     } catch (error) {
@@ -224,33 +251,16 @@ export class KlassKampWebSocket {
     try {
       const [game] = await db.select().from(klassKampGames).where(eq(klassKampGames.id, client.gameId));
       
-      if (!game) return;
+      if (!game || game.status !== 'playing') return;
 
       const nextIndex = (game.currentQuestionIndex || 0) + 1;
       
-      if (nextIndex >= game.questionCount) {
-        // Game finished
-        await db.update(klassKampGames)
-          .set({ 
-            status: 'finished',
-            finishedAt: new Date()
-          })
-          .where(eq(klassKampGames.id, client.gameId));
+      // Update question index and send next question (no limit check since it's time-based)
+      await storage.updateKlassKampGame(client.gameId, {
+        currentQuestionIndex: nextIndex
+      });
 
-        await this.updateGameState(client.gameId);
-        
-        this.broadcastToGame(client.gameId, {
-          type: 'game_finished',
-          data: { finalResults: this.gameStates.get(client.gameId)?.leaderboard }
-        });
-      } else {
-        // Next question
-        await db.update(klassKampGames)
-          .set({ currentQuestionIndex: nextIndex })
-          .where(eq(klassKampGames.id, client.gameId));
-
-        await this.sendNextQuestion(client.gameId);
-      }
+      await this.sendNextQuestion(client.gameId);
     } catch (error) {
       console.error('Error advancing to next question:', error);
     }
@@ -294,7 +304,7 @@ export class KlassKampWebSocket {
         data: {
           questionIndex: game.currentQuestionIndex,
           totalQuestions: game.questionCount,
-          sentence: sentence.sentence,
+          sentence: sentence.content,
           targetWordClass: gameState.wordClassName
         }
       });
@@ -384,5 +394,55 @@ export class KlassKampWebSocket {
 
   private arraysEqual(a: string[], b: string[]): boolean {
     return a.length === b.length && a.every((val, index) => val === b[index]);
+  }
+
+  private async endGame(gameId: string) {
+    try {
+      // Clear timers
+      const gameTimer = this.gameTimers.get(gameId);
+      if (gameTimer) {
+        clearTimeout(gameTimer);
+        this.gameTimers.delete(gameId);
+      }
+
+      // Update game status
+      await storage.updateKlassKampGame(gameId, { 
+        status: 'finished',
+        finishedAt: new Date()
+      });
+
+      await this.updateGameState(gameId);
+      
+      const gameState = this.gameStates.get(gameId);
+      this.broadcastToGame(gameId, {
+        type: 'game_finished',
+        data: { 
+          message: 'Tiden är slut! Spelet avslutat.',
+          finalResults: gameState?.leaderboard || []
+        }
+      });
+
+      console.log(`Game ${gameId} ended`);
+    } catch (error) {
+      console.error('Error ending game:', error);
+    }
+  }
+
+  private async autoNextQuestion(gameId: string) {
+    try {
+      const [game] = await db.select().from(klassKampGames).where(eq(klassKampGames.id, gameId));
+      
+      if (!game || game.status !== 'playing') return;
+
+      const nextIndex = (game.currentQuestionIndex || 0) + 1;
+      
+      await storage.updateKlassKampGame(gameId, {
+        currentQuestionIndex: nextIndex
+      });
+
+      await this.sendNextQuestion(gameId);
+    } catch (error) {
+      console.error('Error auto-advancing question:', error);
+    }
   }
 }

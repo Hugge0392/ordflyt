@@ -21,12 +21,14 @@ interface GameState {
     status: 'waiting' | 'playing' | 'finished';
     currentQuestionIndex: number;
     questionCount: number;
+    startTime?: number;
   };
   players: Player[];
   leaderboard?: Player[];
   currentSentence?: any;
   timeRemaining?: number;
   wordClassName?: string;
+  gameDurationSeconds?: number;
 }
 
 export default function KlassKampPlayPage() {
@@ -38,6 +40,7 @@ export default function KlassKampPlayPage() {
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answerResult, setAnswerResult] = useState<{ isCorrect: boolean; points: number; correctWords: string[] } | null>(null);
+  const [gameTimeRemaining, setGameTimeRemaining] = useState<number | null>(null);
 
   // Get nickname from URL parameters
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
@@ -90,6 +93,10 @@ export default function KlassKampPlayPage() {
       case 'room_update':
         setGameState(message.data);
         break;
+      case 'game_started':
+        setGameTimeRemaining(message.data.gameDurationSeconds);
+        startGameTimer(message.data.gameDurationSeconds);
+        break;
       case 'new_question':
         // Reset for new question
         setSelectedWords([]);
@@ -101,12 +108,31 @@ export default function KlassKampPlayPage() {
         setAnswerResult(message.data);
         break;
       case 'game_finished':
-        console.log('Game finished');
+        console.log('Game finished:', message.data);
+        setGameTimeRemaining(0);
         break;
       case 'error':
         console.error('Game error:', message.data.message);
         break;
     }
+  };
+
+  const startGameTimer = (duration: number) => {
+    const timer = setInterval(() => {
+      setGameTimeRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const toggleWord = (word: string) => {
@@ -225,16 +251,16 @@ export default function KlassKampPlayPage() {
               <Card>
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-blue-800">
-                    {gameState.game.currentQuestionIndex + 1}/{gameState.game.questionCount}
+                    {gameState.game.currentQuestionIndex + 1}
                   </div>
-                  <div className="text-sm text-gray-600">Frågor</div>
+                  <div className="text-sm text-gray-600">Frågor besvarade</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold text-red-600">
                     <Clock className="w-6 h-6 inline mr-1" />
-                    {gameState.timeRemaining || 0}s
+                    {gameTimeRemaining !== null ? formatTime(gameTimeRemaining) : '5:00'}
                   </div>
                   <div className="text-sm text-gray-600">Tid kvar</div>
                 </CardContent>

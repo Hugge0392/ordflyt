@@ -21,11 +21,13 @@ interface GameState {
     status: 'waiting' | 'playing' | 'finished';
     currentQuestionIndex: number;
     questionCount: number;
+    startTime?: number;
   };
   players: Player[];
   leaderboard?: Player[];
   currentSentence?: any;
   timeRemaining?: number;
+  gameDurationSeconds?: number;
 }
 
 export default function KlassKampHostPage() {
@@ -33,6 +35,7 @@ export default function KlassKampHostPage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [gameTimeRemaining, setGameTimeRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     if (!code) return;
@@ -81,17 +84,34 @@ export default function KlassKampHostPage() {
       case 'room_update':
         setGameState(message.data);
         break;
+      case 'game_started':
+        setGameState(prev => prev ? { ...prev, game: { ...prev.game, startTime: message.data.startTime } } : null);
+        setGameTimeRemaining(message.data.gameDurationSeconds);
+        startGameTimer(message.data.gameDurationSeconds);
+        break;
       case 'new_question':
-        // New question started
         console.log('New question:', message.data);
         break;
       case 'game_finished':
-        console.log('Game finished');
+        console.log('Game finished:', message.data);
+        setGameTimeRemaining(0);
         break;
       case 'error':
         console.error('Game error:', message.data.message);
         break;
     }
+  };
+
+  const startGameTimer = (duration: number) => {
+    const timer = setInterval(() => {
+      setGameTimeRemaining(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const startGame = () => {
@@ -103,13 +123,10 @@ export default function KlassKampHostPage() {
     }
   };
 
-  const nextQuestion = () => {
-    if (ws) {
-      ws.send(JSON.stringify({
-        type: 'next_question',
-        data: {}
-      }));
-    }
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (connectionStatus === 'connecting') {
@@ -252,15 +269,16 @@ export default function KlassKampHostPage() {
               ) : gameState.game.status === 'playing' ? (
                 <>
                   <div className="text-center py-4">
-                    <div className="text-lg mb-2">
-                      Fråga {gameState.game.currentQuestionIndex + 1} av {gameState.game.questionCount}
+                    <div className="text-2xl font-bold text-red-600 mb-4">
+                      <Clock className="w-8 h-8 inline mr-2" />
+                      {gameTimeRemaining !== null ? formatTime(gameTimeRemaining) : '5:00'}
                     </div>
-                    {gameState.timeRemaining !== undefined && (
-                      <div className="text-2xl font-bold text-orange-600 mb-2">
-                        <Clock className="w-6 h-6 inline mr-1" />
-                        {gameState.timeRemaining}s
-                      </div>
-                    )}
+                    <div className="text-lg mb-2">
+                      Fråga {gameState.game.currentQuestionIndex + 1}
+                    </div>
+                    <div className="text-sm text-gray-600 mb-4">
+                      Eleverna svarar på så många frågor som möjligt!
+                    </div>
                     {gameState.currentSentence && (
                       <div className="bg-blue-50 rounded-lg p-4 mb-4">
                         <div className="font-medium text-blue-800">Aktuell mening:</div>
@@ -268,13 +286,9 @@ export default function KlassKampHostPage() {
                       </div>
                     )}
                   </div>
-                  <Button
-                    onClick={nextQuestion}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    Nästa fråga
-                  </Button>
+                  <div className="text-center text-sm text-gray-500">
+                    Frågor byts automatiskt var 3:e sekund efter att elever svarat
+                  </div>
                 </>
               ) : (
                 <div className="text-center py-4">
