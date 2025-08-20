@@ -74,6 +74,70 @@ export function MeningPusselPreview({ moment, onNext }: GamePreviewProps) {
   );
 }
 
+export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
+  const targetClass = moment.config.targetWordClass || 'substantiv';
+  const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
+  const distractors = moment.config.distractors || ['springa', 'snabb', 'under'];
+  const allWords = [...targetWords.slice(0, 3), ...distractors.slice(0, 3)];
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h3 className="text-xl font-bold text-center mb-6">🐉 Ordklassdrak</h3>
+      <div className="bg-gradient-to-b from-purple-200 to-blue-200 rounded-lg p-6 min-h-96 relative">
+        
+        {/* Dragon */}
+        <div className="absolute top-4 right-4 text-6xl animate-bounce">
+          🐉
+        </div>
+        
+        {/* Instructions */}
+        <div className="text-center mb-6">
+          <h4 className="text-lg font-semibold mb-2">Mata draken med {targetClass}!</h4>
+          <div className="bg-white bg-opacity-80 rounded-lg p-3 inline-block">
+            <p className="text-sm">Dra ord till drakens mun. Bara {targetClass} gör draken glad!</p>
+          </div>
+        </div>
+
+        {/* Dragon's mouth (drop zone) */}
+        <div className="absolute top-20 right-12 w-16 h-12 bg-red-400 rounded-full border-4 border-red-600 opacity-70">
+          <div className="text-center text-white font-bold text-xs mt-2">Mun</div>
+        </div>
+
+        {/* Words to drag */}
+        <div className="flex flex-wrap gap-3 justify-center mt-20">
+          {allWords.map((word, i) => {
+            const isTarget = targetWords.includes(word);
+            return (
+              <div 
+                key={i}
+                className={`
+                  px-4 py-2 rounded-lg cursor-move shadow-md hover:shadow-lg transition-all
+                  ${isTarget 
+                    ? 'bg-green-400 hover:bg-green-500 text-white' 
+                    : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                  }
+                `}
+              >
+                {word}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Score area */}
+        <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg p-3">
+          <div className="text-sm font-semibold">Poäng: 0/{targetWords.length}</div>
+          <div className="text-xs text-gray-600">Rätta: {targetClass}</div>
+        </div>
+      </div>
+      <div className="text-center mt-4">
+        <p className="text-gray-600 mb-4">Dra {targetClass} till drakens mun för att mata den!</p>
+        <Button onClick={onNext}>Fortsätt</Button>
+      </div>
+    </div>
+  );
+}
+
 export function GissaOrdetPreview({ moment, onNext }: GamePreviewProps) {
   const word = moment.config.words?.[0] || 'KATT';
   const clue = moment.config.clues?.[0] || 'Ett djur som säger mjau';
@@ -90,7 +154,7 @@ export function GissaOrdetPreview({ moment, onNext }: GamePreviewProps) {
           <strong>Ledtråd:</strong> {clue}
         </div>
         <div className="flex justify-center space-x-2 mb-4">
-          {word.split('').map((_, i: number) => (
+          {word.split('').map((_letter: string, i: number) => (
             <div key={i} className="w-8 h-8 border-2 border-gray-400 rounded flex items-center justify-center">
               <span className="text-gray-400">_</span>
             </div>

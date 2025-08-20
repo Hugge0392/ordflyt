@@ -24,12 +24,13 @@ import {
   GissaOrdetConfigurator, 
   RimSpelConfigurator, 
   SynonymerConfigurator, 
-  QuizConfigurator 
+  QuizConfigurator,
+  OrdklassdrakConfigurator
 } from "@/components/GameConfigurators";
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'slutprov' | 'slutdiplom';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'ordklassdrak' | 'slutprov' | 'slutdiplom';
   title: string;
   order: number;
   config: any;
@@ -70,6 +71,7 @@ const MOMENT_TYPES = [
   { id: 'ljudspel', name: 'Ljudspel', icon: '🔊', description: 'Lyssna och identifiera ord' },
   { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' },
   { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' },
+  { id: 'ordklassdrak', name: 'Ordklassdrak', icon: '🐉', description: 'Mata draken med ord från rätt ordklass' },
   { id: 'slutprov', name: 'Slutprov', icon: '📝', description: 'Tidsbegränsad slutexamination med meningar' },
   { id: 'slutdiplom', name: 'Slutdiplom', icon: '🏆', description: 'Pampigt diplom för kursgenom­förande' }
 ];
@@ -1346,6 +1348,9 @@ export default function LessonBuilder() {
 
       case 'quiz':
         return <QuizConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'ordklassdrak':
+        return <OrdklassdrakConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
 
       case 'ordkedja':
         return (

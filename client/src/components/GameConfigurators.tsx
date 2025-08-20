@@ -328,3 +328,63 @@ export function QuizConfigurator({ moment, updateMomentConfig }: GameConfigurato
     </div>
   );
 }
+
+export function OrdklassdrakConfigurator({ moment, updateMomentConfig }: GameConfiguratorProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Målordklass</Label>
+        <Select
+          value={moment.config.targetWordClass || 'substantiv'}
+          onValueChange={(value) => updateMomentConfig(moment.id, { ...moment.config, targetWordClass: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="substantiv">Substantiv</SelectItem>
+            <SelectItem value="verb">Verb</SelectItem>
+            <SelectItem value="adjektiv">Adjektiv</SelectItem>
+            <SelectItem value="adverb">Adverb</SelectItem>
+            <SelectItem value="pronomen">Pronomen</SelectItem>
+            <SelectItem value="preposition">Preposition</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Ord från målordklassen (ett per rad)</Label>
+        <Textarea
+          value={(moment.config.targetWords || []).join('\n')}
+          onChange={(e) => {
+            const targetWords = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
+            updateMomentConfig(moment.id, { ...moment.config, targetWords });
+          }}
+          placeholder="hund\nkatt\nhus\nbil"
+          className="min-h-[100px]"
+        />
+      </div>
+      <div>
+        <Label>Distraktorer (ord från andra ordklasser)</Label>
+        <Textarea
+          value={(moment.config.distractors || []).join('\n')}
+          onChange={(e) => {
+            const distractors = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
+            updateMomentConfig(moment.id, { ...moment.config, distractors });
+          }}
+          placeholder="springa\nsnabb\nlångsamt\nunder"
+          className="min-h-[100px]"
+        />
+      </div>
+      <div>
+        <Label>Antal ord per omgång</Label>
+        <Input
+          type="number"
+          min="3"
+          max="12"
+          value={moment.config.wordsPerRound || 6}
+          onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, wordsPerRound: parseInt(e.target.value) })}
+        />
+      </div>
+    </div>
+  );
+}

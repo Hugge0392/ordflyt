@@ -6,7 +6,8 @@ import {
   GissaOrdetPreview, 
   QuizPreview, 
   RimSpelPreview, 
-  BeratttelsePreview 
+  BeratttelsePreview,
+  OrdklassdrakPreview
 } from "@/components/GamePreviews";
 import Piratgrav from "@/components/Piratgrav";
 import { Slutdiplom } from "@/components/Slutdiplom";
@@ -932,6 +933,9 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
 
       case 'berattelse':
         return <BeratttelsePreview moment={moment} onNext={onNext} />;
+
+      case 'ordklassdrak':
+        return <OrdklassdrakPreview moment={moment} onNext={onNext} />;
 
       case 'piratgrav':
         return <Piratgrav moment={moment} onNext={onNext} />;
