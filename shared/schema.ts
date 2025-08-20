@@ -419,3 +419,52 @@ export const insertReadingLessonSchema = createInsertSchema(readingLessons).omit
 
 export type ReadingLesson = typeof readingLessons.$inferSelect;
 export type InsertReadingLesson = z.infer<typeof insertReadingLessonSchema>;
+
+// Klasskamp (multiplayer game) tables
+export const klassKampGames = pgTable("klasskamp_games", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 6 }).notNull().unique(),
+  teacherName: varchar("teacher_name", { length: 255 }).notNull(),
+  wordClassId: varchar("word_class_id").references(() => wordClasses.id),
+  status: varchar("status", { length: 20 }).notNull().default('waiting'), // waiting, playing, finished
+  currentQuestionIndex: integer("current_question_index").default(0),
+  questionCount: integer("question_count").default(10),
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at")
+});
+
+export const klassKampPlayers = pgTable("klasskamp_players", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().references(() => klassKampGames.id, { onDelete: 'cascade' }),
+  nickname: varchar("nickname", { length: 100 }).notNull(),
+  score: integer("score").default(0),
+  correctAnswers: integer("correct_answers").default(0),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  isConnected: boolean("is_connected").default(true)
+});
+
+export const klassKampAnswers = pgTable("klasskamp_answers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().references(() => klassKampGames.id, { onDelete: 'cascade' }),
+  playerId: varchar("player_id").notNull().references(() => klassKampPlayers.id, { onDelete: 'cascade' }),
+  sentenceId: varchar("sentence_id").notNull().references(() => sentences.id),
+  selectedWords: jsonb("selected_words").$type<string[]>().default([]),
+  isCorrect: boolean("is_correct").notNull(),
+  timeUsed: integer("time_used").notNull(), // milliseconds
+  points: integer("points").default(0),
+  answeredAt: timestamp("answered_at").defaultNow()
+});
+
+// Zod schemas for klasskamp
+export const insertKlassKampGameSchema = createInsertSchema(klassKampGames);
+export const insertKlassKampPlayerSchema = createInsertSchema(klassKampPlayers);
+export const insertKlassKampAnswerSchema = createInsertSchema(klassKampAnswers);
+
+// Additional export types for klasskamp
+export type KlassKampGame = typeof klassKampGames.$inferSelect;
+export type InsertKlassKampGame = z.infer<typeof insertKlassKampGameSchema>;
+export type KlassKampPlayer = typeof klassKampPlayers.$inferSelect;
+export type InsertKlassKampPlayer = z.infer<typeof insertKlassKampPlayerSchema>;
+export type KlassKampAnswer = typeof klassKampAnswers.$inferSelect;
+export type InsertKlassKampAnswer = z.infer<typeof insertKlassKampAnswerSchema>;

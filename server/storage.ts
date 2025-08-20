@@ -14,11 +14,17 @@ import {
   type InsertPublishedLesson,
   type InsertLessonDraft,
   type InsertReadingLesson,
+  type KlassKampGame,
+  type KlassKampPlayer,
+  type KlassKampAnswer,
+  type InsertKlassKampGame,
+  type InsertKlassKampPlayer,
+  type InsertKlassKampAnswer,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -70,6 +76,16 @@ export interface IStorage {
   updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson>;
   deleteReadingLesson(id: string): Promise<void>;
   getPublishedReadingLessons(): Promise<ReadingLesson[]>;
+
+  // KlassKamp methods
+  createKlassKampGame(game: InsertKlassKampGame): Promise<KlassKampGame>;
+  getKlassKampGameByCode(code: string): Promise<KlassKampGame | undefined>;
+  updateKlassKampGame(id: string, game: Partial<InsertKlassKampGame>): Promise<KlassKampGame>;
+  addKlassKampPlayer(player: InsertKlassKampPlayer): Promise<KlassKampPlayer>;
+  getKlassKampPlayers(gameId: string): Promise<KlassKampPlayer[]>;
+  updateKlassKampPlayer(id: string, player: Partial<InsertKlassKampPlayer>): Promise<KlassKampPlayer>;
+  addKlassKampAnswer(answer: InsertKlassKampAnswer): Promise<KlassKampAnswer>;
+  getSentencesByWordClass(wordClassId: string): Promise<Sentence[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -697,6 +713,56 @@ export class DatabaseStorage implements IStorage {
   async getPublishedReadingLessons(): Promise<ReadingLesson[]> {
     return await db.select().from(readingLessons).where(eq(readingLessons.isPublished, 1));
   }
+
+  // KlassKamp methods implementation
+  async createKlassKampGame(game: InsertKlassKampGame): Promise<KlassKampGame> {
+    const [result] = await db.insert(klassKampGames).values(game).returning();
+    return result;
+  }
+
+  async getKlassKampGameByCode(code: string): Promise<KlassKampGame | undefined> {
+    const [result] = await db.select().from(klassKampGames).where(eq(klassKampGames.code, code));
+    return result;
+  }
+
+  async updateKlassKampGame(id: string, game: Partial<InsertKlassKampGame>): Promise<KlassKampGame> {
+    const [result] = await db.update(klassKampGames)
+      .set(game)
+      .where(eq(klassKampGames.id, id))
+      .returning();
+    return result;
+  }
+
+  async addKlassKampPlayer(player: InsertKlassKampPlayer): Promise<KlassKampPlayer> {
+    const [result] = await db.insert(klassKampPlayers).values(player).returning();
+    return result;
+  }
+
+  async getKlassKampPlayers(gameId: string): Promise<KlassKampPlayer[]> {
+    const results = await db.select().from(klassKampPlayers).where(eq(klassKampPlayers.gameId, gameId));
+    return results;
+  }
+
+  async updateKlassKampPlayer(id: string, player: Partial<InsertKlassKampPlayer>): Promise<KlassKampPlayer> {
+    const [result] = await db.update(klassKampPlayers)
+      .set(player)
+      .where(eq(klassKampPlayers.id, id))
+      .returning();
+    return result;
+  }
+
+  async addKlassKampAnswer(answer: InsertKlassKampAnswer): Promise<KlassKampAnswer> {
+    const [result] = await db.insert(klassKampAnswers).values(answer).returning();
+    return result;
+  }
+
+  async getSentencesByWordClass(wordClassId: string): Promise<Sentence[]> {
+    const results = await db.select().from(sentences).where(eq(sentences.wordClassId, wordClassId));
+    return results;
+  }
 }
 
 export const storage = new DatabaseStorage();
+
+// Export db for direct access where needed
+export { db };

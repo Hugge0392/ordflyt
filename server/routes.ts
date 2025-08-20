@@ -6,7 +6,8 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema } from "@shared/schema";
+import { KlassKampWebSocket } from "./klasskamp-websocket";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -605,6 +606,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KlassKamp API endpoints
+  app.post("/api/klasskamp/create", async (req, res) => {
+    try {
+      const { teacherName, wordClassId, questionCount } = req.body;
+      
+      if (!teacherName || !wordClassId) {
+        return res.status(400).json({ message: "Teacher name and word class required" });
+      }
+
+      // Generate unique 6-digit code
+      let code: string;
+      do {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+      } while (await storage.getKlassKampGameByCode(code));
+
+      const game = await storage.createKlassKampGame({
+        code,
+        teacherName,
+        wordClassId,
+        questionCount: questionCount || 10,
+        status: 'waiting'
+      });
+
+      res.json({ gameId: game.id, code: game.code });
+    } catch (error) {
+      console.error('Error creating KlassKamp game:', error);
+      res.status(500).json({ message: "Failed to create game" });
+    }
+  });
+
+  app.get("/api/klasskamp/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const game = await storage.getKlassKampGameByCode(code);
+      
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      const players = await storage.getKlassKampPlayers(game.id);
+      res.json({ game, players });
+    } catch (error) {
+      console.error('Error fetching KlassKamp game:', error);
+      res.status(500).json({ message: "Failed to fetch game" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Initialize KlassKamp WebSocket server
+  new KlassKampWebSocket(httpServer);
+  
   return httpServer;
 }

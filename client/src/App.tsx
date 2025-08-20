@@ -31,6 +31,8 @@ import PublishedLessonPage from "@/pages/lesson-player-published";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TeacherPage from "@/pages/teacher";
+import KlassKampPage from "@/pages/klasskamp";
+import SpelaPage from "@/pages/spela";
 import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -72,6 +74,8 @@ function Router() {
       <Route path="/pirate-course" component={PirateCourse} />
       <Route path="/lesson/:id" component={LessonPlayer} />
       <Route path="/published/:lessonId" component={PublishedLessonPage} />
+      <Route path="/klasskamp" component={KlassKampPage} />
+      <Route path="/spela" component={SpelaPage} />
       
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">

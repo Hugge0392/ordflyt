@@ -109,6 +109,28 @@ export default function Menu() {
 
 
 
+        {/* Multiplayer Section */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            Multiplayer
+          </h2>
+          
+          <div className="max-w-md mx-auto mb-16">
+            <Link href="/klasskamp" data-testid="klasskamp-button">
+              <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-center">
+                <div className="text-5xl mb-4">🏆</div>
+                <h3 className="text-3xl font-bold mb-2">Klasskampen</h3>
+                <p className="text-lg opacity-90 mb-4">
+                  Multiplayer-tävling där elever tävlar i att hitta ordklasser
+                </p>
+                <div className="bg-white/20 rounded-lg px-6 py-3">
+                  <span className="font-medium">Starta klasskamp</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </section>
+
         {/* Tests Section */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
