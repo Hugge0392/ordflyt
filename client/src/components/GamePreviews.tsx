@@ -213,7 +213,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Words to drag */}
-        <div className="flex flex-wrap gap-3 justify-center mt-44">
+        <div className="flex flex-wrap gap-3 justify-center mt-48">
           {allWords.map((word, i) => {
             const isTarget = targetWords.includes(word);
             const isBeingEaten = dragonEating && draggedWord === word;
