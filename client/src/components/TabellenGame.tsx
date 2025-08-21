@@ -233,28 +233,28 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   };
 
   const checkAnswer = () => {
-    // Get all original words with their expected columns
-    const originalWords: WordBankItem[] = [];
+    // Helper function to determine if a word should be singular or plural
+    const isPlural = (word: string): boolean => {
+      const w = word.toLowerCase().trim();
+      // Simple heuristic: words ending in common plural patterns
+      if (w.endsWith('ar') || w.endsWith('er') || w.endsWith('or')) return true;
+      if (w.endsWith('n') && w.length > 2) return true; // Like "äpplen"
+      if (w.endsWith('s') && !w.endsWith('ss')) return true; // Like "bilar" but not "klass"
+      return false;
+    };
+
+    // Find plural and singular column indices
+    let pluralColumnIndex = -1;
+    let singularColumnIndex = -1;
     
-    if (moment?.config?.rows && moment?.config?.columns) {
-      moment.config.rows.forEach((row: any) => {
-        if (row.cells && Array.isArray(row.cells)) {
-          row.cells.forEach((cell: string, cellIndex: number) => {
-            if (cell && cell.trim()) {
-              const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
-              originalWords.push({
-                word: cell.trim(),
-                id: `check-${originalWords.length}`,
-                expectedColumn: expectedColumn
-              });
-            }
-          });
-        }
-      });
-    }
+    (moment?.config?.columns || []).forEach((column: string, index: number) => {
+      const normalized = column.trim().toLowerCase();
+      if (normalized.includes('plural')) pluralColumnIndex = index;
+      if (normalized.includes('singular')) singularColumnIndex = index;
+    });
 
     let correct = 0;
-    const total = originalWords.length;
+    const total = droppedWords.length;
     const columnResults: {[key: string]: {correct: number, total: number}} = {};
 
     // Initialize column results
@@ -265,20 +265,29 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
     // Check each dropped word
     droppedWords.forEach(droppedWord => {
-      // Find the original word data by matching the word text
-      const originalWord = originalWords.find(orig => 
-        orig.word.trim().toLowerCase() === droppedWord.word.trim().toLowerCase()
-      );
+      const word = droppedWord.word.trim();
+      const wordIsPlural = isPlural(word);
+      const actualColumnIndex = droppedWord.cellIndex;
+      const actualColumn = moment?.config?.columns[actualColumnIndex]?.trim().toLowerCase();
       
-      if (originalWord) {
-        const actualColumn = moment?.config?.columns[droppedWord.cellIndex]?.trim().toLowerCase();
-        const expectedColumn = originalWord.expectedColumn;
-        
-        columnResults[expectedColumn].total++;
-        
-        if (actualColumn === expectedColumn) {
-          correct++;
-          columnResults[expectedColumn].correct++;
+      // Determine expected column based on word form
+      let expectedColumnIndex = -1;
+      if (wordIsPlural && pluralColumnIndex >= 0) {
+        expectedColumnIndex = pluralColumnIndex;
+      } else if (!wordIsPlural && singularColumnIndex >= 0) {
+        expectedColumnIndex = singularColumnIndex;
+      }
+      
+      // Count for column stats
+      if (actualColumn && columnResults[actualColumn] !== undefined) {
+        columnResults[actualColumn].total++;
+      }
+      
+      // Check if word is in correct column
+      if (expectedColumnIndex >= 0 && actualColumnIndex === expectedColumnIndex) {
+        correct++;
+        if (actualColumn && columnResults[actualColumn] !== undefined) {
+          columnResults[actualColumn].correct++;
         }
       }
     });
