@@ -58,6 +58,8 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     setDraggedWord(wordItem);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", wordItem.word);
+    e.dataTransfer.setData("word-id", wordItem.id);
+    e.dataTransfer.setData("source-type", "bank");
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -67,7 +69,13 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   const handleDrop = (e: React.DragEvent, rowIndex: number, cellIndex: number) => {
     e.preventDefault();
     
-    if (!draggedWord) return;
+    const word = e.dataTransfer.getData('text/plain');
+    const wordId = e.dataTransfer.getData('word-id');
+    const sourceType = e.dataTransfer.getData('source-type');
+    const sourceRow = parseInt(e.dataTransfer.getData('source-row'));
+    const sourceCell = parseInt(e.dataTransfer.getData('source-cell'));
+
+    if (!word || !wordId) return;
 
     // Check if cell already has a word
     const existingWord = droppedWords.find(
@@ -76,6 +84,12 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
     let newWordBank = [...wordBank];
     let newDroppedWords = [...droppedWords];
+
+    // If dropping into the same cell, do nothing
+    if (sourceType === 'cell' && sourceRow === rowIndex && sourceCell === cellIndex) {
+      setDraggedWord(null);
+      return;
+    }
 
     if (existingWord) {
       // Find the original word data to preserve expectedColumn
@@ -114,16 +128,25 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       );
     }
 
+    // If word came from a cell, remove it from its original position
+    if (sourceType === 'cell' && !isNaN(sourceRow) && !isNaN(sourceCell)) {
+      newDroppedWords = newDroppedWords.filter(
+        dropped => !(dropped.rowIndex === sourceRow && dropped.cellIndex === sourceCell)
+      );
+    }
+
     // Add new word to cell
     newDroppedWords.push({ 
-      word: draggedWord.word, 
+      word: word, 
       rowIndex, 
       cellIndex,
-      id: draggedWord.id
+      id: wordId
     });
 
-    // Remove dragged word from word bank
-    newWordBank = newWordBank.filter(item => item.id !== draggedWord.id);
+    // Remove dragged word from word bank only if it came from word bank
+    if (sourceType !== 'cell') {
+      newWordBank = newWordBank.filter(item => item.id !== wordId);
+    }
     
     setWordBank(newWordBank);
     setDroppedWords(newDroppedWords);
@@ -339,20 +362,28 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
             e.preventDefault();
             const word = e.dataTransfer.getData('text/plain');
             const wordId = e.dataTransfer.getData('word-id');
+            const sourceType = e.dataTransfer.getData('source-type');
+            const sourceRow = parseInt(e.dataTransfer.getData('source-row'));
+            const sourceCell = parseInt(e.dataTransfer.getData('source-cell'));
             
             if (!word || !wordId) return;
 
-            // Remove from dropped words if it was placed
-            setDroppedWords(prev => prev.filter(item => item.id !== wordId));
-            
-            // Add back to word bank if not already there
-            setWordBank(prev => {
-              const exists = prev.some(item => item.id === wordId);
-              if (!exists) {
-                return [...prev, { word, id: wordId, expectedColumn: 'unknown' }];
-              }
-              return prev;
-            });
+            // Only proceed if dropping from a cell
+            if (sourceType === 'cell' && !isNaN(sourceRow) && !isNaN(sourceCell)) {
+              // Remove from original cell position
+              setDroppedWords(prev => prev.filter(
+                item => !(item.rowIndex === sourceRow && item.cellIndex === sourceCell)
+              ));
+              
+              // Add back to word bank if not already there
+              setWordBank(prev => {
+                const exists = prev.some(item => item.id === wordId);
+                if (!exists) {
+                  return [...prev, { word, id: wordId, expectedColumn: 'unknown' }];
+                }
+                return prev;
+              });
+            }
           }}
         >
           <h3 className="font-semibold mb-4 text-gray-700 text-lg">Ordbank</h3>
@@ -417,16 +448,15 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                               onDragStart={(e) => {
                                 e.dataTransfer.setData("text/plain", droppedWord.word);
                                 e.dataTransfer.setData("word-id", droppedWord.id);
+                                e.dataTransfer.setData("source-type", "cell");
+                                e.dataTransfer.setData("source-row", droppedWord.rowIndex.toString());
+                                e.dataTransfer.setData("source-cell", droppedWord.cellIndex.toString());
+                                
                                 setDraggedWord({ 
                                   word: droppedWord.word, 
                                   id: droppedWord.id, 
                                   expectedColumn: 'unknown' 
                                 });
-                                
-                                // Remove from current position when starting drag
-                                setDroppedWords(prev => prev.filter(
-                                  item => !(item.rowIndex === droppedWord.rowIndex && item.cellIndex === droppedWord.cellIndex)
-                                ));
                               }}
                               onClick={() => returnWordToBank(droppedWord)}
                               title="Dra för att flytta eller klicka för att flytta tillbaka till ordbanken"
