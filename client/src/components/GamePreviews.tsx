@@ -210,7 +210,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Words to drag */}
-        <div className="flex flex-wrap gap-3 justify-center mt-48 max-w-2xl mx-auto">
+        <div className="flex flex-wrap gap-3 justify-center mt-48 max-w-2xl mx-auto transition-all duration-500 ease-in-out">
           {allWords
             .filter(word => !wordsUsed.includes(word))
             .map((word, i) => {
@@ -225,9 +225,10 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                   onDragStart={(e) => handleDragStart(e, word)}
                   onDragEnd={handleDragEnd}
                   className={`
-                    px-4 py-2 rounded-lg shadow-md transition-all duration-300 min-w-[80px] min-h-[40px]
-                    ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg'}
-                    ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
+                    px-4 py-2 rounded-lg shadow-md min-w-[80px] min-h-[40px]
+                    transition-all duration-500 ease-out transform
+                    ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg hover:scale-105'}
+                    ${isBeingEaten ? 'opacity-0 scale-0 translate-x-32 translate-y-[-8rem]' : 'scale-100'}
                     ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
                     ${!isBeingEaten && !isBeingSpit
                       ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
