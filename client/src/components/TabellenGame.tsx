@@ -10,25 +10,54 @@ interface DroppedWord {
   word: string;
   rowIndex: number;
   cellIndex: number;
+  id: string; // Unique ID to handle duplicates
+}
+
+interface WordBankItem {
+  word: string;
+  id: string;
 }
 
 export function TabellenGame({ moment, onNext }: TabellenGameProps) {
-  const [wordBank, setWordBank] = useState<string[]>([]);
+  const [wordBank, setWordBank] = useState<WordBankItem[]>([]);
   const [droppedWords, setDroppedWords] = useState<DroppedWord[]>([]);
-  const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const [draggedWord, setDraggedWord] = useState<WordBankItem | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const [isComplete, setIsComplete] = useState(false);
   const [score, setScore] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize word bank from config
+  // Initialize word bank from table cells (facit), only once
   useEffect(() => {
-    if (moment?.config?.wordBank) {
-      setWordBank([...moment.config.wordBank]);
-    }
-  }, [moment]);
+    if (moment?.config?.rows && moment?.config?.columns && !isInitialized) {
+      const wordsFromTable: string[] = [];
+      
+      // Extract all non-empty words from table cells
+      moment.config.rows.forEach((row: any) => {
+        if (row.cells && Array.isArray(row.cells)) {
+          row.cells.forEach((cell: string) => {
+            if (cell && cell.trim()) {
+              wordsFromTable.push(cell.trim());
+            }
+          });
+        }
+      });
 
-  const handleDragStart = (word: string) => {
-    setDraggedWord(word);
+      // Create word bank with unique IDs
+      const bankItems: WordBankItem[] = wordsFromTable.map((word, index) => ({
+        word,
+        id: `word-${index}-${Date.now()}`
+      }));
+
+      setWordBank(bankItems);
+      setIsInitialized(true);
+    }
+  }, [moment?.config?.rows, moment?.config?.columns, isInitialized]);
+
+  const handleDragStart = (e: React.DragEvent, wordItem: WordBankItem) => {
+    setDraggedWord(wordItem);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", wordItem.word);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -45,31 +74,37 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       dropped => dropped.rowIndex === rowIndex && dropped.cellIndex === cellIndex
     );
 
+    let newWordBank = [...wordBank];
+    let newDroppedWords = [...droppedWords];
+
     if (existingWord) {
       // Return existing word to word bank
-      setWordBank(prev => [...prev, existingWord.word]);
+      newWordBank.push({ word: existingWord.word, id: `returned-${Date.now()}` });
       // Remove existing word from dropped words
-      setDroppedWords(prev => prev.filter(
+      newDroppedWords = newDroppedWords.filter(
         dropped => !(dropped.rowIndex === rowIndex && dropped.cellIndex === cellIndex)
-      ));
+      );
     }
 
     // Add new word to cell
-    setDroppedWords(prev => [
-      ...prev,
-      { word: draggedWord, rowIndex, cellIndex }
-    ]);
+    newDroppedWords.push({ 
+      word: draggedWord.word, 
+      rowIndex, 
+      cellIndex,
+      id: draggedWord.id
+    });
 
-    // Remove word from word bank
-    setWordBank(prev => prev.filter(word => word !== draggedWord));
+    // Remove dragged word from word bank
+    newWordBank = newWordBank.filter(item => item.id !== draggedWord.id);
     
+    setWordBank(newWordBank);
+    setDroppedWords(newDroppedWords);
     setDraggedWord(null);
-    checkCompletion();
   };
 
   const returnWordToBank = (droppedWord: DroppedWord) => {
     // Return word to bank
-    setWordBank(prev => [...prev, droppedWord.word]);
+    setWordBank(prev => [...prev, { word: droppedWord.word, id: `returned-${Date.now()}` }]);
     
     // Remove from dropped words
     setDroppedWords(prev => prev.filter(
@@ -77,19 +112,61 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     ));
   };
 
-  const checkCompletion = () => {
-    const totalCells = (moment?.config?.rows || []).length * (moment?.config?.columns || []).length;
+  // Check completion when dropped words or word bank changes
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    const rows = moment?.config?.rows || [];
+    const columns = moment?.config?.columns || [];
+    
+    if (rows.length === 0 || columns.length === 0) return;
+    
+    // Count cells that should have words (non-empty facit)
+    let totalRequiredCells = 0;
+    rows.forEach((row: any) => {
+      if (row.cells && Array.isArray(row.cells)) {
+        row.cells.forEach((cell: string) => {
+          if (cell && cell.trim()) {
+            totalRequiredCells++;
+          }
+        });
+      }
+    });
+    
     const filledCells = droppedWords.length;
     
-    if (wordBank.length === 0 && filledCells === totalCells) {
+    if (wordBank.length === 0 && filledCells === totalRequiredCells && totalRequiredCells > 0) {
       setIsComplete(true);
-      setFeedback({ type: 'success', message: 'Bra jobbat! Du har fyllt alla celler korrekt!' });
+      setFeedback({ type: 'success', message: 'Bra jobbat! Du har fyllt alla celler!' });
       setScore(100);
+    } else {
+      setIsComplete(false);
     }
-  };
+  }, [droppedWords, wordBank, isInitialized, moment?.config?.rows, moment?.config?.columns]);
 
   const resetGame = () => {
-    setWordBank([...(moment?.config?.wordBank || [])]);
+    // Reinitialize from table cells
+    if (moment?.config?.rows) {
+      const wordsFromTable: string[] = [];
+      
+      moment.config.rows.forEach((row: any) => {
+        if (row.cells && Array.isArray(row.cells)) {
+          row.cells.forEach((cell: string) => {
+            if (cell && cell.trim()) {
+              wordsFromTable.push(cell.trim());
+            }
+          });
+        }
+      });
+
+      const bankItems: WordBankItem[] = wordsFromTable.map((word, index) => ({
+        word,
+        id: `reset-word-${index}-${Date.now()}`
+      }));
+
+      setWordBank(bankItems);
+    }
+    
     setDroppedWords([]);
     setFeedback({ type: null, message: '' });
     setIsComplete(false);
@@ -109,15 +186,17 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     // Compare with correct answers if defined
     if (moment?.config?.rows) {
       moment.config.rows.forEach((row: any, rowIndex: number) => {
-        row.cells.forEach((correctWord: string, cellIndex: number) => {
-          if (correctWord) {
-            total++;
-            const droppedWord = getWordInCell(rowIndex, cellIndex);
-            if (droppedWord && droppedWord.word === correctWord) {
-              correct++;
+        if (row.cells && Array.isArray(row.cells)) {
+          row.cells.forEach((correctWord: string, cellIndex: number) => {
+            if (correctWord && correctWord.trim()) {
+              total++;
+              const droppedWord = getWordInCell(rowIndex, cellIndex);
+              if (droppedWord && droppedWord.word.trim().toLowerCase() === correctWord.trim().toLowerCase()) {
+                correct++;
+              }
             }
-          }
-        });
+          });
+        }
       });
     }
 
@@ -126,6 +205,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     
     if (percentage === 100) {
       setFeedback({ type: 'success', message: `Perfekt! Du fick alla ${correct} rätt!` });
+      setIsComplete(true);
     } else if (percentage >= 70) {
       setFeedback({ type: 'success', message: `Bra jobbat! Du fick ${correct} av ${total} rätt.` });
     } else {
@@ -158,18 +238,22 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
         <div className="lg:col-span-1">
           <h3 className="font-semibold mb-4 text-gray-700 text-lg">Ordbank</h3>
           <div className="space-y-3">
-            {wordBank.map((word, index) => (
-              <div
-                key={`${word}-${index}`}
-                className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-yellow-200 transition-colors text-center font-medium shadow-sm"
-                draggable
-                onDragStart={() => handleDragStart(word)}
-              >
-                {word}
-              </div>
-            ))}
-            
-            {wordBank.length === 0 && (
+            {!isInitialized ? (
+              <p className="text-gray-500 text-center italic py-8">
+                Laddar ord...
+              </p>
+            ) : wordBank.length > 0 ? (
+              wordBank.map((wordItem) => (
+                <div
+                  key={wordItem.id}
+                  className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-yellow-200 transition-colors text-center font-medium shadow-sm"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, wordItem)}
+                >
+                  {wordItem.word}
+                </div>
+              ))
+            ) : (
               <p className="text-gray-500 text-center italic py-8">
                 Alla ord är placerade!
               </p>

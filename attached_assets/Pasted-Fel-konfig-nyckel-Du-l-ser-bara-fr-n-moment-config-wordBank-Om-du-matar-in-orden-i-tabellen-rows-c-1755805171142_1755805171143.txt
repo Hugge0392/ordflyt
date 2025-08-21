@@ -1,0 +1,62 @@
+Fel konfig-nyckel
+Du läser bara från moment.config.wordBank. Om du matar in orden i tabellen (rows/cells) men inte fyller wordBank, blir ordbanken tom → inget att dra.
+→ Beslut: bestäm en enda “sanning”:
+
+Antingen kräver du wordBank (array av strängar), eller
+
+så härleder du ordbanken från rows[].cells vid start (och tömmer cellerna visuellt tills eleven fyllt i dem).
+
+Datastruktur på rows / columns
+Säkerställ att columns är en array av rubriker och att rows är en array av objekt där varje har cells som array av strängar i samma längd som columns. Om rows saknar cells eller innehåller undefined/tomma, får du 0 celler att matcha och kan feltolka “klart”-logik.
+
+useEffect init körs men tömmer banken igen
+Din init gör setWordBank([...moment.config.wordBank]) när moment ändras. Om moment uppdateras (t.ex. parent render), nollställs spelarens progress och ordbanken kan sluta synas mitt i spelet.
+→ Lås init till första mount eller till specifika stabila fält (t.ex. moment.config.wordBank) och inte hela moment.
+
+Dubbletter i ordbank
+Du tar bort ord med filter(word !== draggedWord). Har du dubbletter (“katt”, “katt”) försvinner alla exemplar. Då kan ordbanken se tom ut trots att bara ett skulle lyftas.
+→ Hantera dubbletter index-baserat eller med unika id:n per ord.
+
+checkCompletion använder “stale” state
+Du anropar checkCompletion() direkt efter setDroppedWords och setWordBank. Eftersom setState är asynkront läser checkCompletion gamla värden → den kan tro att allt är fullt/tomt när det inte är det.
+→ Flytta slutförandekollen till en effekt som lyssnar på droppedWords och wordBank, eller beräkna med de nya värdena i samma transaktion.
+
+“Ordbank från tabell” saknas logiskt
+Du beskriver att du skriver in ord i tabellen som facit och vill att spelet ska “plocka ut” dem till ordbanken. Koden renderar alltid “Dra ett ord hit” i cellerna och läser aldrig cellernas facit för att bygga ordbank.
+→ Lägg in ett startsteg: flattena alla icke-tomma rows[].cells till ordbanken och visa tomma drop-zoner i tabellen (facit används bara för rättningslogik).
+
+Inkonsistens mellan facit och ordbank
+Om facit (cells) innehåller ord som inte finns i wordBank, eller tvärtom, blir det omöjligt att fylla alla celler.
+→ Stäm av: mängden ord i wordBank ska matcha antalet ifyllda facit-celler (exakt antal och stavning, inkl. versaler/whitespace).
+
+Whitespace/normalisering
+Små dolda skillnader (“hund ” med trailing space, “Hund” med versal) gör att ord inte “matchar” vid rättning och användaren kan tro att ord saknas eller inte funkar.
+→ Normalisera (trim/case) både vid init och jämförelse.
+
+Drop-events blockeras inte, men dragstart saknar dataTransfer
+Vissa webview/mobila implementationer kräver att du sätter någon dataTransfer-payload i onDragStart för att drop ska triggas på målet.
+→ Sätt en neutral payload och effectAllowed="move" för robusthet (även om du håller aktuell “draggedWord” i state).
+
+Återläggning kan duplicera ord
+När en cell redan har ett ord, returnerar du det till ordbanken och lägger samtidigt in det nya ordet. Om det är samma sträng, kan du få dubbel förekomst i ordbanken eller att “fel” exemplar tas bort.
+→ Se till att återlagda ord och det dragna ordet hanteras i rätt ordning och inte kolliderar om strängen är identisk.
+
+totalCells kan bli 0
+totalCells = rows.length * columns.length. Om columns inte levereras (eller är tom) men rows finns → 0 → spelet kan markeras klart direkt eller aldrig bli klart.
+→ Validera att båda finns och har > 0 längd.
+
+Skylt “Alla ord är placerade!” visas direkt
+Den visas när wordBank.length === 0. Om init inte fyllde banken (punkt 1–3) ser det ut som att allt redan är placerat fast det aldrig laddades.
+→ Använd ett separat “isLoaded”-flagga så att du inte visar det meddelandet innan init är klar.
+
+Rättningslogik kräver att facit-celler med text räknas
+Du räknar total endast för facit-celler som har text. Om vissa celler i facit är tomma men eleven ändå kan placera ord där, blir procentsatsen knasig och spelet kanske inte erbjuder “nästa moment”.
+→ Definiera om du vill räkna alla celler eller endast de med facit – och håll input/visning i synk.
+
+Snabbaste vägen till “det syns och går att dra”:
+
+Säkerställ att wordBank fylls vid start (antingen direkt från config.wordBank eller härlett från rows[].cells).
+
+Lås init så att re-renders av moment inte nollställer banken.
+
+Hantera dubbletter index-baserat och flytta “klar?”-kollen till en effekt som lyssnar på droppedWords och wordBank.
