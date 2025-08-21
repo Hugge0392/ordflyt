@@ -338,7 +338,7 @@ export default function LessonBuilder() {
             { id: 'row1', cells: ['', ''] }, // Empty cells to be filled
             { id: 'row2', cells: ['', ''] }
           ],
-          wordBank: [], // Words to drag from
+          wordBank: ['Ord1', 'Ord2', 'Ord3', 'Ord4'], // Words to drag from
           correctAnswers: {}, // Maps cell position to correct word
           instruction: 'Dra orden från listan och placera dem på rätt plats i tabellen'
         };

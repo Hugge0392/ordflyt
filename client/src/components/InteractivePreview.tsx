@@ -988,15 +988,9 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                               key={cellIndex}
                               className="border-r border-gray-200 p-4 min-h-[60px] bg-gray-50 border-2 border-dashed border-gray-300 hover:bg-gray-100 transition-colors"
                             >
-                              {cell ? (
-                                <div className="bg-green-100 border border-green-300 rounded p-2 text-center font-medium">
-                                  {cell}
-                                </div>
-                              ) : (
-                                <div className="text-gray-400 text-sm text-center italic">
-                                  Dra ett ord hit
-                                </div>
-                              )}
+                              <div className="text-gray-400 text-sm text-center italic min-h-[40px] flex items-center justify-center">
+                                Dra ett ord hit
+                              </div>
                             </td>
                           ))}
                         </tr>
@@ -1009,8 +1003,13 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
 
             <div className="mt-8 text-center">
               <p className="text-gray-600 mb-4">
-                <strong>Förhandsgranskning:</strong> I det riktiga spelet kan eleverna dra ord från ordbanken och placera dem i tabellcellerna.
+                <strong>Förhandsgranskning:</strong> I det riktiga spelet kan eleverna dra ord från ordbanken till vänster och placera dem i rätt tabellceller. Alla celler börjar tomma.
               </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Tips för lärare:</strong> Fyll i "rätt svar" i tabellcellerna under konfigurationen för att definiera vad som är korrekt. Under spelet visas cellerna tomma tills eleverna drar ord dit.
+                </p>
+              </div>
               <Button onClick={onNext} className="bg-blue-600 hover:bg-blue-700">
                 Fortsätt till nästa moment
               </Button>
