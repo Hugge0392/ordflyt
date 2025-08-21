@@ -12,6 +12,7 @@ import {
 import Piratgrav from "@/components/Piratgrav";
 import { Slutdiplom } from "@/components/Slutdiplom";
 import beachBackground from "@assets/backgrounds/beach.webp";
+import TabellenGame from "@/components/TabellenGame";
 
 interface MemoryCard {
   id: string;
@@ -938,87 +939,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
         return <OrdklassdrakPreview moment={moment} onNext={onNext} />;
 
       case 'tabellen':
-        return (
-          <div className="max-w-4xl mx-auto">
-            <h3 className="text-2xl font-bold text-center mb-6">
-              📋 {moment.config.tableTitle || 'Tabellspel'}
-            </h3>
-            
-            {moment.config.instruction && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p className="text-blue-800">{moment.config.instruction}</p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Word Bank */}
-              <div className="lg:col-span-1">
-                <h4 className="font-semibold mb-3 text-gray-700">Ordbank</h4>
-                <div className="space-y-2">
-                  {(moment.config.wordBank && moment.config.wordBank.length > 0 
-                    ? moment.config.wordBank 
-                    : ['Ord1', 'Ord2', 'Ord3', 'Ord4']
-                  ).map((word: string, index: number) => (
-                    <div
-                      key={index}
-                      className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-move hover:bg-yellow-200 transition-colors text-center font-medium"
-                      draggable
-                    >
-                      {word || `Ord ${index + 1}`}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="lg:col-span-2">
-                <div className="bg-white border-2 border-gray-300 rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {(moment.config.columns || ['Kolumn 1', 'Kolumn 2']).map((column: string, index: number) => (
-                          <th key={index} className="border-b-2 border-gray-300 p-4 text-left font-semibold text-gray-700">
-                            {column || `Kolumn ${index + 1}`}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(moment.config.rows || []).map((row: any, rowIndex: number) => (
-                        <tr key={row.id || rowIndex} className="border-b border-gray-200">
-                          {row.cells.map((cell: string, cellIndex: number) => (
-                            <td
-                              key={cellIndex}
-                              className="border-r border-gray-200 p-4 min-h-[60px] bg-gray-50 border-2 border-dashed border-gray-300 hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="text-gray-400 text-sm text-center italic min-h-[40px] flex items-center justify-center">
-                                Dra ett ord hit
-                              </div>
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center">
-              <p className="text-gray-600 mb-4">
-                <strong>Förhandsgranskning:</strong> I det riktiga spelet kan eleverna dra ord från ordbanken till vänster och placera dem i rätt tabellceller. Alla celler börjar tomma.
-              </p>
-              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Tips för lärare:</strong> Fyll i "rätt svar" i tabellcellerna under konfigurationen för att definiera vad som är korrekt. Under spelet visas cellerna tomma tills eleverna drar ord dit.
-                </p>
-              </div>
-              <Button onClick={onNext} className="bg-blue-600 hover:bg-blue-700">
-                Fortsätt till nästa moment
-              </Button>
-            </div>
-          </div>
-        );
+        return <TabellenGame moment={moment} onNext={onNext} />;
 
       case 'piratgrav':
         return <Piratgrav moment={moment} onNext={onNext} />;
