@@ -135,10 +135,10 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     
     const filledCells = droppedWords.length;
     
+    // Only auto-complete when all cells are filled, but don't set score yet
     if (wordBank.length === 0 && filledCells === totalRequiredCells && totalRequiredCells > 0) {
       setIsComplete(true);
-      setFeedback({ type: 'success', message: 'Bra jobbat! Du har fyllt alla celler!' });
-      setScore(100);
+      // Don't auto-set score here, let user check their answers
     } else {
       setIsComplete(false);
     }
@@ -335,7 +335,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
             Börja om
           </Button>
 
-          {(score === 100) && onNext && (
+          {score === 100 && onNext && (
             <Button onClick={onNext} variant="default" size="lg" className="bg-green-600 hover:bg-green-700">
               Fortsätt till nästa moment
             </Button>
