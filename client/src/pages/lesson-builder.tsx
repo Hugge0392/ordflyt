@@ -30,7 +30,7 @@ import {
 
 interface LessonMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'ordklassdrak' | 'slutprov' | 'slutdiplom';
+  type: 'textruta' | 'pratbubbla' | 'memory' | 'korsord' | 'finns-ordklass' | 'fyll-mening' | 'dra-ord' | 'ordmoln' | 'sortera-korgar' | 'ordracet' | 'mening-pussel' | 'gissa-ordet' | 'rim-spel' | 'synonymer' | 'motsatser' | 'ordkedja' | 'bokstavs-jakt' | 'ordlangd' | 'bild-ord' | 'stavning' | 'ordbok' | 'berattelse' | 'quiz' | 'ljudspel' | 'ordform' | 'piratgrav' | 'ordklassdrak' | 'tabellen' | 'slutprov' | 'slutdiplom';
   title: string;
   order: number;
   config: any;
@@ -72,6 +72,7 @@ const MOMENT_TYPES = [
   { id: 'ordform', name: 'Ordform', icon: '🔀', description: 'Böj ord i olika former' },
   { id: 'piratgrav', name: 'Piratgräv', icon: '🏴‍☠️', description: 'Piratspel för att lära sig substantiv' },
   { id: 'ordklassdrak', name: 'Ordklassdrak', icon: '🐉', description: 'Mata draken med ord från rätt ordklass' },
+  { id: 'tabellen', name: 'Tabellen', icon: '📋', description: 'Dra ord från en lista och placera dem rätt i en tabell' },
   { id: 'slutprov', name: 'Slutprov', icon: '📝', description: 'Tidsbegränsad slutexamination med meningar' },
   { id: 'slutdiplom', name: 'Slutdiplom', icon: '🏆', description: 'Pampigt diplom för kursgenom­förande' }
 ];
@@ -327,6 +328,24 @@ export default function LessonBuilder() {
         return { baseWords: [], forms: [], instruction: 'Böj orden korrekt' };
       case 'piratgrav':
         return { words: [], instruction: 'Gräv fram ord och avgör om de är substantiv' };
+      case 'ordklassdrak':
+        return { 
+          distractors: [], 
+          targetWords: [],
+          wordsPerRound: 8
+        };
+      case 'tabellen':
+        return {
+          tableTitle: '',
+          columns: ['Kolumn 1', 'Kolumn 2'], // Table column headers
+          rows: [
+            { id: 'row1', cells: ['', ''] }, // Empty cells to be filled
+            { id: 'row2', cells: ['', ''] }
+          ],
+          wordBank: [], // Words to drag from
+          correctAnswers: {}, // Maps cell position to correct word
+          instruction: 'Dra orden från listan och placera dem på rätt plats i tabellen'
+        };
       case 'slutprov':
         return {
           sentences: [],
@@ -1356,6 +1375,183 @@ export default function LessonBuilder() {
 
       case 'ordklassdrak':
         return <OrdklassdrakConfigurator moment={moment} updateMomentConfig={updateMomentConfig} />;
+
+      case 'tabellen':
+        const addColumn = () => {
+          const columns = [...(moment.config.columns || []), ''];
+          const rows = moment.config.rows?.map((row: any) => ({
+            ...row,
+            cells: [...row.cells, '']
+          })) || [];
+          updateMomentConfig(moment.id, { ...moment.config, columns, rows });
+        };
+
+        const removeColumn = (index: number) => {
+          const columns = moment.config.columns?.filter((_: any, i: number) => i !== index) || [];
+          const rows = moment.config.rows?.map((row: any) => ({
+            ...row,
+            cells: row.cells.filter((_: any, i: number) => i !== index)
+          })) || [];
+          updateMomentConfig(moment.id, { ...moment.config, columns, rows });
+        };
+
+        const addRow = () => {
+          const newRow = {
+            id: `row${Date.now()}`,
+            cells: new Array(moment.config.columns?.length || 2).fill('')
+          };
+          const rows = [...(moment.config.rows || []), newRow];
+          updateMomentConfig(moment.id, { ...moment.config, rows });
+        };
+
+        const removeRow = (index: number) => {
+          const rows = moment.config.rows?.filter((_: any, i: number) => i !== index) || [];
+          updateMomentConfig(moment.id, { ...moment.config, rows });
+        };
+
+        const addWordToBank = () => {
+          const wordBank = [...(moment.config.wordBank || []), ''];
+          updateMomentConfig(moment.id, { ...moment.config, wordBank });
+        };
+
+        const removeWordFromBank = (index: number) => {
+          const wordBank = moment.config.wordBank?.filter((_: any, i: number) => i !== index) || [];
+          updateMomentConfig(moment.id, { ...moment.config, wordBank });
+        };
+
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label>Tabelltitel</Label>
+              <Input
+                value={moment.config.tableTitle || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, tableTitle: e.target.value })}
+                placeholder="T.ex. Sortera djur efter typ"
+              />
+            </div>
+
+            <div>
+              <Label>Instruktion</Label>
+              <Textarea
+                value={moment.config.instruction || ''}
+                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
+                placeholder="Förklara vad eleverna ska göra..."
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div>
+              <Label>Kolumnrubriker</Label>
+              <div className="space-y-2">
+                {(moment.config.columns || []).map((column: string, index: number) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={column}
+                      onChange={(e) => {
+                        const columns = [...moment.config.columns];
+                        columns[index] = e.target.value;
+                        updateMomentConfig(moment.id, { ...moment.config, columns });
+                      }}
+                      placeholder={`Kolumn ${index + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeColumn(index)}
+                      className="text-red-600 hover:text-red-700"
+                      disabled={moment.config.columns?.length <= 1}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addColumn}>
+                  + Lägg till kolumn
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label>Tabellrader</Label>
+              <div className="space-y-2">
+                {(moment.config.rows || []).map((row: any, rowIndex: number) => (
+                  <div key={row.id} className="border rounded p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">Rad {rowIndex + 1}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeRow(rowIndex)}
+                        className="text-red-600 hover:text-red-700"
+                        disabled={moment.config.rows?.length <= 1}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${moment.config.columns?.length || 2}, 1fr)` }}>
+                      {row.cells.map((cell: string, cellIndex: number) => (
+                        <Input
+                          key={cellIndex}
+                          value={cell}
+                          onChange={(e) => {
+                            const rows = [...moment.config.rows];
+                            rows[rowIndex].cells[cellIndex] = e.target.value;
+                            updateMomentConfig(moment.id, { ...moment.config, rows });
+                          }}
+                          placeholder={`${moment.config.columns?.[cellIndex] || `Kolumn ${cellIndex + 1}`}`}
+                          className="text-sm"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addRow}>
+                  + Lägg till rad
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label>Ordbank (ord att dra från)</Label>
+              <div className="space-y-2">
+                {(moment.config.wordBank || []).map((word: string, index: number) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={word}
+                      onChange={(e) => {
+                        const wordBank = [...moment.config.wordBank];
+                        wordBank[index] = e.target.value;
+                        updateMomentConfig(moment.id, { ...moment.config, wordBank });
+                      }}
+                      placeholder="Skriv ett ord..."
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeWordFromBank(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addWordToBank}>
+                  + Lägg till ord
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+              <strong>Tips:</strong> Definiera rätt svar genom att sätta korrekt text direkt i tabellradernas celler. 
+              Orden från ordbanken kommer att dras till dessa positioner under spelet.
+            </div>
+          </div>
+        );
 
       case 'ordkedja':
         return (
