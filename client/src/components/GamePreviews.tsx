@@ -81,6 +81,9 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const [wordsUsed, setWordsUsed] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<string>('');
   const [showFeedback, setShowFeedback] = useState(false);
+  const [dragonEating, setDragonEating] = useState(false);
+  const [dragonSpitting, setDragonSpitting] = useState(false);
+  const [dragonSpeech, setDragonSpeech] = useState<string>('');
 
   const targetClass = moment.config.targetWordClass || 'substantiv';
   const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
@@ -112,22 +115,43 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
 
     const isCorrect = targetWords.includes(draggedWord);
     
+    const eatingSayings = ['Mmm, gott!', 'Så smarrigt!', 'Nom nom nom!', 'Precis vad jag ville ha!', 'Mums!'];
+    const spittingSayings = ['Blä! Det smakar inte bra!', 'Fy! Fel sorts ord!', 'Ptui! Det där var äckligt!', 'Nej tack, det är inte min smak!'];
+    
     if (isCorrect) {
+      // Dragon eats the word
+      setDragonEating(true);
+      setDragonSpeech(eatingSayings[Math.floor(Math.random() * eatingSayings.length)]);
       setScore(prev => prev + 1);
-      setFeedback(`Rätt! "${draggedWord}" är ${targetClass}. 🐉`);
+      setFeedback(`Rätt! "${draggedWord}" är ${targetClass}.`);
       setWordsUsed(prev => [...prev, draggedWord]);
+      
+      // Reset eating animation after 2 seconds
+      setTimeout(() => {
+        setDragonEating(false);
+        setDragonSpeech('');
+      }, 2000);
     } else {
-      setFeedback(`Fel! "${draggedWord}" är inte ${targetClass}. 😔`);
+      // Dragon spits out the word
+      setDragonSpitting(true);
+      setDragonSpeech(spittingSayings[Math.floor(Math.random() * spittingSayings.length)]);
+      setFeedback(`Fel! "${draggedWord}" är inte ${targetClass}.`);
+      
+      // Reset spitting animation after 2.5 seconds
+      setTimeout(() => {
+        setDragonSpitting(false);
+        setDragonSpeech('');
+      }, 2500);
     }
     
     setShowFeedback(true);
     setDraggedWord(null);
     
-    // Hide feedback after 2 seconds
+    // Hide feedback after 3 seconds
     setTimeout(() => {
       setShowFeedback(false);
       setFeedback('');
-    }, 2000);
+    }, 3000);
   };
 
   const handleDragEnd = () => {
@@ -153,12 +177,24 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <h3 className="text-xl font-bold text-center mb-6">🐉 Ordklassdrak</h3>
-      <div className="bg-gradient-to-b from-purple-200 to-blue-200 rounded-lg p-6 min-h-96 relative">
+      <div className="bg-gradient-to-b from-purple-200 to-blue-200 rounded-lg p-6 min-h-[500px] relative overflow-hidden">
         
-        {/* Dragon */}
-        <div className="absolute top-4 right-4 text-6xl animate-bounce">
-          🐉
+        {/* Dragon - Much larger */}
+        <div className={`absolute top-8 right-8 transition-all duration-500 ${
+          dragonEating ? 'scale-110 rotate-12' : dragonSpitting ? 'scale-90 -rotate-6' : 'scale-100'
+        }`}>
+          <div className="text-9xl filter drop-shadow-lg">
+            🐉
+          </div>
         </div>
+        
+        {/* Dragon's speech bubble */}
+        {dragonSpeech && (
+          <div className="absolute top-4 right-16 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse">
+            <div className="text-sm font-bold text-gray-800">{dragonSpeech}</div>
+            <div className="absolute bottom-0 right-8 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white transform translate-y-full"></div>
+          </div>
+        )}
         
         {/* Instructions */}
         <div className="text-center mb-6">
@@ -168,35 +204,45 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
           </div>
         </div>
 
-        {/* Dragon's mouth (drop zone) */}
+        {/* Dragon's mouth (drop zone) - Larger and more visible */}
         <div 
-          className={`absolute top-20 right-12 w-16 h-12 bg-red-400 rounded-full border-4 border-red-600 transition-all ${
-            draggedWord ? 'opacity-100 scale-110' : 'opacity-70'
-          }`}
+          className={`absolute top-32 right-20 w-20 h-16 bg-red-400 rounded-full border-4 border-red-600 transition-all duration-300 ${
+            draggedWord ? 'opacity-100 scale-125 bg-red-500' : 'opacity-80'
+          } ${dragonEating ? 'animate-ping' : ''} ${dragonSpitting ? 'animate-bounce' : ''}`}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
-          <div className="text-center text-white font-bold text-xs mt-2">Mun</div>
+          <div className="text-center text-white font-bold text-sm mt-3">Mun</div>
         </div>
 
         {/* Words to drag */}
         <div className="flex flex-wrap gap-3 justify-center mt-20">
           {allWords.map((word, i) => {
             const isTarget = targetWords.includes(word);
+            const isBeingEaten = dragonEating && draggedWord === word;
+            const isBeingSpit = dragonSpitting && draggedWord === word;
+            
             return (
               <div 
                 key={i}
-                draggable
+                draggable={!isBeingEaten}
                 onDragStart={(e) => handleDragStart(e, word)}
                 onDragEnd={handleDragEnd}
                 className={`
-                  px-4 py-2 rounded-lg cursor-move shadow-md hover:shadow-lg transition-all
+                  px-4 py-2 rounded-lg cursor-move shadow-md hover:shadow-lg transition-all duration-500
                   ${draggedWord === word ? 'opacity-50 scale-95' : ''}
-                  ${isTarget 
+                  ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
+                  ${isBeingSpit ? 'animate-bounce scale-125 bg-red-400 text-white' : ''}
+                  ${!isBeingEaten && !isBeingSpit && isTarget 
                     ? 'bg-green-400 hover:bg-green-500 text-white' 
-                    : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+                    : !isBeingEaten && !isBeingSpit 
+                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-800' 
+                    : ''
                   }
                 `}
+                style={{
+                  display: wordsUsed.includes(word) ? 'none' : 'block'
+                }}
               >
                 {word}
               </div>
