@@ -84,8 +84,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const [dragonEating, setDragonEating] = useState(false);
   const [dragonSpitting, setDragonSpitting] = useState(false);
   const [dragonSpeech, setDragonSpeech] = useState<string>('');
-  const [blinkingWord, setBlinkingWord] = useState<string | null>(null);
-  const [blinkColor, setBlinkColor] = useState<'green' | 'red' | null>(null);
+  const [showingAllFeedback, setShowingAllFeedback] = useState(false);
 
   const targetClass = moment.config.targetWordClass || 'substantiv';
   const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
@@ -120,14 +119,12 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
 
     const isCorrect = targetWords.includes(draggedWord);
     
-    // Show blink feedback immediately
-    setBlinkingWord(draggedWord);
-    setBlinkColor(isCorrect ? 'green' : 'red');
+    // Show all words feedback immediately
+    setShowingAllFeedback(true);
     
-    // Remove blink after 600ms
+    // Remove feedback after 600ms
     setTimeout(() => {
-      setBlinkingWord(null);
-      setBlinkColor(null);
+      setShowingAllFeedback(false);
     }, 600);
     
     const eatingSayings = ['Mmm, gott!', 'Så smarrigt!', 'Nom nom nom!', 'Precis vad jag ville ha!', 'Mums!'];
@@ -229,7 +226,6 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
               const isCorrectTarget = targetWords.includes(word);
               const isBeingEaten = dragonEating && draggedWord === word;
               const isBeingSpit = dragonSpitting && draggedWord === word;
-              const isBlinking = blinkingWord === word;
               
               return (
                 <div 
@@ -243,9 +239,9 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                     ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg hover:scale-105'}
                     ${isBeingEaten ? 'opacity-0 scale-0 translate-x-32 translate-y-[-8rem]' : 'scale-100'}
                     ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
-                    ${isBlinking && blinkColor === 'green' ? 'animate-pulse bg-green-400 text-white' : ''}
-                    ${isBlinking && blinkColor === 'red' ? 'animate-pulse bg-red-400 text-white' : ''}
-                    ${!isBeingEaten && !isBeingSpit && !isBlinking
+                    ${showingAllFeedback && isCorrectTarget ? 'animate-pulse bg-green-400 text-white' : ''}
+                    ${showingAllFeedback && !isCorrectTarget ? 'animate-pulse bg-red-400 text-white' : ''}
+                    ${!isBeingEaten && !isBeingSpit && !showingAllFeedback
                       ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
                       : ''
                     }
