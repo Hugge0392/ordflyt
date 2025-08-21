@@ -334,7 +334,29 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Word Bank */}
-        <div className="lg:col-span-1">
+        <div 
+          className="lg:col-span-1"
+          onDragOver={handleDragOver}
+          onDrop={(e) => {
+            e.preventDefault();
+            const word = e.dataTransfer.getData('text/plain');
+            const wordId = e.dataTransfer.getData('word-id');
+            
+            if (!word || !wordId) return;
+
+            // Remove from dropped words if it was placed
+            setDroppedWords(prev => prev.filter(item => item.id !== wordId));
+            
+            // Add back to word bank if not already there
+            setWordBank(prev => {
+              const exists = prev.some(item => item.id === wordId);
+              if (!exists) {
+                return [...prev, { word, id: wordId, expectedColumn: 'unknown' }];
+              }
+              return prev;
+            });
+          }}
+        >
           <h3 className="font-semibold mb-4 text-gray-700 text-lg">Ordbank</h3>
           <div className="space-y-3">
             {!isInitialized ? (
@@ -353,9 +375,10 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center italic py-8">
-                Alla ord är placerade!
-              </p>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <p className="text-gray-500 italic">Alla ord är placerade!</p>
+                <p className="text-xs text-gray-400 mt-2">Dra ord hit för att flytta tillbaka</p>
+              </div>
             )}
           </div>
         </div>
@@ -391,9 +414,15 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                         >
                           {droppedWord ? (
                             <div 
-                              className="bg-blue-100 border-2 border-blue-300 rounded-lg p-3 text-center font-medium cursor-pointer hover:bg-blue-200 transition-colors"
+                              className="bg-blue-100 border-2 border-blue-300 rounded-lg p-3 text-center font-medium cursor-grab active:cursor-grabbing hover:bg-blue-200 transition-colors"
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, { 
+                                word: droppedWord.word, 
+                                id: droppedWord.id, 
+                                expectedColumn: 'unknown' 
+                              })}
                               onClick={() => returnWordToBank(droppedWord)}
-                              title="Klicka för att flytta tillbaka till ordbanken"
+                              title="Dra för att flytta eller klicka för att flytta tillbaka till ordbanken"
                             >
                               {droppedWord.word}
                             </div>
@@ -444,7 +473,8 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
         <div className="mt-6 text-sm text-gray-600">
           <p><strong>Instruktioner:</strong></p>
           <p>• Dra ord från ordbanken till rätt plats i tabellen</p>
-          <p>• Klicka på placerade ord för att flytta dem tillbaka till ordbanken</p>
+          <p>• Dra placerade ord mellan celler eller tillbaka till ordbanken</p>
+          <p>• Alternativt: klicka på placerade ord för att flytta dem tillbaka till ordbanken</p>
           <p>• Tryck "Kontrollera svar" för att se ditt resultat</p>
         </div>
       </div>
