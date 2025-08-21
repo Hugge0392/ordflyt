@@ -85,6 +85,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const [dragonSpitting, setDragonSpitting] = useState(false);
   const [dragonSpeech, setDragonSpeech] = useState<string>('');
   const [showingAllFeedback, setShowingAllFeedback] = useState(false);
+  const [feedbackColor, setFeedbackColor] = useState<'green' | 'red' | null>(null);
 
   const targetClass = moment.config.targetWordClass || 'substantiv';
   const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
@@ -119,12 +120,14 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
 
     const isCorrect = targetWords.includes(draggedWord);
     
-    // Show all words feedback immediately
+    // Show all words feedback immediately with correct color
     setShowingAllFeedback(true);
+    setFeedbackColor(isCorrect ? 'green' : 'red');
     
     // Remove feedback after 600ms
     setTimeout(() => {
       setShowingAllFeedback(false);
+      setFeedbackColor(null);
     }, 600);
     
     const eatingSayings = ['Mmm, gott!', 'Så smarrigt!', 'Nom nom nom!', 'Precis vad jag ville ha!', 'Mums!'];
@@ -239,7 +242,8 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                     ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg hover:scale-105'}
                     ${isBeingEaten ? 'opacity-0 scale-0 translate-x-32 translate-y-[-8rem]' : 'scale-100'}
                     ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
-                    ${showingAllFeedback ? 'animate-pulse bg-yellow-400 text-black' : ''}
+                    ${showingAllFeedback && feedbackColor === 'green' ? 'animate-pulse bg-green-400 text-white' : ''}
+                    ${showingAllFeedback && feedbackColor === 'red' ? 'animate-pulse bg-red-400 text-white' : ''}
                     ${!isBeingEaten && !isBeingSpit && !showingAllFeedback
                       ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
                       : ''
