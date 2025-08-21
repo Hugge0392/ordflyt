@@ -164,9 +164,12 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         <h3 className="text-xl font-bold mb-6">🐉 Ordklassdrak - Klart!</h3>
         <div className="bg-green-100 rounded-lg p-8 mb-6">
           <div className="text-6xl mb-4">🎉</div>
-          <h4 className="text-2xl font-bold text-green-800 mb-2">Perfekt!</h4>
-          <p className="text-lg text-green-700">
-            Du matade draken med alla {targetClass}! Slutpoäng: {score}/{targetWordsInRound.length}
+          <h4 className="text-2xl font-bold text-green-800 mb-2">Fantastiskt!</h4>
+          <p className="text-lg text-green-700 mb-2">
+            Du matade draken med alla {targetWordsInRound.length} {targetClass}!
+          </p>
+          <p className="text-md text-green-600">
+            Draken är nu mätt och nöjd! 🐉💚
           </p>
         </div>
         <Button onClick={onNext} size="lg">Fortsätt</Button>
@@ -264,11 +267,14 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
       </div>
       <div className="text-center mt-4">
-        <p className="text-gray-600 mb-4">Dra {targetClass} till drakens mun för att mata den!</p>
-        {score > 0 && targetWordsInRound.length > 0 && (
-          <Button onClick={onNext} variant="outline" className="mr-2">
-            Avsluta nu ({score}/{targetWordsInRound.length})
-          </Button>
+        <p className="text-gray-600 mb-4">
+          Dra alla {targetClass} till drakens mun för att mata den! 
+          ({score}/{targetWordsInRound.length} {targetClass} hittade)
+        </p>
+        {!gameComplete && targetWordsInRound.length > 0 && (
+          <p className="text-sm text-orange-600">
+            Du måste hitta alla {targetWordsInRound.length} {targetClass} innan du kan gå vidare!
+          </p>
         )}
       </div>
     </div>
