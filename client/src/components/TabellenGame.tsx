@@ -338,15 +338,9 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-purple-700 mb-2 animate-bounce">
+        <h2 className="text-4xl font-bold text-purple-700 mb-6">
           {moment?.config?.tableTitle || 'Magiska Tabellspelet'}
         </h2>
-        
-        {moment?.config?.instruction && (
-          <div className="bg-gradient-to-r from-blue-100 to-purple-100 border-2 border-purple-300 rounded-xl p-5 mb-6 max-w-2xl mx-auto shadow-lg">
-            <p className="text-purple-800 font-medium text-lg">{moment.config.instruction}</p>
-          </div>
-        )}
 
         {score > 0 && (
           <div className="mb-4">
@@ -418,6 +412,11 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
         {/* Table */}
         <div className="lg:col-span-3">
+          {moment?.config?.instruction && (
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 border-2 border-purple-300 rounded-xl p-4 mb-4 shadow-lg">
+              <p className="text-purple-800 font-medium text-lg">{moment.config.instruction}</p>
+            </div>
+          )}
           <div className="bg-gradient-to-br from-white to-blue-50 border-3 border-blue-300 rounded-xl overflow-hidden shadow-2xl">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-purple-200 to-blue-200">
