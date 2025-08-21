@@ -111,10 +111,10 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
     if (gameComplete && !dragonExploding) {
       setDragonExploding(true);
       
-      // Reset explosion after 3 seconds
+      // Reset explosion after 5 seconds (longer to enjoy the effect)
       setTimeout(() => {
         setDragonExploding(false);
-      }, 3000);
+      }, 5000);
     }
   }, [gameComplete, dragonExploding]);
 
@@ -187,7 +187,8 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
     setDraggedWord(null);
   };
 
-  if (gameComplete) {
+  // Don't show completion screen until explosion is done
+  if (gameComplete && !dragonExploding) {
     return (
       <div className="max-w-4xl mx-auto text-center">
         <h3 className="text-xl font-bold mb-6">🐉 Ordklassdrak - Klart!</h3>
