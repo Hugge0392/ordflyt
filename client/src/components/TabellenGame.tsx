@@ -324,31 +324,35 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       .join(', ');
     
     if (percentage === 100) {
-      setFeedback({ type: 'success', message: `Perfekt! Du fick alla ${correct} rätt! (${columnFeedback})` });
+      setFeedback({ type: 'success', message: `🎉 FANTASTISKT! Du fick alla ${correct} rätt! Du är en riktig ordmästare! 🏆 (${columnFeedback})` });
       setIsComplete(true);
-    } else if (percentage >= 70) {
-      setFeedback({ type: 'success', message: `Bra jobbat! Du fick ${correct} av ${total} rätt. (${columnFeedback})` });
+    } else if (percentage >= 80) {
+      setFeedback({ type: 'success', message: `⭐ Superbt jobbat! Du fick ${correct} av ${total} rätt! Du är nästan där! 🌟 (${columnFeedback})` });
+    } else if (percentage >= 60) {
+      setFeedback({ type: 'success', message: `👍 Bra jobbat! Du fick ${correct} av ${total} rätt! Fortsätt så! 💪 (${columnFeedback})` });
     } else {
-      setFeedback({ type: 'error', message: `Du fick ${correct} av ${total} rätt. (${columnFeedback}) Försök igen!` });
+      setFeedback({ type: 'error', message: `🎯 Du fick ${correct} av ${total} rätt. Kämpa på, du kan det här! 🚀 (${columnFeedback})` });
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">
-          📋 {moment?.config?.tableTitle || 'Tabellspel'}
+        <h2 className="text-4xl font-bold text-purple-700 mb-2 animate-bounce">
+          🎯 {moment?.config?.tableTitle || 'Magiska Tabellspelet'} ✨
         </h2>
         
         {moment?.config?.instruction && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
-            <p className="text-blue-800">{moment.config.instruction}</p>
+          <div className="bg-gradient-to-r from-blue-100 to-purple-100 border-2 border-purple-300 rounded-xl p-5 mb-6 max-w-2xl mx-auto shadow-lg">
+            <p className="text-purple-800 font-medium text-lg">🌟 {moment.config.instruction} 🌟</p>
           </div>
         )}
 
         {score > 0 && (
           <div className="mb-4">
-            <div className="text-2xl font-bold text-green-600">Poäng: {score}%</div>
+            <div className="text-3xl font-bold text-green-600 animate-pulse">
+              🏆 Poäng: {score}% {score === 100 ? '🎉' : score >= 80 ? '⭐' : score >= 60 ? '👍' : '💪'}
+            </div>
           </div>
         )}
       </div>
@@ -386,17 +390,17 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
             }
           }}
         >
-          <h3 className="font-semibold mb-4 text-gray-700 text-lg">Ordbank</h3>
+          <h3 className="font-bold mb-4 text-purple-700 text-xl">🎒 Ordbank 🎒</h3>
           <div className="space-y-3">
             {!isInitialized ? (
-              <p className="text-gray-500 text-center italic py-8">
-                Laddar ord...
+              <p className="text-purple-500 text-center italic py-8 text-lg">
+                ⏳ Laddar magiska ord... ✨
               </p>
             ) : wordBank.length > 0 ? (
               wordBank.map((wordItem) => (
                 <div
                   key={wordItem.id}
-                  className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:bg-yellow-200 transition-colors text-center font-medium shadow-sm"
+                  className="bg-gradient-to-r from-yellow-200 to-orange-200 border-3 border-orange-400 rounded-xl p-3 cursor-grab active:cursor-grabbing hover:from-yellow-300 hover:to-orange-300 hover:scale-105 transform transition-all duration-200 text-center font-bold shadow-lg hover:shadow-xl"
                   draggable
                   onDragStart={(e) => handleDragStart(e, wordItem)}
                 >
@@ -404,9 +408,9 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                 </div>
               ))
             ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <p className="text-gray-500 italic">Alla ord är placerade!</p>
-                <p className="text-xs text-gray-400 mt-2">Dra ord hit för att flytta tillbaka</p>
+              <div className="border-3 border-dashed border-purple-400 rounded-xl p-8 text-center bg-gradient-to-br from-purple-50 to-pink-50">
+                <p className="text-purple-600 font-bold text-lg">🎉 Alla ord är placerade! 🎉</p>
+                <p className="text-sm text-purple-500 mt-2">💫 Dra ord hit för att flytta tillbaka 💫</p>
               </div>
             )}
           </div>
@@ -414,16 +418,16 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
         {/* Table */}
         <div className="lg:col-span-3">
-          <div className="bg-white border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg">
+          <div className="bg-gradient-to-br from-white to-blue-50 border-3 border-blue-300 rounded-xl overflow-hidden shadow-2xl">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-purple-200 to-blue-200">
                 <tr>
                   {(moment?.config?.columns || ['Kolumn 1', 'Kolumn 2']).map((column: string, index: number) => (
                     <th 
                       key={index} 
-                      className="border-b-2 border-gray-300 p-4 text-left font-semibold text-gray-700 text-lg"
+                      className="border-b-3 border-purple-400 p-4 text-center font-bold text-purple-800 text-xl"
                     >
-                      {column}
+                      🔥 {column} 🔥
                     </th>
                   ))}
                 </tr>
@@ -437,13 +441,13 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                       return (
                         <td
                           key={cellIndex}
-                          className="border-r border-gray-200 p-4 min-h-[80px] bg-gray-50 hover:bg-gray-100 transition-colors relative"
+                          className="border-r-2 border-purple-200 p-4 min-h-[80px] bg-gradient-to-br from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all duration-300 relative"
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, rowIndex, cellIndex)}
                         >
                           {droppedWord ? (
                             <div 
-                              className="bg-blue-100 border-2 border-blue-300 rounded-lg p-3 text-center font-medium cursor-grab active:cursor-grabbing hover:bg-blue-200 transition-colors"
+                              className="bg-gradient-to-r from-green-200 to-blue-200 border-3 border-green-400 rounded-xl p-3 text-center font-bold cursor-grab active:cursor-grabbing hover:from-green-300 hover:to-blue-300 hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl"
                               draggable
                               onDragStart={(e) => {
                                 e.dataTransfer.setData("text/plain", droppedWord.word);
@@ -459,13 +463,13 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                                 });
                               }}
                               onClick={() => returnWordToBank(droppedWord)}
-                              title="Dra för att flytta eller klicka för att flytta tillbaka till ordbanken"
+                              title="🎯 Dra för att flytta eller klicka för att flytta tillbaka till ordbanken! ✨"
                             >
                               {droppedWord.word}
                             </div>
                           ) : (
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 min-h-[50px] flex items-center justify-center text-gray-400 text-sm italic">
-                              Dra ett ord hit
+                            <div className="border-3 border-dashed border-purple-300 rounded-xl p-3 min-h-[50px] flex items-center justify-center text-purple-400 text-sm font-medium bg-gradient-to-br from-purple-25 to-pink-25 hover:from-purple-50 hover:to-pink-50 transition-all duration-200">
+                              ✨ Dra ett ord hit ✨
                             </div>
                           )}
                         </td>
@@ -482,37 +486,39 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       {/* Feedback and Controls */}
       <div className="mt-8 text-center">
         {feedback.message && (
-          <div className={`inline-block px-6 py-3 rounded-lg mb-6 text-lg font-medium ${
+          <div className={`inline-block px-8 py-4 rounded-xl mb-6 text-xl font-bold shadow-lg animate-pulse ${
             feedback.type === 'success' 
-              ? 'bg-green-100 border border-green-300 text-green-800' 
-              : 'bg-red-100 border border-red-300 text-red-800'
+              ? 'bg-gradient-to-r from-green-200 to-emerald-200 border-3 border-green-400 text-green-900' 
+              : 'bg-gradient-to-r from-orange-200 to-red-200 border-3 border-orange-400 text-orange-900'
           }`}>
             {feedback.message}
           </div>
         )}
 
         <div className="space-x-4">
-          <Button onClick={checkAnswer} variant="default" size="lg" className="bg-blue-600 hover:bg-blue-700">
-            Kontrollera svar
+          <Button onClick={checkAnswer} variant="default" size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+            🔍 Kontrollera svar ✨
           </Button>
           
-          <Button onClick={resetGame} variant="outline" size="lg">
-            Börja om
+          <Button onClick={resetGame} variant="outline" size="lg" className="border-3 border-purple-400 text-purple-700 hover:bg-purple-100 font-bold px-6 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+            🔄 Börja om
           </Button>
 
           {score === 100 && onNext && (
-            <Button onClick={onNext} variant="default" size="lg" className="bg-green-600 hover:bg-green-700">
-              Fortsätt till nästa moment
+            <Button onClick={onNext} variant="default" size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 animate-bounce">
+              🚀 Fortsätt till nästa moment! 🎯
             </Button>
           )}
         </div>
 
-        <div className="mt-6 text-sm text-gray-600">
-          <p><strong>Instruktioner:</strong></p>
-          <p>• Dra ord från ordbanken till rätt plats i tabellen</p>
-          <p>• Dra placerade ord mellan celler eller tillbaka till ordbanken</p>
-          <p>• Alternativt: klicka på placerade ord för att flytta dem tillbaka till ordbanken</p>
-          <p>• Tryck "Kontrollera svar" för att se ditt resultat</p>
+        <div className="mt-8 p-6 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl border-3 border-yellow-400 shadow-lg">
+          <p className="text-lg font-bold text-orange-800 mb-3">🎮 Så här spelar du:</p>
+          <div className="text-orange-700 font-medium space-y-2">
+            <p>🎯 • Dra ord från ordbanken till rätt plats i tabellen</p>
+            <p>🔄 • Dra placerade ord mellan celler eller tillbaka till ordbanken</p>
+            <p>👆 • Alternativt: klicka på placerade ord för att flytta dem tillbaka</p>
+            <p>✨ • Tryck "Kontrollera svar" för att se ditt fantastiska resultat!</p>
+          </div>
         </div>
       </div>
     </div>
