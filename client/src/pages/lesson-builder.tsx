@@ -140,19 +140,15 @@ export default function LessonBuilder() {
       if (lessonData.id && lessonData.id.startsWith('lesson_')) {
         // Check if this draft exists on server
         try {
-          const response = await apiRequest('GET', `/api/lessons/drafts/${lessonData.id}`);
-          if (response.ok) {
-            // Update existing draft
-            const updateResponse = await apiRequest('PUT', `/api/lessons/drafts/${lessonData.id}`, lessonData);
-            return updateResponse.json();
-          }
+          await apiRequest('GET', `/api/lessons/drafts/${lessonData.id}`);
+          // If we get here, draft exists - update it
+          return await apiRequest('PUT', `/api/lessons/drafts/${lessonData.id}`, lessonData);
         } catch (error) {
           // Draft doesn't exist, create new one
         }
       }
       // Create new draft
-      const response = await apiRequest('POST', '/api/lessons/drafts', lessonData);
-      return response.json();
+      return await apiRequest('POST', '/api/lessons/drafts', lessonData);
     },
     onSuccess: (savedLesson) => {
       // Update current lesson with server ID
@@ -422,6 +418,10 @@ export default function LessonBuilder() {
         variant: "destructive",
       });
       return;
+    }
+
+    if (saveLessonMutation.isPending) {
+      return; // Prevent multiple simultaneous saves
     }
 
     const lessonToSave = {
