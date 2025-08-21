@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +76,79 @@ export function MeningPusselPreview({ moment, onNext }: GamePreviewProps) {
 }
 
 export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
+  const [score, setScore] = useState(0);
+  const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const [wordsUsed, setWordsUsed] = useState<string[]>([]);
+  const [feedback, setFeedback] = useState<string>('');
+  const [showFeedback, setShowFeedback] = useState(false);
+
   const targetClass = moment.config.targetWordClass || 'substantiv';
   const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
   const distractors = moment.config.distractors || ['springa', 'snabb', 'under'];
-  const allWords = [...targetWords.slice(0, 3), ...distractors.slice(0, 3)];
+  const wordsPerRound = moment.config.wordsPerRound || 6;
+  
+  // Shuffle and take specified number of words
+  const allWords = [...targetWords, ...distractors]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, wordsPerRound)
+    .filter(word => !wordsUsed.includes(word));
+
+  const targetWordsInRound = allWords.filter(word => targetWords.includes(word));
+  const gameComplete = score >= targetWordsInRound.length && targetWordsInRound.length > 0;
+
+  const handleDragStart = (e: React.DragEvent, word: string) => {
+    setDraggedWord(word);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedWord) return;
+
+    const isCorrect = targetWords.includes(draggedWord);
+    
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+      setFeedback(`Rätt! "${draggedWord}" är ${targetClass}. 🐉`);
+      setWordsUsed(prev => [...prev, draggedWord]);
+    } else {
+      setFeedback(`Fel! "${draggedWord}" är inte ${targetClass}. 😔`);
+    }
+    
+    setShowFeedback(true);
+    setDraggedWord(null);
+    
+    // Hide feedback after 2 seconds
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedback('');
+    }, 2000);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedWord(null);
+  };
+
+  if (gameComplete) {
+    return (
+      <div className="max-w-4xl mx-auto text-center">
+        <h3 className="text-xl font-bold mb-6">🐉 Ordklassdrak - Klart!</h3>
+        <div className="bg-green-100 rounded-lg p-8 mb-6">
+          <div className="text-6xl mb-4">🎉</div>
+          <h4 className="text-2xl font-bold text-green-800 mb-2">Perfekt!</h4>
+          <p className="text-lg text-green-700">
+            Du matade draken med alla {targetClass}! Slutpoäng: {score}/{targetWordsInRound.length}
+          </p>
+        </div>
+        <Button onClick={onNext} size="lg">Fortsätt</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -99,7 +169,13 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Dragon's mouth (drop zone) */}
-        <div className="absolute top-20 right-12 w-16 h-12 bg-red-400 rounded-full border-4 border-red-600 opacity-70">
+        <div 
+          className={`absolute top-20 right-12 w-16 h-12 bg-red-400 rounded-full border-4 border-red-600 transition-all ${
+            draggedWord ? 'opacity-100 scale-110' : 'opacity-70'
+          }`}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           <div className="text-center text-white font-bold text-xs mt-2">Mun</div>
         </div>
 
@@ -110,8 +186,12 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
             return (
               <div 
                 key={i}
+                draggable
+                onDragStart={(e) => handleDragStart(e, word)}
+                onDragEnd={handleDragEnd}
                 className={`
                   px-4 py-2 rounded-lg cursor-move shadow-md hover:shadow-lg transition-all
+                  ${draggedWord === word ? 'opacity-50 scale-95' : ''}
                   ${isTarget 
                     ? 'bg-green-400 hover:bg-green-500 text-white' 
                     : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
@@ -124,15 +204,26 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
           })}
         </div>
 
+        {/* Feedback */}
+        {showFeedback && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-4 shadow-lg border-2 border-blue-300 z-10">
+            <p className="text-lg font-semibold text-center">{feedback}</p>
+          </div>
+        )}
+
         {/* Score area */}
         <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg p-3">
-          <div className="text-sm font-semibold">Poäng: 0/{targetWords.length}</div>
-          <div className="text-xs text-gray-600">Rätta: {targetClass}</div>
+          <div className="text-sm font-semibold">Poäng: {score}/{targetWordsInRound.length}</div>
+          <div className="text-xs text-gray-600">Målordklass: {targetClass}</div>
         </div>
       </div>
       <div className="text-center mt-4">
         <p className="text-gray-600 mb-4">Dra {targetClass} till drakens mun för att mata den!</p>
-        <Button onClick={onNext}>Fortsätt</Button>
+        {score > 0 && targetWordsInRound.length > 0 && (
+          <Button onClick={onNext} variant="outline" className="mr-2">
+            Avsluta nu ({score}/{targetWordsInRound.length})
+          </Button>
+        )}
       </div>
     </div>
   );

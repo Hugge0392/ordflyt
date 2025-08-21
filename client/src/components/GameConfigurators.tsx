@@ -356,24 +356,38 @@ export function OrdklassdrakConfigurator({ moment, updateMomentConfig }: GameCon
         <Textarea
           value={(moment.config.targetWords || []).join('\n')}
           onChange={(e) => {
-            const targetWords = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
+            const targetWords = e.target.value
+              .split(/[\n\r]+/)
+              .map(w => w.trim())
+              .filter(w => w.length > 0);
             updateMomentConfig(moment.id, { ...moment.config, targetWords });
           }}
-          placeholder="hund\nkatt\nhus\nbil"
-          className="min-h-[100px]"
+          placeholder="hund&#10;katt&#10;hus&#10;bil"
+          className="min-h-[100px] resize-y"
+          rows={5}
         />
+        <div className="text-xs text-gray-500 mt-1">
+          Tryck Enter för ny rad. Varje ord ska vara på sin egen rad.
+        </div>
       </div>
       <div>
-        <Label>Distraktorer (ord från andra ordklasser)</Label>
+        <Label>Distraktorer (ord från andra ordklasser, ett per rad)</Label>
         <Textarea
           value={(moment.config.distractors || []).join('\n')}
           onChange={(e) => {
-            const distractors = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
+            const distractors = e.target.value
+              .split(/[\n\r]+/)
+              .map(w => w.trim())
+              .filter(w => w.length > 0);
             updateMomentConfig(moment.id, { ...moment.config, distractors });
           }}
-          placeholder="springa\nsnabb\nlångsamt\nunder"
-          className="min-h-[100px]"
+          placeholder="springa&#10;snabb&#10;långsamt&#10;under"
+          className="min-h-[100px] resize-y"
+          rows={5}
         />
+        <div className="text-xs text-gray-500 mt-1">
+          Tryck Enter för ny rad. Dessa ord ska INTE tillhöra målordklassen.
+        </div>
       </div>
       <div>
         <Label>Antal ord per omgång</Label>
