@@ -90,14 +90,20 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const distractors = moment.config.distractors || ['springa', 'snabb', 'under'];
   const wordsPerRound = moment.config.wordsPerRound || 6;
   
-  // Shuffle and take specified number of words
-  const allWords = [...targetWords, ...distractors]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, wordsPerRound)
-    .filter(word => !wordsUsed.includes(word));
+  // Show ALL target words plus some distractors, shuffled
+  const availableTargetWords = targetWords.filter(word => !wordsUsed.includes(word));
+  const availableDistractors = distractors.filter(word => !wordsUsed.includes(word));
+  
+  // Always include ALL remaining target words, then add distractors to reach wordsPerRound
+  const maxDistractors = Math.max(0, wordsPerRound - availableTargetWords.length);
+  const selectedDistractors = availableDistractors.slice(0, maxDistractors);
+  
+  const allWords = [...availableTargetWords, ...selectedDistractors]
+    .sort(() => Math.random() - 0.5);
 
-  const targetWordsInRound = allWords.filter(word => targetWords.includes(word));
-  const gameComplete = score >= targetWordsInRound.length && targetWordsInRound.length > 0;
+  const targetWordsInRound = availableTargetWords;
+  // Game is complete only when ALL target words from the original config are found
+  const gameComplete = wordsUsed.filter(word => targetWords.includes(word)).length >= targetWords.length;
 
   const handleDragStart = (e: React.DragEvent, word: string) => {
     setDraggedWord(word);
@@ -166,7 +172,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
           <div className="text-6xl mb-4">🎉</div>
           <h4 className="text-2xl font-bold text-green-800 mb-2">Fantastiskt!</h4>
           <p className="text-lg text-green-700 mb-2">
-            Du matade draken med alla {targetWordsInRound.length} {targetClass}!
+            Du matade draken med alla {targetWords.length} {targetClass}!
           </p>
           <p className="text-md text-green-600">
             Draken är nu mätt och nöjd! 🐉💚
@@ -262,18 +268,18 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
 
         {/* Score area */}
         <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg p-3">
-          <div className="text-sm font-semibold">Poäng: {score}/{targetWordsInRound.length}</div>
+          <div className="text-sm font-semibold">Hittade: {wordsUsed.filter(word => targetWords.includes(word)).length}/{targetWords.length}</div>
           <div className="text-xs text-gray-600">Målordklass: {targetClass}</div>
         </div>
       </div>
       <div className="text-center mt-4">
         <p className="text-gray-600 mb-4">
           Dra alla {targetClass} till drakens mun för att mata den! 
-          ({score}/{targetWordsInRound.length} {targetClass} hittade)
+          ({wordsUsed.filter(word => targetWords.includes(word)).length}/{targetWords.length} {targetClass} hittade)
         </p>
-        {!gameComplete && targetWordsInRound.length > 0 && (
+        {!gameComplete && targetWords.length > 0 && (
           <p className="text-sm text-orange-600">
-            Du måste hitta alla {targetWordsInRound.length} {targetClass} innan du kan gå vidare!
+            Du måste hitta alla {targetWords.length} {targetClass} innan du kan gå vidare!
           </p>
         )}
       </div>
