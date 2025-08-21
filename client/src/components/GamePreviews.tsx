@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +86,6 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const [dragonSpeech, setDragonSpeech] = useState<string>('');
   const [showingAllFeedback, setShowingAllFeedback] = useState(false);
   const [feedbackColor, setFeedbackColor] = useState<'green' | 'red' | null>(null);
-  const [dragonExploding, setDragonExploding] = useState(false);
 
   const targetClass = moment.config.targetWordClass || 'substantiv';
   const targetWords = moment.config.targetWords || ['hund', 'katt', 'hus'];
@@ -105,18 +103,6 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
 
   // Game is complete only when ALL target words from the original config are found
   const gameComplete = wordsUsed.filter(word => targetWords.includes(word)).length >= targetWords.length;
-
-  // Trigger explosion when game becomes complete
-  React.useEffect(() => {
-    if (gameComplete && !dragonExploding) {
-      setDragonExploding(true);
-      
-      // Reset explosion after 5 seconds (longer to enjoy the effect)
-      setTimeout(() => {
-        setDragonExploding(false);
-      }, 5000);
-    }
-  }, [gameComplete, dragonExploding]);
 
   const handleDragStart = (e: React.DragEvent, word: string) => {
     setDraggedWord(word);
@@ -187,8 +173,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
     setDraggedWord(null);
   };
 
-  // Don't show completion screen until explosion is done
-  if (gameComplete && !dragonExploding) {
+  if (gameComplete) {
     return (
       <div className="max-w-4xl mx-auto text-center">
         <h3 className="text-xl font-bold mb-6">🐉 Ordklassdrak - Klart!</h3>
@@ -214,38 +199,19 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         
         {/* Dragon - Centered and appropriately sized */}
         <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${
-          dragonExploding ? 'animate-bounce scale-150' : 
-          dragonEating ? 'scale-110 rotate-12' : 
-          dragonSpitting ? 'scale-90 -rotate-6' : 'scale-100'
+          dragonEating ? 'scale-110 rotate-12' : dragonSpitting ? 'scale-90 -rotate-6' : 'scale-100'
         }`}>
-          <div className="text-[10rem] filter drop-shadow-lg cursor-pointer relative"
+          <div className="text-[10rem] filter drop-shadow-lg cursor-pointer"
                onDragOver={handleDragOver}
                onDrop={handleDrop}>
-            {dragonExploding ? (
-              <div className="relative">
-                <span className="absolute inset-0 animate-ping">🐉</span>
-                <span className="absolute inset-0 animate-pulse">💥</span>
-                <span>🐉</span>
-                {/* Explosion particles */}
-                <div className="absolute -top-8 -left-8 text-4xl animate-bounce">🎆</div>
-                <div className="absolute -top-4 -right-8 text-3xl animate-ping">✨</div>
-                <div className="absolute -bottom-4 -left-4 text-3xl animate-pulse">💫</div>
-                <div className="absolute -bottom-8 -right-4 text-4xl animate-bounce">🌟</div>
-                <div className="absolute top-2 -left-12 text-2xl animate-ping">💥</div>
-                <div className="absolute top-2 -right-12 text-2xl animate-pulse">💥</div>
-              </div>
-            ) : (
-              '🐉'
-            )}
+            🐉
           </div>
         </div>
         
         {/* Dragon's speech bubble */}
-        {(dragonSpeech || dragonExploding) && (
+        {dragonSpeech && (
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse z-20">
-            <div className="text-sm font-bold text-gray-800">
-              {dragonExploding ? "BURRRRP! Jag är så mätt att jag exploderar! 💥🎉" : dragonSpeech}
-            </div>
+            <div className="text-sm font-bold text-gray-800">{dragonSpeech}</div>
             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
           </div>
         )}
