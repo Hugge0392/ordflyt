@@ -1497,9 +1497,25 @@ export default function LessonBuilder() {
                           key={cellIndex}
                           value={cell}
                           onChange={(e) => {
+                            const newValue = e.target.value.trim();
                             const rows = [...moment.config.rows];
-                            rows[rowIndex].cells[cellIndex] = e.target.value;
-                            updateMomentConfig(moment.id, { ...moment.config, rows });
+                            const oldValue = rows[rowIndex].cells[cellIndex];
+                            rows[rowIndex].cells[cellIndex] = newValue;
+
+                            // Update wordBank: add new word if it's not empty and not already in bank
+                            let wordBank = [...(moment.config.wordBank || [])];
+                            
+                            // Remove old value from word bank if it was there
+                            if (oldValue) {
+                              wordBank = wordBank.filter(word => word !== oldValue);
+                            }
+                            
+                            // Add new value to word bank if it's not empty and not already there
+                            if (newValue && !wordBank.includes(newValue)) {
+                              wordBank.push(newValue);
+                            }
+
+                            updateMomentConfig(moment.id, { ...moment.config, rows, wordBank });
                           }}
                           placeholder={`${moment.config.columns?.[cellIndex] || `Kolumn ${cellIndex + 1}`}`}
                           className="text-sm"
@@ -1515,33 +1531,32 @@ export default function LessonBuilder() {
             </div>
 
             <div>
-              <Label>Ordbank (ord att dra från)</Label>
+              <Label>Ordbank (automatiskt från tabellceller)</Label>
               <div className="space-y-2">
-                {(moment.config.wordBank || []).map((word: string, index: number) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={word}
-                      onChange={(e) => {
-                        const wordBank = [...moment.config.wordBank];
-                        wordBank[index] = e.target.value;
-                        updateMomentConfig(moment.id, { ...moment.config, wordBank });
-                      }}
-                      placeholder="Skriv ett ord..."
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => removeWordFromBank(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
+                {(moment.config.wordBank || []).length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">
+                    Orden läggs automatiskt till här när du fyller i tabellcellerna ovan
+                  </p>
+                ) : (
+                  moment.config.wordBank.map((word: string, index: number) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <div className="flex-1 bg-yellow-50 border border-yellow-200 rounded px-3 py-2 text-sm">
+                        {word}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeWordFromBank(index)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))
+                )}
                 <Button type="button" variant="outline" size="sm" onClick={addWordToBank}>
-                  + Lägg till ord
+                  + Lägg till extra ord
                 </Button>
               </div>
             </div>
