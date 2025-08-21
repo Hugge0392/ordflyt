@@ -247,9 +247,9 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
           })}
         </div>
 
-        {/* Feedback */}
+        {/* Feedback - positioned below words */}
         {showFeedback && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-4 shadow-lg border-2 border-blue-300 z-10">
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-4 shadow-lg border-2 border-blue-300 z-10 animate-pulse">
             <p className="text-lg font-semibold text-center">{feedback}</p>
           </div>
         )}
