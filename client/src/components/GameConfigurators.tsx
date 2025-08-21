@@ -21,9 +21,19 @@ export function OrdracetConfigurator({ moment, updateMomentConfig }: GameConfigu
             const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
             updateMomentConfig(moment.id, { ...moment.config, words });
           }}
-          placeholder="hund\nkatt\nbil\nhus"
-          className="min-h-[100px]"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
+          placeholder={`hund\nkatt\nbil\nhus`}
+          className="min-h-[100px] font-mono text-sm"
+          rows={5}
+          spellCheck={false}
         />
+        <div className="text-xs text-gray-500 mt-1">
+          Tryck Enter för ny rad. Varje ord ska vara på sin egen rad.
+        </div>
       </div>
       <div>
         <Label>Hastighet</Label>
@@ -64,11 +74,18 @@ export function MeningPusselConfigurator({ moment, updateMomentConfig }: GameCon
             const sentences = e.target.value.split('\n').map(s => s.trim()).filter(s => s);
             updateMomentConfig(moment.id, { ...moment.config, sentences });
           }}
-          placeholder="Katten sitter på mattan\nHunden springer i parken\nFågeln flyger i luften"
-          className="min-h-[100px]"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
+          placeholder={`Katten sitter på mattan\nHunden springer i parken\nFågeln flyger i luften`}
+          className="min-h-[100px] font-mono text-sm"
+          rows={5}
+          spellCheck={false}
         />
         <div className="text-xs text-gray-500 mt-1">
-          Meningarna delas automatiskt upp i delar som eleven ska sätta ihop
+          Tryck Enter för ny rad. Meningarna delas automatiskt upp i delar som eleven ska sätta ihop
         </div>
       </div>
       <div>
@@ -172,11 +189,18 @@ export function RimSpelConfigurator({ moment, updateMomentConfig }: GameConfigur
             const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
             updateMomentConfig(moment.id, { ...moment.config, words });
           }}
-          placeholder="katt\nhatt\nmatt\nbil\nstil\nmil"
-          className="min-h-[100px]"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
+          placeholder={`katt\nhatt\nmatt\nbil\nstil\nmil`}
+          className="min-h-[100px] font-mono text-sm"
+          rows={5}
+          spellCheck={false}
         />
         <div className="text-xs text-gray-500 mt-1">
-          Ord som rimmar grupperas automatiskt
+          Tryck Enter för ny rad. Ord som rimmar grupperas automatiskt
         </div>
       </div>
     </div>
@@ -357,14 +381,21 @@ export function OrdklassdrakConfigurator({ moment, updateMomentConfig }: GameCon
           value={(moment.config.targetWords || []).join('\n')}
           onChange={(e) => {
             const targetWords = e.target.value
-              .split(/[\n\r]+/)
+              .split('\n')
               .map(w => w.trim())
               .filter(w => w.length > 0);
             updateMomentConfig(moment.id, { ...moment.config, targetWords });
           }}
-          placeholder="hund&#10;katt&#10;hus&#10;bil"
-          className="min-h-[100px] resize-y"
+          onKeyDown={(e) => {
+            // Tillåt Enter för radbrytning
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
+          placeholder={`hund\nkatt\nhus\nbil`}
+          className="min-h-[100px] resize-y font-mono text-sm"
           rows={5}
+          spellCheck={false}
         />
         <div className="text-xs text-gray-500 mt-1">
           Tryck Enter för ny rad. Varje ord ska vara på sin egen rad.
@@ -376,14 +407,21 @@ export function OrdklassdrakConfigurator({ moment, updateMomentConfig }: GameCon
           value={(moment.config.distractors || []).join('\n')}
           onChange={(e) => {
             const distractors = e.target.value
-              .split(/[\n\r]+/)
+              .split('\n')
               .map(w => w.trim())
               .filter(w => w.length > 0);
             updateMomentConfig(moment.id, { ...moment.config, distractors });
           }}
-          placeholder="springa&#10;snabb&#10;långsamt&#10;under"
-          className="min-h-[100px] resize-y"
+          onKeyDown={(e) => {
+            // Tillåt Enter för radbrytning
+            if (e.key === 'Enter') {
+              e.stopPropagation();
+            }
+          }}
+          placeholder={`springa\nsnabb\nlångsamt\nunder`}
+          className="min-h-[100px] resize-y font-mono text-sm"
           rows={5}
+          spellCheck={false}
         />
         <div className="text-xs text-gray-500 mt-1">
           Tryck Enter för ny rad. Dessa ord ska INTE tillhöra målordklassen.
