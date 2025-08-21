@@ -91,8 +91,8 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const wordsPerRound = moment.config.wordsPerRound || 6;
   
   // Show ALL target words plus some distractors, shuffled
-  const availableTargetWords = targetWords.filter(word => !wordsUsed.includes(word));
-  const availableDistractors = distractors.filter(word => !wordsUsed.includes(word));
+  const availableTargetWords = targetWords.filter((word: string) => !wordsUsed.includes(word));
+  const availableDistractors = distractors.filter((word: string) => !wordsUsed.includes(word));
   
   // Always include ALL remaining target words, then add distractors to reach wordsPerRound
   const maxDistractors = Math.max(0, wordsPerRound - availableTargetWords.length);
@@ -188,44 +188,32 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
       <h3 className="text-xl font-bold text-center mb-6">🐉 Ordklassdrak</h3>
       <div className="bg-gradient-to-b from-purple-200 to-blue-200 rounded-lg p-6 min-h-[500px] relative overflow-hidden">
         
-        {/* Dragon - Much larger */}
-        <div className={`absolute top-8 right-8 transition-all duration-500 ${
+        {/* Dragon - Centered and much larger */}
+        <div className={`absolute top-12 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${
           dragonEating ? 'scale-110 rotate-12' : dragonSpitting ? 'scale-90 -rotate-6' : 'scale-100'
         }`}>
-          <div className="text-9xl filter drop-shadow-lg">
+          <div className="text-[14rem] filter drop-shadow-lg cursor-pointer"
+               onDragOver={handleDragOver}
+               onDrop={handleDrop}>
             🐉
           </div>
         </div>
         
         {/* Dragon's speech bubble */}
         {dragonSpeech && (
-          <div className="absolute top-4 right-16 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse z-20">
             <div className="text-sm font-bold text-gray-800">{dragonSpeech}</div>
-            <div className="absolute bottom-0 right-8 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white transform translate-y-full"></div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
           </div>
         )}
         
-        {/* Instructions */}
-        <div className="text-center mb-6">
+        {/* Instructions moved to top */}
+        <div className="text-center mb-4">
           <h4 className="text-lg font-semibold mb-2">Mata draken med {targetClass}!</h4>
-          <div className="bg-white bg-opacity-80 rounded-lg p-3 inline-block">
-            <p className="text-sm">Dra ord till drakens mun. Bara {targetClass} gör draken glad!</p>
-          </div>
-        </div>
-
-        {/* Dragon's mouth (drop zone) - Larger and more visible */}
-        <div 
-          className={`absolute top-32 right-20 w-20 h-16 bg-red-400 rounded-full border-4 border-red-600 transition-all duration-300 ${
-            draggedWord ? 'opacity-100 scale-125 bg-red-500' : 'opacity-80'
-          } ${dragonEating ? 'animate-ping' : ''} ${dragonSpitting ? 'animate-bounce' : ''}`}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <div className="text-center text-white font-bold text-sm mt-3">Mun</div>
         </div>
 
         {/* Words to drag */}
-        <div className="flex flex-wrap gap-3 justify-center mt-20">
+        <div className="flex flex-wrap gap-3 justify-center mt-56">
           {allWords.map((word, i) => {
             const isTarget = targetWords.includes(word);
             const isBeingEaten = dragonEating && draggedWord === word;
@@ -273,15 +261,19 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
       </div>
       <div className="text-center mt-4">
-        <p className="text-gray-600 mb-4">
-          Dra alla {targetClass} till drakens mun för att mata den! 
-          ({wordsUsed.filter(word => targetWords.includes(word)).length}/{targetWords.length} {targetClass} hittade)
-        </p>
-        {!gameComplete && targetWords.length > 0 && (
-          <p className="text-sm text-orange-600">
-            Du måste hitta alla {targetWords.length} {targetClass} innan du kan gå vidare!
+        <div className="bg-white bg-opacity-90 rounded-lg p-4 inline-block">
+          <p className="text-gray-700 mb-2 font-medium">
+            Dra ord till draken för att mata den!
           </p>
-        )}
+          <p className="text-sm text-gray-600">
+            {targetClass} hittade: {wordsUsed.filter(word => targetWords.includes(word)).length}/{targetWords.length}
+          </p>
+          {!gameComplete && targetWords.length > 0 && (
+            <p className="text-sm text-orange-600 mt-2">
+              Hitta alla {targetWords.length} {targetClass} för att fortsätta!
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
