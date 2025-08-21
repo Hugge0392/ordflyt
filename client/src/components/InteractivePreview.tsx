@@ -955,7 +955,10 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
               <div className="lg:col-span-1">
                 <h4 className="font-semibold mb-3 text-gray-700">Ordbank</h4>
                 <div className="space-y-2">
-                  {(moment.config.wordBank || []).map((word: string, index: number) => (
+                  {(moment.config.wordBank && moment.config.wordBank.length > 0 
+                    ? moment.config.wordBank 
+                    : ['Ord1', 'Ord2', 'Ord3', 'Ord4']
+                  ).map((word: string, index: number) => (
                     <div
                       key={index}
                       className="bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-move hover:bg-yellow-200 transition-colors text-center font-medium"
