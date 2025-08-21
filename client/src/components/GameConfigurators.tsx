@@ -14,25 +14,47 @@ export function OrdracetConfigurator({ moment, updateMomentConfig }: GameConfigu
   return (
     <div className="space-y-4">
       <div>
-        <Label>Ord som ska falla (ett per rad)</Label>
-        <Textarea
-          value={(moment.config.words || []).join('\n')}
-          onChange={(e) => {
-            const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
-            updateMomentConfig(moment.id, { ...moment.config, words });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-          }}
-          placeholder={`hund\nkatt\nbil\nhus`}
-          className="min-h-[100px] font-mono text-sm"
-          rows={5}
-          spellCheck={false}
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          Tryck Enter för ny rad. Varje ord ska vara på sin egen rad.
+        <Label>Ord som ska falla</Label>
+        <div className="space-y-2">
+          {(moment.config.words || ['hund', 'katt']).map((word: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={word}
+                onChange={(e) => {
+                  const words = [...(moment.config.words || [])];
+                  words[index] = e.target.value;
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="Skriv ett ord..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const words = [...(moment.config.words || [])];
+                  words.splice(index, 1);
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const words = [...(moment.config.words || []), ''];
+              updateMomentConfig(moment.id, { ...moment.config, words });
+            }}
+            className="w-full"
+          >
+            + Lägg till ord
+          </Button>
         </div>
       </div>
       <div>
@@ -67,25 +89,50 @@ export function MeningPusselConfigurator({ moment, updateMomentConfig }: GameCon
   return (
     <div className="space-y-4">
       <div>
-        <Label>Meningar att pussa ihop (en per rad)</Label>
-        <Textarea
-          value={(moment.config.sentences || []).join('\n')}
-          onChange={(e) => {
-            const sentences = e.target.value.split('\n').map(s => s.trim()).filter(s => s);
-            updateMomentConfig(moment.id, { ...moment.config, sentences });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-          }}
-          placeholder={`Katten sitter på mattan\nHunden springer i parken\nFågeln flyger i luften`}
-          className="min-h-[100px] font-mono text-sm"
-          rows={5}
-          spellCheck={false}
-        />
+        <Label>Meningar att pussa ihop</Label>
+        <div className="space-y-2">
+          {(moment.config.sentences || ['Katten sitter på mattan']).map((sentence: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={sentence}
+                onChange={(e) => {
+                  const sentences = [...(moment.config.sentences || [])];
+                  sentences[index] = e.target.value;
+                  updateMomentConfig(moment.id, { ...moment.config, sentences });
+                }}
+                placeholder="Skriv en mening..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const sentences = [...(moment.config.sentences || [])];
+                  sentences.splice(index, 1);
+                  updateMomentConfig(moment.id, { ...moment.config, sentences });
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const sentences = [...(moment.config.sentences || []), ''];
+              updateMomentConfig(moment.id, { ...moment.config, sentences });
+            }}
+            className="w-full"
+          >
+            + Lägg till mening
+          </Button>
+        </div>
         <div className="text-xs text-gray-500 mt-1">
-          Tryck Enter för ny rad. Meningarna delas automatiskt upp i delar som eleven ska sätta ihop
+          Meningarna delas automatiskt upp i delar som eleven ska sätta ihop
         </div>
       </div>
       <div>
@@ -182,25 +229,50 @@ export function RimSpelConfigurator({ moment, updateMomentConfig }: GameConfigur
         />
       </div>
       <div>
-        <Label>Ord för rimspelet (ett per rad)</Label>
-        <Textarea
-          value={(moment.config.words || []).join('\n')}
-          onChange={(e) => {
-            const words = e.target.value.split('\n').map(w => w.trim()).filter(w => w);
-            updateMomentConfig(moment.id, { ...moment.config, words });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-          }}
-          placeholder={`katt\nhatt\nmatt\nbil\nstil\nmil`}
-          className="min-h-[100px] font-mono text-sm"
-          rows={5}
-          spellCheck={false}
-        />
+        <Label>Ord för rimspelet</Label>
+        <div className="space-y-2">
+          {(moment.config.words || ['katt', 'hatt']).map((word: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={word}
+                onChange={(e) => {
+                  const words = [...(moment.config.words || [])];
+                  words[index] = e.target.value;
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                placeholder="Skriv ett ord..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const words = [...(moment.config.words || [])];
+                  words.splice(index, 1);
+                  updateMomentConfig(moment.id, { ...moment.config, words });
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const words = [...(moment.config.words || []), ''];
+              updateMomentConfig(moment.id, { ...moment.config, words });
+            }}
+            className="w-full"
+          >
+            + Lägg till ord
+          </Button>
+        </div>
         <div className="text-xs text-gray-500 mt-1">
-          Tryck Enter för ny rad. Ord som rimmar grupperas automatiskt
+          Ord som rimmar grupperas automatiskt
         </div>
       </div>
     </div>
@@ -376,55 +448,94 @@ export function OrdklassdrakConfigurator({ moment, updateMomentConfig }: GameCon
         </Select>
       </div>
       <div>
-        <Label>Ord från målordklassen (ett per rad)</Label>
-        <Textarea
-          value={(moment.config.targetWords || []).join('\n')}
-          onChange={(e) => {
-            const targetWords = e.target.value
-              .split('\n')
-              .map(w => w.trim())
-              .filter(w => w.length > 0);
-            updateMomentConfig(moment.id, { ...moment.config, targetWords });
-          }}
-          onKeyDown={(e) => {
-            // Tillåt Enter för radbrytning
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-          }}
-          placeholder={`hund\nkatt\nhus\nbil`}
-          className="min-h-[100px] resize-y font-mono text-sm"
-          rows={5}
-          spellCheck={false}
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          Tryck Enter för ny rad. Varje ord ska vara på sin egen rad.
+        <Label>Ord från målordklassen</Label>
+        <div className="space-y-2">
+          {(moment.config.targetWords || ['hund', 'katt']).map((word: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={word}
+                onChange={(e) => {
+                  const targetWords = [...(moment.config.targetWords || [])];
+                  targetWords[index] = e.target.value;
+                  updateMomentConfig(moment.id, { ...moment.config, targetWords });
+                }}
+                placeholder="Skriv ett ord..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const targetWords = [...(moment.config.targetWords || [])];
+                  targetWords.splice(index, 1);
+                  updateMomentConfig(moment.id, { ...moment.config, targetWords });
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const targetWords = [...(moment.config.targetWords || []), ''];
+              updateMomentConfig(moment.id, { ...moment.config, targetWords });
+            }}
+            className="w-full"
+          >
+            + Lägg till ord från {moment.config.targetWordClass || 'målordklassen'}
+          </Button>
         </div>
       </div>
       <div>
-        <Label>Distraktorer (ord från andra ordklasser, ett per rad)</Label>
-        <Textarea
-          value={(moment.config.distractors || []).join('\n')}
-          onChange={(e) => {
-            const distractors = e.target.value
-              .split('\n')
-              .map(w => w.trim())
-              .filter(w => w.length > 0);
-            updateMomentConfig(moment.id, { ...moment.config, distractors });
-          }}
-          onKeyDown={(e) => {
-            // Tillåt Enter för radbrytning
-            if (e.key === 'Enter') {
-              e.stopPropagation();
-            }
-          }}
-          placeholder={`springa\nsnabb\nlångsamt\nunder`}
-          className="min-h-[100px] resize-y font-mono text-sm"
-          rows={5}
-          spellCheck={false}
-        />
+        <Label>Distraktorer (ord från andra ordklasser)</Label>
+        <div className="space-y-2">
+          {(moment.config.distractors || ['springa', 'snabb']).map((word: string, index: number) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={word}
+                onChange={(e) => {
+                  const distractors = [...(moment.config.distractors || [])];
+                  distractors[index] = e.target.value;
+                  updateMomentConfig(moment.id, { ...moment.config, distractors });
+                }}
+                placeholder="Skriv ett distraktionsord..."
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const distractors = [...(moment.config.distractors || [])];
+                  distractors.splice(index, 1);
+                  updateMomentConfig(moment.id, { ...moment.config, distractors });
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const distractors = [...(moment.config.distractors || []), ''];
+              updateMomentConfig(moment.id, { ...moment.config, distractors });
+            }}
+            className="w-full"
+          >
+            + Lägg till distraktor
+          </Button>
+        </div>
         <div className="text-xs text-gray-500 mt-1">
-          Tryck Enter för ny rad. Dessa ord ska INTE tillhöra målordklassen.
+          Distraktorer ska INTE tillhöra målordklassen.
         </div>
       </div>
       <div>
