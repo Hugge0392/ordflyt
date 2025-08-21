@@ -215,7 +215,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         {/* Words to drag */}
         <div className="flex flex-wrap gap-3 justify-center mt-48">
           {allWords.map((word, i) => {
-            const isTarget = targetWords.includes(word);
+            const isCorrectTarget = targetWords.includes(word);
             const isBeingEaten = dragonEating && draggedWord === word;
             const isBeingSpit = dragonSpitting && draggedWord === word;
             
@@ -231,10 +231,8 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                   ${draggedWord === word ? 'opacity-50 scale-95' : ''}
                   ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
                   ${isBeingSpit ? 'animate-bounce scale-125 bg-red-400 text-white' : ''}
-                  ${!isBeingEaten && !isBeingSpit && !wordsUsed.includes(word) && isTarget 
-                    ? 'bg-green-400 hover:bg-green-500 text-white' 
-                    : !isBeingEaten && !isBeingSpit && !wordsUsed.includes(word)
-                    ? 'bg-gray-300 hover:bg-gray-400 text-gray-800' 
+                  ${!isBeingEaten && !isBeingSpit && !wordsUsed.includes(word)
+                    ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
                     : wordsUsed.includes(word)
                     ? 'bg-transparent'
                     : ''
