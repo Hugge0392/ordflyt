@@ -249,9 +249,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       });
     }
 
-    console.log('Expected mapping:', expectedMapping);
-    console.log('Dropped words:', droppedWords);
-    console.log('Columns:', moment?.config?.columns);
+
 
     let correct = 0;
     const total = droppedWords.length;
@@ -270,7 +268,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       const expectedColumnIndex = expectedMapping[normalizedWord];
       const actualColumn = moment?.config?.columns[actualColumnIndex]?.trim().toLowerCase();
       
-      console.log(`Word: "${normalizedWord}", Expected column: ${expectedColumnIndex}, Actual column: ${actualColumnIndex}, Match: ${expectedColumnIndex === actualColumnIndex}`);
+
       
       // Count for column stats
       if (actualColumn && columnResults[actualColumn] !== undefined) {
@@ -286,7 +284,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       }
     });
 
-    console.log(`Correct: ${correct}, Total: ${total}`);
+
 
     const percentage = total > 0 ? (correct / total) * 100 : 0;
     setScore(Math.round(percentage));
@@ -416,11 +414,20 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                             <div 
                               className="bg-blue-100 border-2 border-blue-300 rounded-lg p-3 text-center font-medium cursor-grab active:cursor-grabbing hover:bg-blue-200 transition-colors"
                               draggable
-                              onDragStart={(e) => handleDragStart(e, { 
-                                word: droppedWord.word, 
-                                id: droppedWord.id, 
-                                expectedColumn: 'unknown' 
-                              })}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", droppedWord.word);
+                                e.dataTransfer.setData("word-id", droppedWord.id);
+                                setDraggedWord({ 
+                                  word: droppedWord.word, 
+                                  id: droppedWord.id, 
+                                  expectedColumn: 'unknown' 
+                                });
+                                
+                                // Remove from current position when starting drag
+                                setDroppedWords(prev => prev.filter(
+                                  item => !(item.rowIndex === droppedWord.rowIndex && item.cellIndex === droppedWord.cellIndex)
+                                ));
+                              }}
                               onClick={() => returnWordToBank(droppedWord)}
                               title="Dra för att flytta eller klicka för att flytta tillbaka till ordbanken"
                             >
