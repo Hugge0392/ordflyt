@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,18 +90,15 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
   const distractors = moment.config.distractors || ['springa', 'snabb', 'under'];
   const wordsPerRound = moment.config.wordsPerRound || 6;
   
-  // Show ALL target words plus some distractors, shuffled
-  const availableTargetWords = targetWords.filter((word: string) => !wordsUsed.includes(word));
-  const availableDistractors = distractors.filter((word: string) => !wordsUsed.includes(word));
-  
-  // Always include ALL remaining target words, then add distractors to reach wordsPerRound
-  const maxDistractors = Math.max(0, wordsPerRound - availableTargetWords.length);
-  const selectedDistractors = availableDistractors.slice(0, maxDistractors);
-  
-  const allWords = [...availableTargetWords, ...selectedDistractors]
-    .sort(() => Math.random() - 0.5);
+  // Memoized word list that only changes when config changes, not on each render
+  const allWords = useMemo(() => {
+    const maxDistractors = Math.max(0, wordsPerRound - targetWords.length);
+    const selectedDistractors = distractors.slice(0, maxDistractors);
+    
+    return [...targetWords, ...selectedDistractors]
+      .sort(() => Math.random() - 0.5);
+  }, [targetWords, distractors, wordsPerRound]);
 
-  const targetWordsInRound = availableTargetWords;
   // Game is complete only when ALL target words from the original config are found
   const gameComplete = wordsUsed.filter(word => targetWords.includes(word)).length >= targetWords.length;
 
@@ -213,7 +210,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Words to drag */}
-        <div className="flex flex-wrap gap-3 justify-center mt-48">
+        <div className="grid grid-cols-6 gap-3 justify-items-center mt-48 max-w-2xl mx-auto">
           {allWords.map((word, i) => {
             const isCorrectTarget = targetWords.includes(word);
             const isBeingEaten = dragonEating && draggedWord === word;
@@ -221,16 +218,16 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
             
             return (
               <div 
-                key={i}
-                draggable={!isBeingEaten}
+                key={`word-${word}-${i}`}
+                draggable={!isBeingEaten && !wordsUsed.includes(word)}
                 onDragStart={(e) => handleDragStart(e, word)}
                 onDragEnd={handleDragEnd}
                 className={`
-                  px-4 py-2 rounded-lg shadow-md transition-all duration-500
+                  px-4 py-2 rounded-lg shadow-md transition-all duration-500 min-w-[80px] min-h-[40px]
                   ${wordsUsed.includes(word) ? 'opacity-0 pointer-events-none' : 'cursor-move hover:shadow-lg'}
-                  ${draggedWord === word ? 'opacity-50 scale-95' : ''}
+                  ${draggedWord === word && !wordsUsed.includes(word) ? 'opacity-50 scale-95' : ''}
                   ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
-                  ${isBeingSpit ? 'animate-bounce scale-125 bg-red-400 text-white' : ''}
+                  ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
                   ${!isBeingEaten && !isBeingSpit && !wordsUsed.includes(word)
                     ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
                     : wordsUsed.includes(word)
