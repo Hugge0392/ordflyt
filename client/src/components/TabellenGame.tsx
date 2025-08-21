@@ -233,25 +233,25 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   };
 
   const checkAnswer = () => {
-    // Helper function to determine if a word should be singular or plural
-    const isPlural = (word: string): boolean => {
-      const w = word.toLowerCase().trim();
-      // Simple heuristic: words ending in common plural patterns
-      if (w.endsWith('ar') || w.endsWith('er') || w.endsWith('or')) return true;
-      if (w.endsWith('n') && w.length > 2) return true; // Like "äpplen"
-      if (w.endsWith('s') && !w.endsWith('ss')) return true; // Like "bilar" but not "klass"
-      return false;
-    };
-
-    // Find plural and singular column indices
-    let pluralColumnIndex = -1;
-    let singularColumnIndex = -1;
+    // Get the original word-to-expected-column mapping from config
+    const expectedMapping: {[word: string]: number} = {};
     
-    (moment?.config?.columns || []).forEach((column: string, index: number) => {
-      const normalized = column.trim().toLowerCase();
-      if (normalized.includes('plural')) pluralColumnIndex = index;
-      if (normalized.includes('singular')) singularColumnIndex = index;
-    });
+    if (moment?.config?.rows && moment?.config?.columns) {
+      moment.config.rows.forEach((row: any) => {
+        if (row.cells && Array.isArray(row.cells)) {
+          row.cells.forEach((cell: string, cellIndex: number) => {
+            if (cell && cell.trim()) {
+              const normalizedWord = cell.trim().toLowerCase();
+              expectedMapping[normalizedWord] = cellIndex;
+            }
+          });
+        }
+      });
+    }
+
+    console.log('Expected mapping:', expectedMapping);
+    console.log('Dropped words:', droppedWords);
+    console.log('Columns:', moment?.config?.columns);
 
     let correct = 0;
     const total = droppedWords.length;
@@ -265,18 +265,12 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
     // Check each dropped word
     droppedWords.forEach(droppedWord => {
-      const word = droppedWord.word.trim();
-      const wordIsPlural = isPlural(word);
+      const normalizedWord = droppedWord.word.trim().toLowerCase();
       const actualColumnIndex = droppedWord.cellIndex;
+      const expectedColumnIndex = expectedMapping[normalizedWord];
       const actualColumn = moment?.config?.columns[actualColumnIndex]?.trim().toLowerCase();
       
-      // Determine expected column based on word form
-      let expectedColumnIndex = -1;
-      if (wordIsPlural && pluralColumnIndex >= 0) {
-        expectedColumnIndex = pluralColumnIndex;
-      } else if (!wordIsPlural && singularColumnIndex >= 0) {
-        expectedColumnIndex = singularColumnIndex;
-      }
+      console.log(`Word: "${normalizedWord}", Expected column: ${expectedColumnIndex}, Actual column: ${actualColumnIndex}, Match: ${expectedColumnIndex === actualColumnIndex}`);
       
       // Count for column stats
       if (actualColumn && columnResults[actualColumn] !== undefined) {
@@ -284,7 +278,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       }
       
       // Check if word is in correct column
-      if (expectedColumnIndex >= 0 && actualColumnIndex === expectedColumnIndex) {
+      if (expectedColumnIndex !== undefined && actualColumnIndex === expectedColumnIndex) {
         correct++;
         if (actualColumn && columnResults[actualColumn] !== undefined) {
           columnResults[actualColumn].correct++;
@@ -292,7 +286,9 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
       }
     });
 
-    const percentage = total > 0 ? (correct / total) * 100 : 100;
+    console.log(`Correct: ${correct}, Total: ${total}`);
+
+    const percentage = total > 0 ? (correct / total) * 100 : 0;
     setScore(Math.round(percentage));
     
     // Build detailed feedback
