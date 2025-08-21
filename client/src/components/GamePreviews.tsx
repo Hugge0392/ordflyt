@@ -188,11 +188,11 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
       <h3 className="text-xl font-bold text-center mb-6">🐉 Ordklassdrak</h3>
       <div className="bg-gradient-to-b from-purple-200 to-blue-200 rounded-lg p-6 min-h-[500px] relative overflow-hidden">
         
-        {/* Dragon - Centered and much larger */}
-        <div className={`absolute top-12 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${
+        {/* Dragon - Centered and appropriately sized */}
+        <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${
           dragonEating ? 'scale-110 rotate-12' : dragonSpitting ? 'scale-90 -rotate-6' : 'scale-100'
         }`}>
-          <div className="text-[14rem] filter drop-shadow-lg cursor-pointer"
+          <div className="text-[10rem] filter drop-shadow-lg cursor-pointer"
                onDragOver={handleDragOver}
                onDrop={handleDrop}>
             🐉
@@ -201,7 +201,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         
         {/* Dragon's speech bubble */}
         {dragonSpeech && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse z-20">
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-white rounded-lg p-3 shadow-lg border-2 border-gray-300 animate-pulse z-20">
             <div className="text-sm font-bold text-gray-800">{dragonSpeech}</div>
             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"></div>
           </div>
@@ -213,7 +213,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Words to drag */}
-        <div className="flex flex-wrap gap-3 justify-center mt-56">
+        <div className="flex flex-wrap gap-3 justify-center mt-44">
           {allWords.map((word, i) => {
             const isTarget = targetWords.includes(word);
             const isBeingEaten = dragonEating && draggedWord === word;
