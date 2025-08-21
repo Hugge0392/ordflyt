@@ -226,20 +226,20 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                 onDragStart={(e) => handleDragStart(e, word)}
                 onDragEnd={handleDragEnd}
                 className={`
-                  px-4 py-2 rounded-lg cursor-move shadow-md hover:shadow-lg transition-all duration-500
+                  px-4 py-2 rounded-lg shadow-md transition-all duration-500
+                  ${wordsUsed.includes(word) ? 'opacity-0 pointer-events-none' : 'cursor-move hover:shadow-lg'}
                   ${draggedWord === word ? 'opacity-50 scale-95' : ''}
                   ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
                   ${isBeingSpit ? 'animate-bounce scale-125 bg-red-400 text-white' : ''}
-                  ${!isBeingEaten && !isBeingSpit && isTarget 
+                  ${!isBeingEaten && !isBeingSpit && !wordsUsed.includes(word) && isTarget 
                     ? 'bg-green-400 hover:bg-green-500 text-white' 
-                    : !isBeingEaten && !isBeingSpit 
+                    : !isBeingEaten && !isBeingSpit && !wordsUsed.includes(word)
                     ? 'bg-gray-300 hover:bg-gray-400 text-gray-800' 
+                    : wordsUsed.includes(word)
+                    ? 'bg-transparent'
                     : ''
                   }
                 `}
-                style={{
-                  visibility: wordsUsed.includes(word) ? 'hidden' : 'visible'
-                }}
               >
                 {word}
               </div>
