@@ -195,17 +195,19 @@ export default function LessonBuilder() {
   // Publish lesson mutation
   const publishLessonMutation = useMutation({
     mutationFn: async (lessonData: any) => {
+      console.log('Publishing lesson data:', lessonData);
+      
       if (editingLessonId) {
         // Update existing lesson
-        const response = await apiRequest('PUT', `/api/lessons/published/${editingLessonId}`, lessonData);
-        return response.json();
+        return await apiRequest('PUT', `/api/lessons/published/${editingLessonId}`, lessonData);
       } else {
         // Create new lesson
-        const response = await apiRequest('POST', '/api/lessons/publish', lessonData);
-        return response.json();
+        return await apiRequest('POST', '/api/lessons/publish', lessonData);
       }
     },
     onSuccess: (response) => {
+      console.log('Publish onSuccess called with response:', response);
+      
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/lessons/published'] });
       queryClient.invalidateQueries({ queryKey: ['/api/lessons/drafts'] });
@@ -236,6 +238,7 @@ export default function LessonBuilder() {
       });
     },
     onError: (error) => {
+      console.error('Publish onError called with error:', error);
       toast({
         title: editingLessonId ? "Uppdatering misslyckades" : "Publicering misslyckades",
         description: editingLessonId 
