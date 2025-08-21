@@ -292,7 +292,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
                         >
                           {droppedWord ? (
                             <div 
-                              className="bg-green-100 border-2 border-green-300 rounded-lg p-3 text-center font-medium cursor-pointer hover:bg-green-200 transition-colors"
+                              className="bg-blue-100 border-2 border-blue-300 rounded-lg p-3 text-center font-medium cursor-pointer hover:bg-blue-200 transition-colors"
                               onClick={() => returnWordToBank(droppedWord)}
                               title="Klicka för att flytta tillbaka till ordbanken"
                             >
@@ -335,7 +335,7 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
             Börja om
           </Button>
 
-          {(isComplete || score > 0) && onNext && (
+          {(score === 100) && onNext && (
             <Button onClick={onNext} variant="default" size="lg" className="bg-green-600 hover:bg-green-700">
               Fortsätt till nästa moment
             </Button>
