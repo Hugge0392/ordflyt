@@ -20,6 +20,9 @@ import {
   type InsertKlassKampGame,
   type InsertKlassKampPlayer,
   type InsertKlassKampAnswer,
+  type PreReadingQuestion,
+  type ReadingQuestion,
+  type WordDefinition,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -388,9 +391,9 @@ export class MemStorage implements IStorage {
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
       featuredImage: lesson.featuredImage || null,
-      preReadingQuestions: lesson.preReadingQuestions || [] as PreReadingQuestion[],
-      questions: lesson.questions || [] as ReadingQuestion[],
-      wordDefinitions: lesson.wordDefinitions || [] as WordDefinition[],
+      preReadingQuestions: lesson.preReadingQuestions || [],
+      questions: lesson.questions || [],
+      wordDefinitions: lesson.wordDefinitions || [],
       isPublished: lesson.isPublished || 0
     };
     this.readingLessons.set(id, newLesson);
@@ -757,7 +760,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSentencesByWordClass(wordClassId: string): Promise<Sentence[]> {
-    const results = await db.select().from(sentences).where(eq(sentences.wordClassId, wordClassId));
+    const results = await db.select().from(sentences).where(eq(sentences.wordClassType, wordClassId));
     return results;
   }
 }
