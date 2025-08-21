@@ -206,6 +206,10 @@ export default function LessonBuilder() {
       }
     },
     onSuccess: (response) => {
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/lessons/published'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/lessons/drafts'] });
+      
       toast({
         title: editingLessonId ? "Lektion uppdaterad!" : "Lektion publicerad!",
         description: editingLessonId 
@@ -215,10 +219,8 @@ export default function LessonBuilder() {
       
       // Stäng publiceringsdialogen
       setShowPublishDialog(false);
-      
-      setShowPublishDialog(false);
       setEditingLessonId(null);
-      // Remove local editing state
+      
       // Reset lesson after successful publish
       setCurrentLesson({
         id: '',
