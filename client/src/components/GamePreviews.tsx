@@ -239,8 +239,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                     ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg hover:scale-105'}
                     ${isBeingEaten ? 'opacity-0 scale-0 translate-x-32 translate-y-[-8rem]' : 'scale-100'}
                     ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
-                    ${showingAllFeedback && isCorrectTarget ? 'animate-pulse bg-green-400 text-white' : ''}
-                    ${showingAllFeedback && !isCorrectTarget ? 'animate-pulse bg-red-400 text-white' : ''}
+                    ${showingAllFeedback ? 'animate-pulse bg-yellow-400 text-black' : ''}
                     ${!isBeingEaten && !isBeingSpit && !showingAllFeedback
                       ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
                       : ''
