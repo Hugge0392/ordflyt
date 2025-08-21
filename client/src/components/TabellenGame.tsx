@@ -16,6 +16,7 @@ interface DroppedWord {
 interface WordBankItem {
   word: string;
   id: string;
+  expectedColumn: string; // Which column this word should be in
 }
 
 export function TabellenGame({ moment, onNext }: TabellenGameProps) {
@@ -30,24 +31,23 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   // Initialize word bank from table cells (facit), only once
   useEffect(() => {
     if (moment?.config?.rows && moment?.config?.columns && !isInitialized) {
-      const wordsFromTable: string[] = [];
+      const bankItems: WordBankItem[] = [];
       
-      // Extract all non-empty words from table cells
+      // Extract all non-empty words from table cells with their expected column
       moment.config.rows.forEach((row: any) => {
         if (row.cells && Array.isArray(row.cells)) {
-          row.cells.forEach((cell: string) => {
+          row.cells.forEach((cell: string, cellIndex: number) => {
             if (cell && cell.trim()) {
-              wordsFromTable.push(cell.trim());
+              const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
+              bankItems.push({
+                word: cell.trim(),
+                id: `word-${bankItems.length}-${Date.now()}`,
+                expectedColumn: expectedColumn
+              });
             }
           });
         }
       });
-
-      // Create word bank with unique IDs
-      const bankItems: WordBankItem[] = wordsFromTable.map((word, index) => ({
-        word,
-        id: `word-${index}-${Date.now()}`
-      }));
 
       setWordBank(bankItems);
       setIsInitialized(true);
@@ -78,8 +78,36 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     let newDroppedWords = [...droppedWords];
 
     if (existingWord) {
-      // Return existing word to word bank
-      newWordBank.push({ word: existingWord.word, id: `returned-${Date.now()}` });
+      // Find the original word data to preserve expectedColumn
+      const originalWords: WordBankItem[] = [];
+      if (moment?.config?.rows && moment?.config?.columns) {
+        moment.config.rows.forEach((row: any) => {
+          if (row.cells && Array.isArray(row.cells)) {
+            row.cells.forEach((cell: string, cellIndex: number) => {
+              if (cell && cell.trim()) {
+                const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
+                originalWords.push({
+                  word: cell.trim(),
+                  id: `original-${originalWords.length}`,
+                  expectedColumn: expectedColumn
+                });
+              }
+            });
+          }
+        });
+      }
+      
+      const originalWord = originalWords.find(orig => 
+        orig.word.trim().toLowerCase() === existingWord.word.trim().toLowerCase()
+      );
+      
+      // Return existing word to word bank with correct expected column
+      newWordBank.push({ 
+        word: existingWord.word, 
+        id: `returned-${Date.now()}`,
+        expectedColumn: originalWord?.expectedColumn || 'unknown'
+      });
+      
       // Remove existing word from dropped words
       newDroppedWords = newDroppedWords.filter(
         dropped => !(dropped.rowIndex === rowIndex && dropped.cellIndex === cellIndex)
@@ -103,8 +131,35 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   };
 
   const returnWordToBank = (droppedWord: DroppedWord) => {
-    // Return word to bank
-    setWordBank(prev => [...prev, { word: droppedWord.word, id: `returned-${Date.now()}` }]);
+    // Find the original word data to preserve expectedColumn
+    const originalWords: WordBankItem[] = [];
+    if (moment?.config?.rows && moment?.config?.columns) {
+      moment.config.rows.forEach((row: any) => {
+        if (row.cells && Array.isArray(row.cells)) {
+          row.cells.forEach((cell: string, cellIndex: number) => {
+            if (cell && cell.trim()) {
+              const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
+              originalWords.push({
+                word: cell.trim(),
+                id: `original-${originalWords.length}`,
+                expectedColumn: expectedColumn
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    const originalWord = originalWords.find(orig => 
+      orig.word.trim().toLowerCase() === droppedWord.word.trim().toLowerCase()
+    );
+    
+    // Return word to bank with correct expected column
+    setWordBank(prev => [...prev, { 
+      word: droppedWord.word, 
+      id: `returned-${Date.now()}`,
+      expectedColumn: originalWord?.expectedColumn || 'unknown'
+    }]);
     
     // Remove from dropped words
     setDroppedWords(prev => prev.filter(
@@ -121,22 +176,20 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
     
     if (rows.length === 0 || columns.length === 0) return;
     
-    // Count cells that should have words (non-empty facit)
-    let totalRequiredCells = 0;
+    // Count total words to be sorted (not cells)
+    let totalWordsToSort = 0;
     rows.forEach((row: any) => {
       if (row.cells && Array.isArray(row.cells)) {
         row.cells.forEach((cell: string) => {
           if (cell && cell.trim()) {
-            totalRequiredCells++;
+            totalWordsToSort++;
           }
         });
       }
     });
     
-    const filledCells = droppedWords.length;
-    
-    // Only auto-complete when all cells are filled, but don't set score yet
-    if (wordBank.length === 0 && filledCells === totalRequiredCells && totalRequiredCells > 0) {
+    // Auto-complete when all words from word bank are placed
+    if (wordBank.length === 0 && droppedWords.length === totalWordsToSort && totalWordsToSort > 0) {
       setIsComplete(true);
       // Don't auto-set score here, let user check their answers
     } else {
@@ -146,23 +199,23 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
 
   const resetGame = () => {
     // Reinitialize from table cells
-    if (moment?.config?.rows) {
-      const wordsFromTable: string[] = [];
+    if (moment?.config?.rows && moment?.config?.columns) {
+      const bankItems: WordBankItem[] = [];
       
       moment.config.rows.forEach((row: any) => {
         if (row.cells && Array.isArray(row.cells)) {
-          row.cells.forEach((cell: string) => {
+          row.cells.forEach((cell: string, cellIndex: number) => {
             if (cell && cell.trim()) {
-              wordsFromTable.push(cell.trim());
+              const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
+              bankItems.push({
+                word: cell.trim(),
+                id: `reset-word-${bankItems.length}-${Date.now()}`,
+                expectedColumn: expectedColumn
+              });
             }
           });
         }
       });
-
-      const bankItems: WordBankItem[] = wordsFromTable.map((word, index) => ({
-        word,
-        id: `reset-word-${index}-${Date.now()}`
-      }));
 
       setWordBank(bankItems);
     }
@@ -180,36 +233,77 @@ export function TabellenGame({ moment, onNext }: TabellenGameProps) {
   };
 
   const checkAnswer = () => {
-    let correct = 0;
-    let total = 0;
-
-    // Compare with correct answers if defined
-    if (moment?.config?.rows) {
-      moment.config.rows.forEach((row: any, rowIndex: number) => {
+    // Get all original words with their expected columns
+    const originalWords: WordBankItem[] = [];
+    
+    if (moment?.config?.rows && moment?.config?.columns) {
+      moment.config.rows.forEach((row: any) => {
         if (row.cells && Array.isArray(row.cells)) {
-          row.cells.forEach((correctWord: string, cellIndex: number) => {
-            if (correctWord && correctWord.trim()) {
-              total++;
-              const droppedWord = getWordInCell(rowIndex, cellIndex);
-              if (droppedWord && droppedWord.word.trim().toLowerCase() === correctWord.trim().toLowerCase()) {
-                correct++;
-              }
+          row.cells.forEach((cell: string, cellIndex: number) => {
+            if (cell && cell.trim()) {
+              const expectedColumn = moment.config.columns[cellIndex]?.trim().toLowerCase() || `kolumn-${cellIndex}`;
+              originalWords.push({
+                word: cell.trim(),
+                id: `check-${originalWords.length}`,
+                expectedColumn: expectedColumn
+              });
             }
           });
         }
       });
     }
 
+    let correct = 0;
+    const total = originalWords.length;
+    const columnResults: {[key: string]: {correct: number, total: number}} = {};
+
+    // Initialize column results
+    (moment?.config?.columns || []).forEach((column: string) => {
+      const normalizedColumn = column.trim().toLowerCase();
+      columnResults[normalizedColumn] = { correct: 0, total: 0 };
+    });
+
+    // Check each dropped word
+    droppedWords.forEach(droppedWord => {
+      // Find the original word data by matching the word text
+      const originalWord = originalWords.find(orig => 
+        orig.word.trim().toLowerCase() === droppedWord.word.trim().toLowerCase()
+      );
+      
+      if (originalWord) {
+        const actualColumn = moment?.config?.columns[droppedWord.cellIndex]?.trim().toLowerCase();
+        const expectedColumn = originalWord.expectedColumn;
+        
+        columnResults[expectedColumn].total++;
+        
+        if (actualColumn === expectedColumn) {
+          correct++;
+          columnResults[expectedColumn].correct++;
+        }
+      }
+    });
+
     const percentage = total > 0 ? (correct / total) * 100 : 100;
     setScore(Math.round(percentage));
     
+    // Build detailed feedback
+    const columnFeedback = Object.entries(columnResults)
+      .filter(([_, stats]) => stats.total > 0)
+      .map(([column, stats]) => {
+        const displayName = moment?.config?.columns?.find((col: string) => 
+          col.trim().toLowerCase() === column
+        ) || column;
+        return `${displayName}: ${stats.correct}/${stats.total}`;
+      })
+      .join(', ');
+    
     if (percentage === 100) {
-      setFeedback({ type: 'success', message: `Perfekt! Du fick alla ${correct} rätt!` });
+      setFeedback({ type: 'success', message: `Perfekt! Du fick alla ${correct} rätt! (${columnFeedback})` });
       setIsComplete(true);
     } else if (percentage >= 70) {
-      setFeedback({ type: 'success', message: `Bra jobbat! Du fick ${correct} av ${total} rätt.` });
+      setFeedback({ type: 'success', message: `Bra jobbat! Du fick ${correct} av ${total} rätt. (${columnFeedback})` });
     } else {
-      setFeedback({ type: 'error', message: `Du fick ${correct} av ${total} rätt. Försök igen!` });
+      setFeedback({ type: 'error', message: `Du fick ${correct} av ${total} rätt. (${columnFeedback}) Försök igen!` });
     }
   };
 

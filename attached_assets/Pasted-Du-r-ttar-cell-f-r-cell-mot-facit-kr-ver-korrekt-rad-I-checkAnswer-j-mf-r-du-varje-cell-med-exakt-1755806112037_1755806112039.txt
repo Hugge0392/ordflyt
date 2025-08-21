@@ -1,0 +1,73 @@
+Du rättar cell-för-cell mot facit → kräver korrekt rad
+
+I checkAnswer jämför du varje cell med exakt ord i facit på samma rad och samma kolumn. Då blir ett pluralord i plural-kolumnen men “fel rad” = fel.
+
+Byt rättningsmodell från “cellmatchning” till “kategori-matchning”: jämför kolumnen ordet hamnade i mot ordets förväntade kategori (plural/singular), oavsett rad.
+
+Saknas “kategori-facit” per ord
+
+Du skapar ordbanken genom att plocka alla ord från tabellcellerna, men sparar inte vilket av dem som var plural respektive singular.
+
+Vid init: bygg en mapping från varje ord (eller ännu hellre varje ord-ID) → kolumnens kategori (t.ex. “Plural” eller “Singular”). Den används vid rättning.
+
+Kolumnindex får inte vara hårdkodat
+
+Ordningen kan vara “Plural, Singular” eller tvärtom.
+
+Härled vilken kolumn som är “Plural” respektive “Singular” genom att läsa rubrikerna (case-insensitivt, trimmat), och jämför mot droppad cellIndex – inte mot radIndex.
+
+Rättning ska ignorera radIndex
+
+När du hämtar ett droppat ord använder du getWordInCell(rowIndex, cellIndex) och jämför mot facit i den cellen.
+
+Byt till logik: hämta ordets förväntade kolumn via mappingen (punkt 2) och jämför endast med den kolumn där ordet ligger nu.
+
+Poängräknare/total beräknas fel
+
+Du sätter total = antal icke-tomma facit-celler. Vid fri sortering ska total vara antalet ord i ordbanken (dvs hur många ord som ska sorteras).
+
+Annars blir % fel när tabellen har tomma/överskottsceller.
+
+Dubbletter måste hanteras på ID, inte bara sträng
+
+Du har redan unika id i wordBank, men i rättning jämför du fortfarande på word (sträng). Om “Kottar” förekommer två gånger blir det tvetydigt.
+
+Spara och rätta mot ord-ID → förväntad kolumn i stället för bara text.
+
+Normalisera rubriker och ord vid jämförelse
+
+Trim och case-insensitivt på både kolumnrubriker (“Plural”, “plural”, “ PLURAL ”) och ord (leading/trailing spaces). Annars markeras korrekta drag som fel.
+
+“Klar?”-logiken kopplad till facitceller
+
+Du auto-sätter isComplete när alla facit-celler är fyllda. Vid fri sortering räcker att ordbanken är tom (alla ord placerade) – att vissa tabellceller inte hade facit ska inte blockera “klart”.
+
+Återläggning kan skapa extra exemplar
+
+När du byter ett ord i en cell lägger du tillbaka det gamla ordet i ordbanken med nytt slump-ID (“returned-…”). Det är rätt, men se till att rättningsmappingen inte tappar kopplingen (använd ord-ID:t, inte strängvärdet).
+
+“Fel fast rätt” vid blandade språk/tecken
+
+Säkerställ att både mapping och rättning kör Unicode-säkert och trim/normalisering hanterar svenska tecken (å/ä/ö). Inga osynliga tecken från UI-input.
+
+Validera konfigurationen innan start
+
+Checka:
+
+Minst två kolumner och att minst en heter “Plural” och en “Singular”.
+
+Varje rad har cells med samma längd som kolumnerna.
+
+Ordbankens antal ord = antal icke-tomma celler du tänker låta spelaren sortera.
+
+UI-feedback bör spegla kategori, inte plats
+
+Vid “Kontrollera svar”: visa antalet rätt per kolumn (t.ex. “Plural: 6/6”, “Singular: 6/6”) samt total %. Det gör det tydligt att radpositioner inte spelar roll.
+
+om du gör bara 3 saker för att fixa 75%-felet:
+
+skapa en ord→kategori mapping vid init (från den kolumn ordet låg i i din konfiguration).
+
+rätta efter kolumn (kategori), ignorera rad.
+
+räkna total som antal ord att sortera (inte antal facitceller på specifika positioner).
