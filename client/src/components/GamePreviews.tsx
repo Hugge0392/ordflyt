@@ -238,7 +238,7 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
                   }
                 `}
                 style={{
-                  display: wordsUsed.includes(word) ? 'none' : 'block'
+                  visibility: wordsUsed.includes(word) ? 'hidden' : 'visible'
                 }}
               >
                 {word}
