@@ -210,36 +210,35 @@ export function OrdklassdrakPreview({ moment, onNext }: GamePreviewProps) {
         </div>
 
         {/* Words to drag */}
-        <div className="grid grid-cols-6 gap-3 justify-items-center mt-48 max-w-2xl mx-auto">
-          {allWords.map((word, i) => {
-            const isCorrectTarget = targetWords.includes(word);
-            const isBeingEaten = dragonEating && draggedWord === word;
-            const isBeingSpit = dragonSpitting && draggedWord === word;
-            
-            return (
-              <div 
-                key={`word-${word}-${i}`}
-                draggable={!isBeingEaten && !wordsUsed.includes(word)}
-                onDragStart={(e) => handleDragStart(e, word)}
-                onDragEnd={handleDragEnd}
-                className={`
-                  px-4 py-2 rounded-lg shadow-md transition-all duration-500 min-w-[80px] min-h-[40px]
-                  ${wordsUsed.includes(word) ? 'opacity-0 pointer-events-none' : 'cursor-move hover:shadow-lg'}
-                  ${draggedWord === word && !wordsUsed.includes(word) ? 'opacity-50 scale-95' : ''}
-                  ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
-                  ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
-                  ${!isBeingEaten && !isBeingSpit && !wordsUsed.includes(word)
-                    ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
-                    : wordsUsed.includes(word)
-                    ? 'bg-transparent'
-                    : ''
-                  }
-                `}
-              >
-                {word}
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap gap-3 justify-center mt-48 max-w-2xl mx-auto">
+          {allWords
+            .filter(word => !wordsUsed.includes(word))
+            .map((word, i) => {
+              const isCorrectTarget = targetWords.includes(word);
+              const isBeingEaten = dragonEating && draggedWord === word;
+              const isBeingSpit = dragonSpitting && draggedWord === word;
+              
+              return (
+                <div 
+                  key={`word-${word}`}
+                  draggable={!isBeingEaten}
+                  onDragStart={(e) => handleDragStart(e, word)}
+                  onDragEnd={handleDragEnd}
+                  className={`
+                    px-4 py-2 rounded-lg shadow-md transition-all duration-300 min-w-[80px] min-h-[40px]
+                    ${draggedWord === word ? 'opacity-50 scale-95' : 'cursor-move hover:shadow-lg'}
+                    ${isBeingEaten ? 'opacity-0 scale-0 transform translate-x-32 translate-y-[-8rem]' : ''}
+                    ${isBeingSpit ? 'animate-bounce bg-red-400 text-white' : ''}
+                    ${!isBeingEaten && !isBeingSpit
+                      ? 'bg-blue-200 hover:bg-blue-300 text-blue-800' 
+                      : ''
+                    }
+                  `}
+                >
+                  {word}
+                </div>
+              );
+            })}
         </div>
 
         {/* Feedback - positioned below words */}
