@@ -411,45 +411,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
 
 
-  const handleImageFileUpload = async (blockId: string, file: File) => {
-    if (!file) return;
-    
-    console.log("Uploading image file:", file.name, file.size);
-    
-    const formData = new FormData();
-    formData.append('file', file);
 
-    try {
-      const response = await fetch('/api/upload-direct', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Upload result:", result);
-
-      if (!result.objectPath) {
-        throw new Error('No object path in response');
-      }
-
-      updateBlock(blockId, { content: result.objectPath });
-      toast({
-        title: "Bild uppladdad!",
-        description: "Bilden har lagts till i dokumentet.",
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Uppladdning misslyckades",
-        description: `Kunde inte ladda upp bild: ${error instanceof Error ? error.message : 'Okänt fel'}`,
-        variant: "destructive",
-      });
-    }
-  };
 
   const renderBlock = (block: ContentBlock) => {
     const isActive = activeBlockId === block.id;
@@ -800,57 +762,44 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         {block.type === 'image' && (
           <div className="space-y-3">
             {!block.content ? (
-              <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg flex flex-col items-center justify-center gap-3">
-                <Image className="h-8 w-8 text-gray-500" />
-                <div className="text-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleImageFileUpload(block.id, file);
+              <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    try {
+                      const response = await fetch('/api/upload-direct', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      const result = await response.json();
+                      if (result.objectPath) {
+                        updateBlock(block.id, { content: result.objectPath });
                       }
-                      // Reset input to allow same file selection again
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                    id={`image-input-${block.id}`}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById(`image-input-${block.id}`)?.click()}
-                    className="mb-2"
-                  >
-                    Välj bild från datorn
-                  </Button>
-                  <div className="text-xs text-gray-500">JPG, PNG eller GIF (max 5MB)</div>
-                </div>
+                    } catch (error) {
+                      console.error('Upload failed:', error);
+                    }
+                  }}
+                  className="w-full p-2 border rounded"
+                />
+                <p className="mt-2 text-sm text-gray-500">Välj en bild från din dator</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                <img
-                  src={block.content}
-                  alt={block.metadata?.alt || ''}
-                  className="max-w-full h-auto rounded-lg"
-                />
-                <Input
-                  value={block.metadata?.alt || ''}
-                  onChange={(e) => updateBlock(block.id, { 
-                    metadata: { ...block.metadata, alt: e.target.value }
-                  })}
-                  placeholder="Bildtext/alt-text..."
-                  className="text-sm"
-                  data-testid={`input-image-alt-${block.id}`}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div>
+                <img src={block.content} alt="" className="max-w-full h-auto rounded" />
+                <button
                   onClick={() => updateBlock(block.id, { content: '' })}
+                  className="mt-2 px-3 py-1 bg-gray-200 rounded text-sm"
                 >
-                  Byt bild
-                </Button>
+                  Ta bort bild
+                </button>
               </div>
             )}
           </div>
