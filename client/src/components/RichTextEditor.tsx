@@ -796,7 +796,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         {block.type === 'image' && (
           <div className="space-y-3">
             {!block.content ? (
-              <div className="relative w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg cursor-pointer">
+              <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg">
                 <input
                   type="file"
                   accept="image/*"
@@ -805,14 +805,19 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                     if (file) {
                       handleImageUpload(block.id, file);
                     }
+                    e.target.value = ''; // Reset input for re-selection
                   }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="hidden"
+                  id={`image-upload-${block.id}`}
                 />
-                <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-500">
+                <label 
+                  htmlFor={`image-upload-${block.id}`}
+                  className="flex flex-col items-center justify-center h-full gap-2 text-gray-500 cursor-pointer w-full"
+                >
                   <Image className="h-8 w-8" />
                   <span>Klicka för att ladda upp bild</span>
                   <span className="text-xs">JPG, PNG eller GIF (max 5MB)</span>
-                </div>
+                </label>
               </div>
             ) : (
               <div className="space-y-2">
