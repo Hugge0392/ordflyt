@@ -805,12 +805,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               <ObjectUploader
                 maxNumberOfFiles={1}
                 maxFileSize={5 * 1024 * 1024} // 5MB
-                onGetUploadParameters={async () => {
-                  return {
-                    method: 'PUT' as const,
-                    url: '/api/upload-direct'
-                  };
-                }}
+
                 onComplete={handleImageUploadComplete(block.id)}
                 buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
               >
