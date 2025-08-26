@@ -49,8 +49,16 @@
   @apply text-gray-800 dark:text-gray-200;
 }
 
+/* Image sizing for rich text editor and reading content */
+.rich-text-preview img,
+.reading-content img,
 .prose img {
-  @apply max-w-full h-auto rounded-lg shadow-sm;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 :root {
