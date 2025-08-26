@@ -411,38 +411,41 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
 
 
-  const handleImageUpload = async (blockId: string, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('/api/upload-direct', {
-        method: 'POST',
-        body: formData
+  const handleImageUploadComplete = (blockId: string) => (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    console.log("Image upload completed:", result);
+    
+    if (result.failed && result.failed.length > 0) {
+      console.error("Image upload failed:", result.failed);
+      result.failed.forEach(file => {
+        console.error("Failed image file:", file.name, file.error);
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const objectPath = result.objectPath;
+      toast({
+        title: "Uppladdning misslyckades",
+        description: `Kunde inte ladda upp bild: ${result.failed[0]?.error || 'Okänt fel'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (result.successful && result.successful.length > 0) {
+      const first = result.successful[0] as any;
+      // Hämta objectPath från direktuppladdning
+      const objectPath = first?.response?.objectPath || first?.response?.body?.objectPath;
 
       if (!objectPath) {
-        throw new Error('No object path returned from upload');
+        console.warn("Image upload ok, men saknar objectPath i resultatet:", first);
+        toast({
+          title: "Uppladdning klar",
+          description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
+          variant: "destructive",
+        });
+        return;
       }
 
       updateBlock(blockId, { content: objectPath });
       toast({
         title: "Bild uppladdad!",
-        description: "Bilden har lagts till i dokumentet.",
-      });
-    } catch (error) {
-      console.error('Image upload error:', error);
-      toast({
-        title: "Uppladdning misslyckades",
-        description: `Kunde inte ladda upp bild: ${error instanceof Error ? error.message : 'Okänt fel'}`,
-        variant: "destructive",
+        description: "Bilden har lagts till.",
       });
     }
   };
@@ -796,29 +799,18 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         {block.type === 'image' && (
           <div className="space-y-3">
             {!block.content ? (
-              <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleImageUpload(block.id, file);
-                    }
-                    e.target.value = ''; // Reset input for re-selection
-                  }}
-                  className="hidden"
-                  id={`image-upload-${block.id}`}
-                />
-                <label 
-                  htmlFor={`image-upload-${block.id}`}
-                  className="flex flex-col items-center justify-center h-full gap-2 text-gray-500 cursor-pointer w-full"
-                >
+              <ObjectUploader
+                maxNumberOfFiles={1}
+                maxFileSize={5 * 1024 * 1024} // 5MB
+                onComplete={handleImageUploadComplete(block.id)}
+                buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+              >
+                <div className="flex flex-col items-center gap-2 text-gray-500">
                   <Image className="h-8 w-8" />
-                  <span>Klicka för att ladda upp bild</span>
+                  <span>Ladda upp bild</span>
                   <span className="text-xs">JPG, PNG eller GIF (max 5MB)</span>
-                </label>
-              </div>
+                </div>
+              </ObjectUploader>
             ) : (
               <div className="space-y-2">
                 <img
