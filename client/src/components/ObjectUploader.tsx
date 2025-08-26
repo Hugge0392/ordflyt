@@ -71,8 +71,8 @@ export function ObjectUploader({
     })
       .use(XHRUpload, {
         endpoint: async (file: any) => {
-          if (!file.meta || !file.meta._signedUpload) {
-            file.meta = file.meta || {};
+          if (!file.meta) file.meta = {};
+          if (!file.meta._signedUpload) {
             file.meta._signedUpload = await onGetUploadParameters(file);
           }
           return file.meta._signedUpload.url;
@@ -81,13 +81,18 @@ export function ObjectUploader({
         formData: false,
         bundle: false,
         headers: (file: any) => {
-          // Headers måste vara synkron - använd cached data
-          const params = file.meta?._signedUpload;
-          if (params) {
-            console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
-            return params.headers || {};
+          try {
+            // Headers måste vara synkron - använd redan cachad data från endpoint-funktionen
+            const params = file.meta?._signedUpload;
+            if (params) {
+              console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
+              return params.headers || {};
+            }
+            return {};
+          } catch (error) {
+            console.error("Error getting headers:", error);
+            return {};
           }
-          return {};
         },
       })
       .on("complete", (result) => {

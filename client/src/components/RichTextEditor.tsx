@@ -379,11 +379,12 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         return {
           method: "PUT" as const,
           url: data.uploadURL,
-          objectPath: data.objectPath, // Spara objectPath för senare användning
           headers: {
             'Content-Type': file.type || 'application/octet-stream',
           },
-        };
+          // Dessa extra fält plockas upp av ObjectUploader (file.meta._signedUpload)
+          objectPath: data.objectPath,
+        } as any;
       } catch (error) {
         console.error("Upload preparation error:", error);
         toast({
@@ -414,61 +415,28 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       }
       
       if (result.successful && result.successful.length > 0) {
-        const first = result.successful[0];
-        // Använd den sparade objectPath från upload-parametrarna
-        const objectPath = (first?.meta as any)?._signedUpload?.objectPath;
-        
-        if (objectPath) {
-          console.log("Using cached objectPath:", objectPath);
-          updateBlock(blockId, { content: objectPath });
+        const first = result.successful[0] as any;
+        // Hämta objectPath som vi cachade i file.meta._signedUpload via ObjectUploader
+        const objectPath =
+          (first?.meta && first.meta._signedUpload && first.meta._signedUpload.objectPath) ||
+          (first?.response && first.response.objectPath) ||
+          null;
+
+        if (!objectPath) {
+          console.warn("Upload ok, men saknar objectPath i resultatet. Kontrollera presign-responsen.");
           toast({
-            title: "Bild uppladdad!",
-            description: "Bilden har lagts till i din text.",
+            title: "Uppladdning klar",
+            description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
+            variant: "destructive",
           });
-        } else {
-          // Fallback: försök använda successful[0].response?.url eller .uploadURL  
-          const url = (first as any)?.response?.url || (first as any)?.uploadURL;
-          console.log("Fallback to URL:", url);
-          if (url) {
-            // Process the upload URL to get the object path via backend
-            fetch("/api/lesson-images", {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ imageURL: url }),
-            })
-            .then(response => {
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-              }
-              return response.json();
-            })
-            .then(data => {
-              console.log("Image processed via fallback:", data);
-              updateBlock(blockId, { content: data.objectPath });
-              toast({
-                title: "Bild uppladdad!",
-                description: "Bilden har lagts till i din text.",
-              });
-            })
-            .catch(error => {
-              console.error("Error processing image:", error);
-              toast({
-                title: "Fel",
-                description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
-                variant: "destructive",
-              });
-            });
-          } else {
-            console.warn("Saknar objectPath och uploadURL i Uppy-resultatet.");
-            toast({
-              title: "Fel",
-              description: "Kunde inte hitta bilduppladdningsresultat",
-              variant: "destructive",
-            });
-          }
+          return;
         }
+
+        updateBlock(blockId, { content: objectPath });
+        toast({
+          title: "Bild uppladdad!",
+          description: "Bilden har lagts till i din text.",
+        });
       }
     };
   };

@@ -314,20 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/lesson-images", async (req, res) => {
-    if (!req.body.imageURL) {
-      return res.status(400).json({ error: "imageURL is required" });
-    }
-
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = objectStorageService.normalizeObjectEntityPath(req.body.imageURL);
-      res.status(200).json({ objectPath });
-    } catch (error) {
-      console.error("Error processing lesson image:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  // Removed - no longer needed since objectPath is returned directly from /api/objects/upload
 
   // Published lesson endpoints
   app.post("/api/lessons/publish", async (req, res) => {
