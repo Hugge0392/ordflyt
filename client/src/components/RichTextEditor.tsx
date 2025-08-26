@@ -255,48 +255,60 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
 };
 
 export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className }: RichTextEditorProps) {
-  const [blocks, setBlocks] = useState<ContentBlock[]>(() => {
-    return parseHTMLToBlocks(value || '');
-  });
+  // Helper function to generate IDs
+  const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
   
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [justAddedPageBreak, setJustAddedPageBreak] = useState(false);
   const { toast } = useToast();
+
+  // Store pages as separate arrays of blocks instead of splitting from one array
+  const [pages, setPages] = useState<ContentBlock[][]>([
+    [{ id: generateId(), type: 'text', content: '', metadata: {} }]
+  ]);
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   useEffect(() => {
     if (value !== undefined && value !== '') {
-      // Create a simple text block without complex HTML parsing
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = value;
-      const plainText = tempDiv.textContent || tempDiv.innerText || value;
-      
-      // Only update if this is genuinely new content
-      const currentText = blocks.map(b => b.content).join('').trim();
-      if (plainText.trim() !== currentText) {
-        setBlocks([{ id: '1', type: 'text', content: plainText }]);
-      }
+      const parsedBlocks = parseHTMLToBlocks(value);
+      const newPages = splitIntoPages(parsedBlocks);
+      setPages(newPages);
     }
-  }, [value, blocks]);
+  }, [value]);
 
-  // Auto-navigate to new page when page break is added
-  useEffect(() => {
-    if (justAddedPageBreak) {
-      const pages = splitBlocksIntoPages(blocks);
-      setCurrentPage(pages.length - 1);
-      setJustAddedPageBreak(false);
-    }
-  }, [blocks, justAddedPageBreak]);
-
-  const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
-    const newBlocks = blocks.map(block => 
-      block.id === id ? { ...block, ...updates } : block
-    );
-    setBlocks(newBlocks);
+  // Split content blocks into pages when they contain page breaks
+  const splitIntoPages = (allBlocks: ContentBlock[]): ContentBlock[][] => {
+    const pagesList: ContentBlock[][] = [];
+    let currentPageBlocks: ContentBlock[] = [];
     
-    // Convert blocks back to HTML/text for the parent component
-    const htmlContent = newBlocks.map(block => {
+    allBlocks.forEach(block => {
+      if (block.type === 'page-break') {
+        // Save current page and start new one
+        pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+        currentPageBlocks = [];
+      } else {
+        currentPageBlocks.push(block);
+      }
+    });
+    
+    // Add final page
+    pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+    
+    return pagesList.length > 0 ? pagesList : [[{ id: generateId(), type: 'text', content: '', metadata: {} }]];
+  };
+
+  // Convert all pages back to a single HTML string for saving
+  useEffect(() => {
+    const allBlocks: ContentBlock[] = [];
+    pages.forEach((pageBlocks, index) => {
+      allBlocks.push(...pageBlocks);
+      if (index < pages.length - 1) {
+        // Add page break between pages (except after last page)
+        allBlocks.push({ id: generateId(), type: 'page-break', content: '', metadata: {} });
+      }
+    });
+
+    const htmlContent = allBlocks.map(block => {
       switch (block.type) {
         case 'heading':
           const level = block.metadata?.level || 2;
@@ -314,21 +326,16 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           return `<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>`;
         case 'text':
         default:
-          // Convert markdown to HTML before saving
           const content = block.content.trim();
           if (!content) return '';
           
           if (content.includes('<') && content.includes('>')) {
             return content;
           } else {
-            // Convert markdown formatting to HTML
             const htmlContent = formatMarkdownToHTML(content);
-            
-            // Only wrap in <p> if it doesn't already contain block elements
             if (htmlContent.startsWith('<h') || htmlContent.startsWith('<ul>') || htmlContent.includes('</h') || htmlContent.includes('<p>')) {
               return htmlContent;
             } else {
-              // Wrap in paragraph but avoid double-wrapping formatted content
               return `<p>${htmlContent}</p>`;
             }
           }
@@ -336,11 +343,20 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     }).join('\n');
     
     onChange(htmlContent);
+  }, [pages]);
+
+  const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
+    const newPages = pages.map(pageBlocks => 
+      pageBlocks.map(block => 
+        block.id === id ? { ...block, ...updates } : block
+      )
+    );
+    setPages(newPages);
   };
 
   const addBlock = (type: ContentBlock['type'], afterId?: string) => {
     const newBlock: ContentBlock = {
-      id: Date.now().toString(),
+      id: generateId(),
       type,
       content: '',
       metadata: type === 'heading' ? { level: 2 } : 
@@ -348,81 +364,48 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     };
 
     if (type === 'page-break') {
-      // When adding a page break, automatically go to the new page
-      setBlocks([...blocks, newBlock]);
-      setJustAddedPageBreak(true);
+      // Create a new page
+      const newPages = [...pages];
+      newPages.push([{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+      setPages(newPages);
+      setCurrentPage(newPages.length - 1);
     } else if (afterId) {
-      const index = blocks.findIndex(b => b.id === afterId);
-      const newBlocks = [...blocks];
-      newBlocks.splice(index + 1, 0, newBlock);
-      setBlocks(newBlocks);
+      // Find which page contains the target block and insert after it
+      const newPages = pages.map(pageBlocks => {
+        const index = pageBlocks.findIndex(b => b.id === afterId);
+        if (index !== -1) {
+          const newPageBlocks = [...pageBlocks];
+          newPageBlocks.splice(index + 1, 0, newBlock);
+          return newPageBlocks;
+        }
+        return pageBlocks;
+      });
+      setPages(newPages);
     } else {
       // Add to current page
-      const allPages = splitBlocksIntoPages(blocks);
-      const newBlocks = [...blocks];
-      
-      // Find where to insert the new block (at end of current page)
-      if (totalPages > 1) {
-        let insertIndex = 0;
-        for (let i = 0; i <= currentPage; i++) {
-          if (i < currentPage) {
-            insertIndex += allPages[i]?.length || 0;
-            if (i < allPages.length - 1) insertIndex++; // Account for page break
-          }
-        }
-        insertIndex += currentPageBlocks.length;
-        newBlocks.splice(insertIndex, 0, newBlock);
+      const newPages = [...pages];
+      if (newPages[safePage]) {
+        newPages[safePage] = [...newPages[safePage], newBlock];
       } else {
-        newBlocks.push(newBlock);
+        newPages[safePage] = [newBlock];
       }
-      
-      setBlocks(newBlocks);
+      setPages(newPages);
     }
     
     setActiveBlockId(newBlock.id);
   };
 
   const removeBlock = (id: string) => {
-    if (blocks.length === 1) return; // Don't remove the last block
-    
-    setBlocks(blocks.filter(block => block.id !== id));
+    const newPages = pages.map(pageBlocks => {
+      const filtered = pageBlocks.filter(block => block.id !== id);
+      // Don't let a page become completely empty - add default text block
+      return filtered.length === 0 ? [{ id: generateId(), type: 'text', content: '', metadata: {} }] : filtered;
+    });
+    setPages(newPages);
     setActiveBlockId(null);
   };
 
-  // Split blocks into pages based on page-break blocks
-  const splitBlocksIntoPages = (allBlocks: ContentBlock[]) => {
-    const pages: ContentBlock[][] = [];
-    let currentPage: ContentBlock[] = [];
-    
-    allBlocks.forEach(block => {
-      if (block.type === 'page-break') {
-        // When we hit a page break, save current page and start new one
-        if (currentPage.length > 0) {
-          pages.push(currentPage);
-          currentPage = [];
-        }
-      } else {
-        currentPage.push(block);
-      }
-    });
-    
-    // Add the last page if it has content
-    if (currentPage.length > 0) {
-      pages.push(currentPage);
-    }
-    
-    // If no pages, create a default page with empty text block
-    if (pages.length === 0) {
-      pages.push([{ id: Date.now().toString(), type: 'text', content: '', metadata: {} }]);
-    }
-    
-    return pages;
-  };
-
-  const pages = splitBlocksIntoPages(blocks);
   const totalPages = pages.length;
-  
-  // Ensure currentPage is within bounds
   const safePage = Math.max(0, Math.min(currentPage, totalPages - 1));
   const currentPageBlocks = pages[safePage] || [];
 
