@@ -409,48 +409,42 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   const safePage = Math.max(0, Math.min(currentPage, totalPages - 1));
   const currentPageBlocks = pages[safePage] || [];
 
-  // Inte behövd längre - ObjectUploader hanterar direkt upload
-  const handleImageUpload = () => ({});
 
-  const handleImageUploadComplete = (blockId: string) => {
-    return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-      console.log("Upload completed:", result);
-      
-      if (result.failed && result.failed.length > 0) {
-        console.error("Upload failed:", result.failed);
-        result.failed.forEach(file => {
-          console.error("Failed file:", file.name, file.error);
-        });
-        toast({
-          title: "Uppladdning misslyckades",
-          description: `Kunde inte ladda upp: ${result.failed[0]?.error || 'Okänt fel'}`,
-          variant: "destructive",
-        });
-        return;
+
+  const handleImageUpload = async (blockId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload-direct', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      if (result.successful && result.successful.length > 0) {
-        const first = result.successful[0] as any;
-        // Hämta objectPath från direktuppladdning
-        const objectPath = first?.response?.objectPath || first?.response?.body?.objectPath;
 
-        if (!objectPath) {
-          console.warn("Upload ok, men saknar objectPath i resultatet:", first);
-          toast({
-            title: "Uppladdning klar",
-            description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
-            variant: "destructive",
-          });
-          return;
-        }
+      const result = await response.json();
+      const objectPath = result.objectPath;
 
-        updateBlock(blockId, { content: objectPath });
-        toast({
-          title: "Bild uppladdad!",
-          description: "Bilden har lagts till i din text.",
-        });
+      if (!objectPath) {
+        throw new Error('No object path returned from upload');
       }
-    };
+
+      updateBlock(blockId, { content: objectPath });
+      toast({
+        title: "Bild uppladdad!",
+        description: "Bilden har lagts till i dokumentet.",
+      });
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast({
+        title: "Uppladdning misslyckades",
+        description: `Kunde inte ladda upp bild: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+        variant: "destructive",
+      });
+    }
   };
 
   const renderBlock = (block: ContentBlock) => {
@@ -802,19 +796,24 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         {block.type === 'image' && (
           <div className="space-y-3">
             {!block.content ? (
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5 * 1024 * 1024} // 5MB
-
-                onComplete={handleImageUploadComplete(block.id)}
-                buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-              >
-                <div className="flex flex-col items-center gap-2 text-gray-500">
+              <div className="relative w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleImageUpload(block.id, file);
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-500">
                   <Image className="h-8 w-8" />
                   <span>Klicka för att ladda upp bild</span>
                   <span className="text-xs">JPG, PNG eller GIF (max 5MB)</span>
                 </div>
-              </ObjectUploader>
+              </div>
             ) : (
               <div className="space-y-2">
                 <img
