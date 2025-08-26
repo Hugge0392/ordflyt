@@ -443,6 +443,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => addBlock('page-break', block.id)}
+              className="h-6 w-6 p-0"
+              title="Ny sida"
+            >
+              <div className="h-3 w-3 border-t-2 border-dashed border-gray-500"></div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => addBlock('quote', block.id)}
               className="h-6 w-6 p-0"
               title="Lägg till citat"
@@ -792,18 +801,19 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         )}
 
         {block.type === 'page-break' && (
-          <div className="py-4 text-center">
-            <div className="flex items-center gap-3 justify-center">
-              <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-20"></div>
-              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium">
-                <FileText className="h-4 w-4" />
-                <span>Ny sida</span>
+          <div className="relative flex items-center justify-center py-6 my-6 border-2 border-dashed border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-white" />
               </div>
-              <div className="h-px bg-gray-300 dark:bg-gray-600 flex-1 max-w-20"></div>
+              <div className="text-center">
+                <div className="text-blue-700 dark:text-blue-300 font-semibold">Ny sida</div>
+                <div className="text-blue-600 dark:text-blue-400 text-sm">Läsarna bläddrar till nästa sida här</div>
+              </div>
+              <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-white" />
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Läsarna kommer att bläddra till nästa sida här
-            </p>
           </div>
         )}
       </div>
