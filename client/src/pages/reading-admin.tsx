@@ -314,8 +314,10 @@ export default function ReadingAdmin() {
     });
   };
 
-  const handleFeaturedImageUpload = async () => {
+  const handleFeaturedImageUpload = async (file: any) => {
     try {
+      console.log("Getting upload parameters for featured image:", file.name);
+      
       const response = await fetch("/api/objects/upload", {
         method: "POST",
         headers: {
@@ -324,19 +326,26 @@ export default function ReadingAdmin() {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Featured image upload prep failed:", response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
+      console.log("Got featured image upload URL:", data.uploadURL.substring(0, 100) + "...");
+      
       return {
         method: "PUT" as const,
         url: data.uploadURL,
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+        },
       };
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Featured image upload preparation error:", error);
       toast({
         title: "Fel",
-        description: "Kunde inte förbereda bilduppladdning",
+        description: `Kunde inte förbereda bilduppladdning: ${error instanceof Error ? error.message : 'Okänt fel'}`,
         variant: "destructive",
       });
       throw error;
@@ -344,9 +353,26 @@ export default function ReadingAdmin() {
   };
 
   const handleFeaturedImageComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    console.log("Featured image upload completed:", result);
+    
+    if (result.failed && result.failed.length > 0) {
+      console.error("Featured image upload failed:", result.failed);
+      result.failed.forEach(file => {
+        console.error("Failed featured image file:", file.name, file.error);
+      });
+      toast({
+        title: "Uppladdning misslyckades",
+        description: `Kunde inte ladda upp huvudbild: ${result.failed[0]?.error || 'Okänt fel'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (result.successful && result.successful.length > 0) {
       const uploadURL = result.successful[0].uploadURL;
       if (uploadURL) {
+        console.log("Processing uploaded featured image URL:", uploadURL);
+        
         // Process the upload URL to get the object path
         fetch("/api/lesson-images", {
           method: "PUT",
@@ -355,8 +381,14 @@ export default function ReadingAdmin() {
           },
           body: JSON.stringify({ imageURL: uploadURL }),
         })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
+          console.log("Featured image processed:", data);
           const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
           setEditingLesson(prev => prev ? {
             ...prev,
@@ -371,7 +403,7 @@ export default function ReadingAdmin() {
           console.error("Error processing featured image:", error);
           toast({
             title: "Fel",
-            description: "Kunde inte bearbeta bilden",
+            description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
             variant: "destructive",
           });
         });
