@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon, FileText } from "lucide-react";
+import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon, FileText, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
