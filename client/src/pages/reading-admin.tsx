@@ -337,6 +337,7 @@ export default function ReadingAdmin() {
       return {
         method: "PUT" as const,
         url: data.uploadURL,
+        objectPath: data.objectPath, // Spara objectPath för senare användning
         headers: {
           'Content-Type': file.type || 'application/octet-stream',
         },
@@ -369,44 +370,66 @@ export default function ReadingAdmin() {
     }
     
     if (result.successful && result.successful.length > 0) {
-      const uploadURL = result.successful[0].uploadURL;
-      if (uploadURL) {
-        console.log("Processing uploaded featured image URL:", uploadURL);
-        
-        // Process the upload URL to get the object path
-        fetch("/api/lesson-images", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ imageURL: uploadURL }),
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log("Featured image processed:", data);
-          const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
-          setEditingLesson(prev => prev ? {
-            ...prev,
-            featuredImage: imagePath
-          } : prev);
-          toast({
-            title: "Bild uppladdad!",
-            description: "Huvudbilden har lagts till.",
+      const first = result.successful[0];
+      // Använd den sparade objectPath från upload-parametrarna
+      const objectPath = (first?.meta as any)?._signedUpload?.objectPath;
+      
+      if (objectPath) {
+        console.log("Using cached objectPath for featured image:", objectPath);
+        setEditingLesson(prev => prev ? {
+          ...prev,
+          featuredImage: objectPath
+        } : prev);
+        toast({
+          title: "Bild uppladdad!",
+          description: "Huvudbilden har lagts till.",
+        });
+      } else {
+        // Fallback: försök använda successful[0].response?.url eller .uploadURL  
+        const url = (first as any)?.response?.url || (first as any)?.uploadURL;
+        console.log("Fallback to URL for featured image:", url);
+        if (url) {
+          // Process the upload URL to get the object path via backend
+          fetch("/api/lesson-images", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ imageURL: url }),
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Featured image processed via fallback:", data);
+            setEditingLesson(prev => prev ? {
+              ...prev,
+              featuredImage: data.objectPath
+            } : prev);
+            toast({
+              title: "Bild uppladdad!",
+              description: "Huvudbilden har lagts till.",
+            });
+          })
+          .catch(error => {
+            console.error("Error processing featured image:", error);
+            toast({
+              title: "Fel",
+              description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+              variant: "destructive",
+            });
           });
-        })
-        .catch(error => {
-          console.error("Error processing featured image:", error);
+        } else {
+          console.warn("Saknar objectPath och uploadURL för featured image.");
           toast({
             title: "Fel",
-            description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+            description: "Kunde inte hitta bilduppladdningsresultat",
             variant: "destructive",
           });
-        });
+        }
       }
     }
   };
