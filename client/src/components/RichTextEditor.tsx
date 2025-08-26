@@ -356,8 +356,10 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   };
 
   const handleImageUpload = (blockId: string) => {
-    return async () => {
+    return async (file: any) => {
       try {
+        console.log("Getting upload parameters for file:", file.name);
+        
         const response = await fetch("/api/objects/upload", {
           method: "POST",
           headers: {
@@ -366,19 +368,26 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         });
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error("Upload prep failed:", response.status, errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
         
         const data = await response.json();
+        console.log("Got upload URL:", data.uploadURL.substring(0, 100) + "...");
+        
         return {
           method: "PUT" as const,
           url: data.uploadURL,
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+          },
         };
       } catch (error) {
-        console.error("Upload error:", error);
+        console.error("Upload preparation error:", error);
         toast({
           title: "Fel",
-          description: "Kunde inte förbereda bilduppladdning",
+          description: `Kunde inte förbereda bilduppladdning: ${error instanceof Error ? error.message : 'Okänt fel'}`,
           variant: "destructive",
         });
         throw error;
@@ -388,9 +397,26 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
   const handleImageUploadComplete = (blockId: string) => {
     return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+      console.log("Upload completed:", result);
+      
+      if (result.failed && result.failed.length > 0) {
+        console.error("Upload failed:", result.failed);
+        result.failed.forEach(file => {
+          console.error("Failed file:", file.name, file.error);
+        });
+        toast({
+          title: "Uppladdning misslyckades",
+          description: `Kunde inte ladda upp: ${result.failed[0]?.error || 'Okänt fel'}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (result.successful && result.successful.length > 0) {
         const uploadURL = result.successful?.[0]?.uploadURL;
         if (uploadURL) {
+          console.log("Processing uploaded image URL:", uploadURL);
+          
           // Process the upload URL to get the object path
           fetch("/api/lesson-images", {
             method: "PUT",
@@ -399,8 +425,14 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             },
             body: JSON.stringify({ imageURL: uploadURL }),
           })
-          .then(response => response.json())
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+          })
           .then(data => {
+            console.log("Image processed:", data);
             const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
             updateBlock(blockId, { content: imagePath });
             toast({
@@ -412,7 +444,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             console.error("Error processing image:", error);
             toast({
               title: "Fel",
-              description: "Kunde inte bearbeta bilden",
+              description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
               variant: "destructive",
             });
           });
