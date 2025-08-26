@@ -264,7 +264,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
   // Store pages as separate arrays of blocks instead of splitting from one array
   const [pages, setPages] = useState<ContentBlock[][]>([
-    [{ id: generateId(), type: 'text', content: '', metadata: {} }]
+    [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]
   ]);
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
@@ -284,7 +284,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     allBlocks.forEach(block => {
       if (block.type === 'page-break') {
         // Save current page and start new one
-        pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+        pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]);
         currentPageBlocks = [];
       } else {
         currentPageBlocks.push(block);
@@ -292,9 +292,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     });
     
     // Add final page
-    pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+    pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]);
     
-    return pagesList.length > 0 ? pagesList : [[{ id: generateId(), type: 'text', content: '', metadata: {} }]];
+    return pagesList.length > 0 ? pagesList : [[{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]];
   };
 
   // Convert all pages back to a single HTML string for saving
@@ -304,7 +304,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       allBlocks.push(...pageBlocks);
       if (index < pages.length - 1) {
         // Add page break between pages (except after last page)
-        allBlocks.push({ id: generateId(), type: 'page-break', content: '', metadata: {} });
+        allBlocks.push({ id: generateId(), type: 'page-break' as const, content: '', metadata: {} });
       }
     });
 
@@ -366,7 +366,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     if (type === 'page-break') {
       // Create a new page
       const newPages = [...pages];
-      newPages.push([{ id: generateId(), type: 'text', content: '', metadata: {} }]);
+      newPages.push([{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]);
       setPages(newPages);
       setCurrentPage(newPages.length - 1);
     } else if (afterId) {
@@ -399,7 +399,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     const newPages = pages.map(pageBlocks => {
       const filtered = pageBlocks.filter(block => block.id !== id);
       // Don't let a page become completely empty - add default text block
-      return filtered.length === 0 ? [{ id: generateId(), type: 'text', content: '', metadata: {} }] : filtered;
+      return filtered.length === 0 ? [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }] : filtered;
     });
     setPages(newPages);
     setActiveBlockId(null);
@@ -806,9 +806,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 maxNumberOfFiles={1}
                 maxFileSize={5 * 1024 * 1024} // 5MB
                 onGetUploadParameters={async () => {
-                  const response = await apiRequest('/api/upload-direct');
                   return {
-                    method: 'POST' as const,
+                    method: 'PUT' as const,
                     url: '/api/upload-direct'
                   };
                 }}
@@ -840,7 +839,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => updateBlock(block.id, { content: '', metadata: { ...block.metadata, alt: '' } })}
+                  onClick={() => updateBlock(block.id, { content: '' })}
                 >
                   Byt bild
                 </Button>
