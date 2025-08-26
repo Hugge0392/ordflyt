@@ -261,6 +261,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [justAddedPageBreak, setJustAddedPageBreak] = useState(false);
   const { toast } = useToast();
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
@@ -278,6 +279,15 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       }
     }
   }, [value, blocks]);
+
+  // Auto-navigate to new page when page break is added
+  useEffect(() => {
+    if (justAddedPageBreak) {
+      const pages = splitBlocksIntoPages(blocks);
+      setCurrentPage(pages.length - 1);
+      setJustAddedPageBreak(false);
+    }
+  }, [blocks, justAddedPageBreak]);
 
   const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
     const newBlocks = blocks.map(block => 
@@ -340,7 +350,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     if (type === 'page-break') {
       // When adding a page break, automatically go to the new page
       setBlocks([...blocks, newBlock]);
-      setCurrentPage(totalPages); // This will be the new page after the break
+      setJustAddedPageBreak(true);
     } else if (afterId) {
       const index = blocks.findIndex(b => b.id === afterId);
       const newBlocks = [...blocks];
