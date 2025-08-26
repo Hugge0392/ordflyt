@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: (file: any) => Promise<{
+  onGetUploadParameters?: (file: any) => Promise<{
     method: "PUT";
     url: string;
     headers?: Record<string, string>;
@@ -70,30 +70,11 @@ export function ObjectUploader({
       debug: true,
     })
       .use(XHRUpload, {
-        endpoint: async (file: any) => {
-          if (!file.meta) file.meta = {};
-          if (!file.meta._signedUpload) {
-            file.meta._signedUpload = await onGetUploadParameters(file);
-          }
-          return file.meta._signedUpload.url;
-        },
-        method: "PUT",
-        formData: false,
+        endpoint: "/api/upload-direct",
+        method: "POST",
+        formData: true,
+        fieldName: "file",
         bundle: false,
-        headers: (file: any) => {
-          try {
-            // Headers måste vara synkron - använd redan cachad data från endpoint-funktionen
-            const params = file.meta?._signedUpload;
-            if (params) {
-              console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
-              return params.headers || {};
-            }
-            return {};
-          } catch (error) {
-            console.error("Error getting headers:", error);
-            return {};
-          }
-        },
       })
       .on("complete", (result) => {
         console.log("Uppy complete:", result);

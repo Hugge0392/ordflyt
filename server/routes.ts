@@ -3,7 +3,20 @@ import { createServer, type Server } from "http";
 import express from "express";
 import path from "path";
 import { storage } from "./storage";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
+
+function parseObjectPath(path: string): { bucketName: string; objectName: string } {
+  if (!path.startsWith("/")) {
+    path = `/${path}`;
+  }
+  const pathParts = path.split("/");
+  if (pathParts.length < 3) {
+    throw new Error("Invalid path: must contain at least a bucket name");
+  }
+  const bucketName = pathParts[1];
+  const objectName = pathParts.slice(2).join("/");
+  return { bucketName, objectName };
+}
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema } from "@shared/schema";
@@ -298,6 +311,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
+    }
+  });
+
+  // Direct upload endpoint using multer for file handling
+  const multer = (await import('multer')).default;
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+  
+  app.post("/api/upload-direct", upload.single('file'), async (req: any, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      console.log("Direct upload received:", req.file.originalname, "size:", req.file.size);
+      
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const { randomUUID } = await import('crypto');
+      const objectId = randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      
+      const { bucketName, objectName } = parseObjectPath(fullPath);
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      
+      // Upload directly to bucket
+      await file.save(req.file.buffer, {
+        metadata: {
+          contentType: req.file.mimetype || 'application/octet-stream',
+        },
+      });
+      
+      const objectPath = `/objects/uploads/${objectId}`;
+      console.log("Direct upload successful, objectPath:", objectPath);
+      
+      res.json({ 
+        success: true, 
+        objectPath,
+        url: objectPath // För Uppy-kompatibilitet
+      });
+    } catch (error) {
+      console.error("Direct upload error:", error);
+      res.status(500).json({ error: "Upload failed" });
     }
   });
 

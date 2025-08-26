@@ -355,47 +355,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     setActiveBlockId(null);
   };
 
-  const handleImageUpload = (blockId: string) => {
-    return async (file: any) => {
-      try {
-        console.log("Getting upload parameters for file:", file.name);
-        
-        const response = await fetch("/api/objects/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Upload prep failed:", response.status, errorText);
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-        }
-        
-        const data = await response.json();
-        console.log("Got upload URL:", data.uploadURL.substring(0, 100) + "...");
-        
-        return {
-          method: "PUT" as const,
-          url: data.uploadURL,
-          headers: {
-            'Content-Type': file.type || 'application/octet-stream',
-          },
-          // Dessa extra fält plockas upp av ObjectUploader (file.meta._signedUpload)
-          objectPath: data.objectPath,
-        } as any;
-      } catch (error) {
-        console.error("Upload preparation error:", error);
-        toast({
-          title: "Fel",
-          description: `Kunde inte förbereda bilduppladdning: ${error instanceof Error ? error.message : 'Okänt fel'}`,
-          variant: "destructive",
-        });
-        throw error;
-      }
-    };
-  };
+  // Inte behövd längre - ObjectUploader hanterar direkt upload
+  const handleImageUpload = () => ({});
 
   const handleImageUploadComplete = (blockId: string) => {
     return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
@@ -416,14 +377,11 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       
       if (result.successful && result.successful.length > 0) {
         const first = result.successful[0] as any;
-        // Hämta objectPath som vi cachade i file.meta._signedUpload via ObjectUploader
-        const objectPath =
-          (first?.meta && first.meta._signedUpload && first.meta._signedUpload.objectPath) ||
-          (first?.response && first.response.objectPath) ||
-          null;
+        // Hämta objectPath från direktuppladdning
+        const objectPath = first?.response?.objectPath || first?.response?.body?.objectPath;
 
         if (!objectPath) {
-          console.warn("Upload ok, men saknar objectPath i resultatet. Kontrollera presign-responsen.");
+          console.warn("Upload ok, men saknar objectPath i resultatet:", first);
           toast({
             title: "Uppladdning klar",
             description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
@@ -796,7 +754,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               <ObjectUploader
                 maxNumberOfFiles={1}
                 maxFileSize={5 * 1024 * 1024} // 5MB
-                onGetUploadParameters={handleImageUpload(block.id)}
                 onComplete={handleImageUploadComplete(block.id)}
                 buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
               >
