@@ -57,19 +57,8 @@ function formatMarkdownToHTML(text: string): string {
     html = grouped.join('\n');
   }
   
-  // Convert line breaks - preserve paragraph structure
-  // First, handle double+ newlines as paragraph breaks
-  html = html.replace(/\n\n+/g, '</p><p>');
-  
-  // Wrap content in paragraphs if it contains paragraph breaks
-  if (html.includes('</p><p>')) {
-    html = '<p>' + html + '</p>';
-    // Clean up empty paragraphs
-    html = html.replace(/<p><\/p>/g, '');
-  }
-  
-  // Convert remaining single newlines to line breaks
-  html = html.replace(/\n/g, '<br>');
+  // Don't convert line breaks to HTML - let CSS handle with pre-wrap
+  // The white-space: pre-wrap will preserve all line breaks and spacing
   
   return html;
 }
@@ -677,51 +666,20 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 onPaste={(e) => {
                   e.preventDefault();
                   const textarea = e.target as HTMLTextAreaElement;
+                  
+                  // Get plain text and normalize line endings
                   const pastedText = e.clipboardData.getData('text/plain');
-                  const start = textarea.selectionStart;
-                  const end = textarea.selectionEnd;
-                  const currentValue = textarea.value;
+                  const cleanText = pastedText.replace(/\r\n?/g, '\n');
                   
-                  // Process pasted text to preserve paragraphs
-                  const processedText = pastedText
-                    .split(/\r?\n\s*\r?\n/) // Split on double line breaks (paragraphs)
-                    .map(paragraph => paragraph.replace(/\r?\n/g, ' ').trim()) // Replace single line breaks with spaces, trim
-                    .filter(paragraph => paragraph.length > 0) // Remove empty paragraphs
-                    .join('\n\n'); // Join with double line breaks for proper paragraph separation
+                  // Use document.execCommand for better text insertion
+                  document.execCommand('insertText', false, cleanText);
                   
-                  // Insert processed text at cursor position
-                  const newValue = currentValue.substring(0, start) + processedText + currentValue.substring(end);
-                  updateBlock(block.id, { content: newValue });
-                  
-                  // Set cursor position after pasted content
-                  setTimeout(() => {
-                    const newCursorPos = start + processedText.length;
-                    textarea.setSelectionRange(newCursorPos, newCursorPos);
-                  }, 0);
+                  // Update block content after insertion
+                  updateBlock(block.id, { content: textarea.value });
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    // Allow normal Enter behavior, but ensure we detect double Enter for paragraph breaks
-                    const textarea = e.target as HTMLTextAreaElement;
-                    const start = textarea.selectionStart;
-                    const value = textarea.value;
-                    
-                    // Check if cursor is at end of line followed by empty line (double enter for paragraph)
-                    const beforeCursor = value.substring(0, start);
-                    const afterCursor = value.substring(start);
-                    
-                    // If we're at the end of a line and the next line is empty, create paragraph break
-                    if (beforeCursor.endsWith('\n') && (afterCursor === '' || afterCursor.startsWith('\n'))) {
-                      e.preventDefault();
-                      const newValue = beforeCursor + '\n' + afterCursor;
-                      updateBlock(block.id, { content: newValue });
-                      // Set cursor position after the paragraph break
-                      setTimeout(() => {
-                        textarea.setSelectionRange(start + 1, start + 1);
-                      }, 0);
-                    }
-                    // Otherwise let normal Enter behavior proceed
-                  }
+                  // Let Enter work naturally - no special handling needed
+                  // The textarea will handle line breaks correctly
                 }}
                 placeholder={placeholder}
                 className="border-none p-4 resize-y min-h-[200px] max-h-[400px] focus-visible:ring-0 text-base leading-relaxed"
@@ -735,8 +693,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 <div className="text-xs text-gray-500 mb-2">Förhandsgranskning:</div>
                 <div 
                   className="prose max-w-none text-sm"
+                  style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
                   dangerouslySetInnerHTML={{ 
-                    __html: formatMarkdownToHTML(block.content.replace(/<br\s*\/?>/gi, '\n'))
+                    __html: formatMarkdownToHTML(block.content)
                   }}
                 />
               </div>

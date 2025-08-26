@@ -24,8 +24,7 @@ function formatMarkdownToHTML(text: string): string {
   // Convert italic (*text*) - must have content between and not interfere with bold
   html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
   
-  // Convert line breaks
-  html = html.replace(/\n/g, '<br>');
+  // Don't convert line breaks - let CSS handle with pre-wrap
   
   // Convert bullet points - only at start of line
   html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
@@ -293,7 +292,7 @@ export default function ReadingLessonViewer() {
             <CardContent className="relative">
               <div 
                 className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg"
-                style={{ fontSize: '1.25rem', lineHeight: '1.8' }}
+                style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
                 dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
                 onMouseOver={handleContentMouseOver}
                 onMouseOut={handleContentMouseOut}
