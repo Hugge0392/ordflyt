@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { Bold, Italic, List, ListOrdered, Image, Type, Quote, Trash2, Minus, FileText } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Image, Type, Quote, Trash2, Minus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { UploadResult } from "@uppy/core";
@@ -260,6 +260,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   });
   
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
   const { toast } = useToast();
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
@@ -336,13 +337,36 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                 type === 'list' ? { listType: 'unordered' } : undefined
     };
 
-    if (afterId) {
+    if (type === 'page-break') {
+      // When adding a page break, automatically go to the new page
+      setBlocks([...blocks, newBlock]);
+      setCurrentPage(totalPages); // This will be the new page after the break
+    } else if (afterId) {
       const index = blocks.findIndex(b => b.id === afterId);
       const newBlocks = [...blocks];
       newBlocks.splice(index + 1, 0, newBlock);
       setBlocks(newBlocks);
     } else {
-      setBlocks([...blocks, newBlock]);
+      // Add to current page
+      const allPages = splitBlocksIntoPages(blocks);
+      const newBlocks = [...blocks];
+      
+      // Find where to insert the new block (at end of current page)
+      if (totalPages > 1) {
+        let insertIndex = 0;
+        for (let i = 0; i <= currentPage; i++) {
+          if (i < currentPage) {
+            insertIndex += allPages[i]?.length || 0;
+            if (i < allPages.length - 1) insertIndex++; // Account for page break
+          }
+        }
+        insertIndex += currentPageBlocks.length;
+        newBlocks.splice(insertIndex, 0, newBlock);
+      } else {
+        newBlocks.push(newBlock);
+      }
+      
+      setBlocks(newBlocks);
     }
     
     setActiveBlockId(newBlock.id);
@@ -354,6 +378,43 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     setBlocks(blocks.filter(block => block.id !== id));
     setActiveBlockId(null);
   };
+
+  // Split blocks into pages based on page-break blocks
+  const splitBlocksIntoPages = (allBlocks: ContentBlock[]) => {
+    const pages: ContentBlock[][] = [];
+    let currentPage: ContentBlock[] = [];
+    
+    allBlocks.forEach(block => {
+      if (block.type === 'page-break') {
+        // When we hit a page break, save current page and start new one
+        if (currentPage.length > 0) {
+          pages.push(currentPage);
+          currentPage = [];
+        }
+      } else {
+        currentPage.push(block);
+      }
+    });
+    
+    // Add the last page if it has content
+    if (currentPage.length > 0) {
+      pages.push(currentPage);
+    }
+    
+    // If no pages, create a default page with empty text block
+    if (pages.length === 0) {
+      pages.push([{ id: Date.now().toString(), type: 'text', content: '', metadata: {} }]);
+    }
+    
+    return pages;
+  };
+
+  const pages = splitBlocksIntoPages(blocks);
+  const totalPages = pages.length;
+  
+  // Ensure currentPage is within bounds
+  const safePage = Math.max(0, Math.min(currentPage, totalPages - 1));
+  const currentPageBlocks = pages[safePage] || [];
 
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleImageUpload = () => ({});
@@ -843,8 +904,47 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         </div>
       </div>
 
+      {/* Page navigation */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+          >
+            ← Föregående sida
+          </Button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+            Sida {currentPage + 1} av {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+            disabled={currentPage === totalPages - 1}
+          >
+            Nästa sida →
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
-        {blocks.map(renderBlock)}
+        {currentPageBlocks.map(renderBlock)}
+        
+        {/* Add "New Page" button at the end of current page */}
+        {currentPage === totalPages - 1 && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={() => addBlock('page-break')}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Lägg till ny sida
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="text-xs text-muted-foreground">
