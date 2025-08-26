@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon } from "lucide-react";
+import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,6 +22,7 @@ export default function ReadingAdmin() {
   const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Partial<InsertReadingLesson> | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -388,6 +390,57 @@ export default function ReadingAdmin() {
                   <X className="w-4 h-4 mr-2" />
                   Avbryt
                 </Button>
+                <Dialog open={showPreview} onOpenChange={setShowPreview}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={!editingLesson?.content}
+                      data-testid="button-preview-lesson"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Förhandsgranska
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{editingLesson?.title || "Förhandsgranskning"}</DialogTitle>
+                      <DialogDescription>
+                        Så här kommer lektionen att se ut för eleverna
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      {editingLesson?.featuredImage && (
+                        <div className="w-full h-48 bg-muted rounded-lg overflow-hidden">
+                          <img 
+                            src={editingLesson.featuredImage} 
+                            alt={editingLesson.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mb-4">
+                        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                          {editingLesson?.gradeLevel && `Årskurs ${editingLesson.gradeLevel}`}
+                        </Badge>
+                        {editingLesson?.readingTime && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {editingLesson.readingTime} min läsning
+                          </div>
+                        )}
+                      </div>
+                      {editingLesson?.description && (
+                        <p className="text-muted-foreground mb-4">{editingLesson.description}</p>
+                      )}
+                      {editingLesson?.content && (
+                        <div 
+                          className="prose dark:prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: editingLesson.content }}
+                        />
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button
                   variant="outline"
                   onClick={handleSaveLesson}
