@@ -411,41 +411,42 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
 
 
-  const handleImageUploadComplete = (blockId: string) => (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-    console.log("Image upload completed:", result);
+  const handleImageFileUpload = async (blockId: string, file: File) => {
+    if (!file) return;
     
-    if (result.failed && result.failed.length > 0) {
-      console.error("Image upload failed:", result.failed);
-      result.failed.forEach(file => {
-        console.error("Failed image file:", file.name, file.error);
-      });
-      toast({
-        title: "Uppladdning misslyckades",
-        description: `Kunde inte ladda upp bild: ${result.failed[0]?.error || 'Okänt fel'}`,
-        variant: "destructive",
-      });
-      return;
-    }
+    console.log("Uploading image file:", file.name, file.size);
     
-    if (result.successful && result.successful.length > 0) {
-      const first = result.successful[0] as any;
-      // Hämta objectPath från direktuppladdning
-      const objectPath = first?.response?.objectPath || first?.response?.body?.objectPath;
+    const formData = new FormData();
+    formData.append('file', file);
 
-      if (!objectPath) {
-        console.warn("Image upload ok, men saknar objectPath i resultatet:", first);
-        toast({
-          title: "Uppladdning klar",
-          description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
-          variant: "destructive",
-        });
-        return;
+    try {
+      const response = await fetch('/api/upload-direct', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
 
-      updateBlock(blockId, { content: objectPath });
+      const result = await response.json();
+      console.log("Upload result:", result);
+
+      if (!result.objectPath) {
+        throw new Error('No object path in response');
+      }
+
+      updateBlock(blockId, { content: result.objectPath });
       toast({
         title: "Bild uppladdad!",
-        description: "Bilden har lagts till.",
+        description: "Bilden har lagts till i dokumentet.",
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Uppladdning misslyckades",
+        description: `Kunde inte ladda upp bild: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+        variant: "destructive",
       });
     }
   };
@@ -799,18 +800,34 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         {block.type === 'image' && (
           <div className="space-y-3">
             {!block.content ? (
-              <ObjectUploader
-                maxNumberOfFiles={1}
-                maxFileSize={5 * 1024 * 1024} // 5MB
-                onComplete={handleImageUploadComplete(block.id)}
-                buttonClassName="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-              >
-                <div className="flex flex-col items-center gap-2 text-gray-500">
-                  <Image className="h-8 w-8" />
-                  <span>Ladda upp bild</span>
-                  <span className="text-xs">JPG, PNG eller GIF (max 5MB)</span>
+              <div className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 rounded-lg flex flex-col items-center justify-center gap-3">
+                <Image className="h-8 w-8 text-gray-500" />
+                <div className="text-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageFileUpload(block.id, file);
+                      }
+                      // Reset input to allow same file selection again
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                    id={`image-input-${block.id}`}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById(`image-input-${block.id}`)?.click()}
+                    className="mb-2"
+                  >
+                    Välj bild från datorn
+                  </Button>
+                  <div className="text-xs text-gray-500">JPG, PNG eller GIF (max 5MB)</div>
                 </div>
-              </ObjectUploader>
+              </div>
             ) : (
               <div className="space-y-2">
                 <img
