@@ -4,7 +4,7 @@ import Uppy from "@uppy/core";
 import { DashboardModal } from "@uppy/react";
 import "@uppy/core/dist/style.min.css";
 import "@uppy/dashboard/dist/style.min.css";
-import AwsS3 from "@uppy/aws-s3";
+import XHRUpload from "@uppy/xhr-upload";
 import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
 
@@ -69,9 +69,25 @@ export function ObjectUploader({
       autoProceed: false,
       debug: true,
     })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+      .use(XHRUpload, {
+        endpoint: (file: any) => {
+          // This will be called per file to get the endpoint
+          return onGetUploadParameters(file).then(params => params.url);
+        },
+        method: 'PUT',
+        formData: false,
+        fieldName: 'file',
+        bundle: false,
+        headers: async (file: any) => {
+          try {
+            const params = await onGetUploadParameters(file);
+            console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
+            return params.headers || {};
+          } catch (error) {
+            console.error("Error getting headers:", error);
+            return {};
+          }
+        },
       })
       .on("complete", (result) => {
         console.log("Uppy complete:", result);

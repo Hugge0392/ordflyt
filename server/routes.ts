@@ -557,18 +557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve generated lesson files statically
   app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
 
-  // Object storage endpoints for lesson images
-  app.post("/api/objects/upload", async (req, res) => {
-    try {
-      const { ObjectStorageService } = await import("./objectStorage");
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
-    }
-  });
+  // Removed duplicate - object storage upload endpoint is defined above
 
   app.put("/api/lesson-images", async (req, res) => {
     try {
