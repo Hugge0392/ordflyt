@@ -674,19 +674,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
               />
             </div>
             
-            {/* Preview area (shows formatted result) */}
-            {block.content && (
-              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
-                <div className="text-xs text-gray-500 mb-2">Förhandsgranskning:</div>
-                <div 
-                  className="prose max-w-none text-sm rich-text-preview"
-                  style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                  dangerouslySetInnerHTML={{ 
-                    __html: formatMarkdownToHTML(block.content)
-                  }}
-                />
-              </div>
-            )}
+
             <div className="flex justify-between text-xs text-muted-foreground">
               <div>Tips: Använd **fetstil**, *kursiv*, # rubriker och • listor</div>
               <div>Tecken: {block.content.replace(/<[^>]*>/g, '').length}</div>
