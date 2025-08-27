@@ -160,6 +160,9 @@ export default function ReadingAdmin() {
       wordDefinitions: [],
       isPublished: 0
     });
+    // Clear images when creating new lesson
+    setImagesAbove([]);
+    setImagesBelow([]);
   };
 
   const handleSaveLesson = () => {
@@ -174,10 +177,17 @@ export default function ReadingAdmin() {
       return;
     }
 
+    // Include images in the lesson data
+    const lessonWithImages = {
+      ...editingLesson,
+      imagesAbove,
+      imagesBelow
+    };
+
     if (isCreating) {
-      createMutation.mutate(editingLesson as InsertReadingLesson);
+      createMutation.mutate(lessonWithImages as InsertReadingLesson);
     } else if (selectedLesson) {
-      updateMutation.mutate({ id: selectedLesson.id, lesson: editingLesson });
+      updateMutation.mutate({ id: selectedLesson.id, lesson: lessonWithImages });
     }
   };
 
@@ -196,6 +206,9 @@ export default function ReadingAdmin() {
       wordDefinitions: lesson.wordDefinitions,
       isPublished: lesson.isPublished
     });
+    // Load images from lesson data
+    setImagesAbove(lesson.imagesAbove || []);
+    setImagesBelow(lesson.imagesBelow || []);
     setIsCreating(false);
   };
 
@@ -435,11 +448,40 @@ export default function ReadingAdmin() {
                       {editingLesson?.description && (
                         <p className="text-muted-foreground mb-4">{editingLesson.description}</p>
                       )}
+                      
+                      {/* Förhandsvisning av bilder ovanför texten */}
+                      {imagesAbove.length > 0 && (
+                        <div className="space-y-3 mb-6">
+                          {imagesAbove.map((imageUrl, index) => (
+                            <img 
+                              key={index}
+                              src={imageUrl} 
+                              alt={`Bild ovanför texten ${index + 1}`}
+                              className="w-full max-w-2xl h-auto rounded-lg"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      
                       {editingLesson?.content && (
                         <div 
                           className="prose dark:prose-invert max-w-none"
                           dangerouslySetInnerHTML={{ __html: editingLesson.content }}
                         />
+                      )}
+                      
+                      {/* Förhandsvisning av bilder under texten */}
+                      {imagesBelow.length > 0 && (
+                        <div className="space-y-3 mt-6">
+                          {imagesBelow.map((imageUrl, index) => (
+                            <img 
+                              key={index}
+                              src={imageUrl} 
+                              alt={`Bild under texten ${index + 1}`}
+                              className="w-full max-w-2xl h-auto rounded-lg"
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
                   </DialogContent>

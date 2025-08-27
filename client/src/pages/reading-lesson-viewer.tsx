@@ -290,13 +290,43 @@ export default function ReadingLessonViewer() {
               )}
             </CardHeader>
             <CardContent className="relative">
-              <div 
-                className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
-                style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                onMouseOver={handleContentMouseOver}
-                onMouseOut={handleContentMouseOut}
-              />
+              <div className="space-y-6">
+                {/* Bilder ovanför texten */}
+                {lesson.imagesAbove && lesson.imagesAbove.length > 0 && (
+                  <div className="space-y-4">
+                    {lesson.imagesAbove.map((imageUrl, index) => (
+                      <img 
+                        key={index}
+                        src={imageUrl} 
+                        alt={`Bild ovanför texten ${index + 1}`}
+                        className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div 
+                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
+                  style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                  dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                  onMouseOver={handleContentMouseOver}
+                  onMouseOut={handleContentMouseOut}
+                />
+
+                {/* Bilder under texten */}
+                {lesson.imagesBelow && lesson.imagesBelow.length > 0 && (
+                  <div className="space-y-4">
+                    {lesson.imagesBelow.map((imageUrl, index) => (
+                      <img 
+                        key={index}
+                        src={imageUrl} 
+                        alt={`Bild under texten ${index + 1}`}
+                        className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
               
               {/* Page Navigation */}
               {pages.length > 1 && (
