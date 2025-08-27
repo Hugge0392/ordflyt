@@ -424,7 +424,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         setPageImages(prev => ({
           ...prev,
           [safePage]: {
-            ...prev[safePage],
+            above: prev[safePage]?.above || [],
+            below: prev[safePage]?.below || [],
             [position]: [...(prev[safePage]?.[position] || []), result.objectPath]
           }
         }));
@@ -449,8 +450,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     setPageImages(prev => ({
       ...prev,
       [safePage]: {
-        ...prev[safePage],
-        [position]: prev[safePage]?.[position]?.filter((_, i) => i !== index) || []
+        above: prev[safePage]?.above || [],
+        below: prev[safePage]?.below || [],
+        [position]: (prev[safePage]?.[position] || []).filter((_, i) => i !== index)
       }
     }));
   };
@@ -460,6 +462,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
 
   const renderBlock = (block: ContentBlock) => {
+    if (!block || !block.id) {
+      return null;
+    }
     const isActive = activeBlockId === block.id;
     
     return (
@@ -915,7 +920,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
       <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
         {/* Images above text */}
-        {currentPageImageData.above.length > 0 && (
+        {currentPageImageData.above && currentPageImageData.above.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium text-blue-600">Bilder ovanför texten (Sida {safePage + 1})</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -941,10 +946,20 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         )}
 
         {/* Text content */}
-        {currentPageBlocks.map(renderBlock)}
+        {currentPageBlocks && currentPageBlocks.length > 0 ? 
+          currentPageBlocks.map((block, index) => {
+            try {
+              return renderBlock(block);
+            } catch (error) {
+              console.error('Error rendering block:', error, block);
+              return <div key={index} className="text-red-500 p-2 border border-red-300 rounded">Fel vid rendering av block</div>;
+            }
+          }) : 
+          <div className="text-gray-500 italic">Ingen text på denna sida</div>
+        }
 
         {/* Images below text */}
-        {currentPageImageData.below.length > 0 && (
+        {currentPageImageData.below && currentPageImageData.below.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium text-blue-600">Bilder under texten (Sida {safePage + 1})</Label>
             <div className="grid grid-cols-2 gap-2">
