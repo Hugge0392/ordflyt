@@ -116,6 +116,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
 }
 
 interface ContentBlock {
@@ -246,7 +247,7 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
   return blocks;
 };
 
-export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className, onPagesChange }: RichTextEditorProps) {
   // Helper function to generate IDs
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
   
@@ -292,7 +293,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     return pagesList.length > 0 ? pagesList : [[{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]];
   };
 
-  // Convert all pages back to a single HTML string for saving
+  // Convert all pages back to a single HTML string for saving AND notify about pages with images
   useEffect(() => {
     const allBlocks: ContentBlock[] = [];
     pages.forEach((pageBlocks, index) => {
@@ -336,7 +337,53 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     }).join('\n');
     
     onChange(htmlContent);
-  }, [pages]);
+
+    // Also notify about pages structure with images if callback is provided
+    if (onPagesChange) {
+      const pagesData = pages.map((pageBlocks, index) => {
+        const pageContent = pageBlocks.map(block => {
+          switch (block.type) {
+            case 'heading':
+              const level = block.metadata?.level || 2;
+              return `<h${level}>${block.content}</h${level}>`;
+            case 'quote':
+              return `<blockquote>${block.content}</blockquote>`;
+            case 'list':
+              const tag = block.metadata?.listType === 'ordered' ? 'ol' : 'ul';
+              const items = block.content.split('\n').filter(item => item.trim())
+                .map(item => `<li>${item.trim()}</li>`).join('');
+              return `<${tag}>${items}</${tag}>`;
+            case 'text':
+            default:
+              const content = block.content.trim();
+              if (!content) return '';
+              
+              if (content.includes('<') && content.includes('>')) {
+                return content;
+              } else {
+                const htmlContent = formatMarkdownToHTML(content);
+                if (htmlContent.startsWith('<h') || htmlContent.startsWith('<ul>') || htmlContent.includes('</h') || htmlContent.includes('<p>')) {
+                  return htmlContent;
+                } else {
+                  return `<p>${htmlContent}</p>`;
+                }
+              }
+          }
+        }).join('\n');
+
+        const currentPageImages = pageImages[index] || { above: [], below: [] };
+        
+        return {
+          id: `page-${index}`,
+          content: pageContent,
+          imagesAbove: currentPageImages.above,
+          imagesBelow: currentPageImages.below
+        };
+      });
+      
+      onPagesChange(pagesData);
+    }
+  }, [pages, pageImages, onPagesChange]);
 
   const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
     const newPages = pages.map(pageBlocks => 

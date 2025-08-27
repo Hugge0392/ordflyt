@@ -620,6 +620,7 @@ export default function ReadingAdmin() {
                 <RichTextEditor
                   value={editingLesson?.content || ""}
                   onChange={(content) => editingLesson && setEditingLesson({...editingLesson, content})}
+                  onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
                   placeholder="Skriv ditt textinnehåll här..."
                   className="min-h-[400px]"
                 />
