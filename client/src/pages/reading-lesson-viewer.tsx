@@ -291,10 +291,10 @@ export default function ReadingLessonViewer() {
             </CardHeader>
             <CardContent className="relative">
               <div className="space-y-6">
-                {/* Bilder ovanför texten */}
-                {lesson.imagesAbove && lesson.imagesAbove.length > 0 && (
+                {/* Bilder ovanför texten för denna sida */}
+                {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
                   <div className="space-y-4">
-                    {lesson.imagesAbove.map((imageUrl, index) => (
+                    {lesson.pages[currentPage]?.imagesAbove!.map((imageUrl, index) => (
                       <img 
                         key={index}
                         src={imageUrl} 
@@ -313,10 +313,10 @@ export default function ReadingLessonViewer() {
                   onMouseOut={handleContentMouseOut}
                 />
 
-                {/* Bilder under texten */}
-                {lesson.imagesBelow && lesson.imagesBelow.length > 0 && (
+                {/* Bilder under texten för denna sida */}
+                {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
                   <div className="space-y-4">
-                    {lesson.imagesBelow.map((imageUrl, index) => (
+                    {lesson.pages[currentPage]?.imagesBelow!.map((imageUrl, index) => (
                       <img 
                         key={index}
                         src={imageUrl} 

@@ -377,10 +377,9 @@ export const readingLessons = pgTable("reading_lessons", {
   title: varchar("title").notNull(),
   description: text("description"),
   content: text("content").notNull(), // The main text content (can include HTML for rich formatting)
-  pages: jsonb("pages").$type<{id: string, content: string}[]>().default([]), // For paginated content
+  pages: jsonb("pages").$type<{id: string, content: string, imagesAbove?: string[], imagesBelow?: string[]}[]>().default([]), // For paginated content with images per page
   featuredImage: text("featured_image"), // URL to featured/header image
-  imagesAbove: jsonb("images_above").$type<string[]>().default([]), // Images to display above content
-  imagesBelow: jsonb("images_below").$type<string[]>().default([]), // Images to display below content
+
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
   subject: varchar("subject"), // e.g. "Svenska", "Naturkunskap"
   readingTime: integer("reading_time"), // estimated reading time in minutes

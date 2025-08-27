@@ -116,6 +116,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
 }
 
 interface ContentBlock {
@@ -197,15 +198,7 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
           metadata: { listType: 'unordered' }
         });
         break;
-      case 'img':
-        const img = element as HTMLImageElement;
-        blocks.push({
-          id: getId(),
-          type: 'image',
-          content: img.src,
-          metadata: { alt: img.alt }
-        });
-        break;
+
       case 'div':
         // Check if it's a page break
         if (element.classList.contains('page-break') || element.hasAttribute('data-page-break')) {
@@ -320,8 +313,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           const items = block.content.split('\n').filter(item => item.trim())
             .map(item => `<li>${item.trim()}</li>`).join('');
           return `<${tag}>${items}</${tag}>`;
-        case 'image':
-          return `<img src="${block.content}" alt="${block.metadata?.alt || ''}" />`;
         case 'page-break':
           return `<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>`;
         case 'text':

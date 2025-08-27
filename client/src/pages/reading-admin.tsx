@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { ImageInserter } from "@/components/ImageInserter";
+
 import type { ReadingLesson, InsertReadingLesson, ReadingQuestion, WordDefinition, PreReadingQuestion } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -24,8 +24,7 @@ export default function ReadingAdmin() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Partial<InsertReadingLesson> | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [imagesAbove, setImagesAbove] = useState<string[]>([]);
-  const [imagesBelow, setImagesBelow] = useState<string[]>([]);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -160,9 +159,7 @@ export default function ReadingAdmin() {
       wordDefinitions: [],
       isPublished: 0
     });
-    // Clear images when creating new lesson
-    setImagesAbove([]);
-    setImagesBelow([]);
+
   };
 
   const handleSaveLesson = () => {
@@ -177,17 +174,12 @@ export default function ReadingAdmin() {
       return;
     }
 
-    // Include images in the lesson data
-    const lessonWithImages = {
-      ...editingLesson,
-      imagesAbove,
-      imagesBelow
-    };
+    // Use lesson data as-is since images are now part of pages
 
     if (isCreating) {
-      createMutation.mutate(lessonWithImages as InsertReadingLesson);
+      createMutation.mutate(editingLesson as InsertReadingLesson);
     } else if (selectedLesson) {
-      updateMutation.mutate({ id: selectedLesson.id, lesson: lessonWithImages });
+      updateMutation.mutate({ id: selectedLesson.id, lesson: editingLesson });
     }
   };
 
@@ -206,9 +198,7 @@ export default function ReadingAdmin() {
       wordDefinitions: lesson.wordDefinitions,
       isPublished: lesson.isPublished
     });
-    // Load images from lesson data
-    setImagesAbove(lesson.imagesAbove || []);
-    setImagesBelow(lesson.imagesBelow || []);
+
     setIsCreating(false);
   };
 
@@ -448,40 +438,11 @@ export default function ReadingAdmin() {
                       {editingLesson?.description && (
                         <p className="text-muted-foreground mb-4">{editingLesson.description}</p>
                       )}
-                      
-                      {/* Förhandsvisning av bilder ovanför texten */}
-                      {imagesAbove.length > 0 && (
-                        <div className="space-y-3 mb-6">
-                          {imagesAbove.map((imageUrl, index) => (
-                            <img 
-                              key={index}
-                              src={imageUrl} 
-                              alt={`Bild ovanför texten ${index + 1}`}
-                              className="w-full max-w-2xl h-auto rounded-lg"
-                            />
-                          ))}
-                        </div>
-                      )}
-                      
                       {editingLesson?.content && (
                         <div 
                           className="prose dark:prose-invert max-w-none"
                           dangerouslySetInnerHTML={{ __html: editingLesson.content }}
                         />
-                      )}
-                      
-                      {/* Förhandsvisning av bilder under texten */}
-                      {imagesBelow.length > 0 && (
-                        <div className="space-y-3 mt-6">
-                          {imagesBelow.map((imageUrl, index) => (
-                            <img 
-                              key={index}
-                              src={imageUrl} 
-                              alt={`Bild under texten ${index + 1}`}
-                              className="w-full max-w-2xl h-auto rounded-lg"
-                            />
-                          ))}
-                        </div>
                       )}
                     </div>
                   </DialogContent>
@@ -656,86 +617,12 @@ export default function ReadingAdmin() {
                   </p>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <Label>Textinnehåll</Label>
-                    <ImageInserter
-                      onImageInserted={(imageUrl, position) => {
-                        if (position === 'above') {
-                          setImagesAbove(prev => [...prev, imageUrl]);
-                        } else {
-                          setImagesBelow(prev => [...prev, imageUrl]);
-                        }
-                      }}
-                    >
-                      <Button variant="outline" size="sm" data-testid="button-insert-image">
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Infoga bild
-                      </Button>
-                    </ImageInserter>
-                  </div>
-
-                  {/* Bilder ovanför texten */}
-                  {imagesAbove.length > 0 && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-muted-foreground">Bilder ovanför texten</Label>
-                      <div className="grid gap-3">
-                        {imagesAbove.map((imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <img 
-                              src={imageUrl} 
-                              alt={`Bild ovanför texten ${index + 1}`}
-                              className="w-full max-w-md h-40 object-cover rounded-lg border"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setImagesAbove(prev => prev.filter((_, i) => i !== index))}
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                              data-testid={`button-remove-image-above-${index}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <RichTextEditor
-                    value={editingLesson?.content || ""}
-                    onChange={(content) => editingLesson && setEditingLesson({...editingLesson, content})}
-                    placeholder="Skriv ditt textinnehåll här..."
-                    className="min-h-[400px]"
-                  />
-
-                  {/* Bilder under texten */}
-                  {imagesBelow.length > 0 && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-muted-foreground">Bilder under texten</Label>
-                      <div className="grid gap-3">
-                        {imagesBelow.map((imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <img 
-                              src={imageUrl} 
-                              alt={`Bild under texten ${index + 1}`}
-                              className="w-full max-w-md h-40 object-cover rounded-lg border"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setImagesBelow(prev => prev.filter((_, i) => i !== index))}
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                              data-testid={`button-remove-image-below-${index}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <RichTextEditor
+                  value={editingLesson?.content || ""}
+                  onChange={(content) => editingLesson && setEditingLesson({...editingLesson, content})}
+                  placeholder="Skriv ditt textinnehåll här..."
+                  className="min-h-[400px]"
+                />
               </div>
             </TabsContent>
 
