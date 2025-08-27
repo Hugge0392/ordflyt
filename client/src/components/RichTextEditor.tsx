@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { Bold, Italic, List, ListOrdered, Type, Quote, Trash2, Minus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Type, Quote, Trash2, Minus, FileText, ChevronLeft, ChevronRight, Image, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -116,7 +116,6 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
-  onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
 }
 
 interface ContentBlock {
@@ -259,6 +258,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   const [pages, setPages] = useState<ContentBlock[][]>([
     [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]
   ]);
+  
+  // Store images per page
+  const [pageImages, setPageImages] = useState<Record<number, { above: string[], below: string[] }>>({});
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   useEffect(() => {
@@ -399,6 +401,59 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   const totalPages = pages.length;
   const safePage = Math.max(0, Math.min(currentPage, totalPages - 1));
   const currentPageBlocks = pages[safePage] || [];
+  const currentPageImageData = pageImages[safePage] || { above: [], below: [] };
+
+  // Handle image upload
+  const handleImageUpload = async (file: File, position: 'above' | 'below') => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload-direct', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.objectPath) {
+        setPageImages(prev => ({
+          ...prev,
+          [safePage]: {
+            ...prev[safePage],
+            [position]: [...(prev[safePage]?.[position] || []), result.objectPath]
+          }
+        }));
+        
+        toast({
+          title: "Bild uppladdad!",
+          description: `Bilden har lagts till ${position === 'above' ? 'ovanför' : 'under'} texten på sida ${safePage + 1}`
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Uppladdning misslyckades",
+        description: "Kunde inte ladda upp bilden. Försök igen.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Remove image from page
+  const removeImage = (position: 'above' | 'below', index: number) => {
+    setPageImages(prev => ({
+      ...prev,
+      [safePage]: {
+        ...prev[safePage],
+        [position]: prev[safePage]?.[position]?.filter((_, i) => i !== index) || []
+      }
+    }));
+  };
 
 
 
@@ -788,6 +843,48 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             <FileText className="h-4 w-4 mr-2" />
             Ny sida
           </Button>
+
+          <div className="flex gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="image-above-upload"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file, 'above');
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('image-above-upload')?.click()}
+              data-testid="button-add-image-above"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Bild ovanför
+            </Button>
+
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="image-below-upload"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file, 'below');
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('image-below-upload')?.click()}
+              data-testid="button-add-image-below"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Bild under
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -817,7 +914,60 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       )}
 
       <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
+        {/* Images above text */}
+        {currentPageImageData.above.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-blue-600">Bilder ovanför texten (Sida {safePage + 1})</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {currentPageImageData.above.map((imagePath, index) => (
+                <div key={index} className="relative group">
+                  <img 
+                    src={imagePath} 
+                    alt={`Bild ${index + 1} ovanför texten`}
+                    className="w-full h-32 object-cover rounded border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeImage('above', index)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Text content */}
         {currentPageBlocks.map(renderBlock)}
+
+        {/* Images below text */}
+        {currentPageImageData.below.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-blue-600">Bilder under texten (Sida {safePage + 1})</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {currentPageImageData.below.map((imagePath, index) => (
+                <div key={index} className="relative group">
+                  <img 
+                    src={imagePath} 
+                    alt={`Bild ${index + 1} under texten`}
+                    className="w-full h-32 object-cover rounded border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeImage('below', index)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* Add "New Page" button at the end of current page */}
         {currentPage === totalPages - 1 && (
