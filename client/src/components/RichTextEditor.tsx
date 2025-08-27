@@ -4,11 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ObjectUploader } from "@/components/ObjectUploader";
-import { Bold, Italic, List, ListOrdered, Image, Type, Quote, Trash2, Minus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Bold, Italic, List, ListOrdered, Type, Quote, Trash2, Minus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { UploadResult } from "@uppy/core";
+
 
 // Simple markdown-to-HTML converter for preview
 function formatMarkdownToHTML(text: string): string {
@@ -120,7 +120,7 @@ interface RichTextEditorProps {
 
 interface ContentBlock {
   id: string;
-  type: 'text' | 'image' | 'heading' | 'quote' | 'list' | 'page-break';
+  type: 'text' | 'heading' | 'quote' | 'list' | 'page-break';
   content: string;
   metadata?: {
     level?: 1 | 2 | 3; // for headings
@@ -445,15 +445,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             >
               <Bold className="h-3 w-3" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => addBlock('image', block.id)}
-              className="h-6 w-6 p-0"
-              title="Lägg till bild"
-            >
-              <Image className="h-3 w-3" />
-            </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -759,51 +751,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
           </div>
         )}
 
-        {block.type === 'image' && (
-          <div className="space-y-3">
-            {!block.content ? (
-              <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    try {
-                      const response = await fetch('/api/upload-direct', {
-                        method: 'POST',
-                        body: formData
-                      });
-                      
-                      const result = await response.json();
-                      if (result.objectPath) {
-                        updateBlock(block.id, { content: result.objectPath });
-                      }
-                    } catch (error) {
-                      console.error('Upload failed:', error);
-                    }
-                  }}
-                  className="w-full p-2 border rounded"
-                />
-                <p className="mt-2 text-sm text-gray-500">Välj en bild från din dator</p>
-              </div>
-            ) : (
-              <div>
-                <img src={block.content} alt="" className="max-w-full h-auto rounded" />
-                <button
-                  onClick={() => updateBlock(block.id, { content: '' })}
-                  className="mt-2 px-3 py-1 bg-gray-200 rounded text-sm"
-                >
-                  Ta bort bild
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+
 
         {block.type === 'page-break' && (
           <div className="relative flex items-center justify-center py-6 my-6 border-2 border-dashed border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-950 rounded-lg">
@@ -839,15 +787,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             <Type className="h-4 w-4 mr-2" />
             Text
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => addBlock('image')}
-            data-testid="button-add-image-block"
-          >
-            <Image className="h-4 w-4 mr-2" />
-            Bild
-          </Button>
+
           <Button
             variant="outline"
             size="sm"
