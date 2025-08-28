@@ -20,6 +20,7 @@ import {
   rotateSession
 } from "./auth";
 import { logRequestInfo } from "./productionCheck";
+import { emailService } from "./emailService";
 
 const router = Router();
 
@@ -321,9 +322,34 @@ router.post("/api/auth/register", async (req, res) => {
     // Log audit event
     await logAuditEvent('REGISTRATION', newUser.id, true, ipAddress, userAgent, { email });
 
+    // Send registration confirmation email
+    try {
+      await emailService.sendRegistrationConfirmation(
+        newUser.email,
+        newUser.username
+      );
+      
+      // Log successful email send
+      await logLicenseActivity(null, 'registration_email_sent', {
+        recipient_email: newUser.email,
+        user_id: newUser.id,
+        email_type: 'registration_confirmation'
+      }, newUser.id, ipAddress);
+      
+    } catch (emailError: any) {
+      console.error('Failed to send registration confirmation email:', emailError);
+      
+      // Log email failure but don't fail the registration
+      await logLicenseActivity(null, 'registration_email_failed', {
+        recipient_email: newUser.email,
+        user_id: newUser.id,
+        error: emailError.message
+      }, newUser.id, ipAddress);
+    }
+
     res.json({
       success: true,
-      message: 'Lärarkonto skapat framgångsrikt',
+      message: 'Lärarkonto skapat framgångsrikt! En bekräftelse har skickats till din e-post.',
       user: {
         id: newUser.id,
         username: newUser.username,

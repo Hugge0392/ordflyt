@@ -16,6 +16,7 @@ import {
   createOneTimeCode,
   licenseDb
 } from './licenseDb';
+import { emailService } from './emailService';
 import { requireAuth, requireRole } from './auth';
 import { Request, Response } from 'express';
 import { oneTimeCodes, teacherLicenses, teacherClasses } from '@shared/schema';
@@ -348,15 +349,48 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
       code_id: result.id
     }, userId, req.ip || 'unknown');
 
+    // Generate registration link with embedded code
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? `https://${req.get('host')}` 
+      : `http://${req.get('host')}`;
+    const registrationLink = `${baseUrl}/auth/register?code=${result.clearTextCode}`;
+    
+    // Send email with registration code
+    try {
+      await emailService.sendTeacherRegistrationCode(
+        recipientEmail,
+        result.clearTextCode,
+        registrationLink
+      );
+      
+      // Log successful email send
+      await logLicenseActivity(null, 'email_sent', {
+        recipient_email: recipientEmail,
+        code_id: result.id,
+        email_type: 'registration_code'
+      }, userId, req.ip || 'unknown');
+      
+    } catch (emailError: any) {
+      console.error('Failed to send registration email:', emailError);
+      
+      // Log email failure but don't fail the code generation
+      await logLicenseActivity(null, 'email_failed', {
+        recipient_email: recipientEmail,
+        code_id: result.id,
+        error: emailError.message
+      }, userId, req.ip || 'unknown');
+    }
+
     res.json({
       success: true,
-      message: 'Engångskod genererad!',
+      message: 'Engångskod genererad och e-post skickad!',
       code: {
         id: result.id,
         code: result.clearTextCode,
         recipientEmail,
         expiresAt: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000),
-        validityDays
+        validityDays,
+        registrationLink
       }
     });
 
