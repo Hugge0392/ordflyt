@@ -13,6 +13,28 @@ const testEmailSchema = z.object({
   })
 });
 
+// POST /api/email/test-domain - Test if email domain is compatible with sender domain
+router.post('/test-domain', requireAuth, requireRole('ADMIN'), async (req: any, res) => {
+  try {
+    const { email } = req.body;
+    const fromEmail = process.env.FROM_EMAIL || 'noreply@ordflyt.se';
+    
+    const emailDomain = email.split('@')[1];
+    const senderDomain = fromEmail.split('@')[1];
+    
+    const sameDomain = emailDomain === senderDomain;
+    
+    res.json({
+      sameDomain,
+      emailDomain,
+      senderDomain,
+      warning: !sameDomain ? 'Om ditt Postmark-konto väntar på godkännande kan detta e-posttest misslyckas.' : null
+    });
+  } catch (error) {
+    res.status(400).json({ error: 'Ogiltig e-postadress' });
+  }
+});
+
 // POST /api/email/test - Test email functionality
 router.post('/test', requireAuth, requireRole('ADMIN'), async (req: any, res) => {
   try {
@@ -74,9 +96,17 @@ router.post('/test', requireAuth, requireRole('ADMIN'), async (req: any, res) =>
 
     // Check if it's a Postmark-specific error
     if (error.message?.includes('Email delivery failed')) {
-      return res.status(500).json({ 
+      let errorDetails = 'Kontrollera Postmark-konfiguration och API-nyckel';
+      
+      // Check for pending approval error
+      if (error.message?.includes('pending approval')) {
+        errorDetails = 'Ditt Postmark-konto väntar på godkännande. Under denna tid kan du bara skicka e-post till adresser med samma domän som avsändaradressen (ordflyt.se). Kontakta Postmark för att få ditt konto godkänt.';
+      }
+      
+      return res.status(422).json({ 
         error: 'E-postleverans misslyckades',
-        details: 'Kontrollera Postmark-konfiguration och API-nyckel'
+        details: errorDetails,
+        isApprovalPending: error.message?.includes('pending approval') || false
       });
     }
 

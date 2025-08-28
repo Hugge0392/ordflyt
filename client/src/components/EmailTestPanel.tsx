@@ -64,6 +64,18 @@ export function EmailTestPanel() {
       return;
     }
 
+    // Check if email domain matches sender domain for pending approval accounts
+    const emailDomain = email.split('@')[1];
+    const senderDomain = config?.fromEmail?.split('@')[1];
+    
+    if (emailDomain !== senderDomain) {
+      toast({
+        variant: "destructive",
+        title: "Domänvarning",
+        description: `Om ditt Postmark-konto väntar på godkännande kan du bara skicka till ${senderDomain}-adresser. Försök ändå eller kontakta Postmark för fullständigt godkännande.`,
+      });
+    }
+
     testEmailMutation.mutate({ email, testType });
   };
 
@@ -187,6 +199,13 @@ export function EmailTestPanel() {
               </AlertDescription>
             </Alert>
           )}
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Viktigt:</strong> Om ditt Postmark-konto väntar på godkännande kan du bara skicka e-post till adresser med samma domän som avsändaradressen ({config?.fromEmail?.split('@')[1] || 'ordflyt.se'}). För att testa med andra domäner behöver kontot godkännas av Postmark först.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
