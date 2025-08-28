@@ -320,6 +320,24 @@ export default function Admin() {
                 </p>
               </div>
             </Link>
+            
+            <Link 
+              href="/admin/email-test" 
+              className="tile"
+              data-testid="link-admin-email-test"
+              role="button" 
+              tabIndex={0}
+            >
+              <div className="tile-content">
+                <div className="tile-icon admin-email">
+                  📧
+                </div>
+                <h2 className="tile-title">Testa e-post</h2>
+                <p className="tile-description">
+                  Testa e-postfunktionalitet och verifiera Postmark-konfiguration
+                </p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

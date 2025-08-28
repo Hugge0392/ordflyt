@@ -23,6 +23,7 @@ import AdminReading from "@/pages/admin-reading";
 import AdminLessons from "@/pages/admin-lessons";
 import AdminAccounts from "@/pages/admin-accounts";
 import AdminSentences from "@/pages/admin-sentences";
+import AdminEmailTest from "@/pages/admin-email-test";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
@@ -122,6 +123,11 @@ function Router() {
       <Route path="/admin/sentences">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminSentences />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/email-test">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminEmailTest />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">

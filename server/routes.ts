@@ -5,6 +5,7 @@ import path from "path";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
+import emailTestRoutes from "./emailTestRoutes";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -602,6 +603,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete reading lesson" });
     }
   });
+
+  // Email test routes
+  app.use('/api/email', emailTestRoutes);
 
   // Serve generated lesson files statically
   app.use('/generated-lessons', express.static(path.join(process.cwd(), 'generated-lessons')));
