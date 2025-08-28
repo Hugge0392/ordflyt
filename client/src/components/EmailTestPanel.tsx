@@ -20,12 +20,16 @@ interface EmailConfig {
 
 interface TestEmailData {
   email: string;
-  testType: 'registration_code' | 'confirmation';
+  testType: 'registration_code' | 'confirmation' | 'custom';
+  customMessage?: string;
+  customSubject?: string;
 }
 
 export function EmailTestPanel() {
   const [email, setEmail] = useState("");
-  const [testType, setTestType] = useState<'registration_code' | 'confirmation'>('registration_code');
+  const [testType, setTestType] = useState<'registration_code' | 'confirmation' | 'custom'>('registration_code');
+  const [customMessage, setCustomMessage] = useState("");
+  const [customSubject, setCustomSubject] = useState("");
   const { toast } = useToast();
 
   // Fetch email configuration
@@ -76,7 +80,14 @@ export function EmailTestPanel() {
       });
     }
 
-    testEmailMutation.mutate({ email, testType });
+    testEmailMutation.mutate({ 
+      email, 
+      testType,
+      ...(testType === 'custom' && {
+        customMessage: customMessage || undefined,
+        customSubject: customSubject || undefined
+      })
+    });
   };
 
   if (configLoading) {
@@ -178,9 +189,41 @@ export function EmailTestPanel() {
               <SelectContent>
                 <SelectItem value="registration_code">Registreringskod för lärare</SelectItem>
                 <SelectItem value="confirmation">Registreringsbekräftelse</SelectItem>
+                <SelectItem value="custom">Anpassat meddelande</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {testType === 'custom' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="customSubject">Ämnesrad (valfritt)</Label>
+                <Input
+                  id="customSubject"
+                  type="text"
+                  placeholder="Test från Ordflyt.se"
+                  value={customSubject}
+                  onChange={(e) => setCustomSubject(e.target.value)}
+                  data-testid="input-custom-subject"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customMessage">Meddelande</Label>
+                <textarea
+                  id="customMessage"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical min-h-[100px]"
+                  placeholder="Skriv ditt testmeddelande här..."
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  data-testid="textarea-custom-message"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Du kan använda radbrytningar för formatering. HTML stöds inte.
+                </p>
+              </div>
+            </>
+          )}
 
           <Button 
             onClick={handleTestEmail} 

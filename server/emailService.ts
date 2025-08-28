@@ -204,6 +204,54 @@ Med vänliga hälsningar, Ordflyt-teamet
     await this.sendEmail(toEmail, subject, htmlBody, textBody);
   }
 
+  // Send custom test email
+  async sendCustomTestEmail(
+    toEmail: string,
+    subject: string,
+    message: string
+  ): Promise<void> {
+    const htmlBody = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Test från Ordflyt.se</h1>
+            </div>
+            <div class="content">
+              <p>${message.replace(/\n/g, '<br>')}</p>
+              <p><em>Detta är ett testmeddelande skickat från Ordflyt.se admin-panel.</em></p>
+            </div>
+            <div class="footer">
+              <p>Ordflyt.se - Språklärande för alla</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textBody = `
+Test från Ordflyt.se
+==================
+
+${message}
+
+---
+Detta är ett testmeddelande skickat från Ordflyt.se admin-panel.
+Ordflyt.se - Språklärande för alla
+    `;
+
+    await this.sendEmail(toEmail, subject, htmlBody, textBody);
+  }
+
   // Send password reset email
   async sendPasswordReset(
     toEmail: string,

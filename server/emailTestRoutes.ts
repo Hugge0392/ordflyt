@@ -8,9 +8,11 @@ const router = Router();
 // Test email schema
 const testEmailSchema = z.object({
   email: z.string().email('Ogiltig e-postadress'),
-  testType: z.enum(['registration_code', 'confirmation'], {
+  testType: z.enum(['registration_code', 'confirmation', 'custom'], {
     errorMap: () => ({ message: 'Ogiltig testtyp' })
-  })
+  }),
+  customMessage: z.string().optional(),
+  customSubject: z.string().optional()
 });
 
 // POST /api/email/test-domain - Test if email domain is compatible with sender domain
@@ -38,7 +40,7 @@ router.post('/test-domain', requireAuth, requireRole('ADMIN'), async (req: any, 
 // POST /api/email/test - Test email functionality
 router.post('/test', requireAuth, requireRole('ADMIN'), async (req: any, res) => {
   try {
-    const { email, testType } = testEmailSchema.parse(req.body);
+    const { email, testType, customMessage, customSubject } = testEmailSchema.parse(req.body);
     const userId = req.user.id;
     const ipAddress = req.ip || 'unknown';
 
@@ -80,6 +82,23 @@ router.post('/test', requireAuth, requireRole('ADMIN'), async (req: any, res) =>
         testData: {
           teacherName: testTeacherName,
           type: 'confirmation'
+        }
+      });
+
+    } else if (testType === 'custom') {
+      // Send custom test email
+      const subject = customSubject || 'Test från Ordflyt.se';
+      const message = customMessage || 'Detta är ett testmeddelande från Ordflyt.se e-postsystem.';
+
+      await emailService.sendCustomTestEmail(email, subject, message);
+
+      res.json({
+        success: true,
+        message: `Anpassat testmeddelande skickat till ${email}`,
+        testData: {
+          subject,
+          message,
+          type: 'custom'
         }
       });
     }
