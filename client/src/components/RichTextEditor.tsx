@@ -264,8 +264,10 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   const [pageImages, setPageImages] = useState<Record<number, { above: string[], below: string[] }>>({});
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
+  const lastValueRef = useRef<string>('');
   useEffect(() => {
-    if (value !== undefined && value !== '') {
+    if (value !== undefined && value !== '' && value !== lastValueRef.current) {
+      lastValueRef.current = value;
       const parsedBlocks = parseHTMLToBlocks(value);
       const newPages = splitIntoPages(parsedBlocks);
       setPages(newPages);
@@ -294,6 +296,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   };
 
   // Convert all pages back to a single HTML string for saving AND notify about pages with images
+  const lastContentRef = useRef<string>('');
   useEffect(() => {
     const allBlocks: ContentBlock[] = [];
     pages.forEach((pageBlocks, index) => {
@@ -337,7 +340,8 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     }).join('\n');
     
     // Only call onChange if content actually changed to prevent infinite loops
-    if (htmlContent !== value) {
+    if (htmlContent !== value && htmlContent !== lastContentRef.current) {
+      lastContentRef.current = htmlContent;
       onChange(htmlContent);
     }
 

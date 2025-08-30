@@ -25,6 +25,8 @@ export default function ReadingAdmin() {
   const [editingLesson, setEditingLesson] = useState<Partial<InsertReadingLesson> | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState('basic');
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -373,6 +375,47 @@ export default function ReadingAdmin() {
     setEditingLesson({ ...editingLesson, pages: newPages });
   };
 
+  // Auto-save function
+  const triggerAutoSave = () => {
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+    
+    const timeout = setTimeout(async () => {
+      if (editingLesson && (editingLesson.title || editingLesson.content)) {
+        setIsSaving(true);
+        try {
+          // Auto-save som utkast
+          if (isCreating) {
+            await createMutation.mutateAsync({ ...editingLesson, isPublished: 0 } as InsertReadingLesson);
+            setIsCreating(false); // Nu är det inte längre "creating" efter första sparningen
+          } else if (selectedLesson) {
+            await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...editingLesson, isPublished: editingLesson.isPublished } });
+          }
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    }, 3000); // Auto-save efter 3 sekunder av inaktivitet
+    
+    setAutoSaveTimeout(timeout);
+  };
+
+  // Auto-save när editingLesson ändras
+  useEffect(() => {
+    if (editingLesson && (editingLesson.title || editingLesson.content)) {
+      triggerAutoSave();
+    }
+    
+    return () => {
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
+    };
+  }, [editingLesson]);
+
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
 
@@ -431,7 +474,15 @@ export default function ReadingAdmin() {
                   <h1 className="text-2xl font-bold">
                     {isCreating ? "Skapa ny lektion" : "Redigera lektion"}
                   </h1>
-                  <p className="text-sm text-muted-foreground">Läsförståelse Admin</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground">Läsförståelse Admin</p>
+                    {isSaving && (
+                      <div className="flex items-center gap-1 text-xs text-blue-600">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                        Sparar...
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2">
