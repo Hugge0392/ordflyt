@@ -52,6 +52,9 @@ function formatMarkdownToHTML(text: string): string {
     html = grouped.join('\n');
   }
   
+  // Handle page breaks in preview mode
+  html = html.replace(/--- SIDBRYTNING ---/g, '<div style="margin: 2em 0; padding: 1em; background: #f0f0f0; border: 2px dashed #ccc; text-align: center; color: #666; border-radius: 4px;">📄 Sidbrytning - Ny sida börjar här</div>');
+  
   // Keep line breaks as they are - let CSS handle whitespace with white-space: pre-wrap
   
   return html;
@@ -115,12 +118,19 @@ export function RichTextEditor({
       const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
       if (pagesKey !== lastPagesRef.current) {
         lastPagesRef.current = pagesKey;
-        const pagesData = [{
-          id: 'page-0',
-          content: formatMarkdownToHTML(content),
-          imagesAbove: images.above,
-          imagesBelow: images.below
-        }];
+        
+        // Split content by page breaks
+        const pageBreakMarker = '--- SIDBRYTNING ---';
+        const contentParts = content.split(pageBreakMarker);
+        
+        const pagesData = contentParts.map((pageContent, index) => ({
+          id: `page-${index}`,
+          content: formatMarkdownToHTML(pageContent.trim()),
+          imagesAbove: index === 0 ? images.above : [], // Only first page gets images above
+          imagesBelow: index === contentParts.length - 1 ? images.below : [], // Only last page gets images below
+          questions: [] // Initialize empty questions array for each page
+        }));
+        
         onPagesChange(pagesData);
       }
     }
@@ -148,6 +158,23 @@ export function RichTextEditor({
       newText = textarea.value.substring(0, start) + textToInsert + textarea.value.substring(start);
       newCursorPos = start + prefix.length + (placeholder ? placeholder.length : 0);
     }
+    
+    setContent(newText);
+    textarea.value = newText;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+    textarea.focus();
+  };
+  
+  // Insert page break
+  const insertPageBreak = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const pageBreakMarker = '\n\n--- SIDBRYTNING ---\n\n';
+    
+    const newText = textarea.value.substring(0, start) + pageBreakMarker + textarea.value.substring(start);
+    const newCursorPos = start + pageBreakMarker.length;
     
     setContent(newText);
     textarea.value = newText;
@@ -270,6 +297,19 @@ export function RichTextEditor({
         >
           <List className="h-4 w-4 mr-1" />
           <span className="text-xs">Lista</span>
+        </Button>
+        
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => insertPageBreak()}
+          className="h-8 px-3"
+          title="Sidbrytning - Dela upp texten i flera sidor"
+        >
+          <FileText className="h-4 w-4 mr-1" />
+          <span className="text-xs">Ny sida</span>
         </Button>
         
         <Button

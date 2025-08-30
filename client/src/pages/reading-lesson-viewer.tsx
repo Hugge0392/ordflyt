@@ -75,11 +75,17 @@ export default function ReadingLessonViewer() {
   const [hoveredWord, setHoveredWord] = useState<{word: string, definition: string, x: number, y: number} | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Split content into pages based on page break markers
+  // Split content into pages based on page break markers or use lesson.pages if available
   const pages = useMemo(() => {
+    // If lesson has pages data, use that (this supports per-page questions and images)
+    if (lesson?.pages && lesson.pages.length > 0) {
+      return lesson.pages.map(page => page.content);
+    }
+    
+    // Fallback: split content by page break markers
     if (!lesson?.content) return [];
     
-    const pageBreakMarker = '<div class="page-break" data-page-break="true">--- Sidbrytning ---</div>';
+    const pageBreakMarker = '--- SIDBRYTNING ---';
     const contentParts = lesson.content.split(pageBreakMarker);
     
     if (contentParts.length === 1) {
@@ -88,7 +94,7 @@ export default function ReadingLessonViewer() {
     }
     
     return contentParts.filter(part => part.trim().length > 0);
-  }, [lesson?.content]);
+  }, [lesson?.content, lesson?.pages]);
 
   // Handle mouse events for word definitions
   const handleContentMouseOver = (e: React.MouseEvent) => {
