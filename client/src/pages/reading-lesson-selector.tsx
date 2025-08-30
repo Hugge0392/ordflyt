@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target } from "lucide-react";
+import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target, Globe, EyeOff } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +35,7 @@ export default function ReadingLessonSelector() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (lesson: any) => apiRequest(`/api/reading-lessons`, "POST", lesson),
+    mutationFn: (lesson: any) => apiRequest('POST', '/api/reading-lessons', lesson),
     onSuccess: (newLesson) => {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
       setShowCreateDialog(false);
@@ -63,6 +63,25 @@ export default function ReadingLessonSelector() {
     }
   });
 
+  const publishMutation = useMutation({
+    mutationFn: ({ id, isPublished }: { id: string, isPublished: boolean }) => 
+      apiRequest('PUT', `/api/reading-lessons/${id}`, { isPublished }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+      toast({
+        title: "Status uppdaterad!",
+        description: "Lektionens publiceringsstatus har ändrats"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Fel",
+        description: "Kunde inte uppdatera publiceringsstatus",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleCreateLesson = () => {
     if (!newLessonForm.title.trim()) {
       toast({
@@ -79,7 +98,7 @@ export default function ReadingLessonSelector() {
       preReadingQuestions: [],
       questions: [],
       wordDefinitions: [],
-      isPublished: 0
+      isPublished: false
     };
     
     createMutation.mutate(newLesson);
@@ -285,21 +304,48 @@ export default function ReadingLessonSelector() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Badge variant={lesson.isPublished === 1 ? "default" : "secondary"}>
-                          {lesson.isPublished === 1 ? "Publicerad" : "Utkast"}
+                        <Badge variant={lesson.isPublished ? "default" : "secondary"}>
+                          {lesson.isPublished ? "Publicerad" : "Utkast"}
                         </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLocation(`/lasforstaelse/skapa/${lesson.id}`);
-                          }}
-                          data-testid={`button-edit-lesson-${lesson.id}`}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Redigera
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant={lesson.isPublished ? "destructive" : "default"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              publishMutation.mutate({ 
+                                id: lesson.id, 
+                                isPublished: !lesson.isPublished 
+                              });
+                            }}
+                            disabled={publishMutation.isPending}
+                            data-testid={`button-publish-${lesson.id}`}
+                          >
+                            {lesson.isPublished ? (
+                              <>
+                                <EyeOff className="w-4 h-4 mr-1" />
+                                Avpublicera
+                              </>
+                            ) : (
+                              <>
+                                <Globe className="w-4 h-4 mr-1" />
+                                Publicera
+                              </>
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/lasforstaelse/skapa/${lesson.id}`);
+                            }}
+                            data-testid={`button-edit-lesson-${lesson.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Redigera
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
