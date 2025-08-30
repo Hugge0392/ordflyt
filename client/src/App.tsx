@@ -29,6 +29,7 @@ import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
 import PublishedLessonPage from "@/pages/lesson-player-published";
 import ReadingLessonBuilder from "@/pages/reading-lesson-builder";
+import ReadingLessonSelector from "@/pages/reading-lesson-selector";
 
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -58,12 +59,8 @@ function Router() {
       <Route path="/lasforstaelse/deckargator">
         <ReadingPlaceholder type="deckargator" />
       </Route>
-      <Route path="/lasforstaelse/skapa">
-        <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
-          <ReadingLessonBuilder />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/lasforstaelse/skapa/edit/:id">
+      <Route path="/lasforstaelse/skapa" component={ReadingLessonSelector} />
+      <Route path="/lasforstaelse/skapa/:id">
         <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
           <ReadingLessonBuilder />
         </ProtectedRoute>

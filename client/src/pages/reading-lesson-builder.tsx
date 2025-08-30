@@ -74,17 +74,15 @@ interface ReadingLesson {
 export default function ReadingLessonBuilder() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute("/lasforstaelse/skapa/edit/:id");
+  const [match, params] = useRoute("/lasforstaelse/skapa/:id");
   
   // Main lesson state
-  const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
   const [editingLesson, setEditingLesson] = useState<ReadingLesson | null>(null);
   const [currentEditorContent, setCurrentEditorContent] = useState("");
   const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]>([]);
   
   // UI state
   const [activeTab, setActiveTab] = useState("content");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   
@@ -110,55 +108,40 @@ export default function ReadingLessonBuilder() {
     isPublished: false
   });
 
-  // Fetch lessons
-  const { data: lessons = [], isLoading } = useQuery<ReadingLesson[]>({
-    queryKey: ["/api/reading-lessons"],
+  // Fetch the specific lesson based on URL parameter
+  const { data: lesson, isLoading } = useQuery<ReadingLesson>({
+    queryKey: ["/api/reading-lessons", lessonId],
+    enabled: !!lessonId,
   });
 
-  // Auto-load lesson if editing via URL
+  // Auto-load lesson when data arrives
   useEffect(() => {
-    if (match && params?.id && lessons.length > 0) {
-      const lessonToEdit = lessons.find(l => l.id === params.id);
-      if (lessonToEdit) {
-        handleEditLesson(lessonToEdit);
-      }
-    }
-  }, [match, params?.id, lessons]);
-
-  // Create lesson mutation
-  const createMutation = useMutation({
-    mutationFn: async (lesson: Omit<ReadingLesson, 'id' | 'createdAt'>) => {
-      return apiRequest('POST', '/api/reading-lessons', lesson);
-    },
-    onSuccess: (newLesson) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
-      setEditingLesson(newLesson);
-      setSelectedLesson(newLesson);
-      setCurrentEditorContent(newLesson.content || "");
-      setShowCreateDialog(false);
-      toast({
-        title: "Lektion skapad!",
-        description: "Nu kan du börja redigera innehållet."
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Fel",
-        description: "Kunde inte skapa lektionen",
-        variant: "destructive"
+    if (lesson) {
+      setSelectedLesson(lesson);
+      setEditingLesson(lesson);
+      setCurrentEditorContent(lesson.content || "");
+      
+      // Update form with lesson data
+      setNewLessonForm({
+        title: lesson.title || '',
+        description: lesson.description || '',
+        gradeLevel: lesson.gradeLevel || '6',
+        subject: lesson.subject || 'Svenska',
+        readingTime: lesson.readingTime || 10,
+        featuredImage: lesson.featuredImage || '',
+        isPublished: (lesson.isPublished === 1) || false
       });
     }
-  });
+  }, [lesson]);
 
-  // Update lesson mutation - FIXED to not clear editing state
+  // Update lesson mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, lesson }: { id: string, lesson: Partial<ReadingLesson> }) => {
       return apiRequest('PUT', `/api/reading-lessons/${id}`, lesson);
     },
     onSuccess: (updatedLesson) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons", lessonId] });
       // Keep user in editor and sync back server truth:
-      setSelectedLesson(updatedLesson);
       setEditingLesson(updatedLesson);
       setCurrentEditorContent(updatedLesson.content || "");
       toast({ 
@@ -175,40 +158,9 @@ export default function ReadingLessonBuilder() {
     }
   });
 
-  // Handle lesson selection
-  const handleEditLesson = (lesson: ReadingLesson) => {
-    setSelectedLesson(lesson);
-    setEditingLesson({ ...lesson });
-    setCurrentEditorContent(lesson.content || "");
-    setNewLessonForm({
-      title: lesson.title,
-      description: lesson.description || '',
-      gradeLevel: lesson.gradeLevel || '6',
-      subject: lesson.subject || 'Svenska',
-      readingTime: lesson.readingTime || 10,
-      featuredImage: lesson.featuredImage || '',
-      isPublished: (lesson.isPublished === 1) || false
-    });
-    setActiveTab("content");
-  };
-
-  const handleCreateLesson = () => {
-    const newLesson = {
-      ...newLessonForm,
-      content: "",
-      featuredImage: newLessonForm.featuredImage,
-      preReadingQuestions: [],
-      questions: [],
-      wordDefinitions: [],
-      isPublished: 0
-    };
-    
-    createMutation.mutate(newLesson);
-  };
-
   // Save content manually
   const handleSaveContent = async () => {
-    if (!selectedLesson || !editingLesson) return;
+    if (!lesson || !editingLesson) return;
     
     const currentContent = currentEditorContent;
     if (!currentContent?.trim()) {
@@ -221,7 +173,7 @@ export default function ReadingLessonBuilder() {
     }
 
     await updateMutation.mutateAsync({
-      id: selectedLesson.id,
+      id: lesson.id,
       lesson: {
         content: currentContent,
         title: newLessonForm.title,
@@ -393,7 +345,7 @@ export default function ReadingLessonBuilder() {
 
   // Toggle publish status
   const handleTogglePublish = () => {
-    if (!selectedLesson || !editingLesson) return;
+    if (!lesson || !editingLesson) return;
 
     const newPublishStatus = !newLessonForm.isPublished;
     
@@ -410,17 +362,17 @@ export default function ReadingLessonBuilder() {
     };
 
     updateMutation.mutate({ 
-      id: selectedLesson.id, 
+      id: lesson.id, 
       lesson: updatedLesson 
     });
   };
 
   // Export lesson functionality
   const handleExportLesson = async () => {
-    if (!selectedLesson) return;
+    if (!lesson) return;
 
     try {
-      const response = await fetch(`/api/reading-lessons/${selectedLesson.id}/export`);
+      const response = await fetch(`/api/reading-lessons/${lesson.id}/export`);
       if (!response.ok) throw new Error("Failed to export");
       
       const blob = await response.blob();
@@ -428,7 +380,7 @@ export default function ReadingLessonBuilder() {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `${selectedLesson.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+      a.download = `${lesson.title.replace(/\s+/g, '-').toLowerCase()}.html`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -460,236 +412,102 @@ export default function ReadingLessonBuilder() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <BookOpen className="w-8 h-8 text-blue-600" />
-              Skapa läsförståelse-lektion
+              Redigera lektion
             </h1>
-            <p className="text-gray-600">Avancerat verktyg för att skapa interaktiva läsövningar</p>
+            <p className="text-gray-600">Avancerat verktyg för att redigera interaktiva läsövningar</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Lesson List Sidebar */}
-          <div className="lg:col-span-1">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Laddar lektion...</p>
+            </div>
+          </div>
+        ) : !lesson ? (
+          <Card className="h-96">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <BookOpen className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Lektion hittades inte</h3>
+                <p className="text-gray-500">Den begärda lektionen kunde inte hittas.</p>
+                <Button 
+                  onClick={() => setLocation("/lasforstaelse/skapa")}
+                  className="mt-4"
+                  data-testid="button-back-to-selector"
+                >
+                  Tillbaka till lektionsval
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Lesson Header */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Lektioner
-                </CardTitle>
-                <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="w-full" data-testid="button-new-lesson">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ny lektion
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Skapa ny lektion</DialogTitle>
-                      <DialogDescription>
-                        Fyll i grundinformation för din nya läsförståelse-lektion
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="title">Titel</Label>
-                        <Input
-                          id="title"
-                          value={newLessonForm.title}
-                          onChange={(e) => setNewLessonForm(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="T.ex. 'Djur i skogen'"
-                          data-testid="input-lesson-title"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Beskrivning</Label>
-                        <Textarea
-                          id="description"
-                          value={newLessonForm.description}
-                          onChange={(e) => setNewLessonForm(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Kort beskrivning av lektionen"
-                          data-testid="textarea-lesson-description"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="gradeLevel">Årskurs</Label>
-                          <Select 
-                            value={newLessonForm.gradeLevel} 
-                            onValueChange={(value) => setNewLessonForm(prev => ({ ...prev, gradeLevel: value }))}
-                          >
-                            <SelectTrigger data-testid="select-grade-level">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">Årskurs 1</SelectItem>
-                              <SelectItem value="2">Årskurs 2</SelectItem>
-                              <SelectItem value="3">Årskurs 3</SelectItem>
-                              <SelectItem value="4">Årskurs 4</SelectItem>
-                              <SelectItem value="5">Årskurs 5</SelectItem>
-                              <SelectItem value="6">Årskurs 6</SelectItem>
-                              <SelectItem value="7">Årskurs 7</SelectItem>
-                              <SelectItem value="8">Årskurs 8</SelectItem>
-                              <SelectItem value="9">Årskurs 9</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="readingTime">Läsningstid (min)</Label>
-                          <Input
-                            id="readingTime"
-                            type="number"
-                            value={newLessonForm.readingTime}
-                            onChange={(e) => setNewLessonForm(prev => ({ ...prev, readingTime: parseInt(e.target.value) || 10 }))}
-                            data-testid="input-reading-time"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="subject">Ämne</Label>
-                        <Input
-                          id="subject"
-                          value={newLessonForm.subject}
-                          onChange={(e) => setNewLessonForm(prev => ({ ...prev, subject: e.target.value }))}
-                          placeholder="T.ex. Svenska, Naturkunskap"
-                          data-testid="input-lesson-subject"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button 
-                        onClick={handleCreateLesson} 
-                        disabled={createMutation.isPending || !newLessonForm.title.trim()}
-                        data-testid="button-create-confirm"
-                      >
-                        {createMutation.isPending ? "Skapar..." : "Skapa lektion"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-16 bg-gray-200 rounded animate-pulse" />
-                    ))}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{editingLesson?.title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Årskurs {editingLesson?.gradeLevel} • {editingLesson?.subject} • {editingLesson?.readingTime} min
+                    </p>
                   </div>
-                ) : lessons.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Inga lektioner ännu
-                  </p>
-                ) : (
-                  lessons.map((lesson) => (
-                    <div
-                      key={lesson.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedLesson?.id === lesson.id ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleEditLesson(lesson)}
-                      data-testid={`lesson-item-${lesson.id}`}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowPreview(true)}
+                      data-testid="button-preview-lesson"
                     >
-                      <div className="font-medium text-sm">{lesson.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Årskurs {lesson.gradeLevel} • {lesson.readingTime} min
-                      </div>
-                      <Badge variant={lesson.isPublished ? "default" : "secondary"} className="mt-1">
-                        {lesson.isPublished ? "Publicerad" : "Utkast"}
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Editor Area */}
-          <div className="lg:col-span-3">
-            {!editingLesson ? (
-              <Card className="h-96">
-                <CardContent className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <BookOpen className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">Välj en lektion att redigera</h3>
-                    <p className="text-gray-500">Klicka på en lektion i listan eller skapa en ny</p>
+                      <Eye className="w-4 h-4 mr-1" />
+                      Förhandsgranska
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowSettingsDialog(true)}
+                      data-testid="button-lesson-settings"
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      Inställningar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleExportLesson}
+                      data-testid="button-export-lesson"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Exportera
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleSaveContent}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-save-content"
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      {updateMutation.isPending ? "Sparar..." : "Spara"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setLocation("/lasforstaelse/skapa")}
+                      data-testid="button-back-to-list"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-1" />
+                      Tillbaka
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* Lesson Header */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{editingLesson.title}</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Årskurs {editingLesson.gradeLevel} • {editingLesson.subject} • {editingLesson.readingTime} min
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowPreview(true)}
-                          data-testid="button-preview-lesson"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Förhandsgranska
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowSettingsDialog(true)}
-                          data-testid="button-lesson-settings"
-                        >
-                          <Settings className="w-4 h-4 mr-1" />
-                          Inställningar
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleTogglePublish}
-                          disabled={updateMutation.isPending}
-                          data-testid="button-toggle-publish"
-                        >
-                          {newLessonForm.isPublished ? (
-                            <>
-                              <EyeOff className="w-4 h-4 mr-1" />
-                              Avpublicera
-                            </>
-                          ) : (
-                            <>
-                              <Globe className="w-4 h-4 mr-1" />
-                              Publicera
-                            </>
-                          )}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleExportLesson}
-                          data-testid="button-export-lesson"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Exportera
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleSaveContent}
-                          disabled={updateMutation.isPending}
-                          data-testid="button-save-content"
-                        >
-                          <Save className="w-4 h-4 mr-1" />
-                          {updateMutation.isPending ? "Sparar..." : "Spara"}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
+                </div>
+              </CardHeader>
+            </Card>
 
-                {/* Main Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {/* Editor Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="content" data-testid="tab-content">
                       <FileText className="w-4 h-4 mr-2" />
@@ -985,11 +803,9 @@ export default function ReadingLessonBuilder() {
                       </CardContent>
                     </Card>
                   </TabsContent>
-                </Tabs>
-              </div>
-            )}
+            </Tabs>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Settings Dialog */}
