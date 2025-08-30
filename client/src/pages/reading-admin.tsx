@@ -19,6 +19,21 @@ import { ObjectUploader } from "@/components/ObjectUploader";
 import type { ReadingLesson, InsertReadingLesson, ReadingQuestion, WordDefinition, PreReadingQuestion } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 
+// Function to parse content into pages based on page breaks
+function parseContentIntoPages(content: string): string[] {
+  if (!content) return [];
+  
+  // Split by page break marker
+  const pages = content.split(/\[SIDBRYTNING\]/g).filter(page => page.trim().length > 0);
+  
+  // If no page breaks found, return entire content as one page
+  if (pages.length <= 1) {
+    return [content];
+  }
+  
+  return pages;
+}
+
 export default function ReadingAdmin() {
   const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -329,7 +344,11 @@ export default function ReadingAdmin() {
 
   // Per-page question functions
   const addPageQuestion = (pageIndex: number, type: ReadingQuestion["type"]) => {
-    if (!editingLesson?.pages) return;
+    if (!editingLesson) return;
+    
+    // Ensure pages exist and are parsed from content
+    const pages = parseContentIntoPages(editingLesson.content || "");
+    if (pageIndex >= pages.length) return;
     
     const newQuestion: ReadingQuestion = {
       id: `pq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -342,12 +361,29 @@ export default function ReadingAdmin() {
       ...(type === "true_false" && { correctAnswer: true })
     };
 
-    const newPages = [...editingLesson.pages];
+    // Get existing pages or create from content
+    const currentPages = editingLesson.pages || pages.map((page, index) => ({
+      id: `page-${index}`,
+      content: page,
+      questions: []
+    }));
+    
+    const newPages = [...currentPages];
+    if (!newPages[pageIndex]) {
+      newPages[pageIndex] = {
+        id: `page-${pageIndex}`,
+        content: pages[pageIndex] || "",
+        questions: []
+      };
+    }
+    
     const currentPage = newPages[pageIndex] as any;
     if (!currentPage.questions) {
       currentPage.questions = [];
     }
     currentPage.questions.push(newQuestion);
+    
+    console.log('Adding page question:', { pageIndex, type, newQuestion, currentPages: newPages });
     
     setEditingLesson({ ...editingLesson, pages: newPages });
   };
@@ -948,9 +984,16 @@ export default function ReadingAdmin() {
                   </p>
                 </div>
 
-                {editingLesson?.pages && editingLesson.pages.length > 0 ? (
+                {(() => {
+                  const pages = editingLesson?.pages || parseContentIntoPages(editingLesson?.content || "").map((page, index) => ({
+                    id: `page-${index}`,
+                    content: page,
+                    questions: []
+                  }));
+                  
+                  return pages.length > 0 ? (
                   <div className="space-y-6">
-                    {editingLesson.pages.map((page: any, pageIndex: number) => (
+                    {pages.map((page: any, pageIndex: number) => (
                       <Card key={page.id} className="border-l-4 border-l-blue-500">
                         <CardHeader>
                           <div className="flex justify-between items-start">
@@ -1161,13 +1204,14 @@ export default function ReadingAdmin() {
                       </Card>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-                    <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                    <p className="text-gray-500 mb-3">Inga sidor skapade ännu</p>
-                    <p className="text-sm text-gray-400">Använd sidbrytningar i innehållsredigeraren för att skapa sidor</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                      <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-500 mb-3">Inga sidor skapade ännu</p>
+                      <p className="text-sm text-gray-400">Använd sidbrytningar i innehållsredigeraren för att skapa sidor</p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
