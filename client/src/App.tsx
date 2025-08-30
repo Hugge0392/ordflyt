@@ -58,6 +58,21 @@ function Router() {
       <Route path="/lasforstaelse/deckargator">
         <ReadingPlaceholder type="deckargator" />
       </Route>
+      <Route path="/lasforstaelse/skapa">
+        <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
+          <ReadingLessonBuilder />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/skapa/edit/:id">
+        <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
+          <ReadingLessonBuilder />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/lektioner">
+        <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
+          <ReadingAdmin />
+        </ProtectedRoute>
+      </Route>
       <Route path="/skrivande">
         <Placeholder category="skrivande" />
       </Route>

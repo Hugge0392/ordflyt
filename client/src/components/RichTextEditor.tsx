@@ -297,6 +297,13 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
 
   // Convert all pages back to a single HTML string for saving AND notify about pages with images
   const lastContentRef = useRef<string>('');
+  const lastCallbackRef = useRef<{ onChange?: Function; onPagesChange?: Function }>({});
+  
+  useEffect(() => {
+    // Store callbacks in ref to avoid dependency issues
+    lastCallbackRef.current = { onChange, onPagesChange };
+  });
+
   useEffect(() => {
     const allBlocks: ContentBlock[] = [];
     pages.forEach((pageBlocks, index) => {
@@ -342,11 +349,11 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     // Only call onChange if content actually changed to prevent infinite loops
     if (htmlContent !== value && htmlContent !== lastContentRef.current) {
       lastContentRef.current = htmlContent;
-      onChange(htmlContent);
+      lastCallbackRef.current.onChange?.(htmlContent);
     }
 
     // Also notify about pages structure with images if callback is provided
-    if (onPagesChange) {
+    if (lastCallbackRef.current.onPagesChange) {
       const pagesData = pages.map((pageBlocks, index) => {
         const pageContent = pageBlocks.map(block => {
           switch (block.type) {
@@ -388,9 +395,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
         };
       });
       
-      onPagesChange(pagesData);
+      lastCallbackRef.current.onPagesChange?.(pagesData);
     }
-  }, [pages, pageImages, onPagesChange]);
+  }, [pages, pageImages]);
 
   const updateBlock = (id: string, updates: Partial<ContentBlock>) => {
     const newPages = pages.map(pageBlocks => 

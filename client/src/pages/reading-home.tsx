@@ -68,21 +68,41 @@ export default function ReadingHome() {
             </Card>
           </Link>
 
-          {/* Admin */}
-          <Link href="/lasforstaelse/admin">
+          {/* Skapa lektion */}
+          <Link href="/lasforstaelse/skapa">
             <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <BookOpen className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
-                <CardTitle className="text-xl">Admin</CardTitle>
+                <CardTitle className="text-xl">Skapa lektion</CardTitle>
                 <CardDescription>
-                  Hantera innehåll och inställningar
+                  Skapa nya läsförståelse-lektioner
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  Lägg till nytt innehåll och konfigurera läsförståelse-aktiviteter.
+                  Använd det avancerade verktyget för att skapa interaktiva lektioner med bilder och frågor.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Lektioner */}
+          <Link href="/lasforstaelse/lektioner">
+            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
+                  <Shield className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </div>
+                <CardTitle className="text-xl">Lektioner</CardTitle>
+                <CardDescription>
+                  Hantera publicerade lektioner
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  Se, redigera och hantera alla publicerade läsförståelse-lektioner.
                 </p>
               </CardContent>
             </Card>

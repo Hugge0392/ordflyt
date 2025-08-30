@@ -28,8 +28,12 @@ import {
   Upload,
   Download,
   Copy,
-  CheckCircle
+  CheckCircle,
+  Image,
+  Globe,
+  EyeOff
 } from "lucide-react";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 interface WordDefinition {
   id: string;
@@ -70,7 +74,7 @@ interface ReadingLesson {
 export default function ReadingLessonBuilder() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [match, params] = useRoute("/admin/reading/edit/:id");
+  const [match, params] = useRoute("/lasforstaelse/skapa/edit/:id");
   
   // Main lesson state
   const [selectedLesson, setSelectedLesson] = useState<ReadingLesson | null>(null);
@@ -82,6 +86,7 @@ export default function ReadingLessonBuilder() {
   const [activeTab, setActiveTab] = useState("content");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   
   // Form states for dialogs
   const [newQuestionForm, setNewQuestionForm] = useState({
@@ -100,7 +105,9 @@ export default function ReadingLessonBuilder() {
     description: '',
     gradeLevel: '6',
     subject: 'Svenska',
-    readingTime: 10
+    readingTime: 10,
+    featuredImage: '',
+    isPublished: false
   });
 
   // Fetch lessons
@@ -173,6 +180,15 @@ export default function ReadingLessonBuilder() {
     setSelectedLesson(lesson);
     setEditingLesson({ ...lesson });
     setCurrentEditorContent(lesson.content || "");
+    setNewLessonForm({
+      title: lesson.title,
+      description: lesson.description || '',
+      gradeLevel: lesson.gradeLevel || '6',
+      subject: lesson.subject || 'Svenska',
+      readingTime: lesson.readingTime || 10,
+      featuredImage: lesson.featuredImage || '',
+      isPublished: (lesson.isPublished === 1) || false
+    });
     setActiveTab("content");
   };
 
@@ -180,11 +196,11 @@ export default function ReadingLessonBuilder() {
     const newLesson = {
       ...newLessonForm,
       content: "",
-      featuredImage: "",
+      featuredImage: newLessonForm.featuredImage,
       preReadingQuestions: [],
       questions: [],
       wordDefinitions: [],
-      isPublished: false
+      isPublished: 0
     };
     
     createMutation.mutate(newLesson);
@@ -208,16 +224,16 @@ export default function ReadingLessonBuilder() {
       id: selectedLesson.id,
       lesson: {
         content: currentContent,
-        title: editingLesson.title,
-        gradeLevel: editingLesson.gradeLevel,
-        description: editingLesson.description,
-        subject: editingLesson.subject,
-        readingTime: editingLesson.readingTime,
-        featuredImage: editingLesson.featuredImage,
+        title: newLessonForm.title,
+        gradeLevel: newLessonForm.gradeLevel,
+        description: newLessonForm.description,
+        subject: newLessonForm.subject,
+        readingTime: newLessonForm.readingTime,
+        featuredImage: newLessonForm.featuredImage,
         preReadingQuestions: editingLesson.preReadingQuestions ?? [],
         questions: editingLesson.questions ?? [],
         wordDefinitions: editingLesson.wordDefinitions ?? [],
-        isPublished: editingLesson.isPublished,
+        isPublished: newLessonForm.isPublished ? 1 : 0,
       }
     });
   };
@@ -311,12 +327,109 @@ export default function ReadingLessonBuilder() {
     });
   };
 
+  // Handle featured image upload
+  const handleFeaturedImageUpload = async (file: any) => {
+    try {
+      const response = await fetch("/api/objects/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (!response.ok) throw new Error("Failed to get upload URL");
+      
+      const { uploadURL, objectPath } = await response.json();
+      
+      return {
+        method: "PUT" as const,
+        url: uploadURL,
+        headers: { "Content-Type": file.type }
+      };
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      throw error;
+    }
+  };
+
+  const handleFeaturedImageComplete = (result: any) => {
+    if (result.successful && result.successful[0]) {
+      const file = result.successful[0];
+      
+      // Use simple object path based on filename
+      const objectPath = `/objects/uploads/${file.name || Date.now()}`;
+      
+      setNewLessonForm(prev => ({
+        ...prev,
+        featuredImage: objectPath
+      }));
+      
+      toast({
+        title: "Bild uppladdad!",
+        description: "Utvald bild har lagts till"
+      });
+    }
+  };
+
+  // Toggle publish status
+  const handleTogglePublish = () => {
+    if (!selectedLesson || !editingLesson) return;
+
+    const newPublishStatus = !newLessonForm.isPublished;
+    
+    setNewLessonForm(prev => ({
+      ...prev,
+      isPublished: newPublishStatus
+    }));
+
+    // Save immediately
+    const updatedLesson = {
+      ...editingLesson,
+      isPublished: newPublishStatus ? 1 : 0
+    };
+
+    updateMutation.mutate({ 
+      id: selectedLesson.id, 
+      lesson: updatedLesson 
+    });
+  };
+
+  // Export lesson functionality
+  const handleExportLesson = async () => {
+    if (!selectedLesson) return;
+
+    try {
+      const response = await fetch(`/api/reading-lessons/${selectedLesson.id}/export`);
+      if (!response.ok) throw new Error("Failed to export");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${selectedLesson.title.replace(/\s+/g, '-').toLowerCase()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export lyckades!",
+        description: "Lektionen har laddats ned som HTML-fil"
+      });
+    } catch (error) {
+      toast({
+        title: "Export misslyckades",
+        description: "Kunde inte exportera lektionen",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin/reading">
-            <Button variant="outline" size="sm" data-testid="button-back-reading-admin">
+          <Link href="/lasforstaelse">
+            <Button variant="outline" size="sm" data-testid="button-back-reading-home">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Tillbaka till läsförståelse
             </Button>
@@ -503,12 +616,49 @@ export default function ReadingLessonBuilder() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => setShowSettingsDialog(true)}
+                          data-testid="button-lesson-settings"
+                        >
+                          <Settings className="w-4 h-4 mr-1" />
+                          Inställningar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleTogglePublish}
+                          disabled={updateMutation.isPending}
+                          data-testid="button-toggle-publish"
+                        >
+                          {newLessonForm.isPublished ? (
+                            <>
+                              <EyeOff className="w-4 h-4 mr-1" />
+                              Avpublicera
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="w-4 h-4 mr-1" />
+                              Publicera
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleExportLesson}
+                          data-testid="button-export-lesson"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Exportera
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={handleSaveContent}
                           disabled={updateMutation.isPending}
                           data-testid="button-save-content"
                         >
                           <Save className="w-4 h-4 mr-1" />
-                          {updateMutation.isPending ? "Sparar..." : "Spara innehåll"}
+                          {updateMutation.isPending ? "Sparar..." : "Spara"}
                         </Button>
                       </div>
                     </div>
@@ -818,6 +968,166 @@ export default function ReadingLessonBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Lektionsinställningar</DialogTitle>
+            <DialogDescription>
+              Hantera lektionens metadata och avancerade inställningar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="lesson-title">Titel</Label>
+                <Input
+                  id="lesson-title"
+                  value={newLessonForm.title}
+                  onChange={(e) => setNewLessonForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Lektionstitel"
+                  data-testid="input-lesson-title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lesson-subject">Ämne</Label>
+                <Input
+                  id="lesson-subject"
+                  value={newLessonForm.subject}
+                  onChange={(e) => setNewLessonForm(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="t.ex. Svenska"
+                  data-testid="input-lesson-subject"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lesson-grade">Årskurs</Label>
+                <Input
+                  id="lesson-grade"
+                  value={newLessonForm.gradeLevel}
+                  onChange={(e) => setNewLessonForm(prev => ({ ...prev, gradeLevel: e.target.value }))}
+                  placeholder="t.ex. 6"
+                  data-testid="input-lesson-grade"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lesson-time">Lästid (min)</Label>
+                <Input
+                  id="lesson-time"
+                  type="number"
+                  value={newLessonForm.readingTime}
+                  onChange={(e) => setNewLessonForm(prev => ({ ...prev, readingTime: parseInt(e.target.value) || 10 }))}
+                  placeholder="10"
+                  data-testid="input-lesson-time"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="lesson-description">Beskrivning</Label>
+              <Textarea
+                id="lesson-description"
+                value={newLessonForm.description}
+                onChange={(e) => setNewLessonForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Kort beskrivning av lektionen..."
+                rows={3}
+                data-testid="textarea-lesson-description"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <Label>Utvald bild</Label>
+                {newLessonForm.featuredImage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewLessonForm(prev => ({ ...prev, featuredImage: '' }))}
+                    data-testid="button-remove-featured-image"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Ta bort bild
+                  </Button>
+                )}
+              </div>
+              
+              {newLessonForm.featuredImage ? (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <Image className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Bild uppladdad</p>
+                      <p className="text-xs text-muted-foreground">{newLessonForm.featuredImage}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ObjectUploader
+                  maxNumberOfFiles={1}
+                  maxFileSize={5242880} // 5MB
+                  onGetUploadParameters={handleFeaturedImageUpload}
+                  onComplete={handleFeaturedImageComplete}
+                  buttonClassName="w-full"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Ladda upp utvald bild
+                </ObjectUploader>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-medium">Publicering</p>
+                <p className="text-sm text-muted-foreground">
+                  {newLessonForm.isPublished ? 
+                    "Lektionen är publicerad och synlig för alla" : 
+                    "Lektionen är ett utkast och endast synlig för lärare"}
+                </p>
+              </div>
+              <Button
+                variant={newLessonForm.isPublished ? "destructive" : "default"}
+                onClick={handleTogglePublish}
+                disabled={updateMutation.isPending}
+                data-testid="button-toggle-publish-dialog"
+              >
+                {newLessonForm.isPublished ? (
+                  <>
+                    <EyeOff className="w-4 h-4 mr-2" />
+                    Avpublicera
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-4 h-4 mr-2" />
+                    Publicera
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSettingsDialog(false)}
+              data-testid="button-cancel-settings"
+            >
+              Stäng
+            </Button>
+            <Button 
+              onClick={() => {
+                handleSaveContent();
+                setShowSettingsDialog(false);
+              }}
+              disabled={updateMutation.isPending}
+              data-testid="button-save-settings"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Spara inställningar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Dialog */}
       {showPreview && editingLesson && (

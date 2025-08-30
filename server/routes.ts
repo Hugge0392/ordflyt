@@ -35,6 +35,165 @@ const updateProgressSchema = z.object({
   correctAnswersByWordClass: z.record(z.string(), z.number()).optional(),
 });
 
+// Simple HTML generator for reading lessons
+function generateReadingLessonHTML(lesson: any): string {
+  return `<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${lesson.title}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f8fafc;
+        }
+        .lesson-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .lesson-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .lesson-title {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .lesson-meta {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .lesson-content {
+            padding: 40px 30px;
+        }
+        .featured-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .pre-reading-questions {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .questions-section {
+            background: #f9fafb;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+        .question {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .word-definitions {
+            background: #fef7ff;
+            border: 1px solid #e879f9;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+        h2 { color: #374151; margin: 25px 0 15px 0; }
+        h3 { color: #4b5563; margin: 20px 0 10px 0; }
+        p { margin: 15px 0; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        blockquote { 
+            border-left: 4px solid #d1d5db; 
+            padding-left: 20px; 
+            margin: 20px 0; 
+            font-style: italic; 
+            color: #6b7280; 
+        }
+        .page-break {
+            border-top: 3px dashed #d1d5db;
+            margin: 40px 0;
+            padding: 20px 0;
+            text-align: center;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="lesson-container">
+        <div class="lesson-header">
+            <h1 class="lesson-title">${lesson.title}</h1>
+            <div class="lesson-meta">
+                ${lesson.gradeLevel ? `Årskurs ${lesson.gradeLevel}` : ''} • 
+                ${lesson.subject || 'Svenska'} • 
+                ${lesson.readingTime || 10} min
+            </div>
+        </div>
+        
+        <div class="lesson-content">
+            ${lesson.featuredImage ? `<img src="${lesson.featuredImage}" alt="Utvald bild" class="featured-image" />` : ''}
+            
+            ${lesson.description ? `<p><strong>Beskrivning:</strong> ${lesson.description}</p>` : ''}
+            
+            ${lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 ? `
+                <div class="pre-reading-questions">
+                    <h3>Innan du läser - fundera på:</h3>
+                    <ul>
+                        ${lesson.preReadingQuestions.map((q: any) => `<li>${q.question}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            
+            <div class="main-content">
+                ${lesson.content || ''}
+            </div>
+            
+            ${lesson.questions && lesson.questions.length > 0 ? `
+                <div class="questions-section">
+                    <h3>Frågor om texten</h3>
+                    ${lesson.questions.map((q: any, index: number) => `
+                        <div class="question">
+                            <p><strong>Fråga ${index + 1}:</strong> ${q.question}</p>
+                            ${q.alternatives ? `
+                                <ul>
+                                    ${q.alternatives.map((alt: string, i: number) => `
+                                        <li${i === q.correctAnswer ? ' style="font-weight: bold; color: #059669;"' : ''}>${alt}</li>
+                                    `).join('')}
+                                </ul>
+                            ` : ''}
+                            ${q.explanation ? `<p><em>Förklaring: ${q.explanation}</em></p>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            ${lesson.wordDefinitions && lesson.wordDefinitions.length > 0 ? `
+                <div class="word-definitions">
+                    <h3>Ordförklaringar</h3>
+                    ${lesson.wordDefinitions.map((def: any) => `
+                        <p><strong>${def.word}:</strong> ${def.definition}</p>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    </div>
+</body>
+</html>`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all word classes
   app.get("/api/word-classes", async (req, res) => {
@@ -624,6 +783,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting reading lesson:", error);
       res.status(500).json({ message: "Failed to delete reading lesson" });
+    }
+  });
+
+  // Export reading lesson as HTML
+  app.get("/api/reading-lessons/:id/export", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const lesson = await storage.getReadingLesson(id);
+      
+      if (!lesson) {
+        return res.status(404).json({ message: "Reading lesson not found" });
+      }
+
+      // Generate simple HTML export
+      const htmlContent = generateReadingLessonHTML(lesson);
+
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', `attachment; filename="${lesson.title.replace(/\s+/g, '-').toLowerCase()}.html"`);
+      res.send(htmlContent);
+    } catch (error) {
+      console.error("Failed to export reading lesson:", error);
+      res.status(500).json({ message: "Failed to export reading lesson" });
     }
   });
 

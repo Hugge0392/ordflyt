@@ -80,21 +80,21 @@ export default function ReadingAdmin() {
   });
 
   const handleCreateLesson = () => {
-    setLocation("/admin/reading/create");
+    setLocation("/lasforstaelse/skapa");
   };
 
   const handleEditLesson = (lesson: any) => {
-    setLocation(`/admin/reading/edit/${lesson.id}`);
+    setLocation(`/lasforstaelse/skapa/edit/${lesson.id}`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/admin">
-            <Button variant="outline" size="sm" data-testid="button-back-admin">
+          <Link href="/lasforstaelse">
+            <Button variant="outline" size="sm" data-testid="button-back-reading">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Tillbaka till adminpanel
+              Tillbaka till läsförståelse
             </Button>
           </Link>
           <div>
