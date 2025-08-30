@@ -747,7 +747,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pagesCount: req.body.pages?.length || 0
       });
       
-      const validatedData = insertReadingLessonSchema.parse(req.body);
+      // Use partial validation to allow updates of individual fields
+      const validatedData = insertReadingLessonSchema.partial().parse(req.body);
       
       console.log('[API UPDATE] Validated data:', {
         title: validatedData.title,

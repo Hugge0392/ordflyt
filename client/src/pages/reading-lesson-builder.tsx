@@ -134,7 +134,7 @@ export default function ReadingLessonBuilder() {
         subject: lesson.subject || 'Svenska',
         readingTime: lesson.readingTime || 10,
         featuredImage: lesson.featuredImage || '',
-        isPublished: lesson.isPublished || false
+        isPublished: lesson.isPublished === 1
       });
     }
   }, [lesson]);
@@ -182,16 +182,16 @@ export default function ReadingLessonBuilder() {
       lesson: {
         content: currentContent,
         pages: localPages, // Include the pages with images!
-        title: newLessonForm.title,
-        gradeLevel: newLessonForm.gradeLevel,
-        description: newLessonForm.description,
-        subject: newLessonForm.subject,
-        readingTime: newLessonForm.readingTime,
-        featuredImage: newLessonForm.featuredImage,
+        title: newLessonForm.title || lesson.title,
+        gradeLevel: newLessonForm.gradeLevel || lesson.gradeLevel,
+        description: newLessonForm.description || lesson.description,
+        subject: newLessonForm.subject || lesson.subject,
+        readingTime: newLessonForm.readingTime || lesson.readingTime,
+        featuredImage: newLessonForm.featuredImage || lesson.featuredImage,
         preReadingQuestions: editingLesson.preReadingQuestions ?? [],
         questions: editingLesson.questions ?? [],
         wordDefinitions: editingLesson.wordDefinitions ?? [],
-        isPublished: newLessonForm.isPublished,
+        isPublished: newLessonForm.isPublished ? 1 : 0, // Convert boolean to number
       } as Partial<ReadingLesson>
     });
   };

@@ -65,7 +65,7 @@ export default function ReadingLessonSelector() {
 
   const publishMutation = useMutation({
     mutationFn: ({ id, isPublished }: { id: string, isPublished: boolean }) => 
-      apiRequest('PUT', `/api/reading-lessons/${id}`, { isPublished }),
+      apiRequest('PUT', `/api/reading-lessons/${id}`, { isPublished: isPublished ? 1 : 0 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
       toast({
@@ -98,7 +98,7 @@ export default function ReadingLessonSelector() {
       preReadingQuestions: [],
       questions: [],
       wordDefinitions: [],
-      isPublished: false
+      isPublished: 0
     };
     
     createMutation.mutate(newLesson);
@@ -304,24 +304,24 @@ export default function ReadingLessonSelector() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Badge variant={lesson.isPublished ? "default" : "secondary"}>
-                          {lesson.isPublished ? "Publicerad" : "Utkast"}
+                        <Badge variant={lesson.isPublished === 1 ? "default" : "secondary"}>
+                          {lesson.isPublished === 1 ? "Publicerad" : "Utkast"}
                         </Badge>
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
-                            variant={lesson.isPublished ? "destructive" : "default"}
+                            variant={lesson.isPublished === 1 ? "destructive" : "default"}
                             onClick={(e) => {
                               e.stopPropagation();
                               publishMutation.mutate({ 
                                 id: lesson.id, 
-                                isPublished: !lesson.isPublished 
+                                isPublished: lesson.isPublished !== 1 
                               });
                             }}
                             disabled={publishMutation.isPending}
                             data-testid={`button-publish-${lesson.id}`}
                           >
-                            {lesson.isPublished ? (
+                            {lesson.isPublished === 1 ? (
                               <>
                                 <EyeOff className="w-4 h-4 mr-1" />
                                 Avpublicera
