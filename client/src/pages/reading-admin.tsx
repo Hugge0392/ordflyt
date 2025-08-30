@@ -1006,12 +1006,7 @@ export default function ReadingAdmin() {
                     onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
                     placeholder="Skriv ditt textinnehåll här..."
                     className="min-h-[400px]"
-                    ref={(editor) => {
-                      // Store reference to editor for manual content extraction
-                      if (editor) {
-                        (window as any).richTextEditor = editor;
-                      }
-                    }}
+
                   />
                   
                   <div className="flex justify-end">
@@ -1027,6 +1022,7 @@ export default function ReadingAdmin() {
                         let currentContent = currentEditorContent || editingLesson?.content;
                         console.log('[MANUAL SAVE DEBUG] currentEditorContent:', currentEditorContent?.length || 0);
                         console.log('[MANUAL SAVE DEBUG] editingLesson.content:', editingLesson?.content?.length || 0);
+                        console.log('[MANUAL SAVE DEBUG] currentEditorContent value:', currentEditorContent?.substring(0, 100));
                         
                         // If still no content, try to extract from DOM as fallback
                         if (!currentContent || currentContent.trim() === '') {
@@ -1100,11 +1096,11 @@ export default function ReadingAdmin() {
                           setIsSaving(false);
                         }
                       }}
-                      disabled={isSaving || isCreating}
+                      disabled={isSaving || isCreating || (!currentEditorContent && !editingLesson?.content)}
                       data-testid="button-save-content"
                     >
                       <Save className="w-4 h-4 mr-2" />
-                      {isSaving ? "Sparar innehåll..." : "Spara innehåll"}
+                      {isSaving ? "Sparar innehåll..." : `Spara innehåll ${currentEditorContent?.length || editingLesson?.content?.length || 0} tecken`}
                     </Button>
                   </div>
                 </div>
