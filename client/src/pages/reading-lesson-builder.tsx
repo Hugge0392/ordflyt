@@ -80,7 +80,7 @@ export default function ReadingLessonBuilder() {
   // Main lesson state
   const [editingLesson, setEditingLesson] = useState<ReadingLesson | null>(null);
   const [currentEditorContent, setCurrentEditorContent] = useState("");
-  const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]>([]);
+  const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
   
   // UI state
   const [activeTab, setActiveTab] = useState("content");
@@ -283,6 +283,54 @@ export default function ReadingLessonBuilder() {
       ...editingLesson,
       preReadingQuestions: editingLesson.preReadingQuestions.filter(q => q.id !== id)
     });
+  };
+
+  // Add reading question to current page
+  const addReadingQuestion = () => {
+    if (!newQuestionForm.question.trim() || localPages.length === 0) return;
+    
+    // Create the question object
+    const question: Question = {
+      id: Date.now().toString(),
+      type: newQuestionForm.type,
+      question: newQuestionForm.question.trim(),
+      alternatives: newQuestionForm.type === 'multiple-choice' ? newQuestionForm.alternatives : undefined,
+      correctAnswer: newQuestionForm.correctAnswer,
+      explanation: newQuestionForm.explanation || undefined
+    };
+
+    // Add question to the first page (currently we only support single page)
+    const updatedPages = [...localPages];
+    if (updatedPages[0]) {
+      updatedPages[0] = {
+        ...updatedPages[0],
+        questions: [...(updatedPages[0].questions || []), question]
+      };
+      setLocalPages(updatedPages);
+    }
+
+    // Reset form
+    setNewQuestionForm({
+      type: 'multiple-choice',
+      question: '',
+      alternatives: ['', '', '', ''],
+      correctAnswer: 0,
+      explanation: ''
+    });
+  };
+
+  // Remove reading question from specific page
+  const removeReadingQuestion = (pageId: string, questionId: string) => {
+    const updatedPages = localPages.map(page => {
+      if (page.id === pageId) {
+        return {
+          ...page,
+          questions: (page.questions || []).filter(q => q.id !== questionId)
+        };
+      }
+      return page;
+    });
+    setLocalPages(updatedPages);
   };
 
   // Handle featured image upload
@@ -514,7 +562,7 @@ export default function ReadingLessonBuilder() {
 
             {/* Editor Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="content" data-testid="tab-content">
                       <FileText className="w-4 h-4 mr-2" />
                       Innehåll
@@ -522,6 +570,10 @@ export default function ReadingLessonBuilder() {
                     <TabsTrigger value="prereading" data-testid="tab-prereading">
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Innan du läser
+                    </TabsTrigger>
+                    <TabsTrigger value="reading-questions" data-testid="tab-reading-questions">
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Under läsning
                     </TabsTrigger>
                     <TabsTrigger value="questions" data-testid="tab-questions">
                       <Book className="w-4 h-4 mr-2" />
@@ -599,6 +651,160 @@ export default function ReadingLessonBuilder() {
                               </Button>
                             </div>
                           ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Reading Questions Tab - Questions that appear during reading */}
+                  <TabsContent value="reading-questions" className="mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Frågor under läsning</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Skapa frågor som eleverna svarar på medan de läser texten. Frågorna visas bredvid texten för att hjälpa eleverna hänga med.
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="p-4 border rounded-lg bg-blue-50">
+                          <h4 className="font-medium mb-3 text-blue-800">Lägg till fråga för aktuell sida</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <Label>Frågetyp</Label>
+                              <Select 
+                                value={newQuestionForm.type} 
+                                onValueChange={(value: Question['type']) => setNewQuestionForm(prev => ({ ...prev, type: value }))}
+                              >
+                                <SelectTrigger data-testid="select-reading-question-type">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="multiple-choice">Flerval</SelectItem>
+                                  <SelectItem value="true-false">Sant/Falskt</SelectItem>
+                                  <SelectItem value="open">Öppen fråga</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label>Fråga</Label>
+                              <Textarea
+                                value={newQuestionForm.question}
+                                onChange={(e) => setNewQuestionForm(prev => ({ ...prev, question: e.target.value }))}
+                                placeholder="Skriv din fråga för denna del av texten..."
+                                data-testid="textarea-reading-question"
+                              />
+                            </div>
+
+                            {newQuestionForm.type === 'multiple-choice' && (
+                              <div>
+                                <Label>Svarsalternativ</Label>
+                                <div className="space-y-2">
+                                  {newQuestionForm.alternatives.map((alt, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        value={alt}
+                                        onChange={(e) => {
+                                          const newAlts = [...newQuestionForm.alternatives];
+                                          newAlts[index] = e.target.value;
+                                          setNewQuestionForm(prev => ({ ...prev, alternatives: newAlts }));
+                                        }}
+                                        placeholder={`Alternativ ${index + 1}`}
+                                        data-testid={`input-reading-alt-${index}`}
+                                      />
+                                      {index === newQuestionForm.correctAnswer && (
+                                        <Badge variant="secondary" className="self-center">Rätt svar</Badge>
+                                      )}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setNewQuestionForm(prev => ({ ...prev, correctAnswer: index }))}
+                                        className={index === newQuestionForm.correctAnswer ? "bg-green-100" : ""}
+                                        data-testid={`button-reading-correct-${index}`}
+                                      >
+                                        ✓
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {newQuestionForm.type === 'true-false' && (
+                              <div>
+                                <Label>Rätt svar</Label>
+                                <Select 
+                                  value={String(newQuestionForm.correctAnswer)} 
+                                  onValueChange={(value) => setNewQuestionForm(prev => ({ ...prev, correctAnswer: value === 'true' }))}
+                                >
+                                  <SelectTrigger data-testid="select-reading-true-false">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="true">Sant</SelectItem>
+                                    <SelectItem value="false">Falskt</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            <div>
+                              <Label>Förklaring (valfritt)</Label>
+                              <Textarea
+                                value={newQuestionForm.explanation}
+                                onChange={(e) => setNewQuestionForm(prev => ({ ...prev, explanation: e.target.value }))}
+                                placeholder="Förklara varför detta är rätt svar..."
+                                data-testid="textarea-reading-explanation"
+                              />
+                            </div>
+
+                            <Button 
+                              onClick={() => addReadingQuestion()}
+                              disabled={!newQuestionForm.question.trim()}
+                              data-testid="button-add-reading-question"
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Lägg till fråga under läsning
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Display existing reading questions */}
+                        <div className="space-y-3">
+                          <h4 className="font-medium">Frågor under läsning</h4>
+                          {localPages.length > 0 && localPages.some(page => page.questions && page.questions.length > 0) ? (
+                            localPages.map((page, pageIndex) => (
+                              page.questions && page.questions.length > 0 && (
+                                <div key={page.id} className="border rounded-lg p-4 bg-gray-50">
+                                  <h5 className="font-medium mb-2">Sida {pageIndex + 1}</h5>
+                                  <div className="space-y-2">
+                                    {page.questions.map((question, qIndex) => (
+                                      <div key={question.id} className="flex items-start gap-2 p-3 bg-white rounded border">
+                                        <span className="font-medium text-sm">{qIndex + 1}.</span>
+                                        <div className="flex-1">
+                                          <p className="font-medium">{question.question}</p>
+                                          <Badge variant="outline" className="mt-1">
+                                            {question.type === 'multiple-choice' ? 'Flerval' : 
+                                             question.type === 'true-false' ? 'Sant/Falskt' : 'Öppen'}
+                                          </Badge>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeReadingQuestion(page.id, question.id)}
+                                          data-testid={`button-remove-reading-${question.id}`}
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )
+                            ))
+                          ) : (
+                            <p className="text-muted-foreground text-sm">Inga frågor under läsning har lagts till än.</p>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

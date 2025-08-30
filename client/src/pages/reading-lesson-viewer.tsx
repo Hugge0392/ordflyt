@@ -391,17 +391,74 @@ export default function ReadingLessonViewer() {
           </Card>
 
           {/* Questions - Right Column */}
-          {lesson.questions && lesson.questions.length > 0 && (
+          {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+            (lesson.questions && lesson.questions.length > 0)) && (
             <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6">
               <CardHeader>
-                <CardTitle className="text-lg">Förståelsefrågor</CardTitle>
+                <CardTitle className="text-lg">
+                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                    ? 'Frågor under läsning' 
+                    : 'Förståelsefrågor'}
+                </CardTitle>
                 <CardDescription>
-                  Svara på frågorna för att kontrollera din förståelse
+                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                    ? 'Svara på frågorna medan du läser för att hänga med i texten'
+                    : 'Svara på frågorna för att kontrollera din förståelse'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-                  {lesson.questions.map((question, index) => (
+                  {/* Show reading questions for current page first */}
+                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => (
+                    <div key={`reading-${index}`} className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="text-xs">Under läsning</Badge>
+                      </div>
+                      <h4 className="font-medium mb-3">
+                        {index + 1}. {question.question}
+                      </h4>
+                      
+                      {question.type === 'multiple-choice' && question.alternatives && (
+                        <div className="space-y-2">
+                          {question.alternatives.map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                {String.fromCharCode(65 + optionIndex)}
+                              </div>
+                              <span>{option}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {question.type === 'true-false' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                              S
+                            </div>
+                            <span>Sant</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                              F
+                            </div>
+                            <span>Falskt</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {question.type === 'open' && (
+                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded border-2 border-dashed border-gray-300 dark:border-gray-600">
+                          <p className="text-sm text-muted-foreground">Öppen fråga - tänk på ditt svar</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Show general questions only if no reading questions for current page */}
+                  {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
+                   lesson.questions && lesson.questions.map((question, index) => (
                     <div key={index} className="p-4 border rounded-lg">
                       <h4 className="font-medium mb-3">
                         {index + 1}. {question.question}
