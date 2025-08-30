@@ -297,7 +297,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     allBlocks.forEach(block => {
       if (block.type === 'page-break') {
         // Save current page and start new one
-        pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]);
+        pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: `default-text-${pagesList.length}`, type: 'text' as const, content: '', metadata: {} }]);
         currentPageBlocks = [];
       } else {
         currentPageBlocks.push(block);
@@ -305,9 +305,9 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     });
     
     // Add final page
-    pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]);
+    pagesList.push(currentPageBlocks.length > 0 ? currentPageBlocks : [{ id: `default-text-${pagesList.length}`, type: 'text' as const, content: '', metadata: {} }]);
     
-    return pagesList.length > 0 ? pagesList : [[{ id: generateId(), type: 'text' as const, content: '', metadata: {} }]];
+    return pagesList.length > 0 ? pagesList : [[{ id: 'default-text-0', type: 'text' as const, content: '', metadata: {} }]];
   };
 
   // Convert all pages back to a single HTML string for saving AND notify about pages with images
@@ -325,7 +325,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       allBlocks.push(...pageBlocks);
       if (index < pages.length - 1) {
         // Add page break between pages (except after last page)
-        allBlocks.push({ id: generateId(), type: 'page-break' as const, content: '', metadata: {} });
+        allBlocks.push({ id: `page-break-${index}`, type: 'page-break' as const, content: '', metadata: {} });
       }
     });
 
@@ -659,7 +659,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(end);
                       const newText = beforeText + `**${selectedText}**` + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Keep focus and update cursor position
                       const newCursorPos = start + 4 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
@@ -671,7 +671,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(cursorPos);
                       const newText = beforeText + '****' + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Position cursor between the markers
                       textarea.setSelectionRange(cursorPos + 2, cursorPos + 2);
                       textarea.focus();
@@ -698,7 +698,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(end);
                       const newText = beforeText + `*${selectedText}*` + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Keep focus and update cursor position
                       const newCursorPos = start + 2 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
@@ -710,7 +710,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(cursorPos);
                       const newText = beforeText + '**' + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Position cursor between the markers
                       textarea.setSelectionRange(cursorPos + 1, cursorPos + 1);
                       textarea.focus();
@@ -739,7 +739,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(end);
                       const newText = beforeText + `${hashes} ${selectedText}` + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Keep focus and update cursor position
                       const newCursorPos = start + hashes.length + 1 + selectedText.length;
                       textarea.setSelectionRange(newCursorPos, newCursorPos);
@@ -751,7 +751,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                       const afterText = textarea.value.substring(cursorPos);
                       const newText = beforeText + `${hashes} ` + afterText;
                       textarea.value = newText;
-                      updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                      updateBlock(block.id, { content: newText });
                       // Position cursor after the markers
                       textarea.setSelectionRange(cursorPos + hashes.length + 1, cursorPos + hashes.length + 1);
                       textarea.focus();
