@@ -52,11 +52,8 @@ function formatMarkdownToHTML(text: string): string {
     html = grouped.join('\n');
   }
   
-  // Convert line breaks to paragraphs
-  html = html.replace(/\n\n+/g, '</p><p>');
-  if (html && !html.startsWith('<')) {
-    html = '<p>' + html + '</p>';
-  }
+  // Convert line breaks naturally
+  html = html.replace(/\n/g, '<br>');
   
   return html;
 }
@@ -103,23 +100,30 @@ export function RichTextEditor({
   }, [initialPages]);
   
   // Call onChange when content changes
+  const lastContentRef = useRef<string>('');
   useEffect(() => {
-    if (onChange) {
+    if (onChange && content !== lastContentRef.current) {
+      lastContentRef.current = content;
       const htmlContent = formatMarkdownToHTML(content);
       onChange(htmlContent);
     }
   }, [content, onChange]);
   
   // Call onPagesChange when content or images change
+  const lastPagesRef = useRef<string>('');
   useEffect(() => {
     if (onPagesChange) {
-      const pagesData = [{
-        id: 'page-0',
-        content: formatMarkdownToHTML(content),
-        imagesAbove: images.above,
-        imagesBelow: images.below
-      }];
-      onPagesChange(pagesData);
+      const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
+      if (pagesKey !== lastPagesRef.current) {
+        lastPagesRef.current = pagesKey;
+        const pagesData = [{
+          id: 'page-0',
+          content: formatMarkdownToHTML(content),
+          imagesAbove: images.above,
+          imagesBelow: images.below
+        }];
+        onPagesChange(pagesData);
+      }
     }
   }, [content, images, onPagesChange]);
   
