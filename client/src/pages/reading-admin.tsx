@@ -645,6 +645,33 @@ export default function ReadingAdmin() {
     };
   }, [editingLesson?.title, editingLesson?.content, editingLesson?.description]); // Exkludera pages från dependencies
 
+  // Synkronisera localPages när innehållet ändras (nya sidor skapas)
+  useEffect(() => {
+    if (editingLesson?.content) {
+      const contentPages = parseContentIntoPages(editingLesson.content);
+      console.log('[CONTENT CHANGED] Parsed pages:', contentPages.length);
+      
+      // Om antalet sidor har ändrats, uppdatera localPages struktur
+      if (contentPages.length !== localPages.length) {
+        console.log('[PAGES SYNC] Updating local pages structure from', localPages.length, 'to', contentPages.length);
+        
+        setLocalPages(currentLocal => {
+          const newPages = contentPages.map((pageContent, index) => {
+            // Behåll befintliga frågor om sidan redan finns
+            const existingPage = currentLocal[index];
+            return {
+              id: `page-${index}`,
+              content: pageContent,
+              questions: existingPage?.questions || []
+            };
+          });
+          
+          return newPages;
+        });
+      }
+    }
+  }, [editingLesson?.content, localPages.length]);
+
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
 
@@ -1153,14 +1180,20 @@ export default function ReadingAdmin() {
                 </div>
 
                 {(() => {
-                  // Use local pages if available, otherwise parse from content
+                  // Always use local pages as primary source
                   let pages = localPages;
+                  
+                  // If local pages are empty but we have content, initialize from content
                   if (pages.length === 0 && editingLesson?.content) {
-                    pages = parseContentIntoPages(editingLesson.content).map((page, index) => ({
+                    const contentPages = parseContentIntoPages(editingLesson.content);
+                    pages = contentPages.map((page, index) => ({
                       id: `page-${index}`,
                       content: page,
                       questions: []
                     }));
+                    
+                    // Update local pages with initial structure
+                    setLocalPages(pages);
                   }
                   
                   // If still no pages, create a default page
@@ -1170,9 +1203,12 @@ export default function ReadingAdmin() {
                       content: editingLesson?.content || '',
                       questions: []
                     }];
+                    
+                    // Update local pages with default
+                    setLocalPages(pages);
                   }
                   
-                  console.log('[RENDER PAGES]', 'count:', pages.length, 'questions in page 0:', (pages[0]?.questions || []).length);
+                  console.log('[RENDER PAGES]', 'count:', pages.length, 'content pages:', parseContentIntoPages(editingLesson?.content || "").length);
                   
                   return pages.length > 0 ? (
                   <div className="space-y-6">
@@ -1181,9 +1217,13 @@ export default function ReadingAdmin() {
                         <CardHeader>
                           <div className="flex justify-between items-start">
                             <div>
-                              <CardTitle className="text-lg">Sida {pageIndex + 1}</CardTitle>
+                              <CardTitle className="text-lg">
+                                Sida {pageIndex + 1}
+                                {dirtyPages[pageIndex] && <span className="text-xs text-blue-600 ml-2">●</span>}
+                              </CardTitle>
                               <CardDescription>
                                 {page.questions?.length || 0} frågor
+                                {page.content && ` • ${Math.ceil(page.content.length / 100)} st. text`}
                               </CardDescription>
                             </div>
                             <div className="flex gap-2">
