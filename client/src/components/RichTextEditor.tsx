@@ -117,6 +117,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
+  initialPages?: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[];
 }
 
 interface ContentBlock {
@@ -247,7 +248,7 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
   return blocks;
 };
 
-export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className, onPagesChange }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className, onPagesChange, initialPages }: RichTextEditorProps) {
   // Helper function to generate IDs
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
   
@@ -273,6 +274,20 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       setPages(newPages);
     }
   }, [value]);
+
+  // Load images from initialPages when they're provided
+  useEffect(() => {
+    if (initialPages && initialPages.length > 0) {
+      const newPageImages: Record<number, { above: string[], below: string[] }> = {};
+      initialPages.forEach((page, index) => {
+        newPageImages[index] = {
+          above: page.imagesAbove || [],
+          below: page.imagesBelow || []
+        };
+      });
+      setPageImages(newPageImages);
+    }
+  }, [initialPages]);
 
   // Split content blocks into pages when they contain page breaks
   const splitIntoPages = (allBlocks: ContentBlock[]): ContentBlock[][] => {

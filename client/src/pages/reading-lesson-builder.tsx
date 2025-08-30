@@ -121,6 +121,11 @@ export default function ReadingLessonBuilder() {
       setEditingLesson(lesson);
       setCurrentEditorContent(lesson.content || "");
       
+      // Load pages with images if they exist
+      if ((lesson as any).pages && (lesson as any).pages.length > 0) {
+        setLocalPages((lesson as any).pages);
+      }
+      
       // Update form with lesson data
       setNewLessonForm({
         title: lesson.title || '',
@@ -176,6 +181,7 @@ export default function ReadingLessonBuilder() {
       id: lesson.id,
       lesson: {
         content: currentContent,
+        pages: localPages, // Include the pages with images!
         title: newLessonForm.title,
         gradeLevel: newLessonForm.gradeLevel,
         description: newLessonForm.description,
@@ -186,7 +192,7 @@ export default function ReadingLessonBuilder() {
         questions: editingLesson.questions ?? [],
         wordDefinitions: editingLesson.wordDefinitions ?? [],
         isPublished: newLessonForm.isPublished,
-      }
+      } as Partial<ReadingLesson>
     });
   };
 
@@ -546,6 +552,7 @@ export default function ReadingLessonBuilder() {
                           }}
                           placeholder="Skriv ditt läsförståelse-innehåll här. Du kan lägga till rubriker, bilder, listor och mycket mer..."
                           onPagesChange={setLocalPages}
+                          initialPages={(lesson as any)?.pages || []}
                         />
                       </CardContent>
                     </Card>
