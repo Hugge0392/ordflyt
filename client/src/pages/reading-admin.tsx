@@ -991,11 +991,22 @@ export default function ReadingAdmin() {
                     value={editingLesson?.content || ""}
                     onChange={(content) => {
                       console.log('[CONTENT CHANGE] New content length:', content?.length || 0);
-                      editingLesson && setEditingLesson({...editingLesson, content});
+                      console.log('[CONTENT CHANGE] Content preview:', content?.substring(0, 100));
+                      if (editingLesson) {
+                        const updatedLesson = {...editingLesson, content};
+                        console.log('[CONTENT CHANGE] Updated lesson content length:', updatedLesson.content?.length || 0);
+                        setEditingLesson(updatedLesson);
+                      }
                     }}
                     onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
                     placeholder="Skriv ditt textinnehåll här..."
                     className="min-h-[400px]"
+                    ref={(editor) => {
+                      // Store reference to editor for manual content extraction
+                      if (editor) {
+                        (window as any).richTextEditor = editor;
+                      }
+                    }}
                   />
                   
                   <div className="flex justify-end">
@@ -1003,7 +1014,38 @@ export default function ReadingAdmin() {
                       type="button"
                       variant="outline"
                       onClick={async () => {
-                        if (!editingLesson?.content) {
+                        console.log('[MANUAL SAVE DEBUG] editingLesson:', editingLesson);
+                        console.log('[MANUAL SAVE DEBUG] content:', editingLesson?.content);
+                        console.log('[MANUAL SAVE DEBUG] content length:', editingLesson?.content?.length);
+                        
+                        // Try to get current content from editor if state is stale
+                        let currentContent = editingLesson?.content;
+                        const editorElement = document.querySelector('[data-testid="rich-text-editor"]');
+                        if (editorElement && (!currentContent || currentContent.trim() === '')) {
+                          // Try to extract content directly from editor
+                          const textAreas = editorElement.querySelectorAll('textarea');
+                          const inputs = editorElement.querySelectorAll('input[type="text"]');
+                          let extractedContent = '';
+                          
+                          textAreas.forEach(textarea => {
+                            if (textarea.value.trim()) {
+                              extractedContent += textarea.value + '\n';
+                            }
+                          });
+                          
+                          inputs.forEach(input => {
+                            if (input.value.trim()) {
+                              extractedContent += input.value + '\n';
+                            }
+                          });
+                          
+                          if (extractedContent.trim()) {
+                            currentContent = extractedContent.trim();
+                            console.log('[MANUAL SAVE] Extracted content from editor:', currentContent.length, 'characters');
+                          }
+                        }
+                        
+                        if (!currentContent || currentContent.trim() === '') {
                           toast({
                             title: "Inget innehåll att spara",
                             description: "Skriv lite text innan du sparar innehållet.",
@@ -1015,7 +1057,7 @@ export default function ReadingAdmin() {
                         setIsSaving(true);
                         try {
                           const contentOnlyUpdate = {
-                            content: editingLesson.content
+                            content: currentContent
                           };
                           
                           console.log('[MANUAL CONTENT SAVE] Saving content manually:', contentOnlyUpdate.content?.length, 'characters');
