@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon, FileText, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -343,15 +343,25 @@ export default function ReadingAdmin() {
   };
 
   // Per-page question functions
-  const addPageQuestion = (pageIndex: number, type: ReadingQuestion["type"]) => {
-    if (!editingLesson) return;
+  const addPageQuestion = useCallback((pageIndex: number, type: ReadingQuestion["type"]) => {
+    console.log('addPageQuestion called:', { pageIndex, type, editingLesson: !!editingLesson });
+    
+    if (!editingLesson) {
+      console.log('No editingLesson, returning early');
+      return;
+    }
     
     // Ensure pages exist and are parsed from content
     const pages = parseContentIntoPages(editingLesson.content || "");
-    if (pageIndex >= pages.length) return;
+    console.log('Parsed pages:', pages.length, 'requested pageIndex:', pageIndex);
+    
+    if (pageIndex >= pages.length && pages.length > 0) {
+      console.log('PageIndex too high, returning early');
+      return;
+    }
     
     const newQuestion: ReadingQuestion = {
-      id: `pq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: crypto.randomUUID(),
       type,
       question: "",
       ...(type === "multiple_choice" && { 
@@ -368,11 +378,20 @@ export default function ReadingAdmin() {
       questions: []
     }));
     
+    // Ensure we have pages to work with
+    if (currentPages.length === 0) {
+      currentPages.push({
+        id: 'page-0',
+        content: editingLesson.content || '',
+        questions: []
+      });
+    }
+    
     const newPages = [...currentPages];
     if (!newPages[pageIndex]) {
       newPages[pageIndex] = {
         id: `page-${pageIndex}`,
-        content: pages[pageIndex] || "",
+        content: pages[pageIndex] || editingLesson.content || "",
         questions: []
       };
     }
@@ -381,12 +400,18 @@ export default function ReadingAdmin() {
     if (!currentPage.questions) {
       currentPage.questions = [];
     }
-    currentPage.questions.push(newQuestion);
+    currentPage.questions = [...currentPage.questions, newQuestion];
     
-    console.log('Adding page question:', { pageIndex, type, newQuestion, currentPages: newPages });
+    console.log('Adding page question SUCCESS:', { 
+      pageIndex, 
+      type, 
+      newQuestion, 
+      questionsCount: currentPage.questions.length,
+      totalPages: newPages.length 
+    });
     
-    setEditingLesson({ ...editingLesson, pages: newPages });
-  };
+    setEditingLesson(prev => ({ ...prev!, pages: newPages }));
+  }, [editingLesson, setEditingLesson]);
 
   const updatePageQuestion = (pageIndex: number, questionIndex: number, updates: Partial<ReadingQuestion>) => {
     if (!editingLesson?.pages?.[pageIndex]?.questions) return;
@@ -1005,25 +1030,43 @@ export default function ReadingAdmin() {
                             </div>
                             <div className="flex gap-2">
                               <Button 
+                                type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => addPageQuestion(pageIndex, "multiple_choice")}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Adding multiple choice question to page', pageIndex);
+                                  addPageQuestion(pageIndex, "multiple_choice");
+                                }}
                                 data-testid={`button-add-page-multiple-choice-${pageIndex}`}
                               >
                                 + Flervalsfrågna
                               </Button>
                               <Button 
+                                type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => addPageQuestion(pageIndex, "true_false")}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Adding true/false question to page', pageIndex);
+                                  addPageQuestion(pageIndex, "true_false");
+                                }}
                                 data-testid={`button-add-page-true-false-${pageIndex}`}
                               >
                                 + Sant/Falskt
                               </Button>
                               <Button 
+                                type="button"
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => addPageQuestion(pageIndex, "open_ended")}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Adding open ended question to page', pageIndex);
+                                  addPageQuestion(pageIndex, "open_ended");
+                                }}
                                 data-testid={`button-add-page-open-ended-${pageIndex}`}
                               >
                                 + Öppen fråga
@@ -1177,23 +1220,41 @@ export default function ReadingAdmin() {
                               <p className="text-gray-500 mb-3">Inga frågor för denna sida ännu</p>
                               <div className="flex justify-center gap-2">
                                 <Button 
+                                  type="button"
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => addPageQuestion(pageIndex, "multiple_choice")}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Adding multiple choice question to page', pageIndex, 'from empty state');
+                                    addPageQuestion(pageIndex, "multiple_choice");
+                                  }}
                                 >
                                   + Flervalsfrågna
                                 </Button>
                                 <Button 
+                                  type="button"
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => addPageQuestion(pageIndex, "true_false")}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Adding true/false question to page', pageIndex, 'from empty state');
+                                    addPageQuestion(pageIndex, "true_false");
+                                  }}
                                 >
                                   + Sant/Falskt
                                 </Button>
                                 <Button 
+                                  type="button"
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => addPageQuestion(pageIndex, "open_ended")}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log('Adding open ended question to page', pageIndex, 'from empty state');
+                                    addPageQuestion(pageIndex, "open_ended");
+                                  }}
                                 >
                                   + Öppen fråga
                                 </Button>
