@@ -1623,7 +1623,9 @@ export default function ReadingAdmin() {
                             {lesson.description || "Ingen beskrivning"}
                           </CardDescription>
                         </div>
-                        <Badge variant="secondary">Lektion</Badge>
+                        <Badge variant={lesson.isPublished ? "default" : "secondary"}>
+                          {lesson.isPublished ? "Publicerad" : "Utkast"}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -1636,7 +1638,7 @@ export default function ReadingAdmin() {
                         <div>Ordförklaringar: {lesson.wordDefinitions.length}</div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -1645,6 +1647,52 @@ export default function ReadingAdmin() {
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
+                        
+                        {lesson.isPublished ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              updateMutation.mutate({ 
+                                id: lesson.id, 
+                                lesson: { ...lesson, isPublished: 0 } 
+                              });
+                            }}
+                            disabled={updateMutation.isPending}
+                            data-testid={`button-unpublish-${lesson.id}`}
+                          >
+                            Avpublicera
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                              updateMutation.mutate({ 
+                                id: lesson.id, 
+                                lesson: { ...lesson, isPublished: 1 } 
+                              });
+                            }}
+                            disabled={updateMutation.isPending}
+                            data-testid={`button-publish-${lesson.id}`}
+                          >
+                            Publicera
+                          </Button>
+                        )}
+                        
+                        {lesson.isPublished && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            data-testid={`button-view-${lesson.id}`}
+                          >
+                            <Link href={`/lasforstaelse/${lesson.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        )}
+                        
                         <Button
                           variant="outline"
                           size="sm"
