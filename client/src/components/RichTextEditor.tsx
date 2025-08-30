@@ -117,6 +117,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
+  initialPages?: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[];
 }
 
 interface ContentBlock {
@@ -247,7 +248,7 @@ const parseHTMLToBlocks = (html: string): ContentBlock[] => {
   return blocks;
 };
 
-export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className, onPagesChange }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder = "Skriv din text här...", className, onPagesChange, initialPages }: RichTextEditorProps) {
   // Helper function to generate IDs
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
   
@@ -262,6 +263,30 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
   
   // Store images per page
   const [pageImages, setPageImages] = useState<Record<number, { above: string[], below: string[] }>>({});
+
+  // Load initial pages with images when provided
+  useEffect(() => {
+    if (initialPages && initialPages.length > 0) {
+      // Build pages structure from initial data
+      const newPages: ContentBlock[][] = [];
+      const newPageImages: Record<number, { above: string[], below: string[] }> = {};
+      
+      initialPages.forEach((page, index) => {
+        // Parse the content to blocks
+        const blocks = parseHTMLToBlocks(page.content);
+        newPages.push(blocks);
+        
+        // Set up images for this page
+        newPageImages[index] = {
+          above: page.imagesAbove || [],
+          below: page.imagesBelow || []
+        };
+      });
+      
+      setPages(newPages);
+      setPageImages(newPageImages);
+    }
+  }, [initialPages]);
 
   // Re-parse when the value prop changes (e.g., when loading existing content)
   const lastValueRef = useRef<string>('');
