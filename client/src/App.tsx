@@ -140,6 +140,11 @@ function Router() {
           <LessonBuilder />
         </ProtectedRoute>
       </Route>
+      <Route path="/admin/reading/create">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <LessonBuilder />
+        </ProtectedRoute>
+      </Route>
       
       <Route component={NotFound} />
     </Switch>
