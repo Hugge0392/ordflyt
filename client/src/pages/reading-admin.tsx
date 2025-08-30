@@ -649,28 +649,41 @@ export default function ReadingAdmin() {
   useEffect(() => {
     if (editingLesson?.content) {
       const contentPages = parseContentIntoPages(editingLesson.content);
-      console.log('[CONTENT CHANGED] Parsed pages:', contentPages.length);
+      console.log('[CONTENT CHANGED] Parsed pages:', contentPages.length, 'Current local pages:', localPages.length);
       
-      // Om antalet sidor har ändrats, uppdatera localPages struktur
-      if (contentPages.length !== localPages.length) {
-        console.log('[PAGES SYNC] Updating local pages structure from', localPages.length, 'to', contentPages.length);
-        
-        setLocalPages(currentLocal => {
-          const newPages = contentPages.map((pageContent, index) => {
-            // Behåll befintliga frågor om sidan redan finns
-            const existingPage = currentLocal[index];
-            return {
-              id: `page-${index}`,
-              content: pageContent,
-              questions: existingPage?.questions || []
-            };
-          });
-          
-          return newPages;
+      // Uppdatera alltid localPages baserat på innehållet
+      setLocalPages(currentLocal => {
+        const newPages = contentPages.map((pageContent, index) => {
+          // Behåll befintliga frågor om sidan redan finns
+          const existingPage = currentLocal[index];
+          return {
+            id: `page-${index}`,
+            content: pageContent,
+            questions: existingPage?.questions || []
+          };
         });
-      }
+        
+        console.log('[PAGES SYNC] Updated pages structure:', newPages.length, 'pages');
+        return newPages;
+      });
+      
+      // Uppdatera även editingLesson med nya pages-strukturen
+      setEditingLesson(prev => {
+        if (!prev) return prev;
+        
+        const newPages = contentPages.map((pageContent, index) => {
+          const existingPage = localPages[index];
+          return {
+            id: `page-${index}`,
+            content: pageContent,
+            questions: existingPage?.questions || []
+          };
+        });
+        
+        return { ...prev, pages: newPages };
+      });
     }
-  }, [editingLesson?.content, localPages.length]);
+  }, [editingLesson?.content]);
 
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
@@ -1180,35 +1193,29 @@ export default function ReadingAdmin() {
                 </div>
 
                 {(() => {
-                  // Always use local pages as primary source
-                  let pages = localPages;
+                  // Always parse content to get current pages structure
+                  const contentPages = parseContentIntoPages(editingLesson?.content || "");
                   
-                  // If local pages are empty but we have content, initialize from content
-                  if (pages.length === 0 && editingLesson?.content) {
-                    const contentPages = parseContentIntoPages(editingLesson.content);
-                    pages = contentPages.map((page, index) => ({
+                  // Merge content pages with local pages data (questions)
+                  let pages = contentPages.map((pageContent, index) => {
+                    const localPage = localPages[index];
+                    return {
                       id: `page-${index}`,
-                      content: page,
-                      questions: []
-                    }));
-                    
-                    // Update local pages with initial structure
-                    setLocalPages(pages);
-                  }
+                      content: pageContent,
+                      questions: localPage?.questions || []
+                    };
+                  });
                   
-                  // If still no pages, create a default page
+                  // If no content pages, create default
                   if (pages.length === 0) {
                     pages = [{
                       id: 'page-0',
                       content: editingLesson?.content || '',
-                      questions: []
+                      questions: localPages[0]?.questions || []
                     }];
-                    
-                    // Update local pages with default
-                    setLocalPages(pages);
                   }
                   
-                  console.log('[RENDER PAGES]', 'count:', pages.length, 'content pages:', parseContentIntoPages(editingLesson?.content || "").length);
+                  console.log('[RENDER PAGES]', 'content pages:', contentPages.length, 'rendered pages:', pages.length, 'total questions:', pages.reduce((sum, p) => sum + (p.questions?.length || 0), 0));
                   
                   return pages.length > 0 ? (
                   <div className="space-y-6">
