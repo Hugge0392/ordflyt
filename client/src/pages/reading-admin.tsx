@@ -579,11 +579,18 @@ export default function ReadingAdmin() {
     
     setIsSaving(true);
     try {
-      // Use local pages if available
+      // Ensure all current form data is included, especially content
       const lessonToSave = {
         ...editingLesson,
         pages: localPages.length > 0 ? localPages : editingLesson.pages
       };
+      
+      console.log('[SAVE] Lesson data before save:', {
+        title: lessonToSave.title,
+        contentLength: lessonToSave.content?.length || 0,
+        pagesCount: lessonToSave.pages?.length || 0,
+        hasContent: !!lessonToSave.content
+      });
       
       if (isCreating) {
         const result = await createMutation.mutateAsync(lessonToSave as InsertReadingLesson);
@@ -591,7 +598,12 @@ export default function ReadingAdmin() {
         setSelectedLesson(result);
         console.log('Complete lesson saved with pages');
       } else if (selectedLesson) {
-        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: lessonToSave });
+        console.log('[SAVE] Sending update with content length:', lessonToSave.content?.length || 0);
+        const updatedLesson = await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: lessonToSave });
+        console.log('[SAVE] Update response content length:', updatedLesson.content?.length || 0);
+        
+        // Update local state with server response to ensure consistency
+        setEditingLesson(updatedLesson);
         console.log('Complete lesson updated with pages');
       }
       

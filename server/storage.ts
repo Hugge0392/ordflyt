@@ -716,10 +716,12 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date()
     };
 
-    // If content is empty or undefined, remove it from update to preserve existing content
-    if (!updateData.content || updateData.content.trim() === '') {
-      console.log('[STORAGE UPDATE] Content is empty, removing from update to preserve existing');
+    // Only remove content from update if it's specifically undefined (not if it's empty string which might be intentional)
+    if (updateData.content === undefined) {
+      console.log('[STORAGE UPDATE] Content is undefined, removing from update to preserve existing');
       delete updateData.content;
+    } else if (updateData.content === '') {
+      console.log('[STORAGE UPDATE] WARNING: Content is empty string, this will overwrite existing content');
     }
 
     console.log('[STORAGE UPDATE] Final update data:', {
