@@ -423,6 +423,23 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
     setPages(newPages);
   };
 
+  const convertBlock = (blockId: string, newType: ContentBlock['type']) => {
+    const newPages = pages.map(pageBlocks => 
+      pageBlocks.map(block => {
+        if (block.id === blockId) {
+          return {
+            ...block,
+            type: newType,
+            metadata: newType === 'heading' ? { level: 2 as const } : 
+                     newType === 'list' ? { listType: 'unordered' as const } : {}
+          };
+        }
+        return block;
+      })
+    );
+    setPages(newPages);
+  };
+
   const addBlock = (type: ContentBlock['type'], afterId?: string) => {
     const newBlock: ContentBlock = {
       id: generateId(),
@@ -557,18 +574,18 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addBlock('text', block.id)}
+              onClick={() => convertBlock(block.id, 'text')}
               className="h-6 w-6 p-0"
-              title="Lägg till text"
+              title="Konvertera till text"
             >
               <Type className="h-3 w-3" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addBlock('heading', block.id)}
+              onClick={() => convertBlock(block.id, 'heading')}
               className="h-6 w-6 p-0"
-              title="Lägg till rubrik"
+              title="Konvertera till rubrik"
             >
               <Bold className="h-3 w-3" />
             </Button>
@@ -585,18 +602,18 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addBlock('quote', block.id)}
+              onClick={() => convertBlock(block.id, 'quote')}
               className="h-6 w-6 p-0"
-              title="Lägg till citat"
+              title="Konvertera till citat"
             >
               <Quote className="h-3 w-3" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => addBlock('list', block.id)}
+              onClick={() => convertBlock(block.id, 'list')}
               className="h-6 w-6 p-0"
-              title="Lägg till lista"
+              title="Konvertera till lista"
             >
               <List className="h-3 w-3" />
             </Button>
