@@ -702,10 +702,48 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson> {
+    console.log('[STORAGE UPDATE] Updating lesson:', {
+      id,
+      title: lesson.title,
+      contentLength: lesson.content?.length || 0,
+      pagesCount: lesson.pages?.length || 0,
+      hasContent: !!lesson.content
+    });
+
+    // Ensure content is preserved - never save empty content unless explicitly requested
+    const updateData: any = {
+      ...lesson,
+      updatedAt: new Date()
+    };
+
+    // If content is empty or undefined, remove it from update to preserve existing content
+    if (!updateData.content || updateData.content.trim() === '') {
+      console.log('[STORAGE UPDATE] Content is empty, removing from update to preserve existing');
+      delete updateData.content;
+    }
+
+    console.log('[STORAGE UPDATE] Final update data:', {
+      fields: Object.keys(updateData),
+      contentLength: updateData.content?.length || 'preserved',
+      pagesCount: updateData.pages?.length || 0
+    });
+
     const [updatedLesson] = await db.update(readingLessons)
-      .set({ ...lesson, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(readingLessons.id, id))
       .returning();
+    
+    if (!updatedLesson) {
+      throw new Error(`Reading lesson with id ${id} not found`);
+    }
+    
+    console.log('[STORAGE UPDATE] Updated lesson result:', {
+      id: updatedLesson.id,
+      title: updatedLesson.title,
+      contentLength: updatedLesson.content?.length || 0,
+      pagesCount: updatedLesson.pages?.length || 0
+    });
+    
     return updatedLesson;
   }
 

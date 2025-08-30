@@ -581,11 +581,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update reading lesson
   app.put("/api/reading-lessons/:id", async (req, res) => {
     try {
+      console.log('[API UPDATE] Received lesson update:', {
+        id: req.params.id,
+        title: req.body.title,
+        contentLength: req.body.content?.length || 0,
+        pagesCount: req.body.pages?.length || 0
+      });
+      
       const validatedData = insertReadingLessonSchema.parse(req.body);
+      
+      console.log('[API UPDATE] Validated data:', {
+        title: validatedData.title,
+        contentLength: validatedData.content?.length || 0,
+        pagesCount: validatedData.pages?.length || 0
+      });
+      
       const lesson = await storage.updateReadingLesson(req.params.id, validatedData);
+      
+      console.log('[API UPDATE] Updated lesson:', {
+        id: lesson.id,
+        title: lesson.title,
+        contentLength: lesson.content?.length || 0,
+        pagesCount: lesson.pages?.length || 0
+      });
+      
       res.json(lesson);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('[API UPDATE] Validation errors:', error.errors);
         return res.status(400).json({ message: "Invalid reading lesson data", errors: error.errors });
       }
       console.error("Error updating reading lesson:", error);

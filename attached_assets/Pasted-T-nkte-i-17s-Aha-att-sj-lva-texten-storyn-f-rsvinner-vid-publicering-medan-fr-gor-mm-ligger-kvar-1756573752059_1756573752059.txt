@@ -1,0 +1,178 @@
+Tänkte i 17s
+
+Aha — att själva texten/storyn försvinner vid publicering, medan frågor mm ligger kvar, pekar nästan alltid på att publiceringsflödet inte skickar eller skriver den kanoniska “story”-delen korrekt (eller att den saneras/trimmas/kapas på vägen). Här är en rak “bug brief” + konkreta implementationstips du kan ge Rättvikt för att göra spar/publish vattentätt.
+
+Snabb checklista (felsök först)
+
+Publiceringskoden bygger payload utan story (eller med fel fältnamn).
+
+story sparas i annan struktur/format än vad API:t förväntar sig (HTML vs Markdown vs TipTap-JSON).
+
+Servern sanerar bort allt (för strikt sanitizer/allowlist).
+
+Body size-limit på API → texten kapas → servern sparar "".
+
+DB-kolumn för liten (t.ex. VARCHAR(255) i stället för TEXT/LONGTEXT).
+
+Publicerat svar (/publish response) mappar inte tillbaka story till klientens store, och klienten visar den “publicerade” versionen som saknar text.
+
+Stale closure: publish-handler läser gammal editor-state (innan senaste autosave commit).
+
+SSR/route-byte: “Publicera” navigerar och vyn laddar inte storyn från servern (utan en tom initialstate).
+
+Rättvikt: Gör en robust “story-pipeline”
+1) En kanonisk källa + format (rekommenderat: TipTap/ProseMirror JSON eller Markdown)
+
+Spara aldrig innerHTML som sanning. Antingen:
+
+Markdown i lesson.story.markdown, eller
+
+TipTap JSON i lesson.story.doc (raw JSON från editor).
+
+// Client-side state
+type Lesson = {
+  id: string;
+  title: string;
+  description: string;
+  story: {
+    format: "tiptap";
+    doc: any;            // TipTap/ProseMirror JSON
+    plain?: string;      // valfritt: plain preview
+  };
+  pages: Record<string, Question[]>;
+};
+
+2) Publish ska läsa direkt ur store i klickögonblicket (inte ur prop/stale ref)
+const onPublish = async () => {
+  const { id, title, description, story, pages } = useLesson.getState(); // ⬅️ läs färskt
+  const payload = { id, title, description, story, pages };
+  const res = await fetch("/api/lessons/publish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const saved = await res.json();
+  // Uppdatera store med serverns publicerade version
+  useLesson.setState({
+    ...saved,
+    // valfritt: markera publicerat
+    publishedAt: Date.now(),
+  });
+};
+
+
+Viktigt: inte JSON.stringify(story.doc.toString()) eller liknande — skicka antingen JSON som JSON, eller ren markdown-sträng.
+
+3) Server: Spara 1:1, sanera endast vid rendering
+
+Express body limit:
+
+app.use(express.json({ limit: "5mb" })); // höj om ni har långa stories
+
+
+DB-kolumn:
+
+Postgres: TEXT (obegränsat)
+
+MySQL/MariaDB: LONGTEXT (upp till 4GB) – undvik VARCHAR.
+
+Persistence (pseudo):
+
+// Node/Prisma-exempel
+await prisma.lesson.update({
+  where: { id: body.id },
+  data: {
+    title: body.title,
+    description: body.description,
+    storyFormat: body.story?.format,   // "tiptap" | "markdown"
+    storyDoc: body.story?.format === "tiptap" ? JSON.stringify(body.story.doc) : null,
+    storyMarkdown: body.story?.format === "markdown" ? body.story.markdown : null,
+    pages: JSON.stringify(body.pages),  // eller normaliserad tabell
+    publishedAt: new Date(),
+  },
+});
+
+
+Sanering:
+
+Spara rådata.
+
+När ni visar HTML i klient: konvertera från Markdown/TipTap → HTML och sanera med t.ex. DOMPurify vid render, inte i databasskiktet.
+
+4) Idempotent “publish builder” (ingen overwrite av tomt)
+
+Gör en server-säker merge: ersätt inte story med "" eller null om fältet fattas.
+
+function buildUpdate(prev: LessonRow, incoming: Partial<LessonDTO>): LessonRow {
+  return {
+    ...prev,
+    title: incoming.title ?? prev.title,
+    description: incoming.description ?? prev.description,
+    storyFormat: incoming.story?.format ?? prev.storyFormat,
+    storyDoc: incoming.story?.doc
+      ? JSON.stringify(incoming.story.doc)
+      : prev.storyDoc,
+    storyMarkdown: incoming.story?.markdown ?? prev.storyMarkdown,
+    pages: incoming.pages ? JSON.stringify(incoming.pages) : prev.pages,
+  };
+}
+
+5) “Dirty” versions + transaktion
+
+Håll draft och published separata i databasen:
+
+lesson_drafts (autosave)
+
+lesson_published (immutable snapshot)
+
+Vid publish: transaktion
+
+Läs senaste draft exakt nu
+
+Skriv snapshot till lesson_published
+
+Återvänd snapshot till klient
+→ klienten visar exakt det som publicerades.
+
+6) TipTap/ProseMirror-specifikt
+
+Spara doc JSON direkt.
+
+Generera plain text för sök/preview (valfritt):
+
+const plain = extractTextFromProseMirror(body.story.doc).slice(0, 5000);
+
+
+Vid render i läsview:
+
+TipTap → HTML → DOMPurify.sanitize(html, { ALLOWED_TAGS: ["p","strong","em","ul","li","ol","a","h1","h2","h3","blockquote","code","pre","br"] })
+
+Se till att allowlisten inte är tom/för strikt (annars “försvinner” allt).
+
+7) Undvik client-overwrite efter publish
+
+Om ni kör en refetch efter publish: visa exakt responsen från publish tills refetch klarnar, eller refetcha utan att skriva över story om responsen saknar det fältet.
+
+// Efter publish
+const saved = await publish(payload);
+// Visa saved direkt:
+useLesson.setState(saved);
+
+// Om ni refetchar:
+const fresh = await fetchLesson(saved.id);
+// Merge:a fältvis – skriv aldrig över story med undefined/tomma:
+useLesson.setState(s => ({
+  ...s,
+  title: fresh.title ?? s.title,
+  description: fresh.description ?? s.description,
+  story: fresh.story ?? s.story,
+  pages: fresh.pages ?? s.pages,
+}));
+
+8) Enkla tests (räddar timmar)
+
+Unit: buildUpdate() ska aldrig radera story om den inte följer med.
+
+E2E: fyll story (3000+ tecken), publicera, navigera till publiksidan, assertera att texten finns kvar.
+
+Stresstest body-limit: skicka 1–2 MB text och verifiera 200 OK + förblir identisk.

@@ -623,8 +623,15 @@ export default function ReadingAdmin() {
           try {
             // Auto-save med allt innehåll men bevara befintliga pages
             const lessonToSave = { ...editingLesson };
-            // Behåll pages om de finns, annars ta bort dem från auto-save
-            if (!lessonToSave.pages || lessonToSave.pages.length === 0) {
+            
+            // Säkerställ att content inte försvinner
+            if (!lessonToSave.content || lessonToSave.content.trim() === '') {
+              console.log('[AUTO-SAVE] Content is empty, skipping auto-save to preserve existing content');
+              return;
+            }
+            
+            // Ta bort pages från auto-save för att undvika överskrivning av per-sida frågor
+            if (localPages.length > 0) {
               delete lessonToSave.pages;
             }
             
