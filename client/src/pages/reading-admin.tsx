@@ -183,8 +183,7 @@ export default function ReadingAdmin() {
       featuredImage: null,
       preReadingQuestions: [],
       questions: [],
-      wordDefinitions: [],
-      isPublished: 0
+      wordDefinitions: []
     });
   };
 
@@ -426,8 +425,6 @@ export default function ReadingAdmin() {
       id: crypto.randomUUID(),
       type,
       question: "",
-      draft: true,
-      createdAt: Date.now(),
       ...(type === "multiple_choice" && { 
         options: ["Alternativ 1", "Alternativ 2"], 
         correctAnswer: 0 
@@ -586,12 +583,12 @@ export default function ReadingAdmin() {
       };
       
       if (isCreating) {
-        const result = await createMutation.mutateAsync({ ...lessonToSave, isPublished: 0 } as InsertReadingLesson);
+        const result = await createMutation.mutateAsync(lessonToSave as InsertReadingLesson);
         setIsCreating(false);
         setSelectedLesson(result);
         console.log('Complete lesson saved with pages');
       } else if (selectedLesson) {
-        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...lessonToSave, isPublished: editingLesson.isPublished } });
+        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: lessonToSave });
         console.log('Complete lesson updated with pages');
       }
       
@@ -630,7 +627,7 @@ export default function ReadingAdmin() {
               console.log('Auto-saving new lesson without pages');
             } else if (selectedLesson) {
               console.log('Auto-saving existing lesson without pages');
-              await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...lessonToSave, isPublished: editingLesson.isPublished } });
+              await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: lessonToSave });
             }
           } catch (error) {
             console.error('Auto-save failed:', error);
@@ -783,26 +780,15 @@ export default function ReadingAdmin() {
                   </DialogContent>
                 </Dialog>
                 <Button
-                  variant="outline"
-                  onClick={handleSaveLesson}
+                  onClick={() => {
+                    // Spara komplett lektion inklusive pages
+                    saveCompleteLesson();
+                  }}
                   disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-save-lesson"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  Spara utkast
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (editingLesson) {
-                      setEditingLesson({ ...editingLesson, isPublished: 1 });
-                      setTimeout(() => handleSaveLesson(), 100);
-                    }
-                  }}
-                  disabled={createMutation.isPending || updateMutation.isPending || !editingLesson?.title || !editingLesson?.gradeLevel || !editingLesson?.content}
-                  data-testid="button-publish-lesson"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Publicera lektion
+                  {createMutation.isPending || updateMutation.isPending ? "Sparar..." : "Spara lektion"}
                 </Button>
               </div>
             </div>
@@ -903,27 +889,13 @@ export default function ReadingAdmin() {
 
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${editingLesson?.isPublished === 1 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   <div>
-                    <p className="font-medium">
-                      {editingLesson?.isPublished === 1 ? 'Publicerad' : 'Utkast'}
-                    </p>
+                    <p className="font-medium">Lektion</p>
                     <p className="text-sm text-muted-foreground">
-                      {editingLesson?.isPublished === 1 
-                        ? 'Lektionen är synlig för elever i läsförståelse-sektionen' 
-                        : 'Lektionen är sparad som utkast och inte synlig för elever än'}
+                      Lektionen sparas i systemet och är tillgänglig för användning
                     </p>
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="published"
-                    checked={editingLesson?.isPublished === 1}
-                    onChange={(e) => editingLesson && setEditingLesson({ ...editingLesson, isPublished: e.target.checked ? 1 : 0 })}
-                    data-testid="checkbox-published"
-                  />
-                  <Label htmlFor="published">Publicerad</Label>
                 </div>
               </div>
             </div>
@@ -1568,10 +1540,8 @@ export default function ReadingAdmin() {
           </div>
         ) : (
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="all">Alla lektioner</TabsTrigger>
-              <TabsTrigger value="published">Publicerade</TabsTrigger>
-              <TabsTrigger value="drafts">Utkast</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="space-y-6">
@@ -1586,9 +1556,7 @@ export default function ReadingAdmin() {
                             {lesson.description || "Ingen beskrivning"}
                           </CardDescription>
                         </div>
-                        <Badge variant={lesson.isPublished ? "default" : "secondary"}>
-                          {lesson.isPublished ? "Publicerad" : "Utkast"}
-                        </Badge>
+                        <Badge variant="secondary">Lektion</Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
