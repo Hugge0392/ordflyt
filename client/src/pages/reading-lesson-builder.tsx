@@ -118,7 +118,6 @@ export default function ReadingLessonBuilder() {
   // Auto-load lesson when data arrives
   useEffect(() => {
     if (lesson) {
-      setSelectedLesson(lesson);
       setEditingLesson(lesson);
       setCurrentEditorContent(lesson.content || "");
       
@@ -130,7 +129,7 @@ export default function ReadingLessonBuilder() {
         subject: lesson.subject || 'Svenska',
         readingTime: lesson.readingTime || 10,
         featuredImage: lesson.featuredImage || '',
-        isPublished: (lesson.isPublished === 1) || false
+        isPublished: lesson.isPublished || false
       });
     }
   }, [lesson]);
@@ -186,7 +185,7 @@ export default function ReadingLessonBuilder() {
         preReadingQuestions: editingLesson.preReadingQuestions ?? [],
         questions: editingLesson.questions ?? [],
         wordDefinitions: editingLesson.wordDefinitions ?? [],
-        isPublished: newLessonForm.isPublished ? 1 : 0,
+        isPublished: newLessonForm.isPublished,
       }
     });
   };
@@ -359,7 +358,7 @@ export default function ReadingLessonBuilder() {
     const updatedLesson = {
       ...editingLesson,
       ...newLessonForm,
-      isPublished: newPublishStatus ? 1 : 0
+      isPublished: newPublishStatus
     };
 
     updateMutation.mutate({ 
@@ -579,7 +578,7 @@ export default function ReadingLessonBuilder() {
                         </div>
                         
                         <div className="space-y-2">
-                          {editingLesson.preReadingQuestions.map((question, index) => (
+                          {editingLesson?.preReadingQuestions?.map((question, index) => (
                             <div key={question.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                               <span className="font-medium text-sm">{index + 1}.</span>
                               <span className="flex-1">{question.question}</span>
@@ -714,8 +713,8 @@ export default function ReadingLessonBuilder() {
 
                         {/* Questions List */}
                         <div className="space-y-3">
-                          <h4 className="font-medium">Sparade frågor ({editingLesson.questions.length})</h4>
-                          {editingLesson.questions.map((question, index) => (
+                          <h4 className="font-medium">Sparade frågor ({editingLesson?.questions?.length || 0})</h4>
+                          {editingLesson?.questions?.map((question, index) => (
                             <div key={question.id} className="p-4 border rounded-lg">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
@@ -786,7 +785,7 @@ export default function ReadingLessonBuilder() {
                         </div>
                         
                         <div className="space-y-2">
-                          {editingLesson.wordDefinitions.map((def) => (
+                          {editingLesson?.wordDefinitions?.map((def) => (
                             <div key={def.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                               <span className="font-medium">{def.word}:</span>
                               <span className="flex-1">{def.definition}</span>
