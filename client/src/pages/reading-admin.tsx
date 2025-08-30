@@ -985,17 +985,77 @@ export default function ReadingAdmin() {
                   </p>
                 </div>
 
-                <RichTextEditor
-                  key={`content-editor-${selectedLesson?.id || 'new'}`}
-                  value={editingLesson?.content || ""}
-                  onChange={(content) => {
-                    console.log('[CONTENT CHANGE] New content length:', content?.length || 0);
-                    editingLesson && setEditingLesson({...editingLesson, content});
-                  }}
-                  onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
-                  placeholder="Skriv ditt textinnehåll här..."
-                  className="min-h-[400px]"
-                />
+                <div className="space-y-4">
+                  <RichTextEditor
+                    key={`content-editor-${selectedLesson?.id || 'new'}`}
+                    value={editingLesson?.content || ""}
+                    onChange={(content) => {
+                      console.log('[CONTENT CHANGE] New content length:', content?.length || 0);
+                      editingLesson && setEditingLesson({...editingLesson, content});
+                    }}
+                    onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
+                    placeholder="Skriv ditt textinnehåll här..."
+                    className="min-h-[400px]"
+                  />
+                  
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!editingLesson?.content) {
+                          toast({
+                            title: "Inget innehåll att spara",
+                            description: "Skriv lite text innan du sparar innehållet.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        setIsSaving(true);
+                        try {
+                          const contentOnlyUpdate = {
+                            content: editingLesson.content
+                          };
+                          
+                          console.log('[MANUAL CONTENT SAVE] Saving content manually:', contentOnlyUpdate.content?.length, 'characters');
+                          
+                          if (isCreating) {
+                            toast({
+                              title: "Spara lektionen först",
+                              description: "Du måste spara hela lektionen innan du kan spara bara innehållet.",
+                              variant: "destructive"
+                            });
+                          } else if (selectedLesson) {
+                            await updateMutation.mutateAsync({ 
+                              id: selectedLesson.id, 
+                              lesson: contentOnlyUpdate 
+                            });
+                            
+                            toast({
+                              title: "Innehåll sparat!",
+                              description: `${contentOnlyUpdate.content.length} tecken sparade.`,
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Manual content save failed:', error);
+                          toast({
+                            title: "Fel vid sparning",
+                            description: "Kunde inte spara innehållet. Försök igen.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      disabled={isSaving || isCreating}
+                      data-testid="button-save-content"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {isSaving ? "Sparar innehåll..." : "Spara innehåll"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 
