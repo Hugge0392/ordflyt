@@ -1062,11 +1062,27 @@ export default function ReadingAdmin() {
                         
                         setIsSaving(true);
                         try {
+                          // Include required fields from current lesson to avoid validation errors
                           const contentOnlyUpdate = {
-                            content: currentContent
+                            content: currentContent,
+                            title: editingLesson?.title || selectedLesson?.title || "",
+                            gradeLevel: editingLesson?.gradeLevel || selectedLesson?.gradeLevel || "",
+                            // Include other current values to prevent overwriting
+                            description: editingLesson?.description || selectedLesson?.description,
+                            subject: editingLesson?.subject || selectedLesson?.subject,
+                            readingTime: editingLesson?.readingTime || selectedLesson?.readingTime,
+                            featuredImage: editingLesson?.featuredImage || selectedLesson?.featuredImage,
+                            preReadingQuestions: editingLesson?.preReadingQuestions || selectedLesson?.preReadingQuestions || [],
+                            questions: editingLesson?.questions || selectedLesson?.questions || [],
+                            wordDefinitions: editingLesson?.wordDefinitions || selectedLesson?.wordDefinitions || [],
+                            isPublished: editingLesson?.isPublished !== undefined ? editingLesson.isPublished : selectedLesson?.isPublished
                           };
                           
-                          console.log('[MANUAL CONTENT SAVE] Saving content manually:', contentOnlyUpdate.content?.length, 'characters');
+                          console.log('[MANUAL CONTENT SAVE] Saving content manually with required fields:', {
+                            contentLength: contentOnlyUpdate.content?.length,
+                            title: contentOnlyUpdate.title,
+                            gradeLevel: contentOnlyUpdate.gradeLevel
+                          });
                           
                           if (isCreating) {
                             toast({
@@ -1075,14 +1091,17 @@ export default function ReadingAdmin() {
                               variant: "destructive"
                             });
                           } else if (selectedLesson) {
-                            await updateMutation.mutateAsync({ 
+                            const updatedLesson = await updateMutation.mutateAsync({ 
                               id: selectedLesson.id, 
                               lesson: contentOnlyUpdate 
                             });
                             
+                            // Update our local editor content tracker
+                            setCurrentEditorContent(updatedLesson.content || "");
+                            
                             toast({
                               title: "Innehåll sparat!",
-                              description: `${contentOnlyUpdate.content.length} tecken sparade.`,
+                              description: `${currentContent.length} tecken sparade.`,
                             });
                           }
                         } catch (error) {

@@ -720,12 +720,14 @@ export class DatabaseStorage implements IStorage {
     if (updateData.content === undefined) {
       console.log('[STORAGE UPDATE] Content is undefined, removing from update to preserve existing');
       delete updateData.content;
-    } else if (updateData.content === '' && Object.keys(updateData).length > 2) {
+    } else if (updateData.content === '' && Object.keys(updateData).length > 3) {
       // If this is a bulk update with empty content, preserve existing content
       console.log('[STORAGE UPDATE] WARNING: Bulk update with empty content - preserving existing content');
       delete updateData.content;
     } else if (updateData.content === '') {
       console.log('[STORAGE UPDATE] Content-only update with empty string - allowing overwrite');
+    } else if (updateData.content && updateData.content.length > 0) {
+      console.log('[STORAGE UPDATE] Saving content with', updateData.content.length, 'characters');
     }
 
     console.log('[STORAGE UPDATE] Final update data:', {
