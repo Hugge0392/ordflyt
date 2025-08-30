@@ -28,6 +28,7 @@ import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
 import PublishedLessonPage from "@/pages/lesson-player-published";
+import ReadingLessonCreate from "@/pages/reading-lesson-create";
 
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -142,7 +143,12 @@ function Router() {
       </Route>
       <Route path="/admin/reading/create">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
-          <LessonBuilder />
+          <ReadingLessonCreate />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/reading/edit/:id">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <ReadingLessonCreate />
         </ProtectedRoute>
       </Route>
       
