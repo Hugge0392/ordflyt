@@ -1,0 +1,169 @@
+Grymt att du delade koden! Du har redan ett bra “block-baserat” tänk (text/heading/list/quote/page-break). Problemet är egentligen att du försöker få en textarea att bete sig som en rik texteditor via markdown-markörer och regex. Det ger massa kantfall (urval, radbrytningar, listgruppering osv).
+
+Här är en konkret plan – först snabba vinster, sen en lite större men ändå rimlig refaktor – så att man slipper skriva # och får riktig WYSIWYG.
+
+Snabba vinster (utan total omskrivning)
+
+Sluta injicera markdown i textblocket
+I din “Rubrik”-select i text-verktygsfältet lägger du in # i texten. Gör istället blockbyten: omvandla aktuellt block till type: 'heading' och sätt metadata.level. Exempel för din onChange på selecten i text-toolbaren:
+
+onChange={(e) => {
+  const level = parseInt(e.target.value, 10) as 1|2|3;
+  // Om användaren markerat något – ta den raden; annars hela blockets innehåll
+  const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
+  const value = textarea?.value ?? block.content;
+  updateBlock(block.id, {
+    type: 'heading',
+    content: value.trim(),
+    metadata: { level }
+  });
+  setActiveBlockId(block.id);
+  e.target.value = '';
+}}
+
+
+Likadant för listor
+I stället för att prependera “• ”, byt blocktyp till type: 'list' och lagra varje rad som ett list-item (din nuvarande list hanterar redan “en rad per item”):
+
+// I list-knappen i text-verktygsfältet:
+const textarea = document.querySelector(`[data-testid="textarea-block-${block.id}"]`) as HTMLTextAreaElement;
+const value = textarea?.value ?? block.content;
+updateBlock(block.id, {
+  type: 'list',
+  content: value
+  // metadata: { listType: 'unordered' } finns redan som default
+});
+
+
+Rendera rubrikblocket direkt som rubrik
+Du gör redan detta i exporten; gör det även i edit-vyn (du gör det, bra!). Då behöver ingen skriva #.
+
+Ta bort markdown-konverteringen för redigering
+formatMarkdownToHTML och convertHTMLToMarkdown skapar mest friktion. Behåll en endast-för-preview formatter om du verkligen vill stödja import av gammal markdown – men låt edit-läge vara blockstyrt.
+
+Små UX-fixar
+
+Byt generateId() till en riktig UUID (t.ex. crypto.randomUUID() i moderna browsers).
+
+Din page-break-knapp anropas två gånger på samma verktygsrad (båda lägger till “Ny sida”). Lämna bara en.
+
+Sluta mixa <br> inuti block.content för textblock (du gör redan “textarea.value” ⇒ state rakt av; behåll så).
+
+“Riktig” känsla: enkel WYSIWYG för textblock (utan markdown)
+
+Byt ut Textarea i textblock mot ett contentEditable-fält. Då kan du styra fet/kursiv och rubriknivåer utan # eller **:
+
+function execInline(tag: 'strong'|'em') {
+  document.execCommand(tag === 'strong' ? 'bold' : 'italic');
+}
+
+function setBlockTag(tag: 'p'|'h1'|'h2'|'h3'|'blockquote') {
+  document.execCommand('formatBlock', false, tag);
+}
+
+
+execCommand är formellt “deprecated” men funkar stabilt i alla stora browsers. Vill du vara modernare: använd Selection/Range API och wrappa noder manuellt – det är mer kod.
+
+Minimal ersättning i ditt block.type === 'text':
+<div className="flex gap-1 p-2 bg-gray-50 dark:bg-gray-800 rounded-md border">
+  <Button variant="ghost" size="sm" onClick={() => execInline('strong')} title="Fetstil">
+    <Bold className="h-4 w-4 mr-1" /><span className="text-xs">Fet</span>
+  </Button>
+  <Button variant="ghost" size="sm" onClick={() => execInline('em')} title="Kursiv">
+    <Italic className="h-4 w-4 mr-1" /><span className="text-xs">Kursiv</span>
+  </Button>
+  <select
+    className="h-8 px-2 text-xs border rounded bg-white dark:bg-gray-700"
+    onChange={(e) => {
+      const v = e.target.value as 'p'|'h1'|'h2'|'h3';
+      setBlockTag(v);
+      e.target.value = '';
+    }}
+  >
+    <option value="">Rubrik</option>
+    <option value="h1">H1 – Stor</option>
+    <option value="h2">H2 – Medium</option>
+    <option value="h3">H3 – Liten</option>
+  </select>
+  <Button variant="ghost" size="sm" onClick={() => setBlockTag('blockquote')} title="Citat">
+    <Quote className="h-4 w-4" />
+  </Button>
+  <Button variant="ghost" size="sm" onClick={() => document.execCommand('insertUnorderedList')} title="Punktlista">
+    <List className="h-4 w-4" />
+  </Button>
+  <Button variant="ghost" size="sm" onClick={() => document.execCommand('insertOrderedList')} title="Numrerad lista">
+    <ListOrdered className="h-4 w-4" />
+  </Button>
+</div>
+
+<div
+  contentEditable
+  suppressContentEditableWarning
+  className="border rounded-md bg-white dark:bg-gray-900 p-4 min-h-[200px] max-h-[400px] overflow-auto focus:outline-none leading-relaxed"
+  onInput={(e) => {
+    const html = (e.currentTarget as HTMLDivElement).innerHTML;
+    updateBlock(block.id, { content: html, type: 'text' });
+  }}
+  onPaste={(e) => {
+    // Klistra in som ren text (eller använd DOMPurify om du vill behålla “säker” HTML)
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }}
+  dangerouslySetInnerHTML={{ __html: block.content || '' }}
+/>
+
+
+Sparar du HTML i block.content för textblock blir exporten trivial (du har redan case som returnerar content rakt av om det innehåller </>).
+
+Rubriker utan #: användaren väljer H1/H2/H3 i dropdown – klart.
+
+Listor utan “• ”: insert(Un)OrderedList sköter Enter/Backspace-beteende åt dig.
+
+Bold/Italic: funkar på markerat urval.
+
+Tips: Lägg till kortkommandon: Ctrl/Cmd+B → bold, Ctrl/Cmd+I → italic, Ctrl+Alt+1/2/3 → H1/H2/H3 (lyssna på onKeyDown och kör execCommand/formatBlock).
+
+Export & import
+
+Export: du gör redan en fin sammanslagning till HTML per blocktyp. Låt textblockens content vara HTML (från contentEditable). För heading/list/quote kan du fortsätta generera semantiska taggar som idag.
+
+Import: när du laddar befintligt HTML kör du parseHTMLToBlocks – bra! Se till att div/p hamnar som text-block och att deras innerHTML sparas i block.content (inte textContent). Då bevaras fetstil/kursiv/listor.
+
+I din parseHTMLToBlocks, ändra “text-case”:
+
+case 'div':
+case 'p':
+default: {
+  const htmlContent = (element as HTMLElement).innerHTML || '';
+  if (htmlContent.trim()) {
+    blocks.push({ id: getId(), type: 'text', content: htmlContent });
+  }
+  break;
+}
+
+“Nästa nivå” (om du vill göra det ordentligt)
+
+Om du vill ha robusta features (nestade listor, tabbar, tables, historik/undo, kollaboration m.m.), byt ut egenmotor mot ett beprövat editor-SDK:
+
+TipTap (ProseMirror) – mest flexibel, fantastisk schema-modell, bra extensions (Tables, Images, Placeholder, CharacterCount).
+
+Lexical (Meta) – modern, snabb, bra types, lätt att göra egna noder.
+
+Slate – enkel, ren data-modell (JSON), fin control i React.
+
+Du kan ändå behålla din sida-för-sida-modell: rendera en editorinstans per sida, eller en instans med “page break”-noder.
+
+Övriga förbättringar
+
+Säker klistra in: använd dompurify innan du accepterar HTML från contentEditable (DOMPurify.sanitize(html, { ALLOWED_TAGS: [...] })).
+
+Bildblock: just nu lagras bilder per sida i separata listor. Överväg bild-block (type: 'image', src, alt, caption) så kan bilder ligga mellan block – enklare för “bilder ovanför/under text”.
+
+Undo/Redo: lägg två knappar och en useRef-stack med state snapshots, eller låt TipTap/Lexical sköta det.
+
+IME/RTL: contentEditable + execCommand funkar bra med IME, men testa kinesiska/emoji – eller gå till Lexical/Tiptap för säkrare hantering.
+
+Performance: undvik att generera om hela pages när ett block uppdateras. Memoisera blockkomponenter (React.memo) och skicka ner en onChange som bara uppdaterar ett block via index.
+
+Vill du att jag skriver en kompakt, “drop-in” version av ditt text-block med contentEditable och uppdaterar parseHTMLToBlocks åt dig? Jag kan också ge en minimal TipTap-setup (H1/H2/H3, Strong/Em, listor, citat, sidbrytning) som passar rakt in i din block-modell.
