@@ -1,0 +1,169 @@
+Tack för uppdateringen — om det fortfarande “flashar” trots att autosave separerats är det nästan alltid en extern källa som återställer pages precis efter att du lagt till en fråga. D.v.s. du gör en lokal add → UI visar den → någon effekt/refetch/prop kommer in med en äldre snapshot (utan nya frågan) och ersätter listan.
+
+Här är en kort, konkret handlingsplan + kodpatchar du kan ge Rättvikt rakt av.
+
+5 troligaste bovarna nu
+
+Refetch efter autosave (server/SDK)
+En useQuery/fetch som kör “på varje content-ändring” och hämtar lesson utan uppdaterade pages, och ersätter lokala pages.
+
+Init/rehydrate-effekt på activePageId
+En useEffect([activePageId]) som laddar pages från storage/server och ersätter lokala pages direkt efter add.
+
+Två källor till pages
+UI läser pages från en prop (server) men add skriver till ett lokalt state/store → nästa render vinner propen och nollar tillskottet.
+
+Selector/filter som döljer nya poster
+Ex. “visa bara frågor med text/poäng/sparad=true” — nya (tomma) frågor filtreras bort i andra rendern.
+
+Instabila keys eller sort
+Listan renderas med index eller en sort som kasserar frågan (t.ex. filtrerar bort draft).
+
+Fix 1: “Write-barrier” + merge istället för replace
+
+Målet: inkommande pages (från server/storage) får inte ersätta lokala ändringar; de ska mergas per id eller ignoreras om vi är “smutsiga”.
+
+// store.ts (Zustand/Reducer-idé)
+const useLesson = create((set, get) => ({
+  pages: {},               // { [pageId]: Question[] }
+  dirtyPages: {},          // { [pageId]: true } när vi just skapat/ändrat lokalt
+  markDirty: (pageId) => set(s => ({ dirtyPages: { ...s.dirtyPages, [pageId]: true }})),
+  markClean: (pageId) => set(s => {
+    const { [pageId]: _, ...rest } = s.dirtyPages;
+    return { dirtyPages: rest };
+  }),
+
+  addQuestion: (pageId, q) => set(s => {
+    const list = s.pages[pageId] ?? [];
+    return {
+      pages: { ...s.pages, [pageId]: [...list, q] },
+      dirtyPages: { ...s.dirtyPages, [pageId]: true }
+    };
+  }),
+
+  // Kalla denna när data kommer in från server/storage
+  applyIncomingPages: (pageId, incoming) => set(s => {
+    // Om sidan är dirty → MERGE per id (inte replace)
+    if (s.dirtyPages[pageId]) {
+      const byId = new Map((s.pages[pageId] ?? []).map(q => [q.id, q]));
+      for (const q of incoming) if (!byId.has(q.id)) byId.set(q.id, q);
+      return { pages: { ...s.pages, [pageId]: Array.from(byId.values()) } };
+    }
+    // Om inte dirty → acceptera inkommande helt
+    return { pages: { ...s.pages, [pageId]: incoming } };
+  }),
+}));
+
+
+Viktigt: Anropa applyIncomingPages i alla ställen där ni tidigare “ersatte” pages (on refetch/rehydrate). Efter manuell “Spara lektion” → anropa markClean(pageId) så servern kan få vara “source of truth” igen.
+
+Fix 2: Stoppa refetch/rehydrate från att köra precis efter add
+
+Om ni har något i stil med:
+
+useEffect(() => {
+  // hämtar lesson inkl. pages
+  refetchLesson();
+}, [title, description, content]); // <- ändras vid autosave
+
+
+→ Ta bort den kopplingen eller gör den villkorad:
+
+const shouldRefetch = !Object.keys(dirtyPages).length; // refetcha bara när inga lokala page-ändringar
+useEffect(() => {
+  if (shouldRefetch) refetchLesson();
+}, [shouldRefetch, title, description, content]);
+
+
+Alternativ: refetcha med select som exkluderar pages, så att pages aldrig skrivs över av refetchen.
+
+Fix 3: En enda källa för rendering
+
+Rendera alltid från store (inte blandat prop + store):
+
+// ❌ Undvik:
+<QuestionList questions={serverLesson.pages[activePageId] ?? []} />
+
+// ✅ Gör:
+const pages = useLesson(s => s.pages);
+<QuestionList questions={pages[activePageId] ?? []} />
+
+
+När servern skickar in data: mata den via applyIncomingPages(pageId, incoming) i stället för att ge den som prop.
+
+Fix 4: Visa även tomma/draft-frågor
+
+Om ni har filter/sort:
+
+const visible = (pages[activePageId] ?? [])
+  .filter(q => showDrafts ? true : q.text?.trim()?.length > 0) // eller ta bort filtret helt
+  .sort(sortFnStable); // stabil sort (t.ex. via createdAt)
+
+
+Se till att nyskapade frågor får createdAt = Date.now() och draft: true, och att de inte filtreras bort.
+
+Fix 5: Stabila keys + stabil sort
+{visible.map(q => (
+  <QuestionRow key={q.id} question={q} />
+))}
+
+
+Skapa alltid frågan så här:
+
+const q = {
+  id: crypto.randomUUID(),
+  type: "open",
+  text: "",
+  options: [],
+  draft: true,
+  createdAt: Date.now(),
+};
+addQuestion(activePageId, q);
+
+60-sekunders diagnos (lägg in loggarna)
+const addQuestion = () => {
+  const q = { id: crypto.randomUUID(), type:"open", text:"", draft:true, createdAt: Date.now() };
+  console.log("[ADD]", q.id);
+  addQuestion(activePageId, q); // sätter dirty=true
+};
+
+useEffect(() => {
+  console.log("[INCOMING]", "page", activePageId, "len=", incoming?.length);
+  applyIncomingPages(activePageId, incoming ?? []);
+}, [activePageId, incomingHash]); // incomingHash = t.ex. hash(JSON.stringify(incoming))
+
+useEffect(() => {
+  console.log("[RENDER]", "page", activePageId, "len=", (pages[activePageId]||[]).length);
+}, [pages, activePageId]);
+
+
+Tolkning:
+
+Om du ser [RENDER] len=N+1 direkt efter [ADD], men sedan en ny [INCOMING] följt av [RENDER] len=N → exakt overwrite-problemet. Då ska Fix 1–2 ovan lösa det.
+
+“Bug brief” (klistra in till Rättvikt)
+
+Problem:
+Ny fråga visas ~1 ms och försvinner. Lokala pages ersätts av inkommande data (server/rehydrate) strax efter add.
+
+Åtgärder:
+
+Inför dirtyPages och applyIncomingPages(pageId, incoming) som mergar per id när sidan är “dirty”; aldrig replace.
+
+Blockera/ändra refetch som triggas av autosave (titel/beskrivning/innehåll) så att pages inte följer med eller ignoreras när dirtyPages finns.
+
+Rendera alltid från store; mata in serverdata via applyIncomingPages (ingen prop som källa).
+
+Ta bort/justera filter som döljer tomma/draft-frågor; ge nyskapade createdAt och draft.
+
+Säkerställ stabil key={q.id} och stabil sortering.
+
+Acceptans:
+
+Skapa 5 frågor i rad utan att någon försvinner.
+
+Trigger för refetch/rehydrate ändrar inte antalet frågor.
+
+Efter manuell “Spara lektion” + refetch är dirtyPages rensad och server → store är identisk.
+
+Vill du, klistra in dina useEffect-er för refetch/rehydrate och hur pages kommer in från servern, så skriver jag en exakt patch på just de raderna.

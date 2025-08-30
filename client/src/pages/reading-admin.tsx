@@ -41,6 +41,10 @@ export default function ReadingAdmin() {
   const [showPreview, setShowPreview] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState('basic');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Dirty state management för per-sida frågor
+  const [dirtyPages, setDirtyPages] = useState<Record<number, boolean>>({});
+  const [localPages, setLocalPages] = useState<any[]>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -164,6 +168,11 @@ export default function ReadingAdmin() {
   const handleCreateLesson = () => {
     setIsCreating(true);
     setActiveFormTab('basic');
+    
+    // Clear local pages and dirty state for new lesson
+    setLocalPages([]);
+    setDirtyPages({});
+    
     setEditingLesson({
       title: "",
       description: "",
@@ -177,7 +186,6 @@ export default function ReadingAdmin() {
       wordDefinitions: [],
       isPublished: 0
     });
-
   };
 
   const handleSaveLesson = () => {
@@ -204,6 +212,11 @@ export default function ReadingAdmin() {
   const handleEditLesson = (lesson: ReadingLesson) => {
     setSelectedLesson(lesson);
     setActiveFormTab('basic');
+    
+    // Initialize local pages from lesson data
+    setLocalPages(lesson.pages || []);
+    setDirtyPages({}); // Clear dirty state
+    
     setEditingLesson({
       title: lesson.title,
       description: lesson.description,
@@ -341,28 +354,80 @@ export default function ReadingAdmin() {
     });
   };
 
-  // Per-page question functions
+  // Mark a page as dirty (has local changes)
+  const markPageDirty = useCallback((pageIndex: number) => {
+    setDirtyPages(prev => ({ ...prev, [pageIndex]: true }));
+  }, []);
+
+  // Mark a page as clean (saved to server)
+  const markPageClean = useCallback((pageIndex: number) => {
+    setDirtyPages(prev => {
+      const { [pageIndex]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  // Apply incoming pages data (from server/storage) - merge if dirty, replace if clean
+  const applyIncomingPages = useCallback((incomingPages: any[]) => {
+    setLocalPages(currentLocal => {
+      console.log('[INCOMING PAGES]', 'incoming length:', incomingPages.length, 'dirty pages:', Object.keys(dirtyPages));
+      
+      // If no dirty pages, use incoming data as-is
+      if (Object.keys(dirtyPages).length === 0) {
+        console.log('[CLEAN STATE] Using incoming pages as-is');
+        return incomingPages;
+      }
+      
+      // If we have dirty pages, merge by ID to preserve local changes
+      const result = [...currentLocal];
+      incomingPages.forEach((incomingPage, pageIndex) => {
+        if (!dirtyPages[pageIndex]) {
+          // Page is not dirty, use incoming data
+          result[pageIndex] = incomingPage;
+        } else {
+          // Page is dirty, merge questions by ID
+          const currentPage = result[pageIndex] || { ...incomingPage, questions: [] };
+          const questionsByID = new Map();
+          
+          // Add existing local questions
+          (currentPage.questions || []).forEach((q: any) => questionsByID.set(q.id, q));
+          
+          // Add incoming questions that don't exist locally
+          (incomingPage.questions || []).forEach((q: any) => {
+            if (!questionsByID.has(q.id)) {
+              questionsByID.set(q.id, q);
+            }
+          });
+          
+          result[pageIndex] = {
+            ...incomingPage,
+            questions: Array.from(questionsByID.values())
+          };
+          
+          console.log('[MERGED PAGE]', pageIndex, 'questions:', result[pageIndex].questions.length);
+        }
+      });
+      
+      return result;
+    });
+  }, [dirtyPages]);
+
+  // Per-page question functions with dirty state management
   const addPageQuestion = useCallback((pageIndex: number, type: ReadingQuestion["type"]) => {
-    console.log('addPageQuestion called:', { pageIndex, type, editingLesson: !!editingLesson });
+    console.log('[ADD QUESTION]', { pageIndex, type });
     
     if (!editingLesson) {
       console.log('No editingLesson, returning early');
       return;
     }
     
-    // Ensure pages exist and are parsed from content
-    const pages = parseContentIntoPages(editingLesson.content || "");
-    console.log('Parsed pages:', pages.length, 'requested pageIndex:', pageIndex);
-    
-    if (pageIndex >= pages.length && pages.length > 0) {
-      console.log('PageIndex too high, returning early');
-      return;
-    }
-    
+    // Create unique question
     const newQuestion: ReadingQuestion = {
       id: crypto.randomUUID(),
       type,
       question: "",
+      draft: true,
+      createdAt: Date.now(),
       ...(type === "multiple_choice" && { 
         options: ["Alternativ 1", "Alternativ 2"], 
         correctAnswer: 0 
@@ -370,47 +435,73 @@ export default function ReadingAdmin() {
       ...(type === "true_false" && { correctAnswer: true })
     };
 
-    // Get existing pages or create from content
-    const currentPages = editingLesson.pages || pages.map((page, index) => ({
-      id: `page-${index}`,
-      content: page,
-      questions: []
-    }));
-    
-    // Ensure we have pages to work with
-    if (currentPages.length === 0) {
-      currentPages.push({
-        id: 'page-0',
-        content: editingLesson.content || '',
-        questions: []
-      });
-    }
-    
-    const newPages = [...currentPages];
-    if (!newPages[pageIndex]) {
-      newPages[pageIndex] = {
-        id: `page-${pageIndex}`,
-        content: pages[pageIndex] || editingLesson.content || "",
-        questions: []
-      };
-    }
-    
-    const currentPage = newPages[pageIndex] as any;
-    if (!currentPage.questions) {
-      currentPage.questions = [];
-    }
-    currentPage.questions = [...currentPage.questions, newQuestion];
-    
-    console.log('Adding page question SUCCESS:', { 
-      pageIndex, 
-      type, 
-      newQuestion, 
-      questionsCount: currentPage.questions.length,
-      totalPages: newPages.length 
+    // Update local pages
+    setLocalPages(currentPages => {
+      const pages = parseContentIntoPages(editingLesson.content || "");
+      
+      // Ensure we have pages to work with
+      let workingPages = [...currentPages];
+      if (workingPages.length === 0) {
+        workingPages = pages.map((page, index) => ({
+          id: `page-${index}`,
+          content: page,
+          questions: []
+        }));
+        
+        if (workingPages.length === 0) {
+          workingPages = [{
+            id: 'page-0',
+            content: editingLesson.content || '',
+            questions: []
+          }];
+        }
+      }
+      
+      // Ensure the specific page exists
+      if (!workingPages[pageIndex]) {
+        workingPages[pageIndex] = {
+          id: `page-${pageIndex}`,
+          content: pages[pageIndex] || editingLesson.content || "",
+          questions: []
+        };
+      }
+      
+      // Add question to page
+      const updatedPages = [...workingPages];
+      const currentPage = { ...updatedPages[pageIndex] };
+      currentPage.questions = [...(currentPage.questions || []), newQuestion];
+      updatedPages[pageIndex] = currentPage;
+      
+      console.log('[LOCAL PAGES UPDATED]', pageIndex, 'questions:', currentPage.questions.length);
+      
+      return updatedPages;
     });
     
-    setEditingLesson(prev => ({ ...prev!, pages: newPages }));
-  }, [editingLesson, setEditingLesson]);
+    // Mark page as dirty
+    markPageDirty(pageIndex);
+    
+    // Update editingLesson to include the new question
+    setEditingLesson(prev => {
+      if (!prev) return prev;
+      
+      const updatedPages = [...(prev.pages || localPages)];
+      if (!updatedPages[pageIndex]) {
+        updatedPages[pageIndex] = {
+          id: `page-${pageIndex}`,
+          content: parseContentIntoPages(prev.content || "")[pageIndex] || prev.content || "",
+          questions: []
+        };
+      }
+      
+      const currentPage = { ...updatedPages[pageIndex] } as any;
+      currentPage.questions = [...(currentPage.questions || []), newQuestion];
+      updatedPages[pageIndex] = currentPage;
+      
+      return { ...prev, pages: updatedPages };
+    });
+    
+    console.log('[QUESTION ADDED]', newQuestion.id, 'to page', pageIndex);
+  }, [editingLesson, localPages, markPageDirty]);
 
   const updatePageQuestion = (pageIndex: number, questionIndex: number, updates: Partial<ReadingQuestion>) => {
     if (!editingLesson?.pages?.[pageIndex]?.questions) return;
@@ -441,21 +532,32 @@ export default function ReadingAdmin() {
     
     setIsSaving(true);
     try {
+      // Use local pages if available
+      const lessonToSave = {
+        ...editingLesson,
+        pages: localPages.length > 0 ? localPages : editingLesson.pages
+      };
+      
       if (isCreating) {
-        const result = await createMutation.mutateAsync({ ...editingLesson, isPublished: 0 } as InsertReadingLesson);
+        const result = await createMutation.mutateAsync({ ...lessonToSave, isPublished: 0 } as InsertReadingLesson);
         setIsCreating(false);
         setSelectedLesson(result);
         console.log('Complete lesson saved with pages');
       } else if (selectedLesson) {
-        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...editingLesson, isPublished: editingLesson.isPublished } });
+        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...lessonToSave, isPublished: editingLesson.isPublished } });
         console.log('Complete lesson updated with pages');
       }
+      
+      // Clear all dirty flags after successful save
+      setDirtyPages({});
+      console.log('[PAGES SAVED] All dirty flags cleared');
+      
     } catch (error) {
       console.error('Save failed:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [editingLesson, isCreating, selectedLesson, createMutation, updateMutation]);
+  }, [editingLesson, localPages, isCreating, selectedLesson, createMutation, updateMutation]);
 
   // Auto-save när editingLesson ändras (men inte pages för att undvika race condition)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1032,11 +1134,26 @@ export default function ReadingAdmin() {
                 </div>
 
                 {(() => {
-                  const pages = editingLesson?.pages || parseContentIntoPages(editingLesson?.content || "").map((page, index) => ({
-                    id: `page-${index}`,
-                    content: page,
-                    questions: []
-                  }));
+                  // Use local pages if available, otherwise parse from content
+                  let pages = localPages;
+                  if (pages.length === 0 && editingLesson?.content) {
+                    pages = parseContentIntoPages(editingLesson.content).map((page, index) => ({
+                      id: `page-${index}`,
+                      content: page,
+                      questions: []
+                    }));
+                  }
+                  
+                  // If still no pages, create a default page
+                  if (pages.length === 0) {
+                    pages = [{
+                      id: 'page-0',
+                      content: editingLesson?.content || '',
+                      questions: []
+                    }];
+                  }
+                  
+                  console.log('[RENDER PAGES]', 'count:', pages.length, 'questions in page 0:', (pages[0]?.questions || []).length);
                   
                   return pages.length > 0 ? (
                   <div className="space-y-6">
