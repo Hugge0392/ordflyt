@@ -75,6 +75,7 @@ export default function ReadingLessonBuilder() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/lasforstaelse/skapa/:id");
+  const lessonId = params?.id;
   
   // Main lesson state
   const [editingLesson, setEditingLesson] = useState<ReadingLesson | null>(null);
