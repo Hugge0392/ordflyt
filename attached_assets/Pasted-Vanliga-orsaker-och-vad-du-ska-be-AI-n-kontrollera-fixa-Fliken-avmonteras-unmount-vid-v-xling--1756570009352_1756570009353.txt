@@ -1,0 +1,69 @@
+Vanliga orsaker (och vad du ska be AI:n kontrollera/fixa)
+
+Fliken avmonteras (unmount) vid växling
+
+Symptom: editorn reset:as när du byter tillbaka.
+
+Fix: behåll flikarnas komponenter monterade (rendera alla och toggla bara hidden/display) eller lagra editor-state i en global store (t.ex. Zustand/Redux) i stället för i barnkomponenten.
+
+Felaktig key på flik/komponent
+
+Symptom: varje flik får ny key → React skapar ny komponent → state försvinner.
+
+Fix: använd stabil, unik key (t.ex. dokument-id), inte index i listor eller slump-id.
+
+Editor-instansen initieras om
+
+Symptom: init-kod körs vid varje render/byt flik.
+
+Fix: linda init i useEffect([]) och memoiza instansen med useRef/useMemo. Se upp med att props som ändras triggar re-init.
+
+Kontrollerad vs okontrollerad komponent
+
+Symptom: value-prop matas in utan att onChange uppdaterar samma källa, eller “external value” skriver över lokalt innehåll.
+
+Fix: ha en källa till sanningen (state/store). Se till att onChange uppdaterar den och att komponenten läser exakt samma state.
+
+Tabbkomponenten renderar endast aktiv flik
+
+Symptom: inaktiva flikar försvinner ur DOM.
+
+Fix: om lib:en stödjer det, slå på “keep mounted” (ex. forceRenderTabPanel, unmountOnExit={false}, keepMounted etc.). Annars: egen tabb som inte avmonterar, bara gömmer.
+
+State ligger för lågt i trädet
+
+Symptom: state bor inne i editor-child.
+
+Fix: “Lyft upp” (hoista) till en förälder som lever kvar över flikbyten eller lägg i global store.
+
+useEffect/cleanup som nollar state
+
+Symptom: on blur/unmount sparas tom sträng.
+
+Fix: granska cleanup: spara senaste texten, inte en tom.
+
+Aggressiv re-render p.g.a. nya funktions/objektreferenser
+
+Fix: memoiza callbacks med useCallback och dyra beräkningar med useMemo så editor-libbet inte tror att allt är nytt.
+
+Autosave saknas/är buggig
+
+Fix: lägg till debouncad autosave till localStorage/IndexedDB. Ladda från samma ställe vid mount.
+
+ID-krockar mellan flikar/dokument
+
+Symptom: byter till flik B men editor läser/sparar under samma id som flik A.
+
+Fix: säkra unika per-flik/per-dokument-nycklar vid lagring.
+
+Dev-mode dubbel-mount (React Strict Mode)
+
+Symptom: init körs två gånger i dev och nollar state.
+
+Fix: gör init idempotent eller stäng av Strict Mode tillfälligt för att verifiera.
+
+Routing / page reload
+
+Symptom: SPA gör full navigering vid tabbyte.
+
+Fix: använd klient-state och undvik full reload; spara innan navigering.

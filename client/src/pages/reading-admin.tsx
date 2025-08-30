@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Custom tab implementation to prevent unmounting and data loss
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -578,17 +578,32 @@ export default function ReadingAdmin() {
         </div>
 
         <div className="max-w-6xl mx-auto p-6">
-          <Tabs value={activeFormTab} onValueChange={setActiveFormTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="basic">Grundinfo</TabsTrigger>
-              <TabsTrigger value="content">Innehåll</TabsTrigger>
-              <TabsTrigger value="prereading">Innan du läser</TabsTrigger>
-              <TabsTrigger value="questions">Frågor</TabsTrigger>
-              <TabsTrigger value="page-questions">Per-sida frågor</TabsTrigger>
-              <TabsTrigger value="definitions">Ordförklaringar</TabsTrigger>
-            </TabsList>
+          <div className="w-full">
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+              {[
+                { id: 'basic', label: 'Grundinfo' },
+                { id: 'content', label: 'Innehåll' },
+                { id: 'prereading', label: 'Innan du läser' },
+                { id: 'questions', label: 'Frågor' },
+                { id: 'page-questions', label: 'Per-sida frågor' },
+                { id: 'definitions', label: 'Ordförklaringar' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveFormTab(tab.id)}
+                  className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                    activeFormTab === tab.id
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  }`}
+                  data-testid={`tab-${tab.id}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-            <TabsContent value="basic" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'basic' ? 'hidden' : ''}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Titel *</Label>
@@ -679,9 +694,9 @@ export default function ReadingAdmin() {
                   <Label htmlFor="published">Publicerad</Label>
                 </div>
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="content" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'content' ? 'hidden' : ''}`}>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Huvudbild (valfri)</Label>
@@ -729,9 +744,9 @@ export default function ReadingAdmin() {
                   className="min-h-[400px]"
                 />
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="prereading" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'prereading' ? 'hidden' : ''}`}>
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Innan du läser ({editingLesson?.preReadingQuestions?.length || 0})</h3>
                 <Button variant="outline" onClick={addPreReadingQuestion} data-testid="button-add-prereading-question">
@@ -799,9 +814,9 @@ export default function ReadingAdmin() {
                   </div>
                 )}
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="questions" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'questions' ? 'hidden' : ''}`}>
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Frågor ({editingLesson?.questions?.length || 0})</h3>
                 <div className="flex gap-2">
@@ -920,9 +935,9 @@ export default function ReadingAdmin() {
                   </Card>
                 ))}
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="page-questions" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'page-questions' ? 'hidden' : ''}`}>
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Frågor per sida</h3>
                 
@@ -1154,9 +1169,9 @@ export default function ReadingAdmin() {
                   </div>
                 )}
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="definitions" className="space-y-4">
+            <div className={`space-y-4 ${activeFormTab !== 'definitions' ? 'hidden' : ''}`}>
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Ordförklaringar ({editingLesson?.wordDefinitions?.length || 0})</h3>
                 <Button variant="outline" onClick={addWordDefinition} data-testid="button-add-word-definition">
@@ -1215,8 +1230,8 @@ export default function ReadingAdmin() {
                   </Card>
                 ))}
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         </div>
       </div>
     );
