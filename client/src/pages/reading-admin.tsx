@@ -503,28 +503,75 @@ export default function ReadingAdmin() {
     console.log('[QUESTION ADDED]', newQuestion.id, 'to page', pageIndex);
   }, [editingLesson, localPages, markPageDirty]);
 
-  const updatePageQuestion = (pageIndex: number, questionIndex: number, updates: Partial<ReadingQuestion>) => {
-    if (!editingLesson?.pages?.[pageIndex]?.questions) return;
+  const updatePageQuestion = useCallback((pageIndex: number, questionIndex: number, updates: Partial<ReadingQuestion>) => {
+    console.log('[UPDATE QUESTION]', { pageIndex, questionIndex, updates });
     
-    const newPages = [...editingLesson.pages];
-    const currentPage = newPages[pageIndex] as any;
-    const questions = [...currentPage.questions];
-    questions[questionIndex] = { ...questions[questionIndex], ...updates };
-    currentPage.questions = questions;
+    // Update local pages
+    setLocalPages(currentPages => {
+      if (!currentPages[pageIndex]?.questions?.[questionIndex]) return currentPages;
+      
+      const updatedPages = [...currentPages];
+      const currentPage = { ...updatedPages[pageIndex] };
+      const questions = [...(currentPage.questions || [])];
+      questions[questionIndex] = { ...questions[questionIndex], ...updates };
+      currentPage.questions = questions;
+      updatedPages[pageIndex] = currentPage;
+      
+      return updatedPages;
+    });
     
-    setEditingLesson({ ...editingLesson, pages: newPages });
-  };
+    // Mark page as dirty
+    markPageDirty(pageIndex);
+    
+    // Update editingLesson
+    setEditingLesson(prev => {
+      if (!prev?.pages?.[pageIndex]?.questions) return prev;
+      
+      const newPages = [...prev.pages];
+      const currentPage = { ...newPages[pageIndex] } as any;
+      const questions = [...currentPage.questions];
+      questions[questionIndex] = { ...questions[questionIndex], ...updates };
+      currentPage.questions = questions;
+      newPages[pageIndex] = currentPage;
+      
+      return { ...prev, pages: newPages };
+    });
+  }, [markPageDirty]);
 
-  const removePageQuestion = (pageIndex: number, questionIndex: number) => {
-    if (!editingLesson?.pages?.[pageIndex]?.questions) return;
+  const removePageQuestion = useCallback((pageIndex: number, questionIndex: number) => {
+    console.log('[REMOVE QUESTION]', { pageIndex, questionIndex });
     
-    const newPages = [...editingLesson.pages];
-    const currentPage = newPages[pageIndex] as any;
-    const questions = currentPage.questions.filter((_: any, i: number) => i !== questionIndex);
-    currentPage.questions = questions;
+    // Update local pages
+    setLocalPages(currentPages => {
+      if (!currentPages[pageIndex]?.questions?.[questionIndex]) return currentPages;
+      
+      const updatedPages = [...currentPages];
+      const currentPage = { ...updatedPages[pageIndex] };
+      const questions = (currentPage.questions || []).filter((_: any, i: number) => i !== questionIndex);
+      currentPage.questions = questions;
+      updatedPages[pageIndex] = currentPage;
+      
+      console.log('[LOCAL PAGES] Question removed, remaining:', questions.length);
+      
+      return updatedPages;
+    });
     
-    setEditingLesson({ ...editingLesson, pages: newPages });
-  };
+    // Mark page as dirty
+    markPageDirty(pageIndex);
+    
+    // Update editingLesson
+    setEditingLesson(prev => {
+      if (!prev?.pages?.[pageIndex]?.questions) return prev;
+      
+      const newPages = [...prev.pages];
+      const currentPage = { ...newPages[pageIndex] } as any;
+      const questions = currentPage.questions.filter((_: any, i: number) => i !== questionIndex);
+      currentPage.questions = questions;
+      newPages[pageIndex] = currentPage;
+      
+      return { ...prev, pages: newPages };
+    });
+  }, [markPageDirty]);
 
   // Manual save function for pages and complete lesson
   const saveCompleteLesson = useCallback(async () => {
@@ -1236,9 +1283,15 @@ export default function ReadingAdmin() {
                                         {question.type === "open_ended" && "Öppen fråga"}
                                       </Badge>
                                       <Button
+                                        type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => removePageQuestion(pageIndex, questionIndex)}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          console.log('Removing question', questionIndex, 'from page', pageIndex);
+                                          removePageQuestion(pageIndex, questionIndex);
+                                        }}
                                         data-testid={`button-remove-page-question-${pageIndex}-${questionIndex}`}
                                       >
                                         <Trash2 className="w-4 h-4" />
