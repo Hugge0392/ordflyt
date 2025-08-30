@@ -52,8 +52,7 @@ function formatMarkdownToHTML(text: string): string {
     html = grouped.join('\n');
   }
   
-  // Convert line breaks naturally
-  html = html.replace(/\n/g, '<br>');
+  // Keep line breaks as they are - let CSS handle whitespace with white-space: pre-wrap
   
   return html;
 }
@@ -381,7 +380,7 @@ export function RichTextEditor({
           {showPreview ? (
             // Preview Mode
             <div 
-              className="p-6 min-h-[400px] prose prose-sm max-w-none"
+              className="p-6 min-h-[400px] prose prose-sm max-w-none whitespace-pre-wrap"
               dangerouslySetInnerHTML={{ __html: formatMarkdownToHTML(content) }}
             />
           ) : (
