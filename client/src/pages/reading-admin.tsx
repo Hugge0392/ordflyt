@@ -217,18 +217,21 @@ export default function ReadingAdmin() {
     setDirtyPages({}); // Clear dirty state
     
     setEditingLesson({
-      title: lesson.title,
-      description: lesson.description,
-      content: lesson.content,
+      title: lesson.title || "",
+      description: lesson.description || "",
+      content: lesson.content || "",
       gradeLevel: lesson.gradeLevel,
-      subject: lesson.subject,
+      subject: lesson.subject || "",
       readingTime: lesson.readingTime,
-      featuredImage: lesson.featuredImage,
-      preReadingQuestions: lesson.preReadingQuestions,
-      questions: lesson.questions,
-      wordDefinitions: lesson.wordDefinitions,
-      isPublished: lesson.isPublished
+      featuredImage: lesson.featuredImage || "",
+      preReadingQuestions: lesson.preReadingQuestions || [],
+      questions: lesson.questions || [],
+      wordDefinitions: lesson.wordDefinitions || [],
+      isPublished: lesson.isPublished || 0,
+      pages: lesson.pages || []
     });
+    
+    console.log('[EDIT LESSON] Content loaded:', lesson.content?.length || 0, 'characters');
 
     setIsCreating(false);
   };
@@ -618,9 +621,12 @@ export default function ReadingAdmin() {
         if (editingLesson && (editingLesson.title || editingLesson.content)) {
           setIsSaving(true);
           try {
-            // Auto-save utan pages för att undvika överskrivning av per-sida frågor
+            // Auto-save med allt innehåll men bevara befintliga pages
             const lessonToSave = { ...editingLesson };
-            delete lessonToSave.pages; // Ta bort pages från auto-save
+            // Behåll pages om de finns, annars ta bort dem från auto-save
+            if (!lessonToSave.pages || lessonToSave.pages.length === 0) {
+              delete lessonToSave.pages;
+            }
             
             if (isCreating) {
               // Först auto-save skickar bara grunddata, pages sparas manuellt
@@ -961,8 +967,12 @@ export default function ReadingAdmin() {
                 </div>
 
                 <RichTextEditor
+                  key={`content-editor-${selectedLesson?.id || 'new'}`}
                   value={editingLesson?.content || ""}
-                  onChange={(content) => editingLesson && setEditingLesson({...editingLesson, content})}
+                  onChange={(content) => {
+                    console.log('[CONTENT CHANGE] New content length:', content?.length || 0);
+                    editingLesson && setEditingLesson({...editingLesson, content});
+                  }}
                   onPagesChange={(pages) => editingLesson && setEditingLesson({...editingLesson, pages})}
                   placeholder="Skriv ditt textinnehåll här..."
                   className="min-h-[400px]"
