@@ -778,7 +778,7 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
                     const afterText = textarea.value.substring(cursorPos);
                     const newText = beforeText + '\n• ' + afterText;
                     textarea.value = newText;
-                    updateBlock(block.id, { content: newText.replace(/\n/g, '<br>') });
+                    updateBlock(block.id, { content: newText });
                     // Position cursor after the bullet
                     const newCursorPos = cursorPos + 3;
                     textarea.setSelectionRange(newCursorPos, newCursorPos);
