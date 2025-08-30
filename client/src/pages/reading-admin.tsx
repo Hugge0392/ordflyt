@@ -322,6 +322,54 @@ export default function ReadingAdmin() {
     });
   };
 
+  // Per-page question functions
+  const addPageQuestion = (pageIndex: number, type: ReadingQuestion["type"]) => {
+    if (!editingLesson?.pages) return;
+    
+    const newQuestion: ReadingQuestion = {
+      id: `pq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      question: "",
+      ...(type === "multiple_choice" && { 
+        options: ["Alternativ 1", "Alternativ 2"], 
+        correctAnswer: 0 
+      }),
+      ...(type === "true_false" && { correctAnswer: true })
+    };
+
+    const newPages = [...editingLesson.pages];
+    const currentPage = newPages[pageIndex] as any;
+    if (!currentPage.questions) {
+      currentPage.questions = [];
+    }
+    currentPage.questions.push(newQuestion);
+    
+    setEditingLesson({ ...editingLesson, pages: newPages });
+  };
+
+  const updatePageQuestion = (pageIndex: number, questionIndex: number, updates: Partial<ReadingQuestion>) => {
+    if (!editingLesson?.pages?.[pageIndex]?.questions) return;
+    
+    const newPages = [...editingLesson.pages];
+    const currentPage = newPages[pageIndex] as any;
+    const questions = [...currentPage.questions];
+    questions[questionIndex] = { ...questions[questionIndex], ...updates };
+    currentPage.questions = questions;
+    
+    setEditingLesson({ ...editingLesson, pages: newPages });
+  };
+
+  const removePageQuestion = (pageIndex: number, questionIndex: number) => {
+    if (!editingLesson?.pages?.[pageIndex]?.questions) return;
+    
+    const newPages = [...editingLesson.pages];
+    const currentPage = newPages[pageIndex] as any;
+    const questions = currentPage.questions.filter((_: any, i: number) => i !== questionIndex);
+    currentPage.questions = questions;
+    
+    setEditingLesson({ ...editingLesson, pages: newPages });
+  };
+
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
 
@@ -476,11 +524,12 @@ export default function ReadingAdmin() {
 
         <div className="max-w-6xl mx-auto p-6">
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="basic">Grundinfo</TabsTrigger>
               <TabsTrigger value="content">Innehåll</TabsTrigger>
               <TabsTrigger value="prereading">Innan du läser</TabsTrigger>
               <TabsTrigger value="questions">Frågor</TabsTrigger>
+              <TabsTrigger value="page-questions">Per-sida frågor</TabsTrigger>
               <TabsTrigger value="definitions">Ordförklaringar</TabsTrigger>
             </TabsList>
 
@@ -815,6 +864,240 @@ export default function ReadingAdmin() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="page-questions" className="space-y-4">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Frågor per sida</h3>
+                
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Om per-sida frågor</h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Lägg till frågor som eleven måste besvara för att kunna gå vidare till nästa sida. Detta hjälper till att säkerställa förståelse av innehållet innan eleven fortsätter läsa.
+                  </p>
+                </div>
+
+                {editingLesson?.pages && editingLesson.pages.length > 0 ? (
+                  <div className="space-y-6">
+                    {editingLesson.pages.map((page: any, pageIndex: number) => (
+                      <Card key={page.id} className="border-l-4 border-l-blue-500">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-lg">Sida {pageIndex + 1}</CardTitle>
+                              <CardDescription>
+                                {page.questions?.length || 0} frågor
+                              </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => addPageQuestion(pageIndex, "multiple_choice")}
+                                data-testid={`button-add-page-multiple-choice-${pageIndex}`}
+                              >
+                                + Flervalsfrågna
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => addPageQuestion(pageIndex, "true_false")}
+                                data-testid={`button-add-page-true-false-${pageIndex}`}
+                              >
+                                + Sant/Falskt
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => addPageQuestion(pageIndex, "open_ended")}
+                                data-testid={`button-add-page-open-ended-${pageIndex}`}
+                              >
+                                + Öppen fråga
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="space-y-4">
+                          {/* Preview of page content */}
+                          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-md max-h-32 overflow-hidden">
+                            <div 
+                              className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3"
+                              dangerouslySetInnerHTML={{ __html: page.content.substring(0, 200) + (page.content.length > 200 ? '...' : '') }}
+                            />
+                          </div>
+
+                          {/* Page questions */}
+                          {page.questions && page.questions.length > 0 ? (
+                            <div className="space-y-3">
+                              {page.questions.map((question: ReadingQuestion, questionIndex: number) => (
+                                <Card key={question.id} className="border border-gray-200">
+                                  <CardContent className="p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                      <Badge variant="outline">
+                                        {question.type === "multiple_choice" && "Flervalsfrågna"}
+                                        {question.type === "true_false" && "Sant/Falskt"}
+                                        {question.type === "open_ended" && "Öppen fråga"}
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removePageQuestion(pageIndex, questionIndex)}
+                                        data-testid={`button-remove-page-question-${pageIndex}-${questionIndex}`}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label>Fråga</Label>
+                                      <Input
+                                        value={question.question}
+                                        onChange={(e) => updatePageQuestion(pageIndex, questionIndex, { question: e.target.value })}
+                                        placeholder="Skriv din fråga här..."
+                                        data-testid={`input-page-question-${pageIndex}-${questionIndex}`}
+                                      />
+                                    </div>
+
+                                    {question.type === "multiple_choice" && (
+                                      <div className="space-y-2">
+                                        <Label>Svarsalternativ</Label>
+                                        {question.options?.map((option: string, optionIndex: number) => (
+                                          <div key={optionIndex} className="flex items-center gap-2">
+                                            <input
+                                              type="radio"
+                                              name={`page-correct-${pageIndex}-${question.id}`}
+                                              checked={question.correctAnswer === optionIndex}
+                                              onChange={() => updatePageQuestion(pageIndex, questionIndex, { correctAnswer: optionIndex })}
+                                              data-testid={`radio-page-correct-${pageIndex}-${questionIndex}-${optionIndex}`}
+                                            />
+                                            <Input
+                                              value={option}
+                                              onChange={(e) => {
+                                                const newOptions = [...(question.options || [])];
+                                                newOptions[optionIndex] = e.target.value;
+                                                updatePageQuestion(pageIndex, questionIndex, { options: newOptions });
+                                              }}
+                                              placeholder={`Alternativ ${optionIndex + 1}`}
+                                              data-testid={`input-page-option-${pageIndex}-${questionIndex}-${optionIndex}`}
+                                            />
+                                            {question.options && question.options.length > 2 && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                  const newOptions = question.options?.filter((_: string, i: number) => i !== optionIndex) || [];
+                                                  updatePageQuestion(pageIndex, questionIndex, { options: newOptions });
+                                                }}
+                                                data-testid={`button-remove-page-option-${pageIndex}-${questionIndex}-${optionIndex}`}
+                                              >
+                                                <X className="w-4 h-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        ))}
+                                        
+                                        {(!question.options || question.options.length < 5) && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              const currentOptions = question.options || [];
+                                              updatePageQuestion(pageIndex, questionIndex, { 
+                                                options: [...currentOptions, `Alternativ ${currentOptions.length + 1}`] 
+                                              });
+                                            }}
+                                            data-testid={`button-add-page-option-${pageIndex}-${questionIndex}`}
+                                          >
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Lägg till alternativ
+                                          </Button>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {question.type === "true_false" && (
+                                      <div className="space-y-2">
+                                        <Label>Korrekt svar</Label>
+                                        <div className="flex gap-4">
+                                          <label className="flex items-center gap-2">
+                                            <input
+                                              type="radio"
+                                              name={`page-tf-${pageIndex}-${question.id}`}
+                                              checked={question.correctAnswer === true}
+                                              onChange={() => updatePageQuestion(pageIndex, questionIndex, { correctAnswer: true })}
+                                              data-testid={`radio-page-true-${pageIndex}-${questionIndex}`}
+                                            />
+                                            Sant
+                                          </label>
+                                          <label className="flex items-center gap-2">
+                                            <input
+                                              type="radio"
+                                              name={`page-tf-${pageIndex}-${question.id}`}
+                                              checked={question.correctAnswer === false}
+                                              onChange={() => updatePageQuestion(pageIndex, questionIndex, { correctAnswer: false })}
+                                              data-testid={`radio-page-false-${pageIndex}-${questionIndex}`}
+                                            />
+                                            Falskt
+                                          </label>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                      <Label>Förklaring (valfri)</Label>
+                                      <Textarea
+                                        value={question.explanation || ""}
+                                        onChange={(e) => updatePageQuestion(pageIndex, questionIndex, { explanation: e.target.value })}
+                                        placeholder="Förklara varför svaret är korrekt..."
+                                        rows={2}
+                                        data-testid={`textarea-page-explanation-${pageIndex}-${questionIndex}`}
+                                      />
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                              <p className="text-gray-500 mb-3">Inga frågor för denna sida ännu</p>
+                              <div className="flex justify-center gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => addPageQuestion(pageIndex, "multiple_choice")}
+                                >
+                                  + Flervalsfrågna
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => addPageQuestion(pageIndex, "true_false")}
+                                >
+                                  + Sant/Falskt
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => addPageQuestion(pageIndex, "open_ended")}
+                                >
+                                  + Öppen fråga
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                    <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-500 mb-3">Inga sidor skapade ännu</p>
+                    <p className="text-sm text-gray-400">Använd sidbrytningar i innehållsredigeraren för att skapa sidor</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

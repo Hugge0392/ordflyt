@@ -377,7 +377,7 @@ export const readingLessons = pgTable("reading_lessons", {
   title: varchar("title").notNull(),
   description: text("description"),
   content: text("content").notNull(), // The main text content (can include HTML for rich formatting)
-  pages: jsonb("pages").$type<{id: string, content: string, imagesAbove?: string[], imagesBelow?: string[]}[]>().default([]), // For paginated content with images per page
+  pages: jsonb("pages").$type<{id: string, content: string, imagesAbove?: string[], imagesBelow?: string[], questions?: ReadingQuestion[]}[]>().default([]), // For paginated content with images and questions per page
   featuredImage: text("featured_image"), // URL to featured/header image
 
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 

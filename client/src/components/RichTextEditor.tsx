@@ -336,7 +336,10 @@ export function RichTextEditor({ value, onChange, placeholder = "Skriv din text 
       }
     }).join('\n');
     
-    onChange(htmlContent);
+    // Only call onChange if content actually changed to prevent infinite loops
+    if (htmlContent !== value) {
+      onChange(htmlContent);
+    }
 
     // Also notify about pages structure with images if callback is provided
     if (onPagesChange) {
