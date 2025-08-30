@@ -26,48 +26,8 @@ export default function ReadingHome() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
           
-          {/* Läsförståelseövningar */}
-          <Link href="/lasforstaelse/ovningar">
-            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  <BookOpen className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                </div>
-                <CardTitle className="text-xl">Läsförståelseövningar</CardTitle>
-                <CardDescription>
-                  Interaktiva texter med frågor och ordförklaringar
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Träna läsförståelse med guidade texter och frågor anpassade för olika årskurser.
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Deckargåtor */}
-          <Link href="/lasforstaelse/deckargator">
-            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                  <Search className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <CardTitle className="text-xl">Deckargåtor</CardTitle>
-                <CardDescription>
-                  Lös mysterier genom läsning och logik
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Spännande mysterier där eleverna tränar läsförståelse genom att lösa gåtor.
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
           {/* Skapa lektion */}
           <Link href="/lasforstaelse/skapa">
             <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
@@ -88,21 +48,21 @@ export default function ReadingHome() {
             </Card>
           </Link>
 
-          {/* Lektioner */}
-          <Link href="/lasforstaelse/lektioner">
+          {/* Läsförståelseövningar */}
+          <Link href="/lasforstaelse/ovningar">
             <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <BookOpen className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                <CardTitle className="text-xl">Lektioner</CardTitle>
+                <CardTitle className="text-xl">Läsförståelseövningar</CardTitle>
                 <CardDescription>
-                  Hantera publicerade lektioner
+                  Interaktiva texter med frågor och ordförklaringar
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  Se, redigera och hantera alla publicerade läsförståelse-lektioner.
+                  Träna läsförståelse med guidade texter och frågor anpassade för olika årskurser.
                 </p>
               </CardContent>
             </Card>
@@ -115,9 +75,9 @@ export default function ReadingHome() {
           <div className="max-w-2xl mx-auto">
             <h2 className="text-lg font-semibold mb-3">Utveckla läsförståelse steg för steg</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Våra läsförståelseövningar hjälper eleverna att förbättra sin läsning genom interaktiva texter, 
-              ordförklaringar och anpassade frågor. Välj mellan traditionella övningar eller spännande deckargåtor 
-              som gör läsningen till en utmaning.
+              Skapa egna interaktiva lektioner med det avancerade verktyget eller träna läsförståelse 
+              med befintliga övningar. Alla lektioner innehåller ordförklaringar och anpassade frågor 
+              för att utveckla elevernas läsning.
             </p>
           </div>
         </div>
