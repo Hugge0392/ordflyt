@@ -402,9 +402,10 @@ export default function ReadingLessonBuilder() {
       isPublished: newPublishStatus
     }));
 
-    // Save immediately
+    // Save immediately with ALL form data including featuredImage
     const updatedLesson = {
       ...editingLesson,
+      ...newLessonForm,
       isPublished: newPublishStatus ? 1 : 0
     };
 
