@@ -1,0 +1,101 @@
+Kort version: dina bilder “försvinner” för att den URL du sparar inte är den du faktiskt laddar upp till. I din handleFeaturedImageComplete struntar du i objectPath som servern ger och hittar istället på en egen sökväg (/objects/uploads/${file.name}), vilket gör att länken pekar fel när du publicerar.
+
+Här är vad som händer och hur du fixar det:
+
+Varför det händer
+
+Fel bild-URL sparas
+
+Du gör en presigned-upload (PUT till uploadURL) – bra.
+
+Servern svarar dessutom med var filen kommer att ligga (objectPath eller t.o.m. en publicURL).
+
+Men i handleFeaturedImageComplete ignorerar du denna och skapar en egen path baserad på filnamn:
+
+const objectPath = `/objects/uploads/${file.name || Date.now()}`
+
+
+I dev kan det råka fungera, men i publicerad miljö (Replit) pekar /objects/... ofta inte på din objektlagring → 404/”försvunna” bilder.
+
+Ephemeral/relativa paths
+
+Relativa paths (/objects/...) blir ofta fel när du hostar frontenden separat från din upload-bucket/CDN.
+
+Replit byter miljö vid deploy; lokala filer eller fel proxyade paths följer inte med.
+
+Snabb fix (använd den URL servern ger)
+
+Spara exakt den URL din backend returnerar för objektet, och använd den i UI:et. Lägg också undan objectPath/publicURL per fil så du kan läsa ut den i onComplete.
+
+// 1) Ha en ref/map för att spara serverns path för varje fil:
+const uploadMap = useRef<Record<string, { objectPath?: string; publicURL?: string }>>({});
+
+// 2) Returnera PUT-info och spara undan pathen som backend skickar
+const handleFeaturedImageUpload = async (file: File) => {
+  try {
+    const res = await fetch("/api/objects/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Skicka gärna filnamn/mime till backend om den vill namnge objektet
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    });
+    if (!res.ok) throw new Error("Failed to get upload URL");
+
+    const { uploadURL, objectPath, publicURL } = await res.json();
+
+    // Spara undan för användning i onComplete (nyckla på t.ex. filnamn eller en fil-id som libben tillhandahåller)
+    uploadMap.current[file.name] = { objectPath, publicURL };
+
+    return {
+      method: "PUT" as const,
+      url: uploadURL,
+      headers: { "Content-Type": file.type },
+    };
+  } catch (err) {
+    console.error("Error getting upload URL:", err);
+    throw err;
+  }
+};
+
+// 3) Använd serverns publicURL/objectPath – uppfinn inte en egen path
+const handleFeaturedImageComplete = (result: any) => {
+  if (result.successful && result.successful[0]) {
+    const file = result.successful[0];
+
+    // Plocka ut den path vi sparade nyss
+    const saved = uploadMap.current[file.name] || {};
+    const finalUrl = saved.publicURL || saved.objectPath; // föredra publicURL om den finns
+
+    if (!finalUrl) {
+      // Fallback: om libben redan bifogar svaret från din POST, kolla där också
+      const maybeFromLib = file?.response?.body?.publicURL || file?.response?.body?.objectPath;
+      if (!maybeFromLib) {
+        console.warn("No object path/public URL was found for uploaded file");
+        return;
+      }
+      setNewLessonForm(prev => ({ ...prev, featuredImage: maybeFromLib }));
+      return;
+    }
+
+    setNewLessonForm(prev => ({ ...prev, featuredImage: finalUrl }));
+
+    toast({
+      title: "Bild uppladdad!",
+      description: "Utvald bild har lagts till"
+    });
+  }
+};
+
+Övriga vanliga fallgropar (checklista)
+
+Använd absoluta URL:er till din bucket/CDN (t.ex. https://cdn.example.com/...) – inte relativa som börjar med /.
+
+Spara bilden i databasen innan du trycker “Publicera”, så publiceringssteget inte skriver över ett tomt featuredImage.
+
+CORS/mixed content: se till att public-URL:en är https:// om din sida är https://. http://-bilder blockeras ofta i produktion.
+
+RichTextEditor-bilder: om editorn också laddar upp bilder, ge den samma upload-flöde och spara retur-URL:en direkt i HTML:en, inte en temporär blob-URL.
+
+Replit-lagring: lita inte på Replits filsystem för persistenta uppladdningar. Använd extern lagring (S3/Supabase/R2 etc.) med presigned PUT och publika URL:er.
+
+Om du vill kan jag snabbt kika på hur din ObjectUploader förväntar sig meta/ID så kan vi knyta uploadMap till dess fil-ID istället för namn. Vill du att jag skissar en liten, komplett uploader-komponent som funkar likadant för RichTextEditor-bilder?

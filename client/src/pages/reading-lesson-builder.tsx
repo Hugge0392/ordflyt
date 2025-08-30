@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -328,16 +328,22 @@ export default function ReadingLessonBuilder() {
   };
 
   // Handle featured image upload
+  const uploadMap = useRef<Record<string, { objectPath?: string; publicURL?: string }>>({});
+
   const handleFeaturedImageUpload = async (file: any) => {
     try {
       const response = await fetch("/api/objects/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
       });
       
       if (!response.ok) throw new Error("Failed to get upload URL");
       
-      const { uploadURL, objectPath } = await response.json();
+      const { uploadURL, objectPath, publicURL } = await response.json();
+      
+      // Save the server's path for use in onComplete
+      uploadMap.current[file.name] = { objectPath, publicURL };
       
       return {
         method: "PUT" as const,
@@ -354,12 +360,28 @@ export default function ReadingLessonBuilder() {
     if (result.successful && result.successful[0]) {
       const file = result.successful[0];
       
-      // Use simple object path based on filename
-      const objectPath = `/objects/uploads/${file.name || Date.now()}`;
+      // Use the actual path returned by the server
+      const saved = uploadMap.current[file.name] || {};
+      const finalUrl = saved.publicURL || saved.objectPath;
+      
+      if (!finalUrl) {
+        // Fallback: check if the response contains the path
+        const maybeFromLib = file?.response?.body?.publicURL || file?.response?.body?.objectPath;
+        if (!maybeFromLib) {
+          console.warn("No object path/public URL was found for uploaded file");
+          return;
+        }
+        setNewLessonForm(prev => ({ ...prev, featuredImage: maybeFromLib }));
+        toast({
+          title: "Bild uppladdad!",
+          description: "Utvald bild har lagts till"
+        });
+        return;
+      }
       
       setNewLessonForm(prev => ({
         ...prev,
-        featuredImage: objectPath
+        featuredImage: finalUrl
       }));
       
       toast({
