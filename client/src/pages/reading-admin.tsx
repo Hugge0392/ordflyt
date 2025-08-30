@@ -45,6 +45,7 @@ export default function ReadingAdmin() {
   // Dirty state management för per-sida frågor
   const [dirtyPages, setDirtyPages] = useState<Record<number, boolean>>({});
   const [localPages, setLocalPages] = useState<any[]>([]);
+  const [currentEditorContent, setCurrentEditorContent] = useState<string>("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -992,6 +993,10 @@ export default function ReadingAdmin() {
                     onChange={(content) => {
                       console.log('[CONTENT CHANGE] New content length:', content?.length || 0);
                       console.log('[CONTENT CHANGE] Content preview:', content?.substring(0, 100));
+                      
+                      // Update both the lesson state and our current content tracker
+                      setCurrentEditorContent(content || "");
+                      
                       if (editingLesson) {
                         const updatedLesson = {...editingLesson, content};
                         console.log('[CONTENT CHANGE] Updated lesson content length:', updatedLesson.content?.length || 0);
@@ -1018,30 +1023,35 @@ export default function ReadingAdmin() {
                         console.log('[MANUAL SAVE DEBUG] content:', editingLesson?.content);
                         console.log('[MANUAL SAVE DEBUG] content length:', editingLesson?.content?.length);
                         
-                        // Try to get current content from editor if state is stale
-                        let currentContent = editingLesson?.content;
-                        const editorElement = document.querySelector('[data-testid="rich-text-editor"]');
-                        if (editorElement && (!currentContent || currentContent.trim() === '')) {
-                          // Try to extract content directly from editor
-                          const textAreas = editorElement.querySelectorAll('textarea');
-                          const inputs = editorElement.querySelectorAll('input[type="text"]');
-                          let extractedContent = '';
-                          
-                          textAreas.forEach(textarea => {
-                            if (textarea.value.trim()) {
-                              extractedContent += textarea.value + '\n';
+                        // Get current content - prioritize our tracked content over editingLesson state
+                        let currentContent = currentEditorContent || editingLesson?.content;
+                        console.log('[MANUAL SAVE DEBUG] currentEditorContent:', currentEditorContent?.length || 0);
+                        console.log('[MANUAL SAVE DEBUG] editingLesson.content:', editingLesson?.content?.length || 0);
+                        
+                        // If still no content, try to extract from DOM as fallback
+                        if (!currentContent || currentContent.trim() === '') {
+                          const editorElement = document.querySelector('[data-testid="rich-text-editor"]');
+                          if (editorElement) {
+                            const textAreas = editorElement.querySelectorAll('textarea');
+                            const inputs = editorElement.querySelectorAll('input[type="text"]');
+                            let extractedContent = '';
+                            
+                            textAreas.forEach(textarea => {
+                              if (textarea.value.trim()) {
+                                extractedContent += textarea.value + '\n';
+                              }
+                            });
+                            
+                            inputs.forEach(input => {
+                              if (input.value.trim()) {
+                                extractedContent += input.value + '\n';
+                              }
+                            });
+                            
+                            if (extractedContent.trim()) {
+                              currentContent = extractedContent.trim();
+                              console.log('[MANUAL SAVE] Extracted content from DOM:', currentContent.length, 'characters');
                             }
-                          });
-                          
-                          inputs.forEach(input => {
-                            if (input.value.trim()) {
-                              extractedContent += input.value + '\n';
-                            }
-                          });
-                          
-                          if (extractedContent.trim()) {
-                            currentContent = extractedContent.trim();
-                            console.log('[MANUAL SAVE] Extracted content from editor:', currentContent.length, 'characters');
                           }
                         }
                         
