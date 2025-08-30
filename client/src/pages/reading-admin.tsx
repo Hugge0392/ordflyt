@@ -645,45 +645,25 @@ export default function ReadingAdmin() {
     };
   }, [editingLesson?.title, editingLesson?.content, editingLesson?.description]); // Exkludera pages från dependencies
 
-  // Synkronisera localPages när innehållet ändras (nya sidor skapas)
-  useEffect(() => {
-    if (editingLesson?.content) {
-      const contentPages = parseContentIntoPages(editingLesson.content);
-      console.log('[CONTENT CHANGED] Parsed pages:', contentPages.length, 'Current local pages:', localPages.length);
-      
-      // Uppdatera alltid localPages baserat på innehållet
-      setLocalPages(currentLocal => {
-        const newPages = contentPages.map((pageContent, index) => {
-          // Behåll befintliga frågor om sidan redan finns
-          const existingPage = currentLocal[index];
-          return {
-            id: `page-${index}`,
-            content: pageContent,
-            questions: existingPage?.questions || []
-          };
-        });
-        
-        console.log('[PAGES SYNC] Updated pages structure:', newPages.length, 'pages');
-        return newPages;
-      });
-      
-      // Uppdatera även editingLesson med nya pages-strukturen
-      setEditingLesson(prev => {
-        if (!prev) return prev;
-        
-        const newPages = contentPages.map((pageContent, index) => {
-          const existingPage = localPages[index];
-          return {
-            id: `page-${index}`,
-            content: pageContent,
-            questions: existingPage?.questions || []
-          };
-        });
-        
-        return { ...prev, pages: newPages };
-      });
-    }
-  }, [editingLesson?.content]);
+  // Manuell funktion för att lägga till ny sida för per-sida frågor
+  const addNewPageForQuestions = useCallback(() => {
+    const newPageIndex = localPages.length;
+    const newPage = {
+      id: `page-${newPageIndex}`,
+      content: `Sida ${newPageIndex + 1} innehåll`,
+      questions: []
+    };
+    
+    setLocalPages(prev => [...prev, newPage]);
+    markPageDirty(newPageIndex);
+    
+    console.log('[MANUAL PAGE ADD] Added page:', newPageIndex + 1);
+    
+    toast({
+      title: "Ny sida tillagd",
+      description: `Sida ${newPageIndex + 1} har lagts till för per-sida frågor`,
+    });
+  }, [localPages.length, markPageDirty, toast]);
 
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
@@ -1183,39 +1163,54 @@ export default function ReadingAdmin() {
 
             <div className={`space-y-4 ${activeFormTab !== 'page-questions' ? 'hidden' : ''}`}>
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Frågor per sida</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Frågor per sida</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addNewPageForQuestions}
+                    data-testid="button-add-new-page"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Lägg till ny sida
+                  </Button>
+                </div>
                 
                 <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Om per-sida frågor</h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Lägg till frågor som eleven måste besvara för att kunna gå vidare till nästa sida. Detta hjälper till att säkerställa förståelse av innehållet innan eleven fortsätter läsa.
+                    Lägg till frågor som eleven måste besvara för att kunna gå vidare till nästa sida. Klicka på "Lägg till ny sida" för att skapa en ny sida för frågor.
                   </p>
                 </div>
 
                 {(() => {
-                  // Always parse content to get current pages structure
-                  const contentPages = parseContentIntoPages(editingLesson?.content || "");
+                  // Use localPages as the source of truth for per-page questions
+                  let pages = localPages;
                   
-                  // Merge content pages with local pages data (questions)
-                  let pages = contentPages.map((pageContent, index) => {
-                    const localPage = localPages[index];
-                    return {
-                      id: `page-${index}`,
-                      content: pageContent,
-                      questions: localPage?.questions || []
-                    };
-                  });
-                  
-                  // If no content pages, create default
+                  // If no pages exist, show empty state
                   if (pages.length === 0) {
-                    pages = [{
-                      id: 'page-0',
-                      content: editingLesson?.content || '',
-                      questions: localPages[0]?.questions || []
-                    }];
+                    return (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                        <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                        <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                          Inga sidor för frågor ännu
+                        </h4>
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">
+                          Klicka på "Lägg till ny sida" för att skapa din första sida med frågor
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={addNewPageForQuestions}
+                          data-testid="button-add-first-page"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Lägg till första sidan
+                        </Button>
+                      </div>
+                    );
                   }
                   
-                  console.log('[RENDER PAGES]', 'content pages:', contentPages.length, 'rendered pages:', pages.length, 'total questions:', pages.reduce((sum, p) => sum + (p.questions?.length || 0), 0));
+                  console.log('[RENDER PAGES]', 'manual pages:', pages.length, 'total questions:', pages.reduce((sum, p) => sum + (p.questions?.length || 0), 0));
                   
                   return pages.length > 0 ? (
                   <div className="space-y-6">
@@ -1223,15 +1218,40 @@ export default function ReadingAdmin() {
                       <Card key={page.id} className="border-l-4 border-l-blue-500">
                         <CardHeader>
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <CardTitle className="text-lg">
                                 Sida {pageIndex + 1}
                                 {dirtyPages[pageIndex] && <span className="text-xs text-blue-600 ml-2">●</span>}
                               </CardTitle>
                               <CardDescription>
                                 {page.questions?.length || 0} frågor
-                                {page.content && ` • ${Math.ceil(page.content.length / 100)} st. text`}
                               </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  // Ta bort sida
+                                  setLocalPages(prev => prev.filter((_, i) => i !== pageIndex));
+                                  // Ta bort dirty flag
+                                  setDirtyPages(prev => {
+                                    const { [pageIndex]: _, ...rest } = prev;
+                                    return rest;
+                                  });
+                                  console.log('Removed page:', pageIndex + 1);
+                                  toast({
+                                    title: "Sida borttagen",
+                                    description: `Sida ${pageIndex + 1} har tagits bort`,
+                                  });
+                                }}
+                                data-testid={`button-remove-page-${pageIndex}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                             <div className="flex gap-2">
                               <Button 
