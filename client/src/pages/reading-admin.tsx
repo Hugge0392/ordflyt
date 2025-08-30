@@ -24,6 +24,7 @@ export default function ReadingAdmin() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Partial<InsertReadingLesson> | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [activeFormTab, setActiveFormTab] = useState('basic');
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -146,6 +147,7 @@ export default function ReadingAdmin() {
 
   const handleCreateLesson = () => {
     setIsCreating(true);
+    setActiveFormTab('basic');
     setEditingLesson({
       title: "",
       description: "",
@@ -185,6 +187,7 @@ export default function ReadingAdmin() {
 
   const handleEditLesson = (lesson: ReadingLesson) => {
     setSelectedLesson(lesson);
+    setActiveFormTab('basic');
     setEditingLesson({
       title: lesson.title,
       description: lesson.description,
@@ -438,6 +441,7 @@ export default function ReadingAdmin() {
                     setIsCreating(false);
                     setEditingLesson(null);
                     setSelectedLesson(null);
+                    setActiveFormTab('basic');
                   }}
                   data-testid="button-cancel"
                 >
@@ -523,7 +527,7 @@ export default function ReadingAdmin() {
         </div>
 
         <div className="max-w-6xl mx-auto p-6">
-          <Tabs defaultValue="basic" className="w-full">
+          <Tabs value={activeFormTab} onValueChange={setActiveFormTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="basic">Grundinfo</TabsTrigger>
               <TabsTrigger value="content">Innehåll</TabsTrigger>
