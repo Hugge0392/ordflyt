@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
 import { Plus, BookOpen, Eye, Edit, Trash2, Save, X, Image as ImageIcon, FileText, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,6 @@ export default function ReadingAdmin() {
   const [editingLesson, setEditingLesson] = useState<Partial<InsertReadingLesson> | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState('basic');
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const { toast } = useToast();
@@ -436,46 +435,69 @@ export default function ReadingAdmin() {
     setEditingLesson({ ...editingLesson, pages: newPages });
   };
 
-  // Auto-save function
-  const triggerAutoSave = () => {
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout);
-    }
+  // Manual save function for pages and complete lesson
+  const saveCompleteLesson = useCallback(async () => {
+    if (!editingLesson) return;
     
-    const timeout = setTimeout(async () => {
-      if (editingLesson && (editingLesson.title || editingLesson.content)) {
-        setIsSaving(true);
-        try {
-          // Auto-save som utkast
-          if (isCreating) {
-            await createMutation.mutateAsync({ ...editingLesson, isPublished: 0 } as InsertReadingLesson);
-            setIsCreating(false); // Nu är det inte längre "creating" efter första sparningen
-          } else if (selectedLesson) {
-            await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...editingLesson, isPublished: editingLesson.isPublished } });
-          }
-        } catch (error) {
-          console.error('Auto-save failed:', error);
-        } finally {
-          setIsSaving(false);
-        }
+    setIsSaving(true);
+    try {
+      if (isCreating) {
+        const result = await createMutation.mutateAsync({ ...editingLesson, isPublished: 0 } as InsertReadingLesson);
+        setIsCreating(false);
+        setSelectedLesson(result);
+        console.log('Complete lesson saved with pages');
+      } else if (selectedLesson) {
+        await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...editingLesson, isPublished: editingLesson.isPublished } });
+        console.log('Complete lesson updated with pages');
       }
-    }, 3000); // Auto-save efter 3 sekunder av inaktivitet
-    
-    setAutoSaveTimeout(timeout);
-  };
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editingLesson, isCreating, selectedLesson, createMutation, updateMutation]);
 
-  // Auto-save när editingLesson ändras
+  // Auto-save när editingLesson ändras (men inte pages för att undvika race condition)
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     if (editingLesson && (editingLesson.title || editingLesson.content)) {
-      triggerAutoSave();
+      // Avbryt tidigare auto-save
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      
+      // Sätt ny timeout, men exkludera pages från auto-save för att undvika race
+      autoSaveTimeoutRef.current = setTimeout(async () => {
+        if (editingLesson && (editingLesson.title || editingLesson.content)) {
+          setIsSaving(true);
+          try {
+            // Auto-save utan pages för att undvika överskrivning av per-sida frågor
+            const lessonToSave = { ...editingLesson };
+            delete lessonToSave.pages; // Ta bort pages från auto-save
+            
+            if (isCreating) {
+              // Först auto-save skickar bara grunddata, pages sparas manuellt
+              console.log('Auto-saving new lesson without pages');
+            } else if (selectedLesson) {
+              console.log('Auto-saving existing lesson without pages');
+              await updateMutation.mutateAsync({ id: selectedLesson.id, lesson: { ...lessonToSave, isPublished: editingLesson.isPublished } });
+            }
+          } catch (error) {
+            console.error('Auto-save failed:', error);
+          } finally {
+            setIsSaving(false);
+          }
+        }
+      }, 3000);
     }
     
     return () => {
-      if (autoSaveTimeout) {
-        clearTimeout(autoSaveTimeout);
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [editingLesson]);
+  }, [editingLesson?.title, editingLesson?.content, editingLesson?.description]); // Exkludera pages från dependencies
 
   // Inte behövd längre - ObjectUploader hanterar direkt upload
   const handleFeaturedImageUpload = () => ({});
