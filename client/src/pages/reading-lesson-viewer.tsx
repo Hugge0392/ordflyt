@@ -50,8 +50,8 @@ export default function ReadingLessonViewer() {
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
-    // First convert markdown to HTML
-    let processedContent = formatMarkdownToHTML(content);
+    // Content is already HTML from RichTextEditor, don't convert markdown
+    let processedContent = content;
     
     if (!definitions.length) return processedContent;
 
