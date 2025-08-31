@@ -182,15 +182,13 @@
 .prose-lg h4 { font-size: 1.375rem !important; }
 .prose-lg li { font-size: 1.25rem !important; line-height: 1.8 !important; }
 
-/* Apply accessibility background only to reading content area */
-.accessibility-enhanced .reading-content-area {
+/* Apply accessibility background only to Cards within reading content area */
+.accessibility-enhanced .reading-content-area .card {
   background-color: var(--accessibility-bg-color) !important;
 }
 
-.accessibility-enhanced .card,
-.accessibility-enhanced .border {
+.accessibility-enhanced .reading-content-area .border {
   border-color: var(--accessibility-border-color) !important;
-  background-color: var(--accessibility-bg-color) !important;
 }
 
 /* Dyslexia-friendly font is imported at top of file */
