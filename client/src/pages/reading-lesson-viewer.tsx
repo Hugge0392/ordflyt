@@ -78,30 +78,6 @@ export default function ReadingLessonViewer() {
   // Track answers for reading questions by page
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   
-  // Track temporary blink state for questions
-  const [isBlinking, setIsBlinking] = useState(false);
-  
-  // Function to trigger temporary blink
-  const triggerBlink = () => {
-    setIsBlinking(true);
-    setTimeout(() => setIsBlinking(false), 2000); // Blink for 2 seconds
-  };
-
-  // Custom navigation function that triggers blink
-  const navigateToPage = (newPage: number) => {
-    setCurrentPage(newPage);
-    // Check if the new page has unanswered questions
-    const newPageQuestions = lesson?.pages?.[newPage]?.questions || [];
-    const newPageAnswers = readingAnswers[newPage] || {};
-    const hasUnansweredQuestions = newPageQuestions.some((_, index) => {
-      const answer = newPageAnswers[index];
-      return !answer || answer.trim().length === 0;
-    });
-    
-    if (hasUnansweredQuestions) {
-      triggerBlink();
-    }
-  };
   
   // Handle answer changes
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
@@ -390,7 +366,7 @@ export default function ReadingLessonViewer() {
                 <div className="flex items-center justify-between mt-6 pt-4 border-t">
                   <Button
                     variant="outline"
-                    onClick={() => navigateToPage(Math.max(0, currentPage - 1))}
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
                     className="flex items-center gap-2"
                   >
@@ -402,7 +378,7 @@ export default function ReadingLessonViewer() {
                     {pages.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => navigateToPage(index)}
+                        onClick={() => setCurrentPage(index)}
                         className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
                           index === currentPage
                             ? 'bg-primary text-primary-foreground'
@@ -416,7 +392,7 @@ export default function ReadingLessonViewer() {
                   
                   <Button
                     variant="outline"
-                    onClick={() => navigateToPage(Math.min(pages.length - 1, currentPage + 1))}
+                    onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2"
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
@@ -469,14 +445,11 @@ export default function ReadingLessonViewer() {
                   {/* Show reading questions for current page first */}
                   {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
                     const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
-                    const shouldBlink = !isAnswered && isBlinking;
                     
                     return (
                       <div 
                         key={`reading-${index}`} 
-                        className={`p-4 border rounded-lg bg-blue-50 dark:bg-blue-950 transition-all duration-500 ${
-                          shouldBlink ? 'ring-2 ring-blue-400 animate-pulse' : ''
-                        }`}
+                        className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950"
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="secondary" className="text-xs">Under läsning</Badge>
