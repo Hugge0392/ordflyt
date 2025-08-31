@@ -216,6 +216,28 @@ export default function ReadingLessonBuilder() {
     }
   });
 
+  // Delete lesson mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/reading-lessons/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+      toast({
+        title: "Lektion borttagen",
+        description: "Lektionen har tagits bort permanent",
+      });
+      setLocation("/lasforstaelse/skapa");
+    },
+    onError: () => {
+      toast({
+        title: "Fel",
+        description: "Kunde inte ta bort lektionen",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Save content manually
   const handleSaveContent = async () => {
     if (!lesson || !editingLesson) return;
@@ -663,6 +685,20 @@ export default function ReadingLessonBuilder() {
                     >
                       <Save className="w-4 h-4 mr-1" />
                       {updateMutation.isPending ? "Sparar..." : "Spara"}
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm("Är du säker på att du vill ta bort denna lektion? Detta kan inte ångras.")) {
+                          deleteMutation.mutate(lesson.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                      data-testid="button-delete-lesson"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      {deleteMutation.isPending ? "Tar bort..." : "Ta bort"}
                     </Button>
                     <Button 
                       variant="outline" 
