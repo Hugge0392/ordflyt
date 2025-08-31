@@ -140,8 +140,15 @@
   @apply border-red-400 bg-red-100 text-red-700 shadow-lg ring-2 ring-red-300;
 }
 
-/* Accessibility enhanced styles - only apply within reading content */
+/* Accessibility enhanced styles - apply to entire Card and all content within */
+.reading-content.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+  color: var(--accessibility-text-color) !important;
+  border-color: var(--accessibility-border-color) !important;
+}
+
 .reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced *,
 .reading-content.accessibility-enhanced .prose,
 .reading-content.accessibility-enhanced .prose p,
 .reading-content.accessibility-enhanced .prose div,
@@ -151,7 +158,13 @@
 .reading-content.accessibility-enhanced .prose h3,
 .reading-content.accessibility-enhanced .prose h4,
 .reading-content.accessibility-enhanced .prose h5,
-.reading-content.accessibility-enhanced .prose h6 {
+.reading-content.accessibility-enhanced .prose h6,
+.reading-content.accessibility-enhanced .card-header,
+.reading-content.accessibility-enhanced .card-title,
+.reading-content.accessibility-enhanced .card-description,
+.reading-content.accessibility-enhanced .card-content,
+.reading-content.accessibility-enhanced button,
+.reading-content.accessibility-enhanced textarea {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;

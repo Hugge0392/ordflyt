@@ -306,7 +306,7 @@ export default function ReadingLessonViewer() {
         {/* Uses lg: for desktop (1024px+) and md: for tablet landscape (768px+) but only when orientation is landscape */}
         <div className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
           {/* Main Content - Left Column (takes 2/3 of space) */}
-          <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2">
+          <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content">
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>Läs texten</span>
@@ -339,7 +339,7 @@ export default function ReadingLessonViewer() {
                 )}
 
                 <div 
-                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
+                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg"
                   style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
                   dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
                   onMouseOver={handleContentMouseOver}
@@ -427,7 +427,7 @@ export default function ReadingLessonViewer() {
           {/* Questions - Right Column */}
           {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
             (lesson.questions && lesson.questions.length > 0)) && (
-            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6">
+            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 reading-content">
               <CardHeader>
                 <CardTitle className="text-lg">
                   {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
