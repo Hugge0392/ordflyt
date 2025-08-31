@@ -296,15 +296,15 @@ export default function ReadingLessonBuilder() {
       questions: [...editingLesson.questions, question]
     });
 
-    // Reset form
-    setNewQuestionForm({
+    // Reset form but keep the selected page
+    setNewQuestionForm(prev => ({
       type: 'multiple-choice',
       question: '',
       alternatives: ['', '', '', ''],
       correctAnswer: 0,
       explanation: '',
-      pageNumber: 1
-    });
+      pageNumber: prev.pageNumber // Keep the currently selected page
+    }));
   };
 
   // Add word definition
@@ -348,6 +348,17 @@ export default function ReadingLessonBuilder() {
     setEditingLesson({
       ...editingLesson,
       questions: editingLesson.questions.filter(q => q.id !== id)
+    });
+  };
+
+  // Move question to different page
+  const moveQuestion = (questionId: string, newPageNumber: number) => {
+    if (!editingLesson) return;
+    setEditingLesson({
+      ...editingLesson,
+      questions: editingLesson.questions.map(q => 
+        q.id === questionId ? { ...q, pageNumber: newPageNumber } : q
+      )
     });
   };
 
@@ -1114,14 +1125,32 @@ export default function ReadingLessonBuilder() {
                                               </p>
                                             )}
                                           </div>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeQuestion(question.id)}
-                                            data-testid={`button-remove-question-${question.id}`}
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
+                                          <div className="flex gap-2">
+                                            {/* Move question dropdown */}
+                                            <Select
+                                              value={question.pageNumber?.toString()}
+                                              onValueChange={(value) => moveQuestion(question.id, parseInt(value))}
+                                            >
+                                              <SelectTrigger className="w-24 h-8 text-xs">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: newLessonForm.numberOfPages }, (_, i) => (
+                                                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                                    Sida {i + 1}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => removeQuestion(question.id)}
+                                              data-testid={`button-remove-question-${question.id}`}
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                          </div>
                                         </div>
                                       </div>
                                     ))}
