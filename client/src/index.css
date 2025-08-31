@@ -140,21 +140,18 @@
   @apply border-red-400 bg-red-100 text-red-700 shadow-lg ring-2 ring-red-300;
 }
 
-/* Accessibility enhanced styles */
-.accessibility-enhanced .prose,
-.accessibility-enhanced .prose p,
-.accessibility-enhanced .prose div,
-.accessibility-enhanced .prose span,
-.accessibility-enhanced .prose h1,
-.accessibility-enhanced .prose h2,
-.accessibility-enhanced .prose h3,
-.accessibility-enhanced .prose h4,
-.accessibility-enhanced .prose h5,
-.accessibility-enhanced .prose h6,
-.accessibility-enhanced .card-content,
-.accessibility-enhanced .card-header,
-.accessibility-enhanced .card-title,
-.accessibility-enhanced .card-description {
+/* Accessibility enhanced styles - only apply within reading content */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced .prose,
+.reading-content.accessibility-enhanced .prose p,
+.reading-content.accessibility-enhanced .prose div,
+.reading-content.accessibility-enhanced .prose span,
+.reading-content.accessibility-enhanced .prose h1,
+.reading-content.accessibility-enhanced .prose h2,
+.reading-content.accessibility-enhanced .prose h3,
+.reading-content.accessibility-enhanced .prose h4,
+.reading-content.accessibility-enhanced .prose h5,
+.reading-content.accessibility-enhanced .prose h6 {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
@@ -182,14 +179,12 @@
 .prose-lg h4 { font-size: 1.375rem !important; }
 .prose-lg li { font-size: 1.25rem !important; line-height: 1.8 !important; }
 
-.accessibility-enhanced {
+/* Only apply background to reading content container */
+.reading-content.accessibility-enhanced {
   background-color: var(--accessibility-bg-color) !important;
-}
-
-.accessibility-enhanced .card,
-.accessibility-enhanced .border {
   border-color: var(--accessibility-border-color) !important;
-  background-color: var(--accessibility-bg-color) !important;
+  padding: 1rem;
+  border-radius: 0.5rem;
 }
 
 /* Dyslexia-friendly font is imported at top of file */

@@ -105,16 +105,19 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
       root.style.setProperty('--accessibility-border-color', 'inherit');
     }
 
-    // Add accessibility class to body
-    document.body.classList.toggle('accessibility-enhanced', 
-      settings.fontSize !== defaultSettings.fontSize ||
-      settings.lineHeight !== defaultSettings.lineHeight ||
-      settings.fontFamily !== defaultSettings.fontFamily ||
-      settings.contrast !== defaultSettings.contrast ||
-      settings.backgroundColor !== defaultSettings.backgroundColor ||
-      settings.wordSpacing !== defaultSettings.wordSpacing ||
-      settings.letterSpacing !== defaultSettings.letterSpacing
-    );
+    // Add accessibility class to reading content only
+    const readingContent = document.querySelector('.reading-content');
+    if (readingContent) {
+      readingContent.classList.toggle('accessibility-enhanced', 
+        settings.fontSize !== defaultSettings.fontSize ||
+        settings.lineHeight !== defaultSettings.lineHeight ||
+        settings.fontFamily !== defaultSettings.fontFamily ||
+        settings.contrast !== defaultSettings.contrast ||
+        settings.backgroundColor !== defaultSettings.backgroundColor ||
+        settings.wordSpacing !== defaultSettings.wordSpacing ||
+        settings.letterSpacing !== defaultSettings.letterSpacing
+      );
+    }
   };
 
   const resetSettings = () => {
