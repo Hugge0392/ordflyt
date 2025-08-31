@@ -167,13 +167,6 @@
   background-color: var(--accessibility-bg-color) !important;
 }
 
-/* Card headers and content in reading area should also get background color */
-.reading-content.accessibility-enhanced .card-header,
-.reading-content.accessibility-enhanced .card-content {
-  background-color: var(--accessibility-bg-color) !important;
-  color: var(--accessibility-text-color) !important;
-}
-
 /* Limited styling for sidebar - only background, text color, and font family */
 .reading-content.accessibility-enhanced .card-header,
 .reading-content.accessibility-enhanced .card-title,
