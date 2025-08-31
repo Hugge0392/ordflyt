@@ -113,32 +113,8 @@ export function RichTextEditor({
     }
   }, [content, onChange]);
   
-  // Auto-adjust page breaks based on numberOfPages
-  useEffect(() => {
-    if (numberOfPages > 1) {
-      const pageBreakMarker = '--- SIDBRYTNING ---';
-      const currentPageBreaks = (content.match(/--- SIDBRYTNING ---/g) || []).length;
-      const neededPageBreaks = numberOfPages - 1;
-      
-      if (currentPageBreaks !== neededPageBreaks) {
-        let newContent = content;
-        
-        if (currentPageBreaks < neededPageBreaks) {
-          // Add more page breaks
-          const additionalBreaks = neededPageBreaks - currentPageBreaks;
-          for (let i = 0; i < additionalBreaks; i++) {
-            newContent += '\n\n--- SIDBRYTNING ---\n\n';
-          }
-        } else if (currentPageBreaks > neededPageBreaks) {
-          // Remove excess page breaks
-          const parts = content.split(pageBreakMarker);
-          newContent = parts.slice(0, numberOfPages).join(pageBreakMarker);
-        }
-        
-        setContent(newContent);
-      }
-    }
-  }, [numberOfPages]);
+  // Remove automatic page breaks since we now use separate pages
+  // (This functionality is no longer needed)
   
   // Call onPagesChange when content or images change
   const lastPagesRef = useRef<string>('');
@@ -194,22 +170,7 @@ export function RichTextEditor({
     textarea.focus();
   };
   
-  // Insert page break
-  const insertPageBreak = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const pageBreakMarker = '\n\n--- SIDBRYTNING ---\n\n';
-    
-    const newText = textarea.value.substring(0, start) + pageBreakMarker + textarea.value.substring(start);
-    const newCursorPos = start + pageBreakMarker.length;
-    
-    setContent(newText);
-    textarea.value = newText;
-    textarea.setSelectionRange(newCursorPos, newCursorPos);
-    textarea.focus();
-  };
+  // Page break functionality removed since we now use separate pages
   
   // Handle image upload
   const handleImageUpload = async (file: File, position: 'above' | 'below') => {
@@ -329,17 +290,6 @@ export function RichTextEditor({
         </Button>
         
         <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => insertPageBreak()}
-          className="h-8 px-3"
-          title="Sidbrytning - Dela upp texten i flera sidor"
-        >
-          <FileText className="h-4 w-4 mr-1" />
-          <span className="text-xs">Ny sida</span>
-        </Button>
         
         <Button
           variant="ghost"

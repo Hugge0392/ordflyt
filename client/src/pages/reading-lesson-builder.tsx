@@ -81,8 +81,8 @@ export default function ReadingLessonBuilder() {
   
   // Main lesson state
   const [editingLesson, setEditingLesson] = useState<ReadingLesson | null>(null);
-  const [currentEditorContent, setCurrentEditorContent] = useState("");
   const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
   // UI state
   const [activeTab, setActiveTab] = useState("content");
@@ -123,11 +123,22 @@ export default function ReadingLessonBuilder() {
   useEffect(() => {
     if (lesson) {
       setEditingLesson(lesson);
-      setCurrentEditorContent(lesson.content || "");
       
-      // Load pages with images if they exist
+      const numberOfPages = (lesson as any)?.numberOfPages || 1;
+      
+      // Load pages with images if they exist, otherwise create empty pages
       if ((lesson as any).pages && (lesson as any).pages.length > 0) {
         setLocalPages((lesson as any).pages);
+      } else {
+        // Create empty pages based on numberOfPages
+        const emptyPages = Array.from({ length: numberOfPages }, (_, index) => ({
+          id: `page-${index + 1}`,
+          content: '',
+          imagesAbove: [],
+          imagesBelow: [],
+          questions: []
+        }));
+        setLocalPages(emptyPages);
       }
       
       // Update form with lesson data
@@ -139,10 +150,37 @@ export default function ReadingLessonBuilder() {
         readingTime: lesson.readingTime || 10,
         featuredImage: lesson.featuredImage || '',
         isPublished: lesson.isPublished === 1,
-        numberOfPages: (lesson as any)?.numberOfPages || 1
+        numberOfPages: numberOfPages
       });
     }
   }, [lesson]);
+
+  // Update pages when numberOfPages changes
+  useEffect(() => {
+    if (newLessonForm.numberOfPages !== localPages.length) {
+      const currentPagesCount = localPages.length;
+      const targetPagesCount = newLessonForm.numberOfPages;
+      
+      if (targetPagesCount > currentPagesCount) {
+        // Add more pages
+        const newPages = Array.from({ length: targetPagesCount - currentPagesCount }, (_, index) => ({
+          id: `page-${currentPagesCount + index + 1}`,
+          content: '',
+          imagesAbove: [],
+          imagesBelow: [],
+          questions: []
+        }));
+        setLocalPages(prev => [...prev, ...newPages]);
+      } else if (targetPagesCount < currentPagesCount) {
+        // Remove excess pages
+        setLocalPages(prev => prev.slice(0, targetPagesCount));
+        // Reset page index if it's outside the new range
+        if (currentPageIndex >= targetPagesCount) {
+          setCurrentPageIndex(0);
+        }
+      }
+    }
+  }, [newLessonForm.numberOfPages]);
 
   // Update lesson mutation
   const updateMutation = useMutation({
@@ -153,7 +191,10 @@ export default function ReadingLessonBuilder() {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons", lessonId] });
       // Keep user in editor and sync back server truth:
       setEditingLesson(updatedLesson);
-      setCurrentEditorContent(updatedLesson.content || "");
+      // Update local pages if they exist in the updated lesson
+      if ((updatedLesson as any).pages) {
+        setLocalPages((updatedLesson as any).pages);
+      }
       toast({ 
         title: "Lektion uppdaterad!", 
         description: "Ändringarna har sparats." 
@@ -172,8 +213,7 @@ export default function ReadingLessonBuilder() {
   const handleSaveContent = async () => {
     if (!lesson || !editingLesson) return;
     
-    const currentContent = currentEditorContent;
-    if (!currentContent?.trim()) {
+    if (localPages.length === 0 || localPages.every(page => !page.content?.trim())) {
       toast({
         title: "Ingen text att spara",
         description: "Skriv något innehåll först",
@@ -182,10 +222,13 @@ export default function ReadingLessonBuilder() {
       return;
     }
 
+    // Combine all page content for the main content field
+    const combinedContent = localPages.map(page => page.content).join('\n\n--- SIDBRYTNING ---\n\n');
+
     await updateMutation.mutateAsync({
       id: lesson.id,
       lesson: {
-        content: currentContent,
+        content: combinedContent,
         pages: localPages, // Include the pages with images!
         title: newLessonForm.title || lesson.title,
         gradeLevel: newLessonForm.gradeLevel || lesson.gradeLevel,
@@ -604,26 +647,54 @@ export default function ReadingLessonBuilder() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
-                          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                              📄 Denna lektion är inställd på {newLessonForm.numberOfPages} {newLessonForm.numberOfPages === 1 ? 'sida' : 'sidor'}
-                            </p>
-                            <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                              Ändra antal sidor i inställningar (⚙️ knappen) om du vill dela upp innehållet annorlunda
-                            </p>
+                          {/* Page Navigation */}
+                          <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div>
+                              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                📄 Sida {currentPageIndex + 1} av {newLessonForm.numberOfPages}
+                              </p>
+                              <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                Varje sida har sin egen textredigerare
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPageIndex(Math.max(0, currentPageIndex - 1))}
+                                disabled={currentPageIndex === 0}
+                              >
+                                ← Föregående
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPageIndex(Math.min(newLessonForm.numberOfPages - 1, currentPageIndex + 1))}
+                                disabled={currentPageIndex >= newLessonForm.numberOfPages - 1}
+                              >
+                                Nästa →
+                              </Button>
+                            </div>
                           </div>
-                          <RichTextEditor
-                            value={currentEditorContent}
-                            onChange={(content) => {
-                              const safe = content ?? "";
-                              setCurrentEditorContent(safe);
-                              setEditingLesson(prev => prev ? { ...prev, content: safe } : prev);
-                            }}
-                            placeholder="Skriv ditt läsförståelse-innehåll här. Du kan lägga till rubriker, bilder, listor och mycket mer..."
-                            onPagesChange={setLocalPages}
-                            initialPages={(lesson as any)?.pages || []}
-                            numberOfPages={newLessonForm.numberOfPages}
-                          />
+
+                          {/* Current Page Editor */}
+                          {localPages[currentPageIndex] && (
+                            <RichTextEditor
+                              value={localPages[currentPageIndex].content || ''}
+                              onChange={(content) => {
+                                const safe = content ?? "";
+                                setLocalPages(prev => {
+                                  const updated = [...prev];
+                                  updated[currentPageIndex] = {
+                                    ...updated[currentPageIndex],
+                                    content: safe
+                                  };
+                                  return updated;
+                                });
+                              }}
+                              placeholder={`Skriv innehållet för sida ${currentPageIndex + 1} här...`}
+                            />
+                          )}
                         </div>
                       </CardContent>
                     </Card>
