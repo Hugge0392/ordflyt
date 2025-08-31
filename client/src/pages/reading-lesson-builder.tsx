@@ -34,6 +34,7 @@ import {
   EyeOff
 } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import type { ReadingQuestion, ReadingLesson, WordDefinition as SchemaWordDefinition } from "@shared/schema";
 
 interface WordDefinition {
   id: string;
@@ -48,6 +49,7 @@ interface Question {
   alternatives?: string[];
   correctAnswer?: string | number;
   explanation?: string;
+  pageNumber?: number;
 }
 
 interface PreReadingQuestion {
@@ -93,7 +95,8 @@ export default function ReadingLessonBuilder() {
     question: '',
     alternatives: ['', '', '', ''],
     correctAnswer: 0,
-    explanation: ''
+    explanation: '',
+    pageNumber: 1
   });
   
   const [newWordDefinition, setNewWordDefinition] = useState({ word: '', definition: '' });
@@ -106,7 +109,8 @@ export default function ReadingLessonBuilder() {
     subject: 'Svenska',
     readingTime: 10,
     featuredImage: '',
-    isPublished: false
+    isPublished: false,
+    numberOfPages: 1
   });
 
   // Fetch the specific lesson based on URL parameter
@@ -134,7 +138,8 @@ export default function ReadingLessonBuilder() {
         subject: lesson.subject || 'Svenska',
         readingTime: lesson.readingTime || 10,
         featuredImage: lesson.featuredImage || '',
-        isPublished: lesson.isPublished === 1
+        isPublished: lesson.isPublished === 1,
+        numberOfPages: (lesson as any)?.numberOfPages || 1
       });
     }
   }, [lesson]);
@@ -192,6 +197,7 @@ export default function ReadingLessonBuilder() {
         questions: editingLesson.questions ?? [],
         wordDefinitions: editingLesson.wordDefinitions ?? [],
         isPublished: newLessonForm.isPublished ? 1 : 0, // Convert boolean to number
+        numberOfPages: newLessonForm.numberOfPages
       } as Partial<ReadingLesson>
     });
   };
@@ -207,7 +213,8 @@ export default function ReadingLessonBuilder() {
       alternatives: newQuestionForm.type === 'multiple-choice' ? newQuestionForm.alternatives : undefined,
       correctAnswer: newQuestionForm.type === 'multiple-choice' ? newQuestionForm.correctAnswer : 
                     newQuestionForm.type === 'true-false' ? newQuestionForm.alternatives[0] : undefined,
-      explanation: newQuestionForm.explanation || undefined
+      explanation: newQuestionForm.explanation || undefined,
+      pageNumber: newQuestionForm.pageNumber
     };
 
     setEditingLesson({
@@ -221,7 +228,8 @@ export default function ReadingLessonBuilder() {
       question: '',
       alternatives: ['', '', '', ''],
       correctAnswer: 0,
-      explanation: ''
+      explanation: '',
+      pageNumber: 1
     });
   };
 
@@ -595,17 +603,28 @@ export default function ReadingLessonBuilder() {
                         </p>
                       </CardHeader>
                       <CardContent>
-                        <RichTextEditor
-                          value={currentEditorContent}
-                          onChange={(content) => {
-                            const safe = content ?? "";
-                            setCurrentEditorContent(safe);
-                            setEditingLesson(prev => prev ? { ...prev, content: safe } : prev);
-                          }}
-                          placeholder="Skriv ditt läsförståelse-innehåll här. Du kan lägga till rubriker, bilder, listor och mycket mer..."
-                          onPagesChange={setLocalPages}
-                          initialPages={(lesson as any)?.pages || []}
-                        />
+                        <div className="space-y-4">
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                              📄 Denna lektion är inställd på {newLessonForm.numberOfPages} {newLessonForm.numberOfPages === 1 ? 'sida' : 'sidor'}
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                              Ändra antal sidor i inställningar (⚙️ knappen) om du vill dela upp innehållet annorlunda
+                            </p>
+                          </div>
+                          <RichTextEditor
+                            value={currentEditorContent}
+                            onChange={(content) => {
+                              const safe = content ?? "";
+                              setCurrentEditorContent(safe);
+                              setEditingLesson(prev => prev ? { ...prev, content: safe } : prev);
+                            }}
+                            placeholder="Skriv ditt läsförståelse-innehåll här. Du kan lägga till rubriker, bilder, listor och mycket mer..."
+                            onPagesChange={setLocalPages}
+                            initialPages={(lesson as any)?.pages || []}
+                            numberOfPages={newLessonForm.numberOfPages}
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -669,21 +688,39 @@ export default function ReadingLessonBuilder() {
                         <div className="p-4 border rounded-lg bg-blue-50">
                           <h4 className="font-medium mb-3 text-blue-800">Lägg till fråga för aktuell sida</h4>
                           <div className="space-y-3">
-                            <div>
-                              <Label>Frågetyp</Label>
-                              <Select 
-                                value={newQuestionForm.type} 
-                                onValueChange={(value: Question['type']) => setNewQuestionForm(prev => ({ ...prev, type: value }))}
-                              >
-                                <SelectTrigger data-testid="select-reading-question-type">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="multiple-choice">Flerval</SelectItem>
-                                  <SelectItem value="true-false">Sant/Falskt</SelectItem>
-                                  <SelectItem value="open">Öppen fråga</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label>Frågetyp</Label>
+                                <Select 
+                                  value={newQuestionForm.type} 
+                                  onValueChange={(value: Question['type']) => setNewQuestionForm(prev => ({ ...prev, type: value }))}
+                                >
+                                  <SelectTrigger data-testid="select-reading-question-type">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="multiple-choice">Flerval</SelectItem>
+                                    <SelectItem value="true-false">Sant/Falskt</SelectItem>
+                                    <SelectItem value="open">Öppen fråga</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label>Sida</Label>
+                                <Select 
+                                  value={newQuestionForm.pageNumber?.toString() || "1"} 
+                                  onValueChange={(value) => setNewQuestionForm(prev => ({ ...prev, pageNumber: parseInt(value) }))}
+                                >
+                                  <SelectTrigger data-testid="select-reading-question-page">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: newLessonForm.numberOfPages }, (_, i) => (
+                                      <SelectItem key={i + 1} value={(i + 1).toString()}>Sida {i + 1}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                             
                             <div>
@@ -924,41 +961,61 @@ export default function ReadingLessonBuilder() {
                           </div>
                         </div>
 
-                        {/* Questions List */}
-                        <div className="space-y-3">
+                        {/* Questions List grouped by page */}
+                        <div className="space-y-4">
                           <h4 className="font-medium">Sparade frågor ({editingLesson?.questions?.length || 0})</h4>
-                          {editingLesson?.questions?.map((question, index) => (
-                            <div key={question.id} className="p-4 border rounded-lg">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Badge variant="outline">{question.type}</Badge>
-                                    <span className="text-sm font-medium">Fråga {index + 1}</span>
-                                  </div>
-                                  <p className="text-sm mb-2">{question.question}</p>
-                                  {question.alternatives && question.type === 'multiple-choice' && (
-                                    <div className="text-xs text-muted-foreground">
-                                      Alternativ: {question.alternatives.join(', ')}
-                                      <br />Rätt svar: {question.alternatives[question.correctAnswer as number]}
-                                    </div>
-                                  )}
-                                  {question.explanation && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Förklaring: {question.explanation}
-                                    </p>
-                                  )}
+                          {Array.from({ length: newLessonForm.numberOfPages }, (_, pageIndex) => {
+                            const pageNumber = pageIndex + 1;
+                            const pageQuestions = editingLesson?.questions?.filter(q => q.pageNumber === pageNumber) || [];
+                            
+                            return (
+                              <div key={pageNumber} className="border rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <h5 className="font-medium">Sida {pageNumber}</h5>
+                                  <Badge variant="outline">{pageQuestions.length} frågor</Badge>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeQuestion(question.id)}
-                                  data-testid={`button-remove-question-${question.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                
+                                {pageQuestions.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">Inga frågor för denna sida än</p>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {pageQuestions.map((question, index) => (
+                                      <div key={question.id} className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Badge variant="outline">{question.type}</Badge>
+                                              <span className="text-sm font-medium">Fråga {index + 1}</span>
+                                            </div>
+                                            <p className="text-sm mb-2">{question.question}</p>
+                                            {question.alternatives && question.type === 'multiple-choice' && (
+                                              <div className="text-xs text-muted-foreground">
+                                                Alternativ: {question.alternatives.join(', ')}
+                                                <br />Rätt svar: {question.alternatives[question.correctAnswer as number]}
+                                              </div>
+                                            )}
+                                            {question.explanation && (
+                                              <p className="text-xs text-muted-foreground mt-1">
+                                                Förklaring: {question.explanation}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeQuestion(question.id)}
+                                            data-testid={`button-remove-question-${question.id}`}
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </Card>
@@ -1031,7 +1088,7 @@ export default function ReadingLessonBuilder() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="lesson-title">Titel</Label>
                 <Input
@@ -1071,6 +1128,19 @@ export default function ReadingLessonBuilder() {
                   onChange={(e) => setNewLessonForm(prev => ({ ...prev, readingTime: parseInt(e.target.value) || 10 }))}
                   placeholder="10"
                   data-testid="input-lesson-time"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lesson-pages">Antal sidor</Label>
+                <Input
+                  id="lesson-pages"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={newLessonForm.numberOfPages}
+                  onChange={(e) => setNewLessonForm(prev => ({ ...prev, numberOfPages: parseInt(e.target.value) || 1 }))}
+                  placeholder="1"
+                  data-testid="input-lesson-pages"
                 />
               </div>
             </div>

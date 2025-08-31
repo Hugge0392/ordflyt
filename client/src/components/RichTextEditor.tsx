@@ -67,6 +67,7 @@ interface RichTextEditorProps {
   className?: string;
   onPagesChange?: (pages: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[]) => void;
   initialPages?: { id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[] }[];
+  numberOfPages?: number;
 }
 
 export function RichTextEditor({ 
@@ -75,7 +76,8 @@ export function RichTextEditor({
   placeholder = "Skriv din text här...", 
   className,
   onPagesChange,
-  initialPages 
+  initialPages,
+  numberOfPages = 1
 }: RichTextEditorProps) {
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -110,6 +112,33 @@ export function RichTextEditor({
       onChange(htmlContent);
     }
   }, [content, onChange]);
+  
+  // Auto-adjust page breaks based on numberOfPages
+  useEffect(() => {
+    if (numberOfPages > 1) {
+      const pageBreakMarker = '--- SIDBRYTNING ---';
+      const currentPageBreaks = (content.match(/--- SIDBRYTNING ---/g) || []).length;
+      const neededPageBreaks = numberOfPages - 1;
+      
+      if (currentPageBreaks !== neededPageBreaks) {
+        let newContent = content;
+        
+        if (currentPageBreaks < neededPageBreaks) {
+          // Add more page breaks
+          const additionalBreaks = neededPageBreaks - currentPageBreaks;
+          for (let i = 0; i < additionalBreaks; i++) {
+            newContent += '\n\n--- SIDBRYTNING ---\n\n';
+          }
+        } else if (currentPageBreaks > neededPageBreaks) {
+          // Remove excess page breaks
+          const parts = content.split(pageBreakMarker);
+          newContent = parts.slice(0, numberOfPages).join(pageBreakMarker);
+        }
+        
+        setContent(newContent);
+      }
+    }
+  }, [numberOfPages]);
   
   // Call onPagesChange when content or images change
   const lastPagesRef = useRef<string>('');

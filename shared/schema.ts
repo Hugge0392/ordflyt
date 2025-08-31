@@ -383,6 +383,7 @@ export const readingLessons = pgTable("reading_lessons", {
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
   subject: varchar("subject"), // e.g. "Svenska", "Naturkunskap"
   readingTime: integer("reading_time"), // estimated reading time in minutes
+  numberOfPages: integer("number_of_pages").default(1), // how many pages this lesson should have
   preReadingQuestions: jsonb("pre_reading_questions").notNull().$type<PreReadingQuestion[]>().default([]),
   questions: jsonb("questions").notNull().$type<ReadingQuestion[]>().default([]),
   wordDefinitions: jsonb("word_definitions").notNull().$type<WordDefinition[]>().default([]),
@@ -404,6 +405,7 @@ export interface ReadingQuestion {
   options?: string[]; // for multiple choice
   correctAnswer?: string | number | boolean; // for multiple choice (index) or true/false
   explanation?: string; // optional explanation for the answer
+  pageNumber?: number; // which page this question belongs to
 }
 
 export interface WordDefinition {
