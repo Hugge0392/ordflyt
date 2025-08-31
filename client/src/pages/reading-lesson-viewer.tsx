@@ -233,7 +233,7 @@ export default function ReadingLessonViewer() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4 reading-content-area">
+      <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
         {/* Lesson Info */}
         <Card className="mb-6">
           <CardHeader>
