@@ -147,8 +147,7 @@
   border-color: var(--accessibility-border-color) !important;
 }
 
-.reading-content.accessibility-enhanced,
-.reading-content.accessibility-enhanced *,
+/* Full text formatting for main reading content */
 .reading-content.accessibility-enhanced .prose,
 .reading-content.accessibility-enhanced .prose p,
 .reading-content.accessibility-enhanced .prose div,
@@ -158,18 +157,25 @@
 .reading-content.accessibility-enhanced .prose h3,
 .reading-content.accessibility-enhanced .prose h4,
 .reading-content.accessibility-enhanced .prose h5,
-.reading-content.accessibility-enhanced .prose h6,
-.reading-content.accessibility-enhanced .card-header,
-.reading-content.accessibility-enhanced .card-title,
-.reading-content.accessibility-enhanced .card-description,
-.reading-content.accessibility-enhanced .card-content,
-.reading-content.accessibility-enhanced button,
-.reading-content.accessibility-enhanced textarea {
+.reading-content.accessibility-enhanced .prose h6 {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
   word-spacing: var(--accessibility-word-spacing) !important;
   letter-spacing: var(--accessibility-letter-spacing) !important;
+  color: var(--accessibility-text-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+/* Limited styling for sidebar - only background, text color, and font family */
+.reading-content.accessibility-enhanced .card-header,
+.reading-content.accessibility-enhanced .card-title,
+.reading-content.accessibility-enhanced .card-description,
+.reading-content.accessibility-enhanced .card-content,
+.reading-content.accessibility-enhanced button,
+.reading-content.accessibility-enhanced textarea,
+.reading-content.accessibility-enhanced *:not(.prose):not(.prose *) {
+  font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
   background-color: var(--accessibility-bg-color) !important;
 }
