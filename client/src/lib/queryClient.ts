@@ -20,6 +20,12 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
+  
+  // Handle 204 No Content responses (like DELETE operations)
+  if (res.status === 204) {
+    return null;
+  }
+  
   return await res.json();
 }
 
