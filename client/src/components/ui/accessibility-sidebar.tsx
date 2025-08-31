@@ -155,7 +155,7 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-background border-r border-border z-40 transform transition-transform duration-300 overflow-y-auto reading-content ${
+        className={`fixed top-0 left-0 h-full w-80 bg-background border-r border-border z-40 transform transition-transform duration-300 overflow-y-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
