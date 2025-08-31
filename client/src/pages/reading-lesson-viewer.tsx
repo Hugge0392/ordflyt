@@ -449,7 +449,7 @@ export default function ReadingLessonViewer() {
                     return (
                       <div 
                         key={`reading-${index}`} 
-                        className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950"
+                        className="p-4 border-b pb-4 last:border-b-0"
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="secondary" className="text-xs">Under läsning</Badge>
@@ -471,8 +471,8 @@ export default function ReadingLessonViewer() {
                                   onClick={() => handleAnswerChange(currentPage, index, optionValue)}
                                   className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
                                     isSelected 
-                                      ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-500' 
-                                      : 'hover:bg-gray-100 dark:hover:bg-gray-800 border-2 border-transparent'
+                                      ? 'ring-2 ring-blue-500 font-medium' 
+                                      : 'hover:opacity-80'
                                   }`}
                                 >
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
@@ -501,8 +501,8 @@ export default function ReadingLessonViewer() {
                                   onClick={() => handleAnswerChange(currentPage, index, optionValue)}
                                   className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
                                     isSelected 
-                                      ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-500' 
-                                      : 'hover:bg-gray-100 dark:hover:bg-gray-800 border-2 border-transparent'
+                                      ? 'ring-2 ring-blue-500 font-medium' 
+                                      : 'hover:opacity-80'
                                   }`}
                                 >
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
@@ -525,7 +525,7 @@ export default function ReadingLessonViewer() {
                               value={readingAnswers[currentPage]?.[index] || ''}
                               onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
                               placeholder="Skriv ditt svar här..."
-                              className="w-full p-3 border rounded-lg resize-none h-20 bg-white dark:bg-gray-800"
+                              className="w-full p-3 border rounded-lg resize-none h-20"
                               rows={3}
                             />
                           </div>
