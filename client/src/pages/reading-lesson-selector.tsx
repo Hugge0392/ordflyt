@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target, Globe, EyeOff } from "lucide-react";
+import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target, Globe, EyeOff, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -80,6 +80,26 @@ export default function ReadingLessonSelector() {
         variant: "destructive"
       });
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/reading-lessons/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+      toast({
+        title: "Lektion borttagen",
+        description: "Lektionen har tagits bort permanent",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Fel",
+        description: "Kunde inte ta bort lektionen",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleCreateLesson = () => {
@@ -344,6 +364,21 @@ export default function ReadingLessonSelector() {
                           >
                             <Edit className="w-4 h-4 mr-1" />
                             Redigera
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Är du säker på att du vill ta bort denna lektion? Detta kan inte ångras.")) {
+                                deleteMutation.mutate(lesson.id);
+                              }
+                            }}
+                            disabled={deleteMutation.isPending}
+                            data-testid={`button-delete-lesson-${lesson.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Ta bort
                           </Button>
                         </div>
                       </div>
