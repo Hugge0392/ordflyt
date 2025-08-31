@@ -122,7 +122,27 @@ export default function ReadingLessonBuilder() {
   // Auto-load lesson when data arrives
   useEffect(() => {
     if (lesson) {
-      setEditingLesson(lesson);
+      // Extract all questions from pages and combine with global questions
+      const questionsFromPages: Question[] = [];
+      if ((lesson as any).pages && (lesson as any).pages.length > 0) {
+        (lesson as any).pages.forEach((page: any, pageIndex: number) => {
+          if (page.questions && page.questions.length > 0) {
+            const pageQuestions = page.questions.map((q: any) => ({
+              ...q,
+              pageNumber: pageIndex + 1 // Ensure pageNumber is set correctly
+            }));
+            questionsFromPages.push(...pageQuestions);
+          }
+        });
+      }
+      
+      // Combine questions from pages and global questions
+      const allQuestions = [...questionsFromPages, ...(lesson.questions || [])];
+      
+      setEditingLesson({
+        ...lesson,
+        questions: allQuestions
+      });
       
       const numberOfPages = (lesson as any)?.numberOfPages || 1;
       
@@ -225,11 +245,22 @@ export default function ReadingLessonBuilder() {
     // Combine all page content for the main content field
     const combinedContent = localPages.map(page => page.content).join('\n\n--- SIDBRYTNING ---\n\n');
 
+    // Distribute questions to correct pages based on pageNumber
+    const pagesWithQuestions = localPages.map((page, index) => {
+      const pageNumber = index + 1;
+      const questionsForThisPage = editingLesson.questions?.filter(q => q.pageNumber === pageNumber) || [];
+      
+      return {
+        ...page,
+        questions: questionsForThisPage
+      };
+    });
+
     await updateMutation.mutateAsync({
       id: lesson.id,
       lesson: {
         content: combinedContent,
-        pages: localPages, // Include the pages with images!
+        pages: pagesWithQuestions, // Include pages with questions distributed correctly!
         title: newLessonForm.title || lesson.title,
         gradeLevel: newLessonForm.gradeLevel || lesson.gradeLevel,
         description: newLessonForm.description || lesson.description,
@@ -237,7 +268,7 @@ export default function ReadingLessonBuilder() {
         readingTime: newLessonForm.readingTime || lesson.readingTime,
         featuredImage: newLessonForm.featuredImage || lesson.featuredImage,
         preReadingQuestions: editingLesson.preReadingQuestions ?? [],
-        questions: editingLesson.questions ?? [],
+        questions: [], // Clear global questions since they're now distributed to pages
         wordDefinitions: editingLesson.wordDefinitions ?? [],
         isPublished: newLessonForm.isPublished ? 1 : 0, // Convert boolean to number
         numberOfPages: newLessonForm.numberOfPages
