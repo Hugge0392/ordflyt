@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bold, Italic, List, Quote, Upload, Trash2, Eye, Edit } from "lucide-react";
+import { Bold, Italic, List, Quote, Upload, Trash2, Eye, Edit, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Simple markdown-to-HTML converter for preview
