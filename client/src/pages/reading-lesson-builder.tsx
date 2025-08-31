@@ -807,14 +807,14 @@ export default function ReadingLessonBuilder() {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div>
-                                <Label>Sida</Label>
+                              <div className="p-3 border-2 border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-950">
+                                <Label className="text-blue-700 dark:text-blue-300 font-semibold">📖 Vilken sida ska frågan visas på?</Label>
                                 <Select 
                                   value={newQuestionForm.pageNumber?.toString() || "1"} 
                                   onValueChange={(value) => setNewQuestionForm(prev => ({ ...prev, pageNumber: parseInt(value) }))}
                                 >
-                                  <SelectTrigger data-testid="select-reading-question-page">
-                                    <SelectValue />
+                                  <SelectTrigger data-testid="select-reading-question-page" className="mt-2 border-blue-300">
+                                    <SelectValue placeholder="Välj sida" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {Array.from({ length: newLessonForm.numberOfPages }, (_, i) => (
@@ -1064,25 +1064,37 @@ export default function ReadingLessonBuilder() {
                         </div>
 
                         {/* Questions List grouped by page */}
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Sparade frågor ({editingLesson?.questions?.length || 0})</h4>
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-lg">Sparade frågor</h4>
+                            <Badge variant="secondary">{editingLesson?.questions?.length || 0} totalt</Badge>
+                          </div>
+                          
                           {Array.from({ length: newLessonForm.numberOfPages }, (_, pageIndex) => {
                             const pageNumber = pageIndex + 1;
                             const pageQuestions = editingLesson?.questions?.filter(q => q.pageNumber === pageNumber) || [];
                             
                             return (
-                              <div key={pageNumber} className="border rounded-lg p-4">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <h5 className="font-medium">Sida {pageNumber}</h5>
-                                  <Badge variant="outline">{pageQuestions.length} frågor</Badge>
+                              <div key={pageNumber} className="border-2 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                                    {pageNumber}
+                                  </div>
+                                  <h5 className="font-semibold text-lg">Sida {pageNumber}</h5>
+                                  <Badge variant={pageQuestions.length > 0 ? "default" : "outline"} className="bg-blue-600">
+                                    {pageQuestions.length} frågor
+                                  </Badge>
                                 </div>
                                 
                                 {pageQuestions.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground">Inga frågor för denna sida än</p>
+                                  <div className="p-4 border-2 border-dashed border-blue-300 rounded-lg text-center">
+                                    <p className="text-sm text-muted-foreground">Inga frågor för denna sida än</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Välj "Sida {pageNumber}" i formuläret ovan för att lägga till frågor här</p>
+                                  </div>
                                 ) : (
                                   <div className="space-y-3">
                                     {pageQuestions.map((question, index) => (
-                                      <div key={question.id} className="p-3 bg-gray-50 rounded-lg">
+                                      <div key={question.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
                                         <div className="flex justify-between items-start">
                                           <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-2">
