@@ -122,31 +122,18 @@ export default function ReadingLessonBuilder() {
   // Auto-load lesson when data arrives
   useEffect(() => {
     if (lesson) {
-      // Extract all questions from pages and combine with global questions
-      const questionsFromPages: Question[] = [];
-      if ((lesson as any).pages && (lesson as any).pages.length > 0) {
-        (lesson as any).pages.forEach((page: any, pageIndex: number) => {
-          if (page.questions && page.questions.length > 0) {
-            const pageQuestions = page.questions.map((q: any) => ({
-              ...q,
-              pageNumber: pageIndex + 1 // Ensure pageNumber is set correctly
-            }));
-            questionsFromPages.push(...pageQuestions);
-          }
-        });
-      }
-      
-      // Combine questions from pages and global questions
-      const allQuestions = [...questionsFromPages, ...(lesson.questions || [])];
+      // Just load the lesson as is - don't extract questions from pages
+      // The questions saved on pages should stay on pages (these are "Under läsning" questions)
+      // The questions in lesson.questions are global questions from "Frågor" tab
       
       setEditingLesson({
         ...lesson,
-        questions: allQuestions
+        questions: lesson.questions || [] // Keep only global questions
       });
       
       const numberOfPages = (lesson as any)?.numberOfPages || 1;
       
-      // Load pages with images if they exist, otherwise create empty pages
+      // Load pages with their questions intact (these will be "Under läsning" questions)
       if ((lesson as any).pages && (lesson as any).pages.length > 0) {
         setLocalPages((lesson as any).pages);
       } else {
@@ -248,11 +235,18 @@ export default function ReadingLessonBuilder() {
     // Distribute questions to correct pages based on pageNumber
     const pagesWithQuestions = localPages.map((page, index) => {
       const pageNumber = index + 1;
-      const questionsForThisPage = editingLesson.questions?.filter(q => q.pageNumber === pageNumber) || [];
+      // Get questions from both sources:
+      // 1. From editingLesson.questions (global "Frågor" tab questions)
+      const globalQuestionsForThisPage = editingLesson.questions?.filter(q => q.pageNumber === pageNumber) || [];
+      // 2. From page.questions (local "Under läsning" tab questions)
+      const localQuestionsForThisPage = page.questions || [];
+      
+      // Combine both types of questions
+      const allQuestionsForThisPage = [...globalQuestionsForThisPage, ...localQuestionsForThisPage];
       
       return {
         ...page,
-        questions: questionsForThisPage
+        questions: allQuestionsForThisPage
       };
     });
 
