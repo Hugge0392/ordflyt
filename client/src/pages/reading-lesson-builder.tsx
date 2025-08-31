@@ -392,24 +392,26 @@ export default function ReadingLessonBuilder() {
       explanation: newQuestionForm.explanation || undefined
     };
 
-    // Add question to the first page (currently we only support single page)
+    // Add question to the selected page based on pageNumber
+    const targetPageIndex = (newQuestionForm.pageNumber || 1) - 1;
     const updatedPages = [...localPages];
-    if (updatedPages[0]) {
-      updatedPages[0] = {
-        ...updatedPages[0],
-        questions: [...(updatedPages[0].questions || []), question]
+    if (updatedPages[targetPageIndex]) {
+      updatedPages[targetPageIndex] = {
+        ...updatedPages[targetPageIndex],
+        questions: [...(updatedPages[targetPageIndex].questions || []), question]
       };
       setLocalPages(updatedPages);
     }
 
-    // Reset form
-    setNewQuestionForm({
+    // Reset form but keep the selected page
+    setNewQuestionForm(prev => ({
       type: 'multiple-choice',
       question: '',
       alternatives: ['', '', '', ''],
       correctAnswer: 0,
-      explanation: ''
-    });
+      explanation: '',
+      pageNumber: prev.pageNumber // Keep the currently selected page
+    }));
   };
 
   // Remove reading question from specific page
@@ -423,6 +425,35 @@ export default function ReadingLessonBuilder() {
       }
       return page;
     });
+    setLocalPages(updatedPages);
+  };
+
+  // Move reading question between pages
+  const moveReadingQuestion = (questionId: string, fromPageId: string, toPageIndex: number) => {
+    // Find the question to move
+    let questionToMove: Question | null = null;
+    
+    // Remove from source page
+    const updatedPages = localPages.map(page => {
+      if (page.id === fromPageId) {
+        const questions = page.questions || [];
+        questionToMove = questions.find(q => q.id === questionId) || null;
+        return {
+          ...page,
+          questions: questions.filter(q => q.id !== questionId)
+        };
+      }
+      return page;
+    });
+
+    // Add to target page
+    if (questionToMove && updatedPages[toPageIndex]) {
+      updatedPages[toPageIndex] = {
+        ...updatedPages[toPageIndex],
+        questions: [...(updatedPages[toPageIndex].questions || []), questionToMove]
+      };
+    }
+
     setLocalPages(updatedPages);
   };
 
@@ -919,42 +950,94 @@ export default function ReadingLessonBuilder() {
                           </div>
                         </div>
 
-                        {/* Display existing reading questions */}
-                        <div className="space-y-3">
-                          <h4 className="font-medium">Frågor under läsning</h4>
-                          {localPages.length > 0 && localPages.some(page => page.questions && page.questions.length > 0) ? (
-                            localPages.map((page, pageIndex) => (
-                              page.questions && page.questions.length > 0 && (
-                                <div key={page.id} className="border rounded-lg p-4 bg-gray-50">
-                                  <h5 className="font-medium mb-2">Sida {pageIndex + 1}</h5>
-                                  <div className="space-y-2">
-                                    {page.questions.map((question, qIndex) => (
-                                      <div key={question.id} className="flex items-start gap-2 p-3 bg-white rounded border">
-                                        <span className="font-medium text-sm">{qIndex + 1}.</span>
-                                        <div className="flex-1">
-                                          <p className="font-medium">{question.question}</p>
-                                          <Badge variant="outline" className="mt-1">
-                                            {question.type === 'multiple-choice' ? 'Flerval' : 
-                                             question.type === 'true-false' ? 'Sant/Falskt' : 'Öppen'}
-                                          </Badge>
+                        {/* Display existing reading questions grouped by page */}
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-lg">Frågor under läsning</h4>
+                            <Badge variant="secondary">
+                              {localPages.reduce((total, page) => total + (page.questions?.length || 0), 0)} totalt
+                            </Badge>
+                          </div>
+                          
+                          {Array.from({ length: newLessonForm.numberOfPages }, (_, pageIndex) => {
+                            const page = localPages[pageIndex];
+                            const pageQuestions = page?.questions || [];
+                            const pageNumber = pageIndex + 1;
+                            
+                            return (
+                              <div key={pageIndex} className="border-2 rounded-lg p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+                                <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">
+                                    {pageNumber}
+                                  </div>
+                                  <h5 className="font-semibold text-lg">Sida {pageNumber}</h5>
+                                  <Badge variant={pageQuestions.length > 0 ? "default" : "outline"} className="bg-green-600">
+                                    {pageQuestions.length} frågor
+                                  </Badge>
+                                </div>
+                                
+                                {pageQuestions.length === 0 ? (
+                                  <div className="p-4 border-2 border-dashed border-green-300 rounded-lg text-center">
+                                    <p className="text-sm text-muted-foreground">Inga frågor för denna sida än</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Välj "Sida {pageNumber}" i formuläret ovan för att lägga till frågor här</p>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {pageQuestions.map((question, qIndex) => (
+                                      <div key={question.id} className="p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <Badge variant="outline">{question.type}</Badge>
+                                              <span className="text-sm font-medium">Fråga {qIndex + 1}</span>
+                                            </div>
+                                            <p className="text-sm mb-2">{question.question}</p>
+                                            {question.alternatives && question.type === 'multiple-choice' && (
+                                              <div className="text-xs text-muted-foreground">
+                                                Alternativ: {question.alternatives.join(', ')}
+                                                <br />Rätt svar: {question.alternatives[question.correctAnswer as number]}
+                                              </div>
+                                            )}
+                                            {question.explanation && (
+                                              <p className="text-xs text-muted-foreground mt-1">
+                                                Förklaring: {question.explanation}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <div className="flex gap-2">
+                                            {/* Move question dropdown */}
+                                            <Select
+                                              value={(pageIndex + 1).toString()}
+                                              onValueChange={(value) => moveReadingQuestion(question.id, page.id, parseInt(value) - 1)}
+                                            >
+                                              <SelectTrigger className="w-24 h-8 text-xs">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: newLessonForm.numberOfPages }, (_, i) => (
+                                                  <SelectItem key={i + 1} value={(i + 1).toString()}>
+                                                    Sida {i + 1}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => removeReadingQuestion(page.id, question.id)}
+                                              data-testid={`button-remove-reading-${question.id}`}
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                          </div>
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeReadingQuestion(page.id, question.id)}
-                                          data-testid={`button-remove-reading-${question.id}`}
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
                                       </div>
                                     ))}
                                   </div>
-                                </div>
-                              )
-                            ))
-                          ) : (
-                            <p className="text-muted-foreground text-sm">Inga frågor under läsning har lagts till än.</p>
-                          )}
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </Card>
