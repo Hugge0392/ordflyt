@@ -351,10 +351,9 @@ export default function ReadingLessonViewer() {
                     disabled={currentPage === 0}
                     className="flex items-center gap-2 navigation-button"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                      backgroundColor: '#FFFFFF',
                       color: '#000000',
-                      borderColor: '#CCCCCC',
-                      backdropFilter: 'blur(4px)'
+                      borderColor: '#CCCCCC'
                     }}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -384,10 +383,9 @@ export default function ReadingLessonViewer() {
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2 navigation-button"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                      backgroundColor: '#FFFFFF',
                       color: '#000000',
-                      borderColor: '#CCCCCC',
-                      backdropFilter: 'blur(4px)'
+                      borderColor: '#CCCCCC'
                     }}
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                   >
