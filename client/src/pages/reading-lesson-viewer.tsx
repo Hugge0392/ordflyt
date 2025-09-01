@@ -349,13 +349,7 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
-                    className="flex items-center gap-2 hover:bg-gray-100 disabled:opacity-50"
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                      color: '#000000',
-                      borderColor: '#CCCCCC',
-                      backdropFilter: 'blur(10px)'
-                    }}
+                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Föregående sida
@@ -366,19 +360,9 @@ export default function ReadingLessonViewer() {
                       <button
                         key={index}
                         onClick={() => setCurrentPage(index)}
-                        className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                          index === currentPage
-                            ? ''
-                            : 'hover:bg-gray-600 hover:text-white'
+                        className={`w-8 h-8 rounded-full text-sm font-medium transition-colors neutral-page-number ${
+                          index === currentPage ? 'active' : ''
                         }`}
-                        style={{
-                          backgroundColor: index === currentPage 
-                            ? '#000000' 
-                            : '#E0E0E0',
-                          color: index === currentPage 
-                            ? '#FFFFFF' 
-                            : '#000000'
-                        }}
                       >
                         {index + 1}
                       </button>
@@ -389,14 +373,8 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2 hover:bg-gray-100 disabled:opacity-50"
+                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button"
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                      color: '#000000',
-                      borderColor: '#CCCCCC',
-                      backdropFilter: 'blur(10px)'
-                    }}
                   >
                     Nästa sida
                     <ChevronRight className="h-4 w-4" />
