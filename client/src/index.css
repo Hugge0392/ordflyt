@@ -249,11 +249,23 @@
 
 /* Navigation elements should remain neutral regardless of accessibility colors */
 .navigation-button,
+.navigation-button *,
 .page-number-button {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
   transition: none !important;
+}
+
+/* Force navigation buttons to ignore accessibility color inheritance */
+.reading-content.accessibility-enhanced .navigation-button,
+.reading-content.accessibility-enhanced .navigation-button *,
+.accessibility-enhanced .navigation-button,
+.accessibility-enhanced .navigation-button * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  font-family: inherit !important;
 }
 
 /* Remove all hover effects from navigation buttons - use highest specificity */
