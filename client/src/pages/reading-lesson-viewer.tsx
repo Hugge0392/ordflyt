@@ -281,7 +281,7 @@ export default function ReadingLessonViewer() {
         <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
           {/* Main Content - Left Column (takes 2/3 of space) */}
           <Card 
-            className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content"
+            className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
             style={{ 
               backgroundColor: accessibilityColors.backgroundColor,
               color: accessibilityColors.textColor 
@@ -319,7 +319,7 @@ export default function ReadingLessonViewer() {
                 )}
 
                 <div 
-                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg"
+                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
                   style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
                   dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
                   onMouseOver={handleContentMouseOver}
@@ -408,7 +408,7 @@ export default function ReadingLessonViewer() {
           {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
             (lesson.questions && lesson.questions.length > 0)) && (
             <Card 
-              className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 reading-content"
+              className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor 
