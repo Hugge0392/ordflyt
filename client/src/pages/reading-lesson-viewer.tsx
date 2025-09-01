@@ -349,7 +349,10 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
-                    className="flex items-center gap-2 navigation-button"
+                    className="flex items-center gap-2 navigation-button
+                               hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                               focus-visible:ring-0 focus-visible:outline-none
+                               shadow-none hover:shadow-none active:shadow-none"
                     style={{
                       backgroundColor: '#FFFFFF',
                       color: '#000000',
@@ -365,7 +368,9 @@ export default function ReadingLessonViewer() {
                       <button
                         key={index}
                         onClick={() => setCurrentPage(index)}
-                        className="w-8 h-8 rounded-full text-sm font-medium page-number-button"
+                        className="w-8 h-8 rounded-full text-sm font-medium page-number-button
+                                   focus:outline-none focus-visible:outline-none focus-visible:ring-0
+                                   shadow-none hover:shadow-none"
                         style={{
                           backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
                           color: index === currentPage ? '#FFFFFF' : '#000000',
@@ -381,7 +386,10 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2 navigation-button"
+                    className="flex items-center gap-2 navigation-button
+                               hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                               focus-visible:ring-0 focus-visible:outline-none
+                               shadow-none hover:shadow-none active:shadow-none"
                     style={{
                       backgroundColor: '#FFFFFF',
                       color: '#000000',
