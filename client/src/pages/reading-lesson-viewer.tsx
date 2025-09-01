@@ -373,7 +373,7 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button"
+                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button bg-[#ffffff] text-[#000000]"
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                   >
                     Nästa sida
