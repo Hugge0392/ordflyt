@@ -248,25 +248,25 @@
 }
 
 /* Navigation elements should remain neutral regardless of accessibility colors */
-button.navigation-button,
-button.navigation-button *,
-button.page-number-button {
-  background-color: #FFFFFF !important;
+.navigation-button,
+.page-number-button {
+  background-color: rgba(255, 255, 255, 0.75) !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
-  position: relative !important;
-  z-index: 50 !important;
+  backdrop-filter: blur(4px) !important;
 }
 
-/* No hover effects - keep buttons simple */
+.navigation-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #000000 !important;
+  border-color: #AAAAAA !important;
+}
 
-/* Disabled styles for navigation buttons */
 .navigation-button:disabled {
-  background-color: #F5F5F5 !important;
-  color: #999999 !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  color: #666666 !important;
   border-color: #DDDDDD !important;
   opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .page-number-button {
@@ -275,35 +275,20 @@ button.page-number-button {
   border: none !important;
 }
 
-/* No hover effects for page numbers either */
+.page-number-button:hover {
+  background-color: #D0D0D0 !important;
+  color: #000000 !important;
+}
 
-/* Active page number gets special styling - higher specificity */
-button.page-number-button[style*="background-color: rgb(0, 0, 0)"],
-button.page-number-button[style*="backgroundColor: rgb(0, 0, 0)"],
-button.page-number-button[style*="#000000"] {
+/* Active page number gets special styling */
+.page-number-button[style*="background-color: rgb(0, 0, 0)"] {
   background-color: #000000 !important;
   color: #FFFFFF !important;
-  border: none !important;
 }
 
-/* No hover effects for active page numbers */
-
-/* Override accessibility colors for navigation - highest priority */
-[style*="--card-text-color"] button.navigation-button,
-[style*="--card-text-color"] button.navigation-button *,
-[style*="--card-text-color"] button.page-number-button,
-.navigation-button[style],
-.page-number-button[style] {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  border-color: #CCCCCC !important;
-}
-
-/* Inactive page numbers - override all other styles */
-button.page-number-button:not([style*="#000000"]) {
-  background-color: #E0E0E0 !important;
-  color: #000000 !important;
-  border: none !important;
+.page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover {
+  background-color: #333333 !important;
+  color: #FFFFFF !important;
 }
 
 /* Card text color inheritance for headings and emphasis */
