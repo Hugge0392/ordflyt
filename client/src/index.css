@@ -251,23 +251,22 @@
 button.navigation-button,
 button.navigation-button *,
 button.page-number-button {
-  background-color: rgba(255, 255, 255, 0.75) !important;
+  background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
-  backdrop-filter: blur(4px) !important;
 }
 
 .navigation-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
+  background-color: #F8F8F8 !important;
   color: #000000 !important;
   border-color: #AAAAAA !important;
 }
 
 .navigation-button:disabled {
-  background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: #F5F5F5 !important;
   color: #666666 !important;
   border-color: #DDDDDD !important;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .page-number-button {
@@ -304,10 +303,9 @@ button.page-number-button[style*="#000000"]:hover {
 [style*="--card-text-color"] button.page-number-button,
 .navigation-button[style],
 .page-number-button[style] {
-  background-color: rgba(255, 255, 255, 0.75) !important;
+  background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
-  backdrop-filter: blur(4px) !important;
 }
 
 /* Inactive page numbers - override all other styles */
