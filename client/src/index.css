@@ -247,6 +247,65 @@
   border-radius: 0.5rem;
 }
 
+/* Navigation elements should remain neutral regardless of accessibility colors */
+button.navigation-button,
+button.navigation-button *,
+button.page-number-button {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  position: relative !important;
+  z-index: 50 !important;
+}
+
+/* No hover effects - keep buttons simple */
+
+/* Disabled styles for navigation buttons */
+.navigation-button:disabled {
+  background-color: #F5F5F5 !important;
+  color: #999999 !important;
+  border-color: #DDDDDD !important;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.page-number-button {
+  background-color: #E0E0E0 !important;
+  color: #000000 !important;
+  border: none !important;
+}
+
+/* No hover effects for page numbers either */
+
+/* Active page number gets special styling - higher specificity */
+button.page-number-button[style*="background-color: rgb(0, 0, 0)"],
+button.page-number-button[style*="backgroundColor: rgb(0, 0, 0)"],
+button.page-number-button[style*="#000000"] {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+/* No hover effects for active page numbers */
+
+/* Override accessibility colors for navigation - highest priority */
+[style*="--card-text-color"] button.navigation-button,
+[style*="--card-text-color"] button.navigation-button *,
+[style*="--card-text-color"] button.page-number-button,
+.navigation-button[style],
+.page-number-button[style] {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+}
+
+/* Inactive page numbers - override all other styles */
+button.page-number-button:not([style*="#000000"]) {
+  background-color: #E0E0E0 !important;
+  color: #000000 !important;
+  border: none !important;
+}
+
 /* Card text color inheritance for headings and emphasis */
 [style*="--card-text-color"] h1,
 [style*="--card-text-color"] h2,
@@ -339,33 +398,5 @@
   
   .word-button.incorrect {
     @apply bg-red-500 text-white shadow-lg;
-  }
-
-  /* Neutral navigation buttons that stay consistent regardless of color scheme */
-  .neutral-nav-button {
-    background-color: rgba(255, 255, 255, 0.8) !important;
-    color: #000000 !important;
-    border-color: #CCCCCC !important;
-    backdrop-filter: blur(10px) !important;
-  }
-
-  .neutral-nav-button:hover:not(:disabled) {
-    background-color: #F2F2F2 !important;
-  }
-
-  .neutral-page-number {
-    background-color: #E0E0E0 !important;
-    color: #000000 !important;
-    border: none !important;
-  }
-
-  .neutral-page-number.active {
-    background-color: #000000 !important;
-    color: #FFFFFF !important;
-  }
-
-  .neutral-page-number:hover:not(.active) {
-    background-color: #555555 !important;
-    color: #FFFFFF !important;
   }
 }

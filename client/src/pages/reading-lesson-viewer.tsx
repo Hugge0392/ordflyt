@@ -210,204 +210,78 @@ export default function ReadingLessonViewer() {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-background">
-      <AccessibilitySidebar />
-      
-      <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
-        {/* Header */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <Link href="/lasforstaelse">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Tillbaka till läsförståelse
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            <div className="mt-4">
-              <CardTitle className="text-2xl">{lesson.title}</CardTitle>
-              {lesson.description && (
-                <CardDescription className="mt-2 text-base">
-                  {lesson.description}
-                </CardDescription>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {lesson.readingTime || 15} min läsning
-              </div>
-              <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                Årskurs {lesson.gradeLevel}
-              </div>
-              {lesson.subject && (
-                <div className="flex items-center gap-1">
-                  <Target className="w-4 h-4" />
-                  {lesson.subject}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pre-reading Questions */}
-        {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && (
+      <div className="min-h-screen bg-background">
+        <AccessibilitySidebar />
+        
+        <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
+          {/* Header */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-lg">Innan du läser</CardTitle>
-              <CardDescription>
-                Aktivera dina förkunskaper genom att fundera på dessa frågor
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Link href="/lasforstaelse">
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Tillbaka till läsförståelse
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="mt-4">
+                <CardTitle className="text-2xl">{lesson.title}</CardTitle>
+                {lesson.description && (
+                  <CardDescription className="mt-2 text-base">
+                    {lesson.description}
+                  </CardDescription>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {lesson.preReadingQuestions.map((question, index) => (
-                  <div key={index} className="p-3 bg-muted rounded-lg">
-                    <p className="font-medium mb-1">{question.question}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
-          {/* Main Content - Left Column (takes 2/3 of space) */}
-          <Card 
-            className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
-            style={{ 
-              backgroundColor: accessibilityColors.backgroundColor,
-              color: accessibilityColors.textColor,
-              '--card-text-color': accessibilityColors.textColor
-            } as React.CSSProperties}
-          >
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span>Läs texten</span>
-                {pages.length > 1 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Sida {currentPage + 1} av {pages.length}</span>
-                  </div>
-                )}
-              </CardTitle>
-              {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-                <CardDescription>
-                  💡 Ord med prickad understrykning har förklaringar - håll musen över dem
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="space-y-6">
-                {/* Bilder ovanför texten för denna sida */}
-                {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
-                  <div className="space-y-4">
-                    {lesson.pages[currentPage]?.imagesAbove!.map((imageUrl, index) => (
-                      <img 
-                        key={index}
-                        src={imageUrl} 
-                        alt={`Bild ovanför texten ${index + 1}`}
-                        className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                <div 
-                  className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
-                  style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                  dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                  onMouseOver={handleContentMouseOver}
-                  onMouseOut={handleContentMouseOut}
-                />
-
-                {/* Bilder under texten för denna sida */}
-                {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
-                  <div className="space-y-4">
-                    {lesson.pages[currentPage]?.imagesBelow!.map((imageUrl, index) => (
-                      <img 
-                        key={index}
-                        src={imageUrl} 
-                        alt={`Bild under texten ${index + 1}`}
-                        className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {/* Page Navigation */}
-              {pages.length > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                    disabled={currentPage === 0}
-                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Föregående sida
-                  </Button>
-                  
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {lesson.readingTime || 15} min läsning
+                </div>
+                <div className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  Årskurs {lesson.gradeLevel}
+                </div>
+                {lesson.subject && (
                   <div className="flex items-center gap-1">
-                    {pages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentPage(index)}
-                        className={`w-8 h-8 rounded-full text-sm font-medium transition-colors neutral-page-number ${
-                          index === currentPage ? 'active' : ''
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
+                    <Target className="w-4 h-4" />
+                    {lesson.subject}
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                    disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2 disabled:opacity-50 neutral-nav-button !bg-white !text-black"
-                    title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
-                  >
-                    Nästa sida
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              
-              {/* Custom tooltip */}
-              {hoveredWord && (
-                <div
-                  className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
-                  style={{
-                    left: `${hoveredWord.x}px`,
-                    top: `${hoveredWord.y}px`,
-                    transform: 'translate(-50%, -100%)'
-                  }}
-                >
-                  <div className="font-semibold">{hoveredWord.word}</div>
-                  <div className="text-gray-200">{hoveredWord.definition}</div>
-                  {/* Arrow pointing down */}
-                  <div 
-                    className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
-                  />
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Questions - Right Column */}
-          {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
-            (lesson.questions && lesson.questions.length > 0)) && (
+          {/* Pre-reading Questions */}
+          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Innan du läser</CardTitle>
+                <CardDescription>
+                  Aktivera dina förkunskaper genom att fundera på dessa frågor
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {lesson.preReadingQuestions.map((question, index) => (
+                    <div key={index} className="p-3 bg-muted rounded-lg">
+                      <p className="font-medium mb-1">{question.question}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+            {/* Main Content - Left Column (takes 2/3 of space) */}
             <Card 
-              className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
+              className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
@@ -415,156 +289,324 @@ export default function ReadingLessonViewer() {
               } as React.CSSProperties}
             >
               <CardHeader>
-                <CardTitle className="text-lg">
-                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
-                    ? 'Frågor under läsning' 
-                    : 'Förståelsefrågor'}
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <span>Läs texten</span>
+                  {pages.length > 1 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Sida {currentPage + 1} av {pages.length}</span>
+                    </div>
+                  )}
                 </CardTitle>
-                <CardDescription>
-                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
-                    ? 'Svara på frågorna medan du läser för att hänga med i texten'
-                    : 'Svara på frågorna för att kontrollera din förståelse'}
-                </CardDescription>
+                {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+                  <CardDescription>
+                    💡 Ord med prickad understrykning har förklaringar - håll musen över dem
+                  </CardDescription>
+                )}
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-                  {/* Show reading questions for current page first */}
-                  {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
-                    const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
-                    
-                    return (
-                      <div 
-                        key={`reading-${index}`} 
-                        className="p-4 border-b pb-4 last:border-b-0"
+              <CardContent className="relative">
+                <div className="space-y-6">
+                  {/* Bilder ovanför texten för denna sida */}
+                  {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
+                    <div className="space-y-4">
+                      {lesson.pages[currentPage]?.imagesAbove!.map((imageUrl, index) => (
+                        <img 
+                          key={index}
+                          src={imageUrl} 
+                          alt={`Bild ovanför texten ${index + 1}`}
+                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <div 
+                    className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
+                    style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                    dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                    onMouseOver={handleContentMouseOver}
+                    onMouseOut={handleContentMouseOut}
+                  />
+
+                  {/* Bilder under texten för denna sida */}
+                  {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
+                    <div className="space-y-4">
+                      {lesson.pages[currentPage]?.imagesBelow!.map((imageUrl, index) => (
+                        <img 
+                          key={index}
+                          src={imageUrl} 
+                          alt={`Bild under texten ${index + 1}`}
+                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Page Navigation */}
+                {pages.length > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t relative z-10">
+                    {currentPage > 0 ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                        className="flex items-center gap-2 navigation-button"
+                        style={{
+                          backgroundColor: '#FFFFFF !important',
+                          color: '#000000 !important',
+                          borderColor: '#CCCCCC !important'
+                        } as React.CSSProperties}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary" className="text-xs">Under läsning</Badge>
-                          {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                        <ChevronLeft className="h-4 w-4" />
+                        Föregående sida
+                      </Button>
+                    ) : (
+                      <div></div>
+                    )}
+                    
+                    <div className="flex items-center gap-1">
+                      {pages.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPage(index)}
+                          className="w-8 h-8 rounded-full text-sm font-medium page-number-button bg-[#ffffff]"
+                          style={{
+                            backgroundColor: `${index === currentPage ? '#000000' : '#E0E0E0'} !important`,
+                            color: `${index === currentPage ? '#FFFFFF' : '#000000'} !important`,
+                            border: 'none !important'
+                          } as React.CSSProperties}
+                        >
+                          {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (currentPage < pages.length - 1) {
+                          setCurrentPage(currentPage + 1);
+                        }
+                      }}
+                      disabled={!areAllCurrentPageQuestionsAnswered()}
+                      className="flex items-center gap-2 navigation-button"
+                      style={{
+                        backgroundColor: '#FFFFFF !important',
+                        color: '#000000 !important',
+                        borderColor: '#CCCCCC !important'
+                      } as React.CSSProperties}
+                    >
+                      {currentPage === pages.length - 1 ? 'Färdig' : 'Nästa sida'}
+                      {currentPage < pages.length - 1 && <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Custom tooltip */}
+                {hoveredWord && (
+                  <div
+                    className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
+                    style={{
+                      left: `${hoveredWord.x}px`,
+                      top: `${hoveredWord.y}px`,
+                      transform: 'translate(-50%, -100%)'
+                    }}
+                  >
+                    <div className="font-semibold">{hoveredWord.word}</div>
+                    <div className="text-gray-200">{hoveredWord.definition}</div>
+                    {/* Arrow pointing down */}
+                    <div 
+                      className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Questions - Right Column */}
+            {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+              (lesson.questions && lesson.questions.length > 0)) && (
+              <Card 
+                className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
+                style={{ 
+                  backgroundColor: accessibilityColors.backgroundColor,
+                  color: accessibilityColors.textColor,
+                  '--card-text-color': accessibilityColors.textColor
+                } as React.CSSProperties}
+              >
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                      ? 'Frågor under läsning' 
+                      : 'Förståelsefrågor'}
+                  </CardTitle>
+                  <CardDescription>
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                      ? 'Svara på frågorna medan du läser för att hänga med i texten'
+                      : 'Svara på frågorna för att kontrollera din förståelse'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+                    {/* Show reading questions for current page first */}
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
+                      const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
+                      
+                      return (
+                        <div 
+                          key={`reading-${index}`} 
+                          className="p-4 border-b pb-4 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary" className="text-xs">Under läsning</Badge>
+                            {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                          </div>
+                          <h4 className="font-medium mb-3">
+                            {index + 1}. {question.question}
+                          </h4>
+                          
+                          {question.type === 'multiple-choice' && question.alternatives && (
+                            <div className="space-y-2">
+                              {question.alternatives.map((option, optionIndex) => {
+                                const optionValue = String.fromCharCode(65 + optionIndex);
+                                const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
+                                
+                                return (
+                                  <button
+                                    key={optionIndex}
+                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
+                                    className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
+                                      isSelected 
+                                        ? 'ring-2 ring-blue-500 font-medium' 
+                                        : 'hover:opacity-80'
+                                    }`}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
+                                      isSelected 
+                                        ? 'border-blue-500 bg-blue-500 text-white' 
+                                        : 'border-gray-400'
+                                    }`}>
+                                      {optionValue}
+                                    </div>
+                                    <span className="text-left">{option}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'true-false' && (
+                            <div className="space-y-2">
+                              {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                const optionValue = option;
+                                const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
+                                
+                                return (
+                                  <button
+                                    key={optionIndex}
+                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
+                                    className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
+                                      isSelected 
+                                        ? 'ring-2 ring-blue-500 font-medium' 
+                                        : 'hover:opacity-80'
+                                    }`}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
+                                      isSelected 
+                                        ? 'border-blue-500 bg-blue-500 text-white' 
+                                        : 'border-gray-400'
+                                    }`}>
+                                      {option.charAt(0)}
+                                    </div>
+                                    <span className="text-left">{option}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'open' && (
+                            <div className="space-y-2">
+                              <textarea
+                                value={readingAnswers[currentPage]?.[index] || ''}
+                                onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
+                                placeholder="Skriv ditt svar här..."
+                                className="w-full p-3 border rounded-lg resize-none h-20"
+                                rows={3}
+                              />
+                            </div>
+                          )}
                         </div>
+                      );
+                    })}
+                    
+                    {/* Show general questions only if no reading questions for current page */}
+                    {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
+                     lesson.questions && lesson.questions.map((question, index) => (
+                      <div key={index} className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-3">
                           {index + 1}. {question.question}
                         </h4>
                         
-                        {question.type === 'multiple-choice' && question.alternatives && (
+                        {question.type === 'multiple_choice' && question.options && (
                           <div className="space-y-2">
-                            {question.alternatives.map((option, optionIndex) => {
-                              const optionValue = String.fromCharCode(65 + optionIndex);
-                              const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
-                              
-                              return (
-                                <button
-                                  key={optionIndex}
-                                  onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                  className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
-                                    isSelected 
-                                      ? 'ring-2 ring-blue-500 font-medium' 
-                                      : 'hover:opacity-80'
-                                  }`}
-                                >
-                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
-                                    isSelected 
-                                      ? 'border-blue-500 bg-blue-500 text-white' 
-                                      : 'border-gray-400'
-                                  }`}>
-                                    {optionValue}
-                                  </div>
-                                  <span className="text-left">{option}</span>
-                                </button>
-                              );
-                            })}
+                            {question.options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                  {String.fromCharCode(65 + optionIndex)}
+                                </div>
+                                <span>{option}</span>
+                              </div>
+                            ))}
                           </div>
                         )}
                         
-                        {question.type === 'true-false' && (
+                        {question.type === 'true_false' && (
                           <div className="space-y-2">
-                            {['Sant', 'Falskt'].map((option, optionIndex) => {
-                              const optionValue = option;
-                              const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
-                              
-                              return (
-                                <button
-                                  key={optionIndex}
-                                  onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                  className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
-                                    isSelected 
-                                      ? 'ring-2 ring-blue-500 font-medium' 
-                                      : 'hover:opacity-80'
-                                  }`}
-                                >
-                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
-                                    isSelected 
-                                      ? 'border-blue-500 bg-blue-500 text-white' 
-                                      : 'border-gray-400'
-                                  }`}>
-                                    {option.charAt(0)}
-                                  </div>
-                                  <span className="text-left">{option}</span>
-                                </button>
-                              );
-                            })}
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                S
+                              </div>
+                              <span>Sant</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                F
+                              </div>
+                              <span>Falskt</span>
+                            </div>
                           </div>
                         )}
                         
-                        {question.type === 'open' && (
-                          <div className="space-y-2">
-                            <textarea
-                              value={readingAnswers[currentPage]?.[index] || ''}
-                              onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
-                              placeholder="Skriv ditt svar här..."
-                              className="w-full p-3 border rounded-lg resize-none h-20"
-                              rows={3}
-                            />
+                        {question.type === 'open_ended' && (
+                          <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
+                            <p className="text-sm text-muted-foreground">
+                              Skriv ditt svar här...
+                            </p>
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-                  
-                  {/* Show general questions only if no reading questions for current page */}
-                  {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
-                   lesson.questions && lesson.questions.map((question, index) => (
-                    <div key={index} className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-3">
-                        {index + 1}. {question.question}
-                      </h4>
-                      
-                      {question.type === 'multiple_choice' && question.options && (
-                        <div className="space-y-2">
-                          {question.options.map((option, optionIndex) => (
-                            <div key={optionIndex} className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                {String.fromCharCode(65 + optionIndex)}
-                              </div>
-                              <span>{option}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {question.type === 'true_false' && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                              S
-                            </div>
-                            <span>Sant</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                              F
-                            </div>
-                            <span>Falskt</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {question.type === 'open_ended' && (
-                        <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
-                          <p className="text-sm text-muted-foreground">
-                            Skriv ditt svar här...
-                          </p>
-                        </div>
-                      )}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Word Definitions */}
+          {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Ordförklaringar</CardTitle>
+                <CardDescription>
+                  Svåra ord från texten förklarade
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {lesson.wordDefinitions.map((definition, index) => (
+                    <div key={index} className="p-3 bg-muted rounded-lg">
+                      <p className="font-medium text-primary">{definition.word}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{definition.definition}</p>
                     </div>
                   ))}
                 </div>
@@ -572,30 +614,7 @@ export default function ReadingLessonViewer() {
             </Card>
           )}
         </div>
-
-        {/* Word Definitions */}
-        {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ordförklaringar</CardTitle>
-              <CardDescription>
-                Svåra ord från texten förklarade
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                {lesson.wordDefinitions.map((definition, index) => (
-                  <div key={index} className="p-3 bg-muted rounded-lg">
-                    <p className="font-medium text-primary">{definition.word}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{definition.definition}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
-    </div>
     </TooltipProvider>
   );
 }
