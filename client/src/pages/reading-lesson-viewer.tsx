@@ -350,6 +350,7 @@ export default function ReadingLessonViewer() {
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
                     className="flex items-center gap-2 navigation-button
+                               bg-white text-black border-[#CCCCCC]
                                hover:bg-white hover:text-black hover:border-[#CCCCCC]
                                focus-visible:ring-0 focus-visible:outline-none
                                shadow-none hover:shadow-none active:shadow-none"
@@ -387,6 +388,7 @@ export default function ReadingLessonViewer() {
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2 navigation-button
+                               bg-white text-black border-[#CCCCCC]
                                hover:bg-white hover:text-black hover:border-[#CCCCCC]
                                focus-visible:ring-0 focus-visible:outline-none
                                shadow-none hover:shadow-none active:shadow-none"
