@@ -298,6 +298,16 @@ button.navigation-button:active,
   color: #000000 !important;
 }
 
+/* Remove all hover effects from question answer buttons */
+.reading-lesson-viewer button:hover,
+.reading-lesson-viewer button:focus,
+.reading-lesson-viewer button:active {
+  opacity: 1 !important;
+  background-color: initial !important;
+  transform: none !important;
+  transition: none !important;
+}
+
 /* Active page number gets special styling */
 .page-number-button[style*="background-color: rgb(0, 0, 0)"] {
   background-color: #000000 !important;

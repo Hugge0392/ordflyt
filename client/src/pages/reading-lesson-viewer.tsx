@@ -468,10 +468,10 @@ export default function ReadingLessonViewer() {
                                 <button
                                   key={optionIndex}
                                   onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                  className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
+                                  className={`w-full flex items-center gap-2 p-2 rounded ${
                                     isSelected 
                                       ? 'ring-2 ring-blue-500 font-medium' 
-                                      : 'hover:opacity-80'
+                                      : ''
                                   }`}
                                 >
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
@@ -498,10 +498,10 @@ export default function ReadingLessonViewer() {
                                 <button
                                   key={optionIndex}
                                   onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                  className={`w-full flex items-center gap-2 p-2 rounded transition-colors ${
+                                  className={`w-full flex items-center gap-2 p-2 rounded ${
                                     isSelected 
                                       ? 'ring-2 ring-blue-500 font-medium' 
-                                      : 'hover:opacity-80'
+                                      : ''
                                   }`}
                                 >
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
