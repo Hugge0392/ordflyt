@@ -261,11 +261,27 @@
 .reading-content.accessibility-enhanced .navigation-button,
 .reading-content.accessibility-enhanced .navigation-button *,
 .accessibility-enhanced .navigation-button,
-.accessibility-enhanced .navigation-button * {
+.accessibility-enhanced .navigation-button *,
+body .navigation-button,
+body .navigation-button *,
+html .navigation-button,
+html .navigation-button * {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
   font-family: inherit !important;
+}
+
+/* Override specific problematic color combinations for navigation buttons */
+[style*="--accessibility-bg-color: #595959"] .navigation-button,
+[style*="--accessibility-text-color: #D9D9D9"] .navigation-button,
+[style*="--accessibility-bg-color: #003399"] .navigation-button,
+[style*="--accessibility-text-color: #FFFFCC"] .navigation-button,
+[style*="--accessibility-bg-color: #000000"] .navigation-button,
+[style*="--accessibility-text-color: #FFFFFF"] .navigation-button {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
 }
 
 /* Remove all hover effects from navigation buttons - use highest specificity */
