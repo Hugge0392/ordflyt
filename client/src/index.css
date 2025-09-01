@@ -257,10 +257,16 @@
 
 /* Remove all hover effects from navigation buttons */
 .navigation-button:hover:not(:disabled),
-.navigation-button:hover {
+.navigation-button:hover,
+.navigation-button:focus,
+.navigation-button:focus-visible,
+.navigation-button:active {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
 }
 
 .navigation-button:disabled {
