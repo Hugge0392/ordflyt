@@ -384,7 +384,7 @@ export default function ReadingLessonViewer() {
                       variant="outline"
                       onClick={() => {
                         if (currentPage < pages.length - 1) {
-                          setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
+                          setCurrentPage(currentPage + 1);
                         }
                       }}
                       disabled={!areAllCurrentPageQuestionsAnswered()}
