@@ -279,14 +279,20 @@ export default function ReadingLessonViewer() {
 
         {/* Main Content with Accessibility Colors */}
         <div 
-          className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6"
+          className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6"
           style={{ 
             backgroundColor: accessibilityColors.backgroundColor,
             color: accessibilityColors.textColor 
           }}
         >
           {/* Main Content - Left Column (takes 2/3 of space) */}
-          <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content">
+          <Card 
+            className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content"
+            style={{ 
+              backgroundColor: accessibilityColors.backgroundColor,
+              color: accessibilityColors.textColor 
+            }}
+          >
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>Läs texten</span>
@@ -407,7 +413,13 @@ export default function ReadingLessonViewer() {
           {/* Questions - Right Column */}
           {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
             (lesson.questions && lesson.questions.length > 0)) && (
-            <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 reading-content">
+            <Card 
+              className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 reading-content"
+              style={{ 
+                backgroundColor: accessibilityColors.backgroundColor,
+                color: accessibilityColors.textColor 
+              }}
+            >
               <CardHeader>
                 <CardTitle className="text-lg">
                   {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
