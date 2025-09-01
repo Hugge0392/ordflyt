@@ -340,32 +340,4 @@
   .word-button.incorrect {
     @apply bg-red-500 text-white shadow-lg;
   }
-
-  /* Neutral navigation buttons that stay consistent regardless of color scheme */
-  .neutral-nav-button {
-    background-color: rgba(255, 255, 255, 0.8) !important;
-    color: #000000 !important;
-    border-color: #CCCCCC !important;
-    backdrop-filter: blur(10px) !important;
-  }
-
-  .neutral-nav-button:hover:not(:disabled) {
-    background-color: #F2F2F2 !important;
-  }
-
-  .neutral-page-number {
-    background-color: #E0E0E0 !important;
-    color: #000000 !important;
-    border: none !important;
-  }
-
-  .neutral-page-number.active {
-    background-color: #000000 !important;
-    color: #FFFFFF !important;
-  }
-
-  .neutral-page-number:hover:not(.active) {
-    background-color: #555555 !important;
-    color: #FFFFFF !important;
-  }
 }
