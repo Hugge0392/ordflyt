@@ -13,7 +13,7 @@ interface AccessibilitySettings {
   lineHeight: number;
   fontFamily: 'standard' | 'dyslexia-friendly';
   contrast: 'normal' | 'high';
-  backgroundColor: 'white' | 'beige' | 'light-gray' | 'black-white' | 'black-light-red' | 'yellow-blue' | 'black-light-blue';
+  backgroundColor: 'black-on-white' | 'light-gray-on-gray' | 'white-on-black' | 'black-on-light-yellow' | 'black-on-light-blue' | 'light-yellow-on-blue' | 'black-on-light-red';
   wordSpacing: number;
   letterSpacing: number;
 }
@@ -23,7 +23,7 @@ const defaultSettings: AccessibilitySettings = {
   lineHeight: 1.5,
   fontFamily: 'standard',
   contrast: 'normal',
-  backgroundColor: 'white',
+  backgroundColor: 'black-on-white',
   wordSpacing: 0,
   letterSpacing: 0,
 };
@@ -86,13 +86,13 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
     
     // Apply background and text colors
     const colorSchemes = {
-      'white': { bg: '#ffffff', text: '#000000' },
-      'beige': { bg: '#f5f5dc', text: '#000000' },
-      'light-gray': { bg: '#f8f9fa', text: '#000000' },
-      'black-white': { bg: '#000000', text: '#ffffff' },
-      'black-light-red': { bg: '#ffcccb', text: '#000000' },
-      'yellow-blue': { bg: '#0066cc', text: '#ffff99' },
-      'black-light-blue': { bg: '#add8e6', text: '#000000' }
+      'black-on-white': { bg: '#FFFFFF', text: '#000000' },
+      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
+      'white-on-black': { bg: '#000000', text: '#FFFFFF' },
+      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
+      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
+      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
+      'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
     };
     const scheme = colorSchemes[settings.backgroundColor];
     root.style.setProperty('--accessibility-bg-color', scheme.bg);
@@ -297,13 +297,13 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="white">Vit</SelectItem>
-                <SelectItem value="beige">Beige</SelectItem>
-                <SelectItem value="light-gray">Ljusgrå</SelectItem>
-                <SelectItem value="black-white">Svart bakgrund, vit text</SelectItem>
-                <SelectItem value="black-light-red">Svart text på ljusröd bakgrund</SelectItem>
-                <SelectItem value="yellow-blue">Ljusgul text på blå bakgrund</SelectItem>
-                <SelectItem value="black-light-blue">Svart text på ljusblå bakgrund</SelectItem>
+                <SelectItem value="black-on-white">Svart på vitt (standard)</SelectItem>
+                <SelectItem value="light-gray-on-gray">Ljusgrå på grå</SelectItem>
+                <SelectItem value="white-on-black">Vit på svart</SelectItem>
+                <SelectItem value="black-on-light-yellow">Svart på ljusgul</SelectItem>
+                <SelectItem value="black-on-light-blue">Svart på ljusblå</SelectItem>
+                <SelectItem value="light-yellow-on-blue">Ljusgul på blå</SelectItem>
+                <SelectItem value="black-on-light-red">Svart på ljusröd</SelectItem>
               </SelectContent>
             </Select>
           </div>
