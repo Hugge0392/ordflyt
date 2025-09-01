@@ -279,6 +279,18 @@ button.navigation-button:active,
   border: 1px solid #CCCCCC !important;
 }
 
+/* Extra force to override shadcn Button hover styles */
+[data-testid*="button"]:hover,
+button[class*="navigation-button"]:hover,
+button[style*="backgroundColor"]:hover {
+  background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  border-color: #CCCCCC !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
 .navigation-button:disabled {
   background-color: rgba(255, 255, 255, 0.5) !important;
   color: #666666 !important;
