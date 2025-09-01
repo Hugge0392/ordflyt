@@ -247,6 +247,50 @@
   border-radius: 0.5rem;
 }
 
+/* Navigation elements should remain neutral regardless of accessibility colors */
+.navigation-button,
+.page-number-button {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.navigation-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #000000 !important;
+  border-color: #AAAAAA !important;
+}
+
+.navigation-button:disabled {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  color: #666666 !important;
+  border-color: #DDDDDD !important;
+  opacity: 0.6;
+}
+
+.page-number-button {
+  background-color: #E0E0E0 !important;
+  color: #000000 !important;
+  border: none !important;
+}
+
+.page-number-button:hover {
+  background-color: #D0D0D0 !important;
+  color: #000000 !important;
+}
+
+/* Active page number gets special styling */
+.page-number-button[style*="background-color: rgb(0, 0, 0)"] {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+.page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover {
+  background-color: #333333 !important;
+  color: #FFFFFF !important;
+}
+
 /* Card text color inheritance for headings and emphasis */
 [style*="--card-text-color"] h1,
 [style*="--card-text-color"] h2,

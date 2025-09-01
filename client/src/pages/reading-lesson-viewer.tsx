@@ -349,7 +349,13 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 navigation-button"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                      color: '#000000',
+                      borderColor: '#CCCCCC',
+                      backdropFilter: 'blur(4px)'
+                    }}
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Föregående sida
@@ -360,11 +366,12 @@ export default function ReadingLessonViewer() {
                       <button
                         key={index}
                         onClick={() => setCurrentPage(index)}
-                        className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
-                          index === currentPage
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                        }`}
+                        className="w-8 h-8 rounded-full text-sm font-medium transition-colors page-number-button"
+                        style={{
+                          backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
+                          color: index === currentPage ? '#FFFFFF' : '#000000',
+                          border: 'none'
+                        }}
                       >
                         {index + 1}
                       </button>
@@ -375,7 +382,13 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 navigation-button"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
+                      color: '#000000',
+                      borderColor: '#CCCCCC',
+                      backdropFilter: 'blur(4px)'
+                    }}
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                   >
                     Nästa sida
