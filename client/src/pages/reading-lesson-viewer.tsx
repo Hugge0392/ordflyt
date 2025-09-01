@@ -345,20 +345,22 @@ export default function ReadingLessonViewer() {
                 {/* Page Navigation */}
                 {pages.length > 1 && (
                   <div className="flex items-center justify-between mt-6 pt-4 border-t relative z-10">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                      disabled={currentPage === 0}
-                      className="flex items-center gap-2 navigation-button"
-                      style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        borderColor: '#CCCCCC !important'
-                      } as React.CSSProperties}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Föregående sida
-                    </Button>
+                    {currentPage > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                        className="flex items-center gap-2 navigation-button"
+                        style={{
+                          backgroundColor: '#FFFFFF !important',
+                          color: '#000000 !important',
+                          borderColor: '#CCCCCC !important'
+                        } as React.CSSProperties}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Föregående sida
+                      </Button>
+                    )}
+                    {currentPage === 0 && <div></div>}
                     
                     <div className="flex items-center gap-1">
                       {pages.map((_, index) => (
@@ -377,21 +379,22 @@ export default function ReadingLessonViewer() {
                       ))}
                     </div>
                     
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                      disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                      className="flex items-center gap-2 navigation-button"
-                      style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        borderColor: '#CCCCCC !important'
-                      } as React.CSSProperties}
-                      title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
-                    >
-                      Nästa sida
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    {currentPage < pages.length - 1 && areAllCurrentPageQuestionsAnswered() && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
+                        className="flex items-center gap-2 navigation-button"
+                        style={{
+                          backgroundColor: '#FFFFFF !important',
+                          color: '#000000 !important',
+                          borderColor: '#CCCCCC !important'
+                        } as React.CSSProperties}
+                      >
+                        Nästa sida
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {(currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()) && <div></div>}
                   </div>
                 )}
                 
