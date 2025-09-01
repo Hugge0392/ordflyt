@@ -260,7 +260,14 @@ button.page-number-button {
 
 /* No hover effects - keep buttons simple */
 
-/* Disabled styles removed - we hide buttons instead of disabling them */
+/* Disabled styles for navigation buttons */
+.navigation-button:disabled {
+  background-color: #F5F5F5 !important;
+  color: #999999 !important;
+  border-color: #DDDDDD !important;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .page-number-button {
   background-color: #E0E0E0 !important;

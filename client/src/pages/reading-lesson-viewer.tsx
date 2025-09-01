@@ -379,22 +379,24 @@ export default function ReadingLessonViewer() {
                       ))}
                     </div>
                     
-                    {currentPage < pages.length - 1 && areAllCurrentPageQuestionsAnswered() && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                        className="flex items-center gap-2 navigation-button"
-                        style={{
-                          backgroundColor: '#FFFFFF !important',
-                          color: '#000000 !important',
-                          borderColor: '#CCCCCC !important'
-                        } as React.CSSProperties}
-                      >
-                        Nästa sida
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {(currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()) && <div></div>}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (currentPage < pages.length - 1) {
+                          setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
+                        }
+                      }}
+                      disabled={!areAllCurrentPageQuestionsAnswered()}
+                      className="flex items-center gap-2 navigation-button"
+                      style={{
+                        backgroundColor: '#FFFFFF !important',
+                        color: '#000000 !important',
+                        borderColor: '#CCCCCC !important'
+                      } as React.CSSProperties}
+                    >
+                      {currentPage === pages.length - 1 ? 'Färdig' : 'Nästa sida'}
+                      {currentPage < pages.length - 1 && <ChevronRight className="h-4 w-4" />}
+                    </Button>
                   </div>
                 )}
                 
