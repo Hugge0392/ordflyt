@@ -345,7 +345,7 @@ export default function ReadingLessonViewer() {
                 {/* Page Navigation */}
                 {pages.length > 1 && (
                   <div className="flex items-center justify-between mt-6 pt-4 border-t relative z-10">
-                    {currentPage > 0 && (
+                    {currentPage > 0 ? (
                       <Button
                         variant="outline"
                         onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
@@ -359,8 +359,9 @@ export default function ReadingLessonViewer() {
                         <ChevronLeft className="h-4 w-4" />
                         Föregående sida
                       </Button>
+                    ) : (
+                      <div></div>
                     )}
-                    {currentPage === 0 && <div></div>}
                     
                     <div className="flex items-center gap-1">
                       {pages.map((_, index) => (
