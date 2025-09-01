@@ -256,11 +256,7 @@ button.page-number-button {
   border-color: #CCCCCC !important;
 }
 
-.navigation-button:hover:not(:disabled) {
-  background-color: #F8F8F8 !important;
-  color: #000000 !important;
-  border-color: #AAAAAA !important;
-}
+/* No hover effects - keep buttons simple */
 
 .navigation-button:disabled {
   background-color: #F5F5F5 !important;
@@ -275,10 +271,7 @@ button.page-number-button {
   border: none !important;
 }
 
-.page-number-button:hover {
-  background-color: #D0D0D0 !important;
-  color: #000000 !important;
-}
+/* No hover effects for page numbers either */
 
 /* Active page number gets special styling - higher specificity */
 button.page-number-button[style*="background-color: rgb(0, 0, 0)"],
@@ -289,13 +282,7 @@ button.page-number-button[style*="#000000"] {
   border: none !important;
 }
 
-button.page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover,
-button.page-number-button[style*="backgroundColor: rgb(0, 0, 0)"]:hover,
-button.page-number-button[style*="#000000"]:hover {
-  background-color: #333333 !important;
-  color: #FFFFFF !important;
-  border: none !important;
-}
+/* No hover effects for active page numbers */
 
 /* Override accessibility colors for navigation - highest priority */
 [style*="--card-text-color"] button.navigation-button,
