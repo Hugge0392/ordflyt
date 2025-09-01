@@ -51,7 +51,9 @@ export default function ReadingLessonViewer() {
   // State for accessibility colors
   const [accessibilityColors, setAccessibilityColors] = useState({
     backgroundColor: '#ffffff',
-    textColor: '#000000'
+    textColor: '#000000',
+    buttonBackgroundColor: '#F2F2F2',
+    buttonTextColor: '#000000'
   });
 
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
@@ -65,9 +67,13 @@ export default function ReadingLessonViewer() {
       const root = document.documentElement;
       const bgColor = root.style.getPropertyValue('--accessibility-bg-color') || '#ffffff';
       const textColor = root.style.getPropertyValue('--accessibility-text-color') || '#000000';
+      const buttonBgColor = root.style.getPropertyValue('--accessibility-button-bg') || '#F2F2F2';
+      const buttonTextColor = root.style.getPropertyValue('--accessibility-button-text') || '#000000';
       setAccessibilityColors({
         backgroundColor: bgColor,
-        textColor: textColor
+        textColor: textColor,
+        buttonBackgroundColor: buttonBgColor,
+        buttonTextColor: buttonTextColor
       });
     };
 
@@ -350,6 +356,11 @@ export default function ReadingLessonViewer() {
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
                     className="flex items-center gap-2"
+                    style={{
+                      backgroundColor: accessibilityColors.buttonBackgroundColor,
+                      color: accessibilityColors.buttonTextColor,
+                      borderColor: accessibilityColors.buttonTextColor
+                    }}
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Föregående sida
@@ -362,9 +373,17 @@ export default function ReadingLessonViewer() {
                         onClick={() => setCurrentPage(index)}
                         className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
                           index === currentPage
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            ? ''
+                            : 'hover:opacity-80'
                         }`}
+                        style={{
+                          backgroundColor: index === currentPage 
+                            ? accessibilityColors.textColor 
+                            : accessibilityColors.buttonBackgroundColor,
+                          color: index === currentPage 
+                            ? accessibilityColors.backgroundColor 
+                            : accessibilityColors.buttonTextColor
+                        }}
                       >
                         {index + 1}
                       </button>
@@ -377,6 +396,11 @@ export default function ReadingLessonViewer() {
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2"
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
+                    style={{
+                      backgroundColor: accessibilityColors.buttonBackgroundColor,
+                      color: accessibilityColors.buttonTextColor,
+                      borderColor: accessibilityColors.buttonTextColor
+                    }}
                   >
                     Nästa sida
                     <ChevronRight className="h-4 w-4" />
