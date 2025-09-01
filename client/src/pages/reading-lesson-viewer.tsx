@@ -284,8 +284,9 @@ export default function ReadingLessonViewer() {
             className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
             style={{ 
               backgroundColor: accessibilityColors.backgroundColor,
-              color: accessibilityColors.textColor 
-            }}
+              color: accessibilityColors.textColor,
+              '--card-text-color': accessibilityColors.textColor
+            } as React.CSSProperties}
           >
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
@@ -411,8 +412,9 @@ export default function ReadingLessonViewer() {
               className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
-                color: accessibilityColors.textColor 
-              }}
+                color: accessibilityColors.textColor,
+                '--card-text-color': accessibilityColors.textColor
+              } as React.CSSProperties}
             >
               <CardHeader>
                 <CardTitle className="text-lg">

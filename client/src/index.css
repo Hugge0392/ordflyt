@@ -169,7 +169,11 @@
 .reading-content.accessibility-enhanced .prose h3,
 .reading-content.accessibility-enhanced .prose h4,
 .reading-content.accessibility-enhanced .prose h5,
-.reading-content.accessibility-enhanced .prose h6 {
+.reading-content.accessibility-enhanced .prose h6,
+.reading-content.accessibility-enhanced .prose strong,
+.reading-content.accessibility-enhanced .prose b,
+.reading-content.accessibility-enhanced .prose em,
+.reading-content.accessibility-enhanced .prose i {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
@@ -186,6 +190,16 @@
 .reading-content.accessibility-enhanced .card-content,
 .reading-content.accessibility-enhanced button,
 .reading-content.accessibility-enhanced textarea,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2, 
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced h5,
+.reading-content.accessibility-enhanced h6,
+.reading-content.accessibility-enhanced strong,
+.reading-content.accessibility-enhanced b,
+.reading-content.accessibility-enhanced em,
+.reading-content.accessibility-enhanced i,
 .reading-content.accessibility-enhanced *:not(.prose):not(.prose *) {
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
@@ -231,6 +245,23 @@
   border-color: var(--accessibility-border-color) !important;
   padding: 1rem;
   border-radius: 0.5rem;
+}
+
+/* Card text color inheritance for headings and emphasis */
+[style*="--card-text-color"] h1,
+[style*="--card-text-color"] h2,
+[style*="--card-text-color"] h3,
+[style*="--card-text-color"] h4,
+[style*="--card-text-color"] h5,
+[style*="--card-text-color"] h6,
+[style*="--card-text-color"] strong,
+[style*="--card-text-color"] b,
+[style*="--card-text-color"] em,
+[style*="--card-text-color"] i,
+[style*="--card-text-color"] .font-medium,
+[style*="--card-text-color"] .font-semibold,
+[style*="--card-text-color"] .font-bold {
+  color: var(--card-text-color) !important;
 }
 
 /* Dyslexia-friendly font is imported at top of file */
