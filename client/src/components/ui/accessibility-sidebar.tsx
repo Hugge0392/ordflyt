@@ -42,9 +42,27 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
     if (saved) {
       try {
         const parsedSettings = JSON.parse(saved);
+        
+        // Migrate old color scheme names to new ones
+        const colorMigrations = {
+          'white': 'black-on-white',
+          'beige': 'black-on-white', // fallback to default
+          'light-gray': 'black-on-white', // fallback to default
+          'black-white': 'white-on-black',
+          'black-light-red': 'black-on-light-red',
+          'yellow-blue': 'light-yellow-on-blue',
+          'black-light-blue': 'black-on-light-blue'
+        };
+        
+        if (parsedSettings.backgroundColor && colorMigrations[parsedSettings.backgroundColor]) {
+          parsedSettings.backgroundColor = colorMigrations[parsedSettings.backgroundColor];
+        }
+        
         setSettings({ ...defaultSettings, ...parsedSettings });
       } catch (error) {
         console.error('Failed to parse accessibility settings:', error);
+        // Reset to default if parsing fails
+        setSettings(defaultSettings);
       }
     }
     
@@ -94,7 +112,7 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
       'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
       'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
     };
-    const scheme = colorSchemes[settings.backgroundColor];
+    const scheme = colorSchemes[settings.backgroundColor] || colorSchemes['black-on-white'];
     root.style.setProperty('--accessibility-bg-color', scheme.bg);
     root.style.setProperty('--accessibility-text-color', scheme.text);
     
