@@ -351,11 +351,11 @@ export default function ReadingLessonViewer() {
                     disabled={currentPage === 0}
                     className="flex items-center gap-2 navigation-button"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                      color: '#000000',
-                      borderColor: '#CCCCCC',
+                      backgroundColor: 'rgba(255, 255, 255, 0.75) !important',
+                      color: '#000000 !important',
+                      borderColor: '#CCCCCC !important',
                       backdropFilter: 'blur(4px)'
-                    }}
+                    } as React.CSSProperties}
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Föregående sida
@@ -368,10 +368,10 @@ export default function ReadingLessonViewer() {
                         onClick={() => setCurrentPage(index)}
                         className="w-8 h-8 rounded-full text-sm font-medium transition-colors page-number-button"
                         style={{
-                          backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
-                          color: index === currentPage ? '#FFFFFF' : '#000000',
-                          border: 'none'
-                        }}
+                          backgroundColor: `${index === currentPage ? '#000000' : '#E0E0E0'} !important`,
+                          color: `${index === currentPage ? '#FFFFFF' : '#000000'} !important`,
+                          border: 'none !important'
+                        } as React.CSSProperties}
                       >
                         {index + 1}
                       </button>
@@ -384,11 +384,11 @@ export default function ReadingLessonViewer() {
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2 navigation-button"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                      color: '#000000',
-                      borderColor: '#CCCCCC',
+                      backgroundColor: 'rgba(255, 255, 255, 0.75) !important',
+                      color: '#000000 !important',
+                      borderColor: '#CCCCCC !important',
                       backdropFilter: 'blur(4px)'
-                    }}
+                    } as React.CSSProperties}
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                   >
                     Nästa sida

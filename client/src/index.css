@@ -248,8 +248,9 @@
 }
 
 /* Navigation elements should remain neutral regardless of accessibility colors */
-.navigation-button,
-.page-number-button {
+button.navigation-button,
+button.navigation-button *,
+button.page-number-button {
   background-color: rgba(255, 255, 255, 0.75) !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
@@ -280,15 +281,40 @@
   color: #000000 !important;
 }
 
-/* Active page number gets special styling */
-.page-number-button[style*="background-color: rgb(0, 0, 0)"] {
+/* Active page number gets special styling - higher specificity */
+button.page-number-button[style*="background-color: rgb(0, 0, 0)"],
+button.page-number-button[style*="backgroundColor: rgb(0, 0, 0)"],
+button.page-number-button[style*="#000000"] {
   background-color: #000000 !important;
   color: #FFFFFF !important;
+  border: none !important;
 }
 
-.page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover {
+button.page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover,
+button.page-number-button[style*="backgroundColor: rgb(0, 0, 0)"]:hover,
+button.page-number-button[style*="#000000"]:hover {
   background-color: #333333 !important;
   color: #FFFFFF !important;
+  border: none !important;
+}
+
+/* Override accessibility colors for navigation - highest priority */
+[style*="--card-text-color"] button.navigation-button,
+[style*="--card-text-color"] button.navigation-button *,
+[style*="--card-text-color"] button.page-number-button,
+.navigation-button[style],
+.page-number-button[style] {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Inactive page numbers - override all other styles */
+button.page-number-button:not([style*="#000000"]) {
+  background-color: #E0E0E0 !important;
+  color: #000000 !important;
+  border: none !important;
 }
 
 /* Card text color inheritance for headings and emphasis */
