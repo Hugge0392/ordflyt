@@ -256,10 +256,12 @@
   backdrop-filter: blur(4px) !important;
 }
 
-.navigation-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
+/* Remove all hover effects from navigation buttons */
+.navigation-button:hover:not(:disabled),
+.navigation-button:hover {
+  background-color: rgba(255, 255, 255, 0.75) !important;
   color: #000000 !important;
-  border-color: #AAAAAA !important;
+  border-color: #CCCCCC !important;
 }
 
 .navigation-button:disabled {
@@ -275,8 +277,9 @@
   border: none !important;
 }
 
+/* Remove hover effects from page number buttons */
 .page-number-button:hover {
-  background-color: #D0D0D0 !important;
+  background-color: #E0E0E0 !important;
   color: #000000 !important;
 }
 
@@ -287,7 +290,7 @@
 }
 
 .page-number-button[style*="background-color: rgb(0, 0, 0)"]:hover {
-  background-color: #333333 !important;
+  background-color: #000000 !important;
   color: #FFFFFF !important;
 }
 
