@@ -147,6 +147,14 @@
   border-color: var(--accessibility-border-color) !important;
 }
 
+/* Force Card component background */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced > *,
+.reading-content.accessibility-enhanced .rounded-lg,
+.reading-content.accessibility-enhanced .bg-card {
+  background-color: var(--accessibility-bg-color) !important;
+}
+
 /* Full text formatting for main reading content */
 .reading-content.accessibility-enhanced .prose,
 .reading-content.accessibility-enhanced .prose p,
@@ -178,6 +186,13 @@
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
   background-color: var(--accessibility-bg-color) !important;
+}
+
+/* Ensure Card background itself inherits the accessibility background */
+.reading-content.accessibility-enhanced.border,
+.reading-content.accessibility-enhanced .border {
+  background-color: var(--accessibility-bg-color) !important;
+  border-color: var(--accessibility-border-color) !important;
 }
 
 /* Large text styles for reading content */
