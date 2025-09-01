@@ -1,0 +1,57 @@
+Strategi för att få färgbytet att slå igenom på både text och frågor
+
+Centralisera färginställningen i en state
+
+Lägg till en React state, t.ex. textColor, i din ReadingLessonViewer.
+
+Låt den styras från din AccessibilitySidebar (ex. via props eller context).
+
+const [textColor, setTextColor] = useState<string>("#000000"); // standard svart
+
+
+I AccessibilitySidebar kan du anropa onColorChange(newColor) när användaren väljer en ny färg.
+
+Applicera färgen på både text och frågor via en gemensam CSS-klass eller inline-style
+
+Lägg en wrapper runt både vänster- och högerkolumnen och styr färgen därifrån:
+
+<div className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6"
+     style={{ color: textColor }}>
+  
+  {/* Vänster: text */}
+  <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content">
+    ...
+  </Card>
+
+  {/* Höger: frågor */}
+  <Card className="md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6 reading-content">
+    ...
+  </Card>
+</div>
+
+
+Eftersom texten i frågorna (<p>, <h4>, <span> osv.) ärver color från sin förälder så kommer de automatiskt att uppdateras.
+
+Se upp för hårdkodad färg i CSS eller inline-style
+
+I din processContentWithDefinitions sätter du t.ex. style="color: #3b82f6;" på definierade ord.
+Det överskriver din dynamiska färg.
+Om du vill att även dessa ord ska följa användarens val, byt ut till en CSS-klass som ärver:
+
+return `<span class="defined-word">${match}</span>`;
+
+
+Och i CSS (Tailwind eller egen klass):
+
+.defined-word {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+
+Sen kan du styra färgen via color: inherit;.
+
+Eventuellt: Context om du vill dela globalt
+Om AccessibilitySidebar används på flera ställen, kan du flytta textColor till en React Context så att alla delar (text, frågor, ordförklaringar) får samma färg automatiskt.
+
+👉 Så lösningen är: lägg color: textColor på den gemensamma wrappern runt text + frågor, och ta bort hårdkodade färger i spans. Då byter allt färg samtidigt.

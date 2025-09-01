@@ -1,6 +1,6 @@
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
-import { useState, useMemo } from "react";
+import { Link, useParams } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,26 +27,62 @@ function formatMarkdownToHTML(text: string): string {
   // Don't convert line breaks - let CSS handle with pre-wrap
   
   // Convert bullet points - only at start of line
-  html = html.replace(/^• (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^- (.+)$/gm, '<ul><li>$1</li></ul>');
   
-  // Group consecutive list items into ul tags
-  html = html.replace(/(<li>.*?<\/li>)(<br>)*(<li>.*?<\/li>)*/g, function(match) {
-    // Remove br tags between list items and wrap in ul
-    const cleanedMatch = match.replace(/<br>/g, '');
-    return `<ul>${cleanedMatch}</ul>`;
-  });
+  // Clean up consecutive ul tags
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
   
   return html;
 }
 
+interface HoveredWord {
+  word: string;
+  definition: string;
+  x: number;
+  y: number;
+}
+
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
+  const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
   
+  // State for accessibility colors
+  const [accessibilityColors, setAccessibilityColors] = useState({
+    backgroundColor: '#ffffff',
+    textColor: '#000000'
+  });
+
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
     enabled: !!id,
   });
+
+  // Update accessibility colors based on CSS variables
+  useEffect(() => {
+    const updateColors = () => {
+      const root = document.documentElement;
+      const bgColor = root.style.getPropertyValue('--accessibility-bg-color') || '#ffffff';
+      const textColor = root.style.getPropertyValue('--accessibility-text-color') || '#000000';
+      setAccessibilityColors({
+        backgroundColor: bgColor,
+        textColor: textColor
+      });
+    };
+
+    // Update on mount
+    updateColors();
+    
+    // Listen for changes to CSS variables
+    const observer = new MutationObserver(updateColors);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
@@ -64,42 +100,12 @@ export default function ReadingLessonViewer() {
       const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
       
       // Replace with tooltip-wrapped version
-      processedContent = processedContent.replace(regex, (match) => {
-        return `<span class="defined-word" data-word="${word}" data-definition="${definition.replace(/"/g, '&quot;')}" style="color: #3b82f6; text-decoration: underline; text-decoration-style: dotted; cursor: help;">${match}</span>`;
-      });
+      processedContent = processedContent.replace(regex, 
+        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
+      );
     });
     
     return processedContent;
-  };
-
-  const [hoveredWord, setHoveredWord] = useState<{word: string, definition: string, x: number, y: number} | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  
-  // Track answers for reading questions by page
-  const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
-  
-  
-  // Handle answer changes
-  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
-    setReadingAnswers(prev => ({
-      ...prev,
-      [pageIndex]: {
-        ...prev[pageIndex],
-        [questionIndex]: answer
-      }
-    }));
-  };
-  
-  // Check if all questions on current page are answered
-  const areAllCurrentPageQuestionsAnswered = () => {
-    const currentPageQuestions = lesson?.pages?.[currentPage]?.questions || [];
-    if (currentPageQuestions.length === 0) return true;
-    
-    const currentPageAnswers = readingAnswers[currentPage] || {};
-    return currentPageQuestions.every((_, index) => {
-      const answer = currentPageAnswers[index];
-      return answer && answer.trim().length > 0;
-    });
   };
 
   // Split content into pages based on page break markers or use lesson.pages if available
@@ -134,7 +140,7 @@ export default function ReadingLessonViewer() {
         word,
         definition,
         x: rect.left + rect.width / 2,
-        y: rect.top - 10
+        y: rect.top
       });
     }
   };
@@ -146,40 +152,37 @@ export default function ReadingLessonViewer() {
     }
   };
 
-  const getDifficultyColor = (level: string) => {
-    switch (level) {
-      case "1-3": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "4-6": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "7-9": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
+  // Handle answer changes for reading questions
+  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
+    setReadingAnswers(prev => ({
+      ...prev,
+      [pageIndex]: {
+        ...prev[pageIndex],
+        [questionIndex]: answer
+      }
+    }));
   };
 
-  const getDifficultyText = (level: string) => {
-    switch (level) {
-      case "1-3": return "Lätt";
-      case "4-6": return "Medel";
-      case "7-9": return "Svår";
-      default: return "Okänd";
-    }
+  // Check if all questions for the current page are answered
+  const areAllCurrentPageQuestionsAnswered = () => {
+    const currentPageQuestions = lesson?.pages?.[currentPage]?.questions;
+    if (!currentPageQuestions || currentPageQuestions.length === 0) return true;
+    
+    const currentPageAnswers = readingAnswers[currentPage];
+    if (!currentPageAnswers) return false;
+    
+    return currentPageQuestions.every((_, index) => {
+      const answer = currentPageAnswers[index];
+      return answer && answer.trim().length > 0;
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b bg-background">
-          <div className="max-w-4xl mx-auto p-4">
-            <Link href="/lasforstaelse/ovningar" className="text-sm text-muted-foreground hover:text-foreground">
-              ← Tillbaka till övningar
-            </Link>
-          </div>
-        </div>
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-            <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          </div>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center py-12">
+          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
+          <p className="text-muted-foreground">Laddar läsförståelseövning...</p>
         </div>
       </div>
     );
@@ -187,24 +190,19 @@ export default function ReadingLessonViewer() {
 
   if (error || !lesson) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b bg-background">
-          <div className="max-w-4xl mx-auto p-4">
-            <Link href="/lasforstaelse/ovningar" className="text-sm text-muted-foreground hover:text-foreground">
-              ← Tillbaka till övningar
-            </Link>
-          </div>
-        </div>
-        <div className="max-w-4xl mx-auto p-6">
-          <Card>
-            <CardContent className="text-center py-12">
-              <h2 className="text-xl font-semibold mb-2">Lektion hittades inte</h2>
-              <p className="text-muted-foreground mb-4">Den begärda lektionen kunde inte laddas.</p>
-              <Button asChild>
-                <Link href="/lasforstaelse/ovningar">Tillbaka till övningar</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center py-12">
+          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold mb-2">Läsförståelseövning hittades inte</h2>
+          <p className="text-muted-foreground mb-4">
+            Den begärda övningen kunde inte laddas eller existerar inte.
+          </p>
+          <Link href="/lasforstaelse">
+            <Button variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Tillbaka till läsförståelse
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -212,60 +210,38 @@ export default function ReadingLessonViewer() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background">
-      {/* Accessibility Sidebar */}
-      <AccessibilitySidebar onToggle={setSidebarOpen} />
-      {/* Header */}
-      <div className="border-b bg-background">
-        <div className="max-w-7xl mx-auto p-4 lg:ml-80 lg:mr-4">
-          <div className="flex items-center gap-3">
-            <Link href="/lasforstaelse/ovningar" className="text-sm text-muted-foreground hover:text-foreground">
-              ← Tillbaka till övningar
-            </Link>
-            <div className="w-px h-6 bg-border"></div>
-            <BookOpen className="w-6 h-6" />
-            <div>
-              <h1 className="text-2xl font-bold">{lesson.title}</h1>
-              <p className="text-sm text-muted-foreground">Läsförståelseövning</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
+    <div className="min-h-screen bg-background">
+      <AccessibilitySidebar />
+      
       <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
-        {/* Lesson Info */}
+        {/* Header */}
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className={getDifficultyColor(lesson.gradeLevel)}>
-                    {getDifficultyText(lesson.gradeLevel)}
-                  </Badge>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {lesson.readingTime} min läsning
-                  </div>
-                </div>
-                <CardTitle className="text-xl">{lesson.title}</CardTitle>
-                {lesson.description && (
-                  <CardDescription className="mt-2">{lesson.description}</CardDescription>
-                )}
+            <div className="flex items-center justify-between">
+              <div>
+                <Link href="/lasforstaelse">
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Tillbaka till läsförståelse
+                  </Button>
+                </Link>
               </div>
-              {lesson.featuredImage && (
-                <div className="w-32 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                  <img 
-                    src={lesson.featuredImage} 
-                    alt={lesson.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            </div>
+            <div className="mt-4">
+              <CardTitle className="text-2xl">{lesson.title}</CardTitle>
+              {lesson.description && (
+                <CardDescription className="mt-2 text-base">
+                  {lesson.description}
+                </CardDescription>
               )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {lesson.readingTime || 15} min läsning
+              </div>
               <div className="flex items-center gap-1">
                 <User className="w-4 h-4" />
                 Årskurs {lesson.gradeLevel}
@@ -294,7 +270,6 @@ export default function ReadingLessonViewer() {
                 {lesson.preReadingQuestions.map((question, index) => (
                   <div key={index} className="p-3 bg-muted rounded-lg">
                     <p className="font-medium mb-1">{question.question}</p>
-
                   </div>
                 ))}
               </div>
@@ -302,9 +277,14 @@ export default function ReadingLessonViewer() {
           </Card>
         )}
 
-        {/* Two-Column Layout for Desktop/Tablet - Text takes 2/3, questions take 1/3 */}
-        {/* Uses lg: for desktop (1024px+) and md: for tablet landscape (768px+) but only when orientation is landscape */}
-        <div className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6">
+        {/* Main Content with Accessibility Colors */}
+        <div 
+          className="md:landscape:grid md:landscape:grid-cols-3 lg:grid lg:grid-cols-3 lg:gap-6 md:landscape:gap-6 lg:items-start mb-6"
+          style={{ 
+            backgroundColor: accessibilityColors.backgroundColor,
+            color: accessibilityColors.textColor 
+          }}
+        >
           {/* Main Content - Left Column (takes 2/3 of space) */}
           <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content">
             <CardHeader>
@@ -478,7 +458,7 @@ export default function ReadingLessonViewer() {
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
                                     isSelected 
                                       ? 'border-blue-500 bg-blue-500 text-white' 
-                                      : 'border-muted-foreground'
+                                      : 'border-gray-400'
                                   }`}>
                                     {optionValue}
                                   </div>
@@ -508,7 +488,7 @@ export default function ReadingLessonViewer() {
                                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
                                     isSelected 
                                       ? 'border-blue-500 bg-blue-500 text-white' 
-                                      : 'border-muted-foreground'
+                                      : 'border-gray-400'
                                   }`}>
                                     {option.charAt(0)}
                                   </div>
