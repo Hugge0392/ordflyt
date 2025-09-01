@@ -253,11 +253,19 @@
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+  transition: none !important;
 }
 
-/* Remove all hover effects from navigation buttons */
-.navigation-button:hover:not(:disabled),
+/* Remove all hover effects from navigation buttons - use highest specificity */
+button.navigation-button,
+button.navigation-button:hover,
+button.navigation-button:hover:not(:disabled),
+button.navigation-button:focus,
+button.navigation-button:focus-visible,
+button.navigation-button:active,
+.navigation-button,
 .navigation-button:hover,
+.navigation-button:hover:not(:disabled),
 .navigation-button:focus,
 .navigation-button:focus-visible,
 .navigation-button:active {
@@ -267,6 +275,8 @@
   box-shadow: none !important;
   transform: none !important;
   transition: none !important;
+  background: #FFFFFF !important;
+  border: 1px solid #CCCCCC !important;
 }
 
 .navigation-button:disabled {

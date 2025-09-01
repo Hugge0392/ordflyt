@@ -365,7 +365,7 @@ export default function ReadingLessonViewer() {
                       <button
                         key={index}
                         onClick={() => setCurrentPage(index)}
-                        className="w-8 h-8 rounded-full text-sm font-medium transition-colors page-number-button"
+                        className="w-8 h-8 rounded-full text-sm font-medium page-number-button"
                         style={{
                           backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
                           color: index === currentPage ? '#FFFFFF' : '#000000',
