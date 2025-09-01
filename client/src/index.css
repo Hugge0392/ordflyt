@@ -254,6 +254,8 @@ button.page-number-button {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+  position: relative !important;
+  z-index: 50 !important;
 }
 
 /* No hover effects - keep buttons simple */
