@@ -51,9 +51,7 @@ export default function ReadingLessonViewer() {
   // State for accessibility colors
   const [accessibilityColors, setAccessibilityColors] = useState({
     backgroundColor: '#ffffff',
-    textColor: '#000000',
-    buttonBackgroundColor: '#F2F2F2',
-    buttonTextColor: '#000000'
+    textColor: '#000000'
   });
 
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
@@ -67,13 +65,9 @@ export default function ReadingLessonViewer() {
       const root = document.documentElement;
       const bgColor = root.style.getPropertyValue('--accessibility-bg-color') || '#ffffff';
       const textColor = root.style.getPropertyValue('--accessibility-text-color') || '#000000';
-      const buttonBgColor = root.style.getPropertyValue('--accessibility-button-bg') || '#F2F2F2';
-      const buttonTextColor = root.style.getPropertyValue('--accessibility-button-text') || '#000000';
       setAccessibilityColors({
         backgroundColor: bgColor,
-        textColor: textColor,
-        buttonBackgroundColor: buttonBgColor,
-        buttonTextColor: buttonTextColor
+        textColor: textColor
       });
     };
 
@@ -355,11 +349,12 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 hover:bg-gray-100 disabled:opacity-50"
                     style={{
-                      backgroundColor: accessibilityColors.buttonBackgroundColor,
-                      color: accessibilityColors.buttonTextColor,
-                      borderColor: accessibilityColors.buttonTextColor
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      color: '#000000',
+                      borderColor: '#CCCCCC',
+                      backdropFilter: 'blur(10px)'
                     }}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -374,15 +369,15 @@ export default function ReadingLessonViewer() {
                         className={`w-8 h-8 rounded-full text-sm font-medium transition-colors ${
                           index === currentPage
                             ? ''
-                            : 'hover:opacity-80'
+                            : 'hover:bg-gray-600 hover:text-white'
                         }`}
                         style={{
                           backgroundColor: index === currentPage 
-                            ? accessibilityColors.textColor 
-                            : accessibilityColors.buttonBackgroundColor,
+                            ? '#000000' 
+                            : '#E0E0E0',
                           color: index === currentPage 
-                            ? accessibilityColors.backgroundColor 
-                            : accessibilityColors.buttonTextColor
+                            ? '#FFFFFF' 
+                            : '#000000'
                         }}
                       >
                         {index + 1}
@@ -394,12 +389,13 @@ export default function ReadingLessonViewer() {
                     variant="outline"
                     onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
                     disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 hover:bg-gray-100 disabled:opacity-50"
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                     style={{
-                      backgroundColor: accessibilityColors.buttonBackgroundColor,
-                      color: accessibilityColors.buttonTextColor,
-                      borderColor: accessibilityColors.buttonTextColor
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      color: '#000000',
+                      borderColor: '#CCCCCC',
+                      backdropFilter: 'blur(10px)'
                     }}
                   >
                     Nästa sida

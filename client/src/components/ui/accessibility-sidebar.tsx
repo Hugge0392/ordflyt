@@ -104,19 +104,17 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
     
     // Apply background and text colors
     const colorSchemes = {
-      'black-on-white': { bg: '#FFFFFF', text: '#000000', buttonBg: '#F2F2F2', buttonText: '#000000' },
-      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9', buttonBg: '#404040', buttonText: '#FFFFFF' },
-      'white-on-black': { bg: '#000000', text: '#FFFFFF', buttonBg: '#333333', buttonText: '#FFFFFF' },
-      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000', buttonBg: '#FFF2B2', buttonText: '#000000' },
-      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000', buttonBg: '#B2F0FF', buttonText: '#000000' },
-      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC', buttonBg: '#0044CC', buttonText: '#FFFFFF' },
-      'black-on-light-red': { bg: '#FFCCCC', text: '#000000', buttonBg: '#FFB2B2', buttonText: '#000000' }
+      'black-on-white': { bg: '#FFFFFF', text: '#000000' },
+      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
+      'white-on-black': { bg: '#000000', text: '#FFFFFF' },
+      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
+      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
+      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
+      'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
     };
     const scheme = colorSchemes[settings.backgroundColor] || colorSchemes['black-on-white'];
     root.style.setProperty('--accessibility-bg-color', scheme.bg);
     root.style.setProperty('--accessibility-text-color', scheme.text);
-    root.style.setProperty('--accessibility-button-bg', scheme.buttonBg);
-    root.style.setProperty('--accessibility-button-text', scheme.buttonText);
     
     // Apply contrast (only affects border, text color is set by color scheme)
     if (settings.contrast === 'high') {
