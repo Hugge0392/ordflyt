@@ -147,12 +147,16 @@
   border-color: var(--accessibility-border-color) !important;
 }
 
-/* Force Card component background */
+/* Force Card component background - highest specificity */
+.reading-content.accessibility-enhanced.rounded-lg.border.bg-card.text-card-foreground.shadow-sm,
+.reading-content.accessibility-enhanced.rounded-lg.border,
+.reading-content.accessibility-enhanced.bg-card,
 .reading-content.accessibility-enhanced,
 .reading-content.accessibility-enhanced > *,
 .reading-content.accessibility-enhanced .rounded-lg,
 .reading-content.accessibility-enhanced .bg-card {
   background-color: var(--accessibility-bg-color) !important;
+  background: var(--accessibility-bg-color) !important;
 }
 
 /* Full text formatting for main reading content */
@@ -190,9 +194,17 @@
 
 /* Ensure Card background itself inherits the accessibility background */
 .reading-content.accessibility-enhanced.border,
-.reading-content.accessibility-enhanced .border {
+.reading-content.accessibility-enhanced .border,
+.reading-content.accessibility-enhanced[class*="bg-card"],
+.reading-content.accessibility-enhanced [class*="bg-card"] {
   background-color: var(--accessibility-bg-color) !important;
   border-color: var(--accessibility-border-color) !important;
+}
+
+/* Target Card component directly */
+.md\\:landscape\\:sticky.md\\:landscape\\:top-6.lg\\:sticky.lg\\:top-6.reading-content.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+  background: var(--accessibility-bg-color) !important;
 }
 
 /* Large text styles for reading content */
