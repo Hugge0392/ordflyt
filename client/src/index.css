@@ -284,6 +284,21 @@ html .page-indicator * {
   font-family: inherit !important;
 }
 
+/* Override specific accessibility color combinations for page indicator */
+[style*="--accessibility-bg-color: #595959"] .page-indicator,
+[style*="--accessibility-text-color: #D9D9D9"] .page-indicator,
+[style*="--accessibility-bg-color: #003399"] .page-indicator,
+[style*="--accessibility-text-color: #FFFFCC"] .page-indicator,
+[style*="--accessibility-bg-color: #000000"] .page-indicator,
+[style*="--accessibility-text-color: #FFFFFF"] .page-indicator,
+[style*="--accessibility-bg-color: #FFFFCC"] .page-indicator,
+[style*="--accessibility-bg-color: #CCFFFF"] .page-indicator,
+[style*="--accessibility-bg-color: #FFCCCC"] .page-indicator {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+}
+
 /* Force navigation buttons to ignore accessibility color inheritance */
 .reading-content.accessibility-enhanced .navigation-button,
 .reading-content.accessibility-enhanced .navigation-button *,
