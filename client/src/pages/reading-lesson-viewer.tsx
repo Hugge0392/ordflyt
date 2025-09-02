@@ -399,13 +399,12 @@ export default function ReadingLessonViewer() {
                     
                     {/* Page counter overlay - positioned absolutely to be centered between buttons */}
                     <div 
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 navigation-page-counter px-4 py-2 rounded-lg text-sm font-semibold shadow-lg pointer-events-none"
+                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 navigation-page-counter flex items-center justify-center h-10 px-3 py-2 rounded text-sm font-medium shadow-lg pointer-events-none"
                       style={{
                         backgroundColor: '#FFFFFF !important',
                         color: '#000000 !important',
-                        border: '2px solid #CCCCCC !important',
+                        border: '1px solid #CCCCCC !important',
                         fontFamily: 'system-ui, -apple-system, sans-serif !important',
-                        minWidth: '100px',
                         textAlign: 'center',
                         zIndex: 1000
                       }}
