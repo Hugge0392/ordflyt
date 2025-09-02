@@ -449,7 +449,7 @@ export default function ReadingLessonViewer() {
                       ? 'Frågor under läsning' 
                       : 'Förståelsefrågor'}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription style={{ color: accessibilityColors.textColor }}>
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
                       ? 'Svara på frågorna medan du läser för att hänga med i texten'
                       : 'Svara på frågorna för att kontrollera din förståelse'}
