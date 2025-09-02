@@ -282,7 +282,7 @@ export default function ReadingLessonViewer() {
           <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
             {/* Main Content - Left Column (takes 2/3 of space) */}
             <Card 
-              className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
+              className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content"
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
