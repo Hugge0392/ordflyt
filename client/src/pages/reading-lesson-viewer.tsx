@@ -467,7 +467,6 @@ export default function ReadingLessonViewer() {
                           className="p-4 border-b pb-4 last:border-b-0"
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="secondary" className="text-xs">Under läsning</Badge>
                             {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
                           </div>
                           <h4 className="font-medium mb-3">
