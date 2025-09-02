@@ -250,10 +250,14 @@
 /* Navigation elements should remain neutral regardless of accessibility colors */
 .navigation-button,
 .navigation-button *,
-.page-number-button {
+.page-number-button,
+button.navigation-button,
+[class*="navigation-button"] {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+  border: 1px solid #CCCCCC !important;
+  background: #FFFFFF !important;
   transition: none !important;
 }
 
@@ -278,10 +282,18 @@ html .navigation-button * {
 [style*="--accessibility-bg-color: #003399"] .navigation-button,
 [style*="--accessibility-text-color: #FFFFCC"] .navigation-button,
 [style*="--accessibility-bg-color: #000000"] .navigation-button,
-[style*="--accessibility-text-color: #FFFFFF"] .navigation-button {
+[style*="--accessibility-text-color: #FFFFFF"] .navigation-button,
+[style*="--accessibility-bg-color: #595959"] button.navigation-button,
+[style*="--accessibility-text-color: #D9D9D9"] button.navigation-button,
+[style*="--accessibility-bg-color: #003399"] button.navigation-button,
+[style*="--accessibility-text-color: #FFFFCC"] button.navigation-button,
+[style*="--accessibility-bg-color: #000000"] button.navigation-button,
+[style*="--accessibility-text-color: #FFFFFF"] button.navigation-button {
   background-color: #FFFFFF !important;
+  background: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+  border: 1px solid #CCCCCC !important;
 }
 
 /* Remove all hover effects from navigation buttons - use highest specificity */
