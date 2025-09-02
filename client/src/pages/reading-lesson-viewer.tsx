@@ -466,11 +466,12 @@ export default function ReadingLessonViewer() {
                           key={`reading-${index}`} 
                           className="p-4 border-b pb-4 last:border-b-0"
                         >
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
                             {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
                           </div>
                           <h4 className="font-medium mb-3">
-                            {index + 1}. {question.question}
+                            {question.question}
                           </h4>
                           
                           {question.type === 'multiple-choice' && question.alternatives && (
