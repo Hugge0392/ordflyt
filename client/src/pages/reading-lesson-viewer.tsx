@@ -277,6 +277,23 @@ export default function ReadingLessonViewer() {
             </Card>
           )}
 
+          {/* Page Counter - Isolated from accessibility colors */}
+          {pages.length > 1 && (
+            <div className="flex justify-center mb-4">
+              <div 
+                className="navigation-page-counter px-4 py-2 rounded text-sm font-medium"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#000000',
+                  border: '1px solid #CCCCCC',
+                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                }}
+              >
+                Sida {currentPage + 1} av {pages.length}
+              </div>
+            </div>
+          )}
+
           {/* Main Content */}
           <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
             {/* Main Content - Left Column (takes 2/3 of space) */}
@@ -368,16 +385,7 @@ export default function ReadingLessonViewer() {
                       <div></div>
                     )}
                     
-                    <div 
-                      className="flex items-center justify-center px-4 py-2 rounded text-sm font-medium navigation-page-counter"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        border: '1px solid #CCCCCC'
-                      }}
-                    >
-                      Sida {currentPage + 1} av {pages.length}
-                    </div>
+                    {/* Sidnummer flyttat utanför denna Card för att undvika färgärv */}
                     
                     <Button
                       variant="outline"
