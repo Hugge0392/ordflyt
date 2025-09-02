@@ -340,63 +340,12 @@ export default function ReadingLessonViewer() {
                 
                 {/* Page Navigation - Only buttons inside Card */}
                 {pages.length > 1 && (
-                  <div className="relative mt-6 pt-4 border-t">
-                    {/* Page counter - positioned first to establish the baseline */}
-                    <div className="flex justify-center mb-4">
-                      <div 
-                        className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg"
-                        style={{
-                          backgroundColor: '#FFFFFF !important',
-                          color: '#000000 !important',
-                          border: '1px solid #CCCCCC !important',
-                          fontFamily: 'system-ui, -apple-system, sans-serif !important',
-                          textAlign: 'center',
-                          width: 'auto',
-                          minWidth: '60px',
-                          maxWidth: '80px'
-                        }}
-                      >
-                        Sida {currentPage + 1} av {pages.length}
-                      </div>
-                    </div>
-                    
-                    {/* Navigation buttons positioned below page counter */}
-                    <div className="flex items-center justify-between">
-                      {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
-                      {currentPage > 0 ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                          className="flex items-center gap-2 navigation-button
-                                     bg-white text-black border-[#CCCCCC]
-                                     hover:bg-white hover:text-black hover:border-[#CCCCCC]
-                                     focus-visible:ring-0 focus-visible:outline-none
-                                     shadow-none hover:shadow-none active:shadow-none"
-                          style={{
-                            backgroundColor: '#FFFFFF',
-                            color: '#000000',
-                            borderColor: '#CCCCCC'
-                          }}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          Föregående sida
-                        </Button>
-                      ) : (
-                        <div></div>
-                      )}
-                      
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                    {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
+                    {currentPage > 0 ? (
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          if (currentPage === pages.length - 1) {
-                            // På sista sidan - lämna in 
-                            alert("Bra jobbat! Du har läst hela texten och svarat på frågorna.");
-                          } else {
-                            // Inte sista sidan - gå till nästa sida
-                            setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
-                          }
-                        }}
-                        disabled={!areAllCurrentPageQuestionsAnswered()}
+                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                         className="flex items-center gap-2 navigation-button
                                    bg-white text-black border-[#CCCCCC]
                                    hover:bg-white hover:text-black hover:border-[#CCCCCC]
@@ -407,12 +356,58 @@ export default function ReadingLessonViewer() {
                           color: '#000000',
                           borderColor: '#CCCCCC'
                         }}
-                        title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                       >
-                        {currentPage === pages.length - 1 ? "Lämna in" : "Nästa sida"}
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronLeft className="h-4 w-4" />
+                        Föregående sida
                       </Button>
+                    ) : (
+                      <div className="w-32"></div>
+                    )}
+                    
+                    {/* Page counter - centered between buttons */}
+                    <div 
+                      className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg"
+                      style={{
+                        backgroundColor: '#FFFFFF !important',
+                        color: '#000000 !important',
+                        border: '1px solid #CCCCCC !important',
+                        fontFamily: 'system-ui, -apple-system, sans-serif !important',
+                        textAlign: 'center',
+                        width: 'auto',
+                        minWidth: '60px',
+                        maxWidth: '80px'
+                      }}
+                    >
+                      Sida {currentPage + 1} av {pages.length}
                     </div>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (currentPage === pages.length - 1) {
+                          // På sista sidan - lämna in 
+                          alert("Bra jobbat! Du har läst hela texten och svarat på frågorna.");
+                        } else {
+                          // Inte sista sidan - gå till nästa sida
+                          setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
+                        }
+                      }}
+                      disabled={!areAllCurrentPageQuestionsAnswered()}
+                      className="flex items-center gap-2 navigation-button
+                                 bg-white text-black border-[#CCCCCC]
+                                 hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                                 focus-visible:ring-0 focus-visible:outline-none
+                                 shadow-none hover:shadow-none active:shadow-none"
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        borderColor: '#CCCCCC'
+                      }}
+                      title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
+                    >
+                      {currentPage === pages.length - 1 ? "Lämna in" : "Nästa sida"}
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 )}
                 
