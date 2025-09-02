@@ -443,7 +443,7 @@ export default function ReadingLessonViewer() {
                   '--card-text-color': accessibilityColors.textColor
                 } as React.CSSProperties}
               >
-                <CardHeader>
+                <CardHeader className="border-b-2 border-gray-300">
                   <CardTitle className="text-lg">
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
                       ? 'Frågor under läsning' 
