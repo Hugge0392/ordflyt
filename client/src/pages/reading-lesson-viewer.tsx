@@ -340,8 +340,28 @@ export default function ReadingLessonViewer() {
                 
                 {/* Page Navigation - Only buttons inside Card */}
                 {pages.length > 1 && (
-                  <div className="relative">
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="relative mt-6 pt-4 border-t">
+                    {/* Page counter - positioned first to establish the baseline */}
+                    <div className="flex justify-center mb-4">
+                      <div 
+                        className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg"
+                        style={{
+                          backgroundColor: '#FFFFFF !important',
+                          color: '#000000 !important',
+                          border: '1px solid #CCCCCC !important',
+                          fontFamily: 'system-ui, -apple-system, sans-serif !important',
+                          textAlign: 'center',
+                          width: 'auto',
+                          minWidth: '60px',
+                          maxWidth: '80px'
+                        }}
+                      >
+                        Sida {currentPage + 1} av {pages.length}
+                      </div>
+                    </div>
+                    
+                    {/* Navigation buttons positioned below page counter */}
+                    <div className="flex items-center justify-between">
                       {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
                       {currentPage > 0 ? (
                         <Button
@@ -364,9 +384,6 @@ export default function ReadingLessonViewer() {
                       ) : (
                         <div></div>
                       )}
-                      
-                      {/* Empty space for center positioning */}
-                      <div></div>
                       
                       <Button
                         variant="outline"
@@ -395,26 +412,6 @@ export default function ReadingLessonViewer() {
                         {currentPage === pages.length - 1 ? "Lämna in" : "Nästa sida"}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
-                    </div>
-                    
-                    {/* Page counter overlay - positioned absolutely to be aligned with buttons */}
-                    <div 
-                      className="absolute left-1/2 transform -translate-x-1/2 navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg pointer-events-none"
-                      style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        border: '1px solid #CCCCCC !important',
-                        fontFamily: 'system-ui, -apple-system, sans-serif !important',
-                        textAlign: 'center',
-                        zIndex: 1000,
-                        width: 'auto',
-                        minWidth: '60px',
-                        maxWidth: '80px',
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    >
-                      Sida {currentPage + 1} av {pages.length}
                     </div>
                   </div>
                 )}
