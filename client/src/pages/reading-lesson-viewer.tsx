@@ -493,7 +493,7 @@ export default function ReadingLessonViewer() {
                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
                                       isSelected 
                                         ? 'border-blue-500 bg-blue-500 text-white' 
-                                        : 'border-gray-400'
+                                        : 'border-gray-400 bg-white text-black'
                                     }`}>
                                       {optionValue}
                                     </div>
@@ -523,7 +523,7 @@ export default function ReadingLessonViewer() {
                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
                                       isSelected 
                                         ? 'border-blue-500 bg-blue-500 text-white' 
-                                        : 'border-gray-400'
+                                        : 'border-gray-400 bg-white text-black'
                                     }`}>
                                       {option.charAt(0)}
                                     </div>
