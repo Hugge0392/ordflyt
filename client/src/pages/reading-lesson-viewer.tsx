@@ -306,13 +306,8 @@ export default function ReadingLessonViewer() {
               } as React.CSSProperties}
             >
               <CardHeader>
-                <CardTitle className="text-lg flex items-center justify-between">
+                <CardTitle className="text-lg">
                   <span>Läs texten</span>
-                  {pages.length > 1 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Sida {currentPage + 1} av {pages.length}</span>
-                    </div>
-                  )}
                 </CardTitle>
                 {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
                   <CardDescription>
