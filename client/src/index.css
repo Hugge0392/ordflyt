@@ -269,6 +269,21 @@ button.navigation-button,
   border-color: #CCCCCC !important;
 }
 
+/* Force page indicator to ignore accessibility colors with highest specificity */
+.reading-content.accessibility-enhanced .page-indicator,
+.reading-content.accessibility-enhanced .page-indicator *,
+.accessibility-enhanced .page-indicator,
+.accessibility-enhanced .page-indicator *,
+body .page-indicator,
+body .page-indicator *,
+html .page-indicator,
+html .page-indicator * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  font-family: inherit !important;
+}
+
 /* Force navigation buttons to ignore accessibility color inheritance */
 .reading-content.accessibility-enhanced .navigation-button,
 .reading-content.accessibility-enhanced .navigation-button *,
