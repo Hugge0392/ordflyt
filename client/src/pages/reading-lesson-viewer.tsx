@@ -389,8 +389,16 @@ export default function ReadingLessonViewer() {
                   
                   <Button
                     variant="outline"
-                    onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                    disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
+                    onClick={() => {
+                      if (currentPage === pages.length - 1) {
+                        // På sista sidan - lämna in 
+                        alert("Bra jobbat! Du har läst hela texten och svarat på frågorna.");
+                      } else {
+                        // Inte sista sidan - gå till nästa sida
+                        setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
+                      }
+                    }}
+                    disabled={!areAllCurrentPageQuestionsAnswered()}
                     className="flex items-center gap-2 navigation-button
                                bg-white text-black border-[#CCCCCC]
                                hover:bg-white hover:text-black hover:border-[#CCCCCC]
@@ -403,7 +411,7 @@ export default function ReadingLessonViewer() {
                     }}
                     title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                   >
-                    Nästa sida
+                    {currentPage === pages.length - 1 ? "Lämna in" : "Nästa sida"}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
