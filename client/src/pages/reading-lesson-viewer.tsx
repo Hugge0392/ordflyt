@@ -397,9 +397,9 @@ export default function ReadingLessonViewer() {
                       </Button>
                     </div>
                     
-                    {/* Page counter overlay - positioned absolutely to be centered between buttons */}
+                    {/* Page counter overlay - positioned absolutely to be aligned with buttons */}
                     <div 
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg pointer-events-none"
+                      className="absolute left-1/2 transform -translate-x-1/2 navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg pointer-events-none"
                       style={{
                         backgroundColor: '#FFFFFF !important',
                         color: '#000000 !important',
@@ -409,7 +409,9 @@ export default function ReadingLessonViewer() {
                         zIndex: 1000,
                         width: 'auto',
                         minWidth: '60px',
-                        maxWidth: '80px'
+                        maxWidth: '80px',
+                        top: '50%',
+                        transform: 'translate(-50%, -50%)'
                       }}
                     >
                       Sida {currentPage + 1} av {pages.length}
