@@ -368,23 +368,8 @@ export default function ReadingLessonViewer() {
                     <div></div>
                   )}
                   
-                  <div className="flex items-center gap-1">
-                    {pages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentPage(index)}
-                        className="w-8 h-8 rounded-full text-sm font-medium page-number-button
-                                   focus:outline-none focus-visible:outline-none focus-visible:ring-0
-                                   shadow-none hover:shadow-none"
-                        style={{
-                          backgroundColor: index === currentPage ? '#F0F0F0' : '#FFFFFF',
-                          color: '#000000',
-                          border: '1px solid #CCCCCC'
-                        }}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-black">
+                    Sida {currentPage + 1} av {pages.length}
                   </div>
                   
                   <Button
