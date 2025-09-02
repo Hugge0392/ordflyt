@@ -267,6 +267,8 @@ button.navigation-button,
   color: #000000 !important;
   border-color: #CCCCCC !important;
   font-family: system-ui, -apple-system, sans-serif !important;
+  position: relative !important;
+  z-index: 999 !important;
 }
 
 .navigation-page-counter,
@@ -274,6 +276,17 @@ button.navigation-button,
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
+}
+
+/* Force overlay page counter to ignore all inherited colors */
+[style*="--accessibility-"] .navigation-page-counter,
+.accessibility-enhanced .navigation-page-counter,
+.reading-content .navigation-page-counter,
+div[style] .navigation-page-counter {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
 }
 
 /* Force page indicator to ignore accessibility colors with highest specificity */

@@ -364,8 +364,24 @@ export default function ReadingLessonViewer() {
                       <div></div>
                     )}
                     
-                    {/* Empty space where page counter was */}
-                    <div></div>
+                    {/* Page counter positioned as overlay to avoid color inheritance */}
+                    <div className="relative">
+                      <div 
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 navigation-page-counter px-4 py-2 rounded-lg text-sm font-semibold shadow-lg z-10"
+                        style={{
+                          backgroundColor: '#FFFFFF !important',
+                          color: '#000000 !important',
+                          border: '2px solid #CCCCCC !important',
+                          fontFamily: 'system-ui, -apple-system, sans-serif !important',
+                          minWidth: '100px',
+                          textAlign: 'center',
+                          position: 'absolute',
+                          zIndex: 50
+                        }}
+                      >
+                        Sida {currentPage + 1} av {pages.length}
+                      </div>
+                    </div>
                     
                     <Button
                       variant="outline"
@@ -588,24 +604,6 @@ export default function ReadingLessonViewer() {
             )}
           </div>
 
-          {/* Page Counter - Completely isolated from all accessibility colors */}
-          {pages.length > 1 && (
-            <div className="flex justify-center mb-6">
-              <div 
-                className="navigation-page-counter px-6 py-3 rounded-lg text-base font-semibold shadow-sm"
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  color: '#000000',
-                  border: '2px solid #CCCCCC',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  minWidth: '120px',
-                  textAlign: 'center'
-                }}
-              >
-                Sida {currentPage + 1} av {pages.length}
-              </div>
-            </div>
-          )}
 
           {/* Word Definitions */}
           {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
