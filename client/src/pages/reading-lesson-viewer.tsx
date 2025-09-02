@@ -279,14 +279,16 @@ export default function ReadingLessonViewer() {
 
           {/* Page Counter - Isolated from accessibility colors */}
           {pages.length > 1 && (
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-6">
               <div 
-                className="navigation-page-counter px-4 py-2 rounded text-sm font-medium"
+                className="navigation-page-counter px-6 py-3 rounded-lg text-base font-semibold shadow-sm"
                 style={{
                   backgroundColor: '#FFFFFF',
                   color: '#000000',
-                  border: '1px solid #CCCCCC',
-                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                  border: '2px solid #CCCCCC',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  minWidth: '120px',
+                  textAlign: 'center'
                 }}
               >
                 Sida {currentPage + 1} av {pages.length}
