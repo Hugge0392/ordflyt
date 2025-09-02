@@ -387,30 +387,25 @@ export default function ReadingLessonViewer() {
                     ))}
                   </div>
                   
-                  {/* Nästa sida-knapp - visas bara om det inte är sista sidan */}
-                  {currentPage < pages.length - 1 ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
-                      disabled={!areAllCurrentPageQuestionsAnswered()}
-                      className="flex items-center gap-2 navigation-button
-                                 bg-white text-black border-[#CCCCCC]
-                                 hover:bg-white hover:text-black hover:border-[#CCCCCC]
-                                 focus-visible:ring-0 focus-visible:outline-none
-                                 shadow-none hover:shadow-none active:shadow-none"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#CCCCCC'
-                      }}
-                      title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
-                    >
-                      Nästa sida
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <div></div>
-                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
+                    disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
+                    className="flex items-center gap-2 navigation-button
+                               bg-white text-black border-[#CCCCCC]
+                               hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                               focus-visible:ring-0 focus-visible:outline-none
+                               shadow-none hover:shadow-none active:shadow-none"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      color: '#000000',
+                      borderColor: '#CCCCCC'
+                    }}
+                    title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
+                  >
+                    Nästa sida
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
               
