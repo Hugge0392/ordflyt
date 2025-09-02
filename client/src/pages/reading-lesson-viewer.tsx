@@ -366,7 +366,7 @@ export default function ReadingLessonViewer() {
                     
                     {/* Page counter - centered between buttons */}
                     <div 
-                      className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded text-xs font-medium shadow-lg"
+                      className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded-md text-xs font-medium"
                       style={{
                         backgroundColor: '#FFFFFF !important',
                         color: '#000000 !important',
