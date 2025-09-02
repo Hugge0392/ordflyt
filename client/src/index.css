@@ -261,10 +261,12 @@ button.navigation-button,
   transition: none !important;
 }
 
-/* Ensure page number text is always black */
-.page-number-button,
-.page-number-button * {
+/* Ensure page indicator is always neutral */
+.page-indicator,
+.page-indicator * {
+  background-color: #FFFFFF !important;
   color: #000000 !important;
+  border-color: #CCCCCC !important;
 }
 
 /* Force navigation buttons to ignore accessibility color inheritance */

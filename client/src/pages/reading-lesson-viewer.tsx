@@ -368,7 +368,14 @@ export default function ReadingLessonViewer() {
                       <div></div>
                     )}
                     
-                    <div className="flex items-center justify-center px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-[#000000]">
+                    <div 
+                      className="flex items-center justify-center px-4 py-2 rounded text-sm font-medium page-indicator"
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        border: '1px solid #CCCCCC'
+                      }}
+                    >
                       Sida {currentPage + 1} av {pages.length}
                     </div>
                     
