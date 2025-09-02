@@ -279,7 +279,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-center mb-6">
             {/* Main Content - Left Column (takes 2/3 of space) */}
             <Card 
               className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
@@ -484,7 +484,7 @@ export default function ReadingLessonViewer() {
                                   <button
                                     key={optionIndex}
                                     onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-center gap-2 p-2 rounded ${
+                                    className={`w-full flex items-start gap-2 p-2 rounded ${
                                       isSelected 
                                         ? 'ring-2 ring-blue-500 font-medium' 
                                         : ''
@@ -514,7 +514,7 @@ export default function ReadingLessonViewer() {
                                   <button
                                     key={optionIndex}
                                     onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-center gap-2 p-2 rounded ${
+                                    className={`w-full flex items-start gap-2 p-2 rounded ${
                                       isSelected 
                                         ? 'ring-2 ring-blue-500 font-medium' 
                                         : ''
