@@ -369,7 +369,7 @@ export default function ReadingLessonViewer() {
                     )}
                     
                     <div 
-                      className="flex items-center justify-center px-4 py-2 rounded text-sm font-medium page-indicator text-[#000000]"
+                      className="flex items-center justify-center px-4 py-2 rounded text-sm font-medium navigation-page-counter"
                       style={{
                         backgroundColor: '#FFFFFF',
                         color: '#000000',

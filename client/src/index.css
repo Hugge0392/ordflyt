@@ -261,9 +261,16 @@ button.navigation-button,
   transition: none !important;
 }
 
-/* Ensure page indicator is always neutral */
-.page-indicator,
-.page-indicator * {
+/* Completely isolated navigation page counter - never affected by accessibility colors */
+.navigation-page-counter {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #CCCCCC !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.navigation-page-counter,
+.navigation-page-counter * {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #CCCCCC !important;
