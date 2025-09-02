@@ -345,24 +345,28 @@ export default function ReadingLessonViewer() {
               {/* Page Navigation */}
               {pages.length > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                    disabled={currentPage === 0}
-                    className="flex items-center gap-2 navigation-button
-                               bg-white text-black border-[#CCCCCC]
-                               hover:bg-white hover:text-black hover:border-[#CCCCCC]
-                               focus-visible:ring-0 focus-visible:outline-none
-                               shadow-none hover:shadow-none active:shadow-none"
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      color: '#000000',
-                      borderColor: '#CCCCCC'
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Föregående sida
-                  </Button>
+                  {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
+                  {currentPage > 0 ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                      className="flex items-center gap-2 navigation-button
+                                 bg-white text-black border-[#CCCCCC]
+                                 hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                                 focus-visible:ring-0 focus-visible:outline-none
+                                 shadow-none hover:shadow-none active:shadow-none"
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        borderColor: '#CCCCCC'
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Föregående sida
+                    </Button>
+                  ) : (
+                    <div></div>
+                  )}
                   
                   <div className="flex items-center gap-1">
                     {pages.map((_, index) => (
