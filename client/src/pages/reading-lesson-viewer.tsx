@@ -377,9 +377,9 @@ export default function ReadingLessonViewer() {
                                    focus:outline-none focus-visible:outline-none focus-visible:ring-0
                                    shadow-none hover:shadow-none"
                         style={{
-                          backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
-                          color: index === currentPage ? '#FFFFFF' : '#000000',
-                          border: 'none'
+                          backgroundColor: index === currentPage ? '#F0F0F0' : '#FFFFFF',
+                          color: '#000000',
+                          border: '1px solid #CCCCCC'
                         }}
                       >
                         {index + 1}
