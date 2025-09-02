@@ -338,7 +338,7 @@ export default function ReadingLessonViewer() {
                   )}
                 </div>
                 
-                {/* Page Navigation */}
+                {/* Page Navigation - Only buttons inside Card */}
                 {pages.length > 1 && (
                   <div className="flex items-center justify-between mt-6 pt-4 border-t">
                     {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
@@ -364,20 +364,8 @@ export default function ReadingLessonViewer() {
                       <div></div>
                     )}
                     
-                    {/* Page Counter - Isolated from accessibility colors */}
-                    <div 
-                      className="navigation-page-counter px-6 py-3 rounded-lg text-base font-semibold shadow-sm"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        border: '2px solid #CCCCCC',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
-                        minWidth: '120px',
-                        textAlign: 'center'
-                      }}
-                    >
-                      Sida {currentPage + 1} av {pages.length}
-                    </div>
+                    {/* Empty space where page counter was */}
+                    <div></div>
                     
                     <Button
                       variant="outline"
@@ -599,6 +587,25 @@ export default function ReadingLessonViewer() {
               </Card>
             )}
           </div>
+
+          {/* Page Counter - Completely isolated from all accessibility colors */}
+          {pages.length > 1 && (
+            <div className="flex justify-center mb-6">
+              <div 
+                className="navigation-page-counter px-6 py-3 rounded-lg text-base font-semibold shadow-sm"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#000000',
+                  border: '2px solid #CCCCCC',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  minWidth: '120px',
+                  textAlign: 'center'
+                }}
+              >
+                Sida {currentPage + 1} av {pages.length}
+              </div>
+            </div>
+          )}
 
           {/* Word Definitions */}
           {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
