@@ -602,7 +602,7 @@ export default function ReadingLessonViewer() {
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`${isFocusMode 
-                  ? 'fixed right-6 top-20 w-96 max-h-[80vh] z-30 transition-all duration-300 transform slide-in-right shadow-2xl' 
+                  ? 'fixed right-6 top-20 w-96 h-[80vh] z-30 transition-all duration-300 transform slide-in-right shadow-2xl flex flex-col' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
@@ -622,8 +622,8 @@ export default function ReadingLessonViewer() {
                       : 'Svara på frågorna för att kontrollera din förståelse'}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+                <CardContent className={`${isFocusMode ? 'flex-1 overflow-hidden' : ''}`}>
+                  <div className={`space-y-6 ${isFocusMode ? 'h-full overflow-y-auto' : 'max-h-[70vh] overflow-y-auto'}`}>
                     {/* Show reading questions for current page first */}
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
                       const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
