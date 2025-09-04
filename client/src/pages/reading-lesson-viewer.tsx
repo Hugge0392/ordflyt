@@ -5,7 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Focus, Eye, EyeOff } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Focus, Eye, EyeOff, Settings } from "lucide-react";
 import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
@@ -50,6 +54,13 @@ export default function ReadingLessonViewer() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
   
+  // Accessibility settings state for focus mode
+  const [accessibilitySettings, setAccessibilitySettings] = useState({
+    fontSize: 16,
+    backgroundColor: 'black-on-white' as const,
+    fontFamily: 'standard' as const
+  });
+  
   // State for accessibility colors
   const [accessibilityColors, setAccessibilityColors] = useState({
     backgroundColor: '#ffffff',
@@ -85,6 +96,45 @@ export default function ReadingLessonViewer() {
 
     return () => observer.disconnect();
   }, []);
+
+  // Apply focus mode accessibility settings
+  useEffect(() => {
+    if (isFocusMode) {
+      const root = document.documentElement;
+      
+      // Apply font size
+      root.style.setProperty('--accessibility-font-size', `${accessibilitySettings.fontSize}px`);
+      
+      // Apply color scheme
+      const colorSchemes = {
+        'black-on-white': { bg: '#FFFFFF', text: '#000000' },
+        'white-on-black': { bg: '#000000', text: '#FFFFFF' },
+        'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
+        'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' }
+      };
+      const scheme = colorSchemes[accessibilitySettings.backgroundColor] || colorSchemes['black-on-white'];
+      root.style.setProperty('--accessibility-bg-color', scheme.bg);
+      root.style.setProperty('--accessibility-text-color', scheme.text);
+      
+      // Apply font family
+      const fontFamily = accessibilitySettings.fontFamily === 'dyslexia-friendly' 
+        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+        : 'system-ui, -apple-system, sans-serif';
+      root.style.setProperty('--accessibility-font-family', fontFamily);
+      
+      // Add accessibility class to reading content
+      const readingContent = document.querySelector('.reading-content');
+      if (readingContent) {
+        readingContent.classList.add('accessibility-enhanced');
+      }
+      
+      // Update accessibility colors state
+      setAccessibilityColors({
+        backgroundColor: scheme.bg,
+        textColor: scheme.text
+      });
+    }
+  }, [isFocusMode, accessibilitySettings]);
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
@@ -213,7 +263,7 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background relative">
-        <AccessibilitySidebar />
+        {!isFocusMode && <AccessibilitySidebar />}
         
         {/* Focus Mode Backdrop */}
         {isFocusMode && (
@@ -223,7 +273,7 @@ export default function ReadingLessonViewer() {
           />
         )}
         
-        <div className={`${isFocusMode ? 'relative z-20' : ''} max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4`}>
+        <div className={`${isFocusMode ? 'relative z-20 max-w-7xl mx-auto p-6' : 'max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4'}`}>
           {/* Header */}
           <Card className={`mb-6 focus-mode-transition ${isFocusMode ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}>
             <CardHeader>
@@ -326,16 +376,79 @@ export default function ReadingLessonViewer() {
                   <CardTitle className="text-lg">
                     <span>Läs texten</span>
                   </CardTitle>
-                  {isFocusMode && ((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
-                    (lesson.questions && lesson.questions.length > 0)) && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setShowQuestionsInFocus(!showQuestionsInFocus)}
-                    >
-                      {showQuestionsInFocus ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-                      {showQuestionsInFocus ? "Dölj frågor" : "Visa frågor"}
-                    </Button>
+                  {isFocusMode && (
+                    <div className="flex gap-2">
+                      {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+                        (lesson.questions && lesson.questions.length > 0)) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowQuestionsInFocus(!showQuestionsInFocus)}
+                        >
+                          {showQuestionsInFocus ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                          {showQuestionsInFocus ? "Dölj frågor" : "Visa frågor"}
+                        </Button>
+                      )}
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Settings className="w-4 h-4 mr-1" />
+                            Inställningar
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-80 p-4" align="end">
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-sm font-medium">Textstorlek</Label>
+                              <Slider
+                                value={[accessibilitySettings.fontSize]}
+                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontSize: value[0] }))}
+                                min={12}
+                                max={24}
+                                step={1}
+                                className="mt-2"
+                              />
+                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.fontSize}px</div>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium">Bakgrundsfärg</Label>
+                              <Select
+                                value={accessibilitySettings.backgroundColor}
+                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, backgroundColor: value as any }))}
+                              >
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="black-on-white">Svart på vitt</SelectItem>
+                                  <SelectItem value="white-on-black">Vit på svart</SelectItem>
+                                  <SelectItem value="black-on-light-yellow">Svart på ljusgul</SelectItem>
+                                  <SelectItem value="black-on-light-blue">Svart på ljusblå</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <Label className="text-sm font-medium">Teckensnitt</Label>
+                              <Select
+                                value={accessibilitySettings.fontFamily}
+                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontFamily: value as any }))}
+                              >
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="standard">Standard</SelectItem>
+                                  <SelectItem value="dyslexia-friendly">Dyslexi-vänligt</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </div>
                 {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
