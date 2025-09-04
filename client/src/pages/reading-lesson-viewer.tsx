@@ -108,9 +108,12 @@ export default function ReadingLessonViewer() {
       // Apply color scheme
       const colorSchemes = {
         'black-on-white': { bg: '#FFFFFF', text: '#000000' },
+        'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
         'white-on-black': { bg: '#000000', text: '#FFFFFF' },
         'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
-        'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' }
+        'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
+        'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
+        'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
       };
       const scheme = colorSchemes[accessibilitySettings.backgroundColor] || colorSchemes['black-on-white'];
       root.style.setProperty('--accessibility-bg-color', scheme.bg);
@@ -423,9 +426,12 @@ export default function ReadingLessonViewer() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="black-on-white">Svart på vitt</SelectItem>
+                                  <SelectItem value="light-gray-on-gray">Ljusgrå på grå</SelectItem>
                                   <SelectItem value="white-on-black">Vit på svart</SelectItem>
                                   <SelectItem value="black-on-light-yellow">Svart på ljusgul</SelectItem>
                                   <SelectItem value="black-on-light-blue">Svart på ljusblå</SelectItem>
+                                  <SelectItem value="light-yellow-on-blue">Ljusgul på blå</SelectItem>
+                                  <SelectItem value="black-on-light-red">Svart på ljusröd</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
