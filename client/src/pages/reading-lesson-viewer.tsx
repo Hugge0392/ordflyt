@@ -313,7 +313,7 @@ export default function ReadingLessonViewer() {
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
-                ? 'w-full max-w-4xl transition-all duration-300 transform scale-105' 
+                ? 'w-full max-w-3xl transition-all duration-300' 
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
