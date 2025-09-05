@@ -601,7 +601,7 @@ export default function ReadingLessonViewer() {
               (lesson.questions && lesson.questions.length > 0)) && 
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
-                className={`${isFocusMode 
+                className={`questions-card ${isFocusMode 
                   ? 'fixed right-6 top-20 w-96 h-[80vh] z-30 transition-all duration-300 transform slide-in-right shadow-2xl flex flex-col' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 

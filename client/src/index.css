@@ -145,6 +145,16 @@
   border-color: var(--accessibility-border-color) !important;
 }
 
+/* Questions text size */
+.questions-card .font-medium,
+.questions-card .font-bold {
+  font-size: 24px !important;
+}
+
+.questions-card .text-left {
+  font-size: 20px !important;
+}
+
 /* Force Card component background - highest specificity */
 .reading-content.accessibility-enhanced.rounded-lg.border.bg-card.text-card-foreground.shadow-sm,
 .reading-content.accessibility-enhanced.rounded-lg.border,
