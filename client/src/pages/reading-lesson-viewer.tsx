@@ -139,6 +139,19 @@ export default function ReadingLessonViewer() {
     }
   }, [isFocusMode, accessibilitySettings]);
 
+  // Handle escape key to exit focus mode
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
+        setShowQuestionsInFocus(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isFocusMode]);
+
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
     // Content is already HTML from RichTextEditor, don't convert markdown
@@ -272,7 +285,13 @@ export default function ReadingLessonViewer() {
         {isFocusMode && (
           <div 
             className="fixed inset-0 bg-black/60 z-10 transition-opacity duration-300"
-            onClick={() => setIsFocusMode(false)}
+            onClick={(e) => {
+              // Only close if clicking on the backdrop itself, not child elements
+              if (e.target === e.currentTarget) {
+                setIsFocusMode(false);
+                setShowQuestionsInFocus(false);
+              }
+            }}
           />
         )}
         
@@ -290,24 +309,6 @@ export default function ReadingLessonViewer() {
                   </Link>
                 </div>
                 <div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant={isFocusMode ? "default" : "outline"} 
-                        size="sm"
-                        onClick={() => {
-                          setIsFocusMode(!isFocusMode);
-                          setShowQuestionsInFocus(false); // Reset questions visibility when toggling focus mode
-                        }}
-                      >
-                        <Focus className="w-4 h-4 mr-2" />
-                        {isFocusMode ? "Avsluta fokus" : "Fokusläge"}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isFocusMode ? "Lämna fokusläge för att se alla element" : "Aktivera fokusläge för ostörd läsning"}</p>
-                    </TooltipContent>
-                  </Tooltip>
                 </div>
               </div>
               <div className="mt-4">
@@ -374,7 +375,28 @@ export default function ReadingLessonViewer() {
                 '--card-text-color': accessibilityColors.textColor
               } as React.CSSProperties}
             >
-              <CardHeader>
+              <CardHeader className="relative">
+                {/* Focus Mode Button - Top Right Corner */}
+                {!isFocusMode && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="absolute top-4 right-4 z-10"
+                        onClick={() => {
+                          setIsFocusMode(true);
+                          setShowQuestionsInFocus(false);
+                        }}
+                      >
+                        <Focus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Aktivera fokusläge för ostörd läsning</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
                     <span>Läs texten</span>
