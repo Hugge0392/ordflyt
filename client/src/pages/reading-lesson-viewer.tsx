@@ -403,7 +403,7 @@ export default function ReadingLessonViewer() {
                   </CardTitle>
                   {isFocusMode && (
                     <div className="flex gap-2">
-                      {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+                      {((lesson.pages && lesson.pages.some(page => page?.questions && page.questions.length > 0)) || 
                         (lesson.questions && lesson.questions.length > 0)) && (
                         <Button 
                           variant="outline" 
@@ -487,19 +487,6 @@ export default function ReadingLessonViewer() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="space-y-6">
-                  {/* Bilder ovanför texten för denna sida */}
-                  {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
-                    <div className="space-y-4">
-                      {lesson.pages[currentPage]?.imagesAbove!.map((imageUrl, index) => (
-                        <img 
-                          key={index}
-                          src={imageUrl} 
-                          alt={`Bild ovanför texten ${index + 1}`}
-                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                        />
-                      ))}
-                    </div>
-                  )}
 
                   {/* All pages in continuous scroll */}
                   {pages.map((pageContent, pageIndex) => {
@@ -542,19 +529,6 @@ export default function ReadingLessonViewer() {
                     );
                   })}
 
-                  {/* Bilder under texten för denna sida */}
-                  {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
-                    <div className="space-y-4">
-                      {lesson.pages[currentPage]?.imagesBelow!.map((imageUrl, index) => (
-                        <img 
-                          key={index}
-                          src={imageUrl} 
-                          alt={`Bild under texten ${index + 1}`}
-                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
                 
                 
