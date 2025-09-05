@@ -363,7 +363,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'flex justify-center' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className={`${isFocusMode ? 'flex justify-center gap-6 items-start' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
@@ -624,7 +624,7 @@ export default function ReadingLessonViewer() {
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`questions-card ${isFocusMode 
-                  ? 'fixed right-6 top-20 w-96 h-[80vh] z-30 transition-all duration-300 transform slide-in-right shadow-2xl flex flex-col' 
+                  ? 'sticky top-6 w-96 max-h-[80vh] flex-shrink-0 transition-all duration-300 shadow-2xl flex flex-col' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
