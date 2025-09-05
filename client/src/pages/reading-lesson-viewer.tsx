@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, ArrowLeft, User, Target, Focus, Eye, EyeOff, Settings } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, User, Target, Focus, Eye, EyeOff, Settings, ChevronDown } from "lucide-react";
 import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
@@ -53,6 +53,8 @@ export default function ReadingLessonViewer() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
   const [currentVisiblePage, setCurrentVisiblePage] = useState(0);
+  const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
+  const [animatingQuestions, setAnimatingQuestions] = useState<Set<string>>(new Set());
   
   // Accessibility settings state for focus mode
   const [accessibilitySettings, setAccessibilitySettings] = useState({
@@ -222,6 +224,8 @@ export default function ReadingLessonViewer() {
 
   // Handle answer changes for reading questions
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
+    const questionKey = `${pageIndex}-${questionIndex}`;
+    
     setReadingAnswers(prev => ({
       ...prev,
       [pageIndex]: {
@@ -230,16 +234,75 @@ export default function ReadingLessonViewer() {
       }
     }));
     
-    // Auto-advance to next section if current page is completed
+    // Start collapse animation for this question
+    setAnimatingQuestions(prev => new Set([...prev, questionKey]));
+    
+    // Create flying animation to progress bar
     setTimeout(() => {
+      const questionElement = document.querySelector(`[data-question-key="${questionKey}"]`);
+      const progressBar = document.querySelector('.progress-bar');
+      
+      if (questionElement && progressBar) {
+        // Create a flying element
+        const flyingElement = document.createElement('div');
+        flyingElement.innerHTML = '✓';
+        flyingElement.className = 'fixed z-50 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold pointer-events-none';
+        
+        const questionRect = questionElement.getBoundingClientRect();
+        const progressRect = progressBar.getBoundingClientRect();
+        
+        flyingElement.style.left = `${questionRect.left + questionRect.width / 2 - 16}px`;
+        flyingElement.style.top = `${questionRect.top + questionRect.height / 2 - 16}px`;
+        flyingElement.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        
+        document.body.appendChild(flyingElement);
+        
+        // Animate to progress bar
+        requestAnimationFrame(() => {
+          flyingElement.style.left = `${progressRect.right - 20}px`;
+          flyingElement.style.top = `${progressRect.top + progressRect.height / 2 - 16}px`;
+          flyingElement.style.transform = 'scale(0.5)';
+          flyingElement.style.opacity = '0';
+        });
+        
+        // Clean up flying element
+        setTimeout(() => {
+          if (flyingElement.parentNode) {
+            flyingElement.parentNode.removeChild(flyingElement);
+          }
+        }, 800);
+      }
+    }, 200);
+    
+    setTimeout(() => {
+      // Collapse the question
+      setCollapsedQuestions(prev => new Set([...prev, questionKey]));
+      setAnimatingQuestions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionKey);
+        return newSet;
+      });
+      
+      // Auto-advance to next section if current page is completed
       if (areAllQuestionsAnsweredForPage(pageIndex) && lesson?.pages && pageIndex < lesson.pages.length - 1) {
         // Scroll to next page section smoothly
-        const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
-        if (nextPageElement) {
-          nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        setTimeout(() => {
+          const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
+          if (nextPageElement) {
+            nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 500);
       }
-    }, 300);
+    }, 600); // Animation duration
+  };
+  
+  const expandQuestion = (pageIndex: number, questionIndex: number) => {
+    const questionKey = `${pageIndex}-${questionIndex}`;
+    setCollapsedQuestions(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(questionKey);
+      return newSet;
+    });
   };
 
 
@@ -620,13 +683,17 @@ export default function ReadingLessonViewer() {
                         <span>Framsteg</span>
                         <span>{lesson.pages.filter((_, index) => areAllQuestionsAnsweredForPage(index)).length} av {lesson.pages.length} avsnitt klara</span>
                       </div>
-                      <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div className="w-full bg-blue-200 rounded-full h-2 relative progress-bar">
                         <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-out"
                           style={{ 
                             width: `${(lesson.pages.filter((_, index) => areAllQuestionsAnsweredForPage(index)).length / lesson.pages.length) * 100}%` 
                           }}
                         />
+                        {/* Sparkling effect when progress increases */}
+                        <div className="absolute inset-0 overflow-hidden">
+                          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -658,92 +725,121 @@ export default function ReadingLessonViewer() {
                       
                       return page.questions.map((question, questionIndex) => {
                         const isAnswered = !!(readingAnswers[activePage]?.[questionIndex]?.trim());
+                        const questionKey = `${activePage}-${questionIndex}`;
+                        const isCollapsed = collapsedQuestions.has(questionKey);
+                        const isAnimating = animatingQuestions.has(questionKey);
                         
                         return (
                           <div 
                             key={`reading-${activePage}-${questionIndex}`} 
-                            className="p-4 border-b pb-4 last:border-b-0"
+                            data-question-key={questionKey}
+                            className={`border-b pb-4 last:border-b-0 transition-all duration-600 ease-in-out ${
+                              isAnimating ? 'animate-pulse scale-95 ring-4 ring-green-300' : ''
+                            } ${isCollapsed ? 'p-2' : 'p-4'}`}
+                            style={{
+                              maxHeight: isCollapsed ? '60px' : '1000px',
+                              overflow: 'hidden'
+                            }}
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-bold text-lg">
-                                Uppgift {questionIndex + 1}
-                              </h3>
-                              {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
-                            </div>
-                            <h4 className="font-medium mb-3">
-                              {question.question}
-                            </h4>
-                            
-                            {question.type === 'multiple-choice' && question.alternatives && (
-                              <div className="space-y-2">
-                                {question.alternatives.map((option, optionIndex) => {
-                                  const optionValue = String.fromCharCode(65 + optionIndex);
-                                  const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
-                                  
-                                  return (
-                                    <button
-                                      key={optionIndex}
-                                      onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
-                                      className={`w-full flex items-start gap-2 p-2 rounded ${
-                                        isSelected 
-                                          ? 'ring-2 ring-blue-500 font-medium' 
-                                          : ''
-                                      }`}
-                                    >
-                                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
-                                        isSelected 
-                                          ? 'border-blue-500 bg-blue-500 text-white' 
-                                          : 'border-gray-400 bg-white text-black'
-                                      }`}>
-                                        {optionValue}
-                                      </div>
-                                      <span className="text-left">{option}</span>
-                                    </button>
-                                  );
-                                })}
+                            {isCollapsed ? (
+                              // Collapsed view
+                              <div 
+                                className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                onClick={() => expandQuestion(activePage, questionIndex)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="default" className="text-xs bg-green-500">✓</Badge>
+                                  <span className="text-sm font-medium text-green-700">
+                                    Fråga {questionIndex + 1} - Ändra ditt svar
+                                  </span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 text-green-600" />
                               </div>
-                            )}
-                            
-                            {question.type === 'true-false' && (
-                              <div className="space-y-2">
-                                {['Sant', 'Falskt'].map((option, optionIndex) => {
-                                  const optionValue = option;
-                                  const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
-                                  
-                                  return (
-                                    <button
-                                      key={optionIndex}
-                                      onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
-                                      className={`w-full flex items-start gap-2 p-2 rounded ${
-                                        isSelected 
-                                          ? 'ring-2 ring-blue-500 font-medium' 
-                                          : ''
-                                      }`}
-                                    >
-                                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
-                                        isSelected 
-                                          ? 'border-blue-500 bg-blue-500 text-white' 
-                                          : 'border-gray-400 bg-white text-black'
-                                      }`}>
-                                        {option.charAt(0)}
-                                      </div>
-                                      <span className="text-left">{option}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                            
-                            {question.type === 'open' && (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={readingAnswers[activePage]?.[questionIndex] || ''}
-                                  onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value)}
-                                  placeholder="Skriv ditt svar här..."
-                                  className="w-full p-3 border rounded-lg resize-none h-20"
-                                  rows={3}
-                                />
-                              </div>
+                            ) : (
+                              // Expanded view
+                              <>
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="font-bold text-lg">
+                                    Uppgift {questionIndex + 1}
+                                  </h3>
+                                  {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                                </div>
+                                <h4 className="font-medium mb-3">
+                                  {question.question}
+                                </h4>
+                                
+                                {question.type === 'multiple-choice' && question.alternatives && (
+                                  <div className="space-y-2">
+                                    {question.alternatives.map((option, optionIndex) => {
+                                      const optionValue = String.fromCharCode(65 + optionIndex);
+                                      const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
+                                      
+                                      return (
+                                        <button
+                                          key={optionIndex}
+                                          onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
+                                          className={`w-full flex items-start gap-2 p-2 rounded ${
+                                            isSelected 
+                                              ? 'ring-2 ring-blue-500 font-medium' 
+                                              : ''
+                                          }`}
+                                        >
+                                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                            isSelected 
+                                              ? 'border-blue-500 bg-blue-500 text-white' 
+                                              : 'border-gray-400 bg-white text-black'
+                                          }`}>
+                                            {optionValue}
+                                          </div>
+                                          <span className="text-left">{option}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                
+                                {question.type === 'true-false' && (
+                                  <div className="space-y-2">
+                                    {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                      const optionValue = option;
+                                      const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
+                                      
+                                      return (
+                                        <button
+                                          key={optionIndex}
+                                          onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
+                                          className={`w-full flex items-start gap-2 p-2 rounded ${
+                                            isSelected 
+                                              ? 'ring-2 ring-blue-500 font-medium' 
+                                              : ''
+                                          }`}
+                                        >
+                                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                            isSelected 
+                                              ? 'border-blue-500 bg-blue-500 text-white' 
+                                              : 'border-gray-400 bg-white text-black'
+                                          }`}>
+                                            {option.charAt(0)}
+                                          </div>
+                                          <span className="text-left">{option}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                
+                                {question.type === 'open' && (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      value={readingAnswers[activePage]?.[questionIndex] || ''}
+                                      onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value)}
+                                      placeholder="Skriv ditt svar här..."
+                                      className="w-full p-3 border rounded-lg resize-none h-20"
+                                      rows={3}
+                                    />
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         );
