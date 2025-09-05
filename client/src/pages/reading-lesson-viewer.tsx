@@ -52,6 +52,7 @@ export default function ReadingLessonViewer() {
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
+  const [currentVisiblePage, setCurrentVisiblePage] = useState(0);
   
   // Accessibility settings state for focus mode
   const [accessibilitySettings, setAccessibilitySettings] = useState({
@@ -228,6 +229,17 @@ export default function ReadingLessonViewer() {
         [questionIndex]: answer
       }
     }));
+    
+    // Auto-advance to next section if current page is completed
+    setTimeout(() => {
+      if (areAllQuestionsAnsweredForPage(pageIndex) && lesson?.pages && pageIndex < lesson.pages.length - 1) {
+        // Scroll to next page section smoothly
+        const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
+        if (nextPageElement) {
+          nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 300);
   };
 
 
@@ -243,6 +255,28 @@ export default function ReadingLessonViewer() {
       const answer = pageAnswers[questionIndex];
       return answer && answer.trim().length > 0;
     });
+  };
+
+  // Check if all reading questions from all pages are answered
+  const areAllReadingQuestionsAnswered = () => {
+    if (!lesson?.pages) return true;
+    
+    return lesson.pages.every((_, pageIndex) => 
+      areAllQuestionsAnsweredForPage(pageIndex)
+    );
+  };
+
+  // Get the current active page for questions (the furthest unlocked page)
+  const getCurrentActivePage = () => {
+    if (!lesson?.pages) return 0;
+    
+    // Find the last page that is unlocked
+    for (let i = lesson.pages.length - 1; i >= 0; i--) {
+      if (i === 0 || areAllQuestionsAnsweredForPage(i - 1)) {
+        return i;
+      }
+    }
+    return 0;
   };
 
   if (isLoading) {
@@ -494,7 +528,7 @@ export default function ReadingLessonViewer() {
                     const shouldShowBlurred = !isPageUnlocked && pageIndex > 0;
                     
                     return (
-                      <div key={pageIndex} className="relative">
+                      <div key={pageIndex} className="relative" data-page-index={pageIndex}>
                         {/* Page content */}
                         <div 
                           className={`prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content transition-all duration-300 ${
@@ -569,28 +603,70 @@ export default function ReadingLessonViewer() {
               >
                 <CardHeader className="border-b-2" style={{ borderBottomColor: '#e2eaef' }}>
                   <CardTitle className="text-lg">
-                    Frågor under läsning
+                    {areAllReadingQuestionsAnswered() 
+                      ? 'Förståelsefrågor om hela texten' 
+                      : `Frågor för Avsnitt ${getCurrentActivePage() + 1}`}
                   </CardTitle>
                   <CardDescription style={{ color: accessibilityColors.textColor }}>
-                    Svara på frågorna för att låsa upp nästa avsnitt
+                    {areAllReadingQuestionsAnswered() 
+                      ? 'Svara på frågorna för att kontrollera din förståelse av hela texten'
+                      : 'Svara på frågorna för att låsa upp nästa avsnitt'}
                   </CardDescription>
+                  
+                  {/* Progress indicator */}
+                  {!areAllReadingQuestionsAnswered() && lesson?.pages && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between text-sm text-blue-700 mb-2">
+                        <span>Framsteg</span>
+                        <span>{lesson.pages.filter((_, index) => areAllQuestionsAnsweredForPage(index)).length} av {lesson.pages.length} avsnitt klara</span>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${(lesson.pages.filter((_, index) => areAllQuestionsAnsweredForPage(index)).length / lesson.pages.length) * 100}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Completion indicator */}
+                  {areAllReadingQuestionsAnswered() && (
+                    <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-green-700">
+                        <div className="text-green-600">✓</div>
+                        <span>Läsning klar - Nu är det dags för slutfrågorna!</span>
+                      </div>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className={`${isFocusMode ? 'flex-1 overflow-hidden' : ''}`}>
                   <div className={`space-y-6 ${isFocusMode ? 'h-full overflow-y-auto' : 'max-h-[70vh] overflow-y-auto'}`}>
-                    {/* Show reading questions for all pages */}
-                    {lesson.pages && lesson.pages.map((page, pageIndex) => 
-                      page?.questions?.map((question, questionIndex) => {
-                        const isAnswered = !!(readingAnswers[pageIndex]?.[questionIndex]?.trim());
-                        const totalQuestionIndex = lesson.pages!.slice(0, pageIndex).reduce((acc, p) => acc + (p?.questions?.length || 0), 0) + questionIndex + 1;
+                    {/* Phase 1: Show reading questions for current active page only */}
+                    {!areAllReadingQuestionsAnswered() && lesson.pages && (() => {
+                      const activePage = getCurrentActivePage();
+                      const page = lesson.pages[activePage];
+                      
+                      if (!page?.questions || page.questions.length === 0) {
+                        return (
+                          <div className="p-4 text-center text-gray-500">
+                            <p>Inga frågor för detta avsnitt. Scrolla vidare för att fortsätta läsa.</p>
+                          </div>
+                        );
+                      }
+                      
+                      return page.questions.map((question, questionIndex) => {
+                        const isAnswered = !!(readingAnswers[activePage]?.[questionIndex]?.trim());
                         
                         return (
                           <div 
-                            key={`reading-${pageIndex}-${questionIndex}`} 
+                            key={`reading-${activePage}-${questionIndex}`} 
                             className="p-4 border-b pb-4 last:border-b-0"
                           >
                             <div className="flex items-center justify-between mb-2">
                               <h3 className="font-bold text-lg">
-                                Uppgift {totalQuestionIndex} {pageIndex > 0 && `(Avsnitt ${pageIndex + 1})`}
+                                Uppgift {questionIndex + 1}
                               </h3>
                               {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
                             </div>
@@ -602,12 +678,12 @@ export default function ReadingLessonViewer() {
                               <div className="space-y-2">
                                 {question.alternatives.map((option, optionIndex) => {
                                   const optionValue = String.fromCharCode(65 + optionIndex);
-                                  const isSelected = readingAnswers[pageIndex]?.[questionIndex] === optionValue;
+                                  const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
                                   
                                   return (
                                     <button
                                       key={optionIndex}
-                                      onClick={() => handleAnswerChange(pageIndex, questionIndex, optionValue)}
+                                      onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
                                       className={`w-full flex items-start gap-2 p-2 rounded ${
                                         isSelected 
                                           ? 'ring-2 ring-blue-500 font-medium' 
@@ -632,12 +708,12 @@ export default function ReadingLessonViewer() {
                               <div className="space-y-2">
                                 {['Sant', 'Falskt'].map((option, optionIndex) => {
                                   const optionValue = option;
-                                  const isSelected = readingAnswers[pageIndex]?.[questionIndex] === optionValue;
+                                  const isSelected = readingAnswers[activePage]?.[questionIndex] === optionValue;
                                   
                                   return (
                                     <button
                                       key={optionIndex}
-                                      onClick={() => handleAnswerChange(pageIndex, questionIndex, optionValue)}
+                                      onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
                                       className={`w-full flex items-start gap-2 p-2 rounded ${
                                         isSelected 
                                           ? 'ring-2 ring-blue-500 font-medium' 
@@ -661,8 +737,8 @@ export default function ReadingLessonViewer() {
                             {question.type === 'open' && (
                               <div className="space-y-2">
                                 <textarea
-                                  value={readingAnswers[pageIndex]?.[questionIndex] || ''}
-                                  onChange={(e) => handleAnswerChange(pageIndex, questionIndex, e.target.value)}
+                                  value={readingAnswers[activePage]?.[questionIndex] || ''}
+                                  onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value)}
                                   placeholder="Skriv ditt svar här..."
                                   className="w-full p-3 border rounded-lg resize-none h-20"
                                   rows={3}
@@ -671,8 +747,58 @@ export default function ReadingLessonViewer() {
                             )}
                           </div>
                         );
-                      })
-                    ).flat()}
+                      });
+                    })()}
+                    
+                    {/* Phase 2: Show final comprehension questions when all reading questions are answered */}
+                    {areAllReadingQuestionsAnswered() && lesson.questions && lesson.questions.map((question, index) => (
+                      <div key={`final-${index}`} className="p-4 border-b pb-4 last:border-b-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
+                        </div>
+                        <h4 className="font-medium mb-3">
+                          {question.question}
+                        </h4>
+                        
+                        {question.type === 'multiple_choice' && question.options && (
+                          <div className="space-y-2">
+                            {question.options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                  {String.fromCharCode(65 + optionIndex)}
+                                </div>
+                                <span>{option}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {question.type === 'true_false' && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                S
+                              </div>
+                              <span>Sant</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                F
+                              </div>
+                              <span>Falskt</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {question.type === 'open_ended' && (
+                          <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
+                            <p className="text-sm text-muted-foreground">
+                              Skriv ditt svar här...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
