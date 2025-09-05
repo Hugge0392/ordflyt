@@ -14,8 +14,6 @@ interface AccessibilitySettings {
   fontFamily: 'standard' | 'dyslexia-friendly';
   contrast: 'normal' | 'high';
   backgroundColor: 'black-on-white' | 'light-gray-on-gray' | 'white-on-black' | 'black-on-light-yellow' | 'black-on-light-blue' | 'light-yellow-on-blue' | 'black-on-light-red';
-  wordSpacing: number;
-  letterSpacing: number;
 }
 
 const defaultSettings: AccessibilitySettings = {
@@ -24,8 +22,6 @@ const defaultSettings: AccessibilitySettings = {
   fontFamily: 'standard',
   contrast: 'normal',
   backgroundColor: 'black-on-white',
-  wordSpacing: 0,
-  letterSpacing: 0,
 };
 
 interface AccessibilitySidebarProps {
@@ -54,8 +50,8 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
           'black-light-blue': 'black-on-light-blue'
         };
         
-        if (parsedSettings.backgroundColor && colorMigrations[parsedSettings.backgroundColor]) {
-          parsedSettings.backgroundColor = colorMigrations[parsedSettings.backgroundColor];
+        if (parsedSettings.backgroundColor && colorMigrations[parsedSettings.backgroundColor as keyof typeof colorMigrations]) {
+          parsedSettings.backgroundColor = colorMigrations[parsedSettings.backgroundColor as keyof typeof colorMigrations];
         }
         
         setSettings({ ...defaultSettings, ...parsedSettings });
@@ -96,11 +92,6 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
       : 'system-ui, -apple-system, sans-serif';
     root.style.setProperty('--accessibility-font-family', fontFamily);
     
-    // Apply word spacing
-    root.style.setProperty('--accessibility-word-spacing', `${settings.wordSpacing}px`);
-    
-    // Apply letter spacing
-    root.style.setProperty('--accessibility-letter-spacing', `${settings.letterSpacing}px`);
     
     // Apply background and text colors
     const colorSchemes = {
@@ -131,9 +122,7 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
         settings.lineHeight !== defaultSettings.lineHeight ||
         settings.fontFamily !== defaultSettings.fontFamily ||
         settings.contrast !== defaultSettings.contrast ||
-        settings.backgroundColor !== defaultSettings.backgroundColor ||
-        settings.wordSpacing !== defaultSettings.wordSpacing ||
-        settings.letterSpacing !== defaultSettings.letterSpacing
+        settings.backgroundColor !== defaultSettings.backgroundColor
       );
     }
   };
@@ -248,37 +237,6 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
             </div>
           </div>
 
-          {/* Word Spacing */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              Ordavstånd: {settings.wordSpacing}px
-            </Label>
-            <Slider
-              value={[settings.wordSpacing]}
-              onValueChange={([value]) => updateSetting('wordSpacing', value)}
-              min={0}
-              max={8}
-              step={1}
-              className="w-full"
-              data-testid="slider-word-spacing"
-            />
-          </div>
-
-          {/* Letter Spacing */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              Teckenavstånd: {settings.letterSpacing}px
-            </Label>
-            <Slider
-              value={[settings.letterSpacing]}
-              onValueChange={([value]) => updateSetting('letterSpacing', value)}
-              min={0}
-              max={4}
-              step={0.5}
-              className="w-full"
-              data-testid="slider-letter-spacing"
-            />
-          </div>
 
           {/* Font Family */}
           <div className="space-y-2">

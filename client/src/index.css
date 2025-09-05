@@ -112,8 +112,6 @@
   --accessibility-font-size: 16px;
   --accessibility-line-height: 1.5;
   --accessibility-font-family: system-ui, -apple-system, sans-serif;
-  --accessibility-word-spacing: 0px;
-  --accessibility-letter-spacing: 0px;
   --accessibility-bg-color: #ffffff;
   --accessibility-text-color: inherit;
   --accessibility-border-color: inherit;
@@ -177,8 +175,6 @@
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
-  word-spacing: var(--accessibility-word-spacing) !important;
-  letter-spacing: var(--accessibility-letter-spacing) !important;
   color: var(--accessibility-text-color) !important;
   background-color: var(--accessibility-bg-color) !important;
 }
