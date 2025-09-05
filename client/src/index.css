@@ -109,7 +109,7 @@
   --emerald-400: hsl(159.7826 100% 36.0784%);
   
   /* Accessibility settings variables - will be overridden by JavaScript */
-  --accessibility-font-size: 16px;
+  --accessibility-font-size: 34px;
   --accessibility-line-height: 1.5;
   --accessibility-font-family: system-ui, -apple-system, sans-serif;
   --accessibility-bg-color: #ffffff;

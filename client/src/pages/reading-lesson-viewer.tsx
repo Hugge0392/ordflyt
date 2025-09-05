@@ -56,7 +56,7 @@ export default function ReadingLessonViewer() {
   
   // Accessibility settings state for focus mode
   const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 16,
+    fontSize: 34,
     backgroundColor: 'black-on-white' as const,
     fontFamily: 'standard' as const
   });
@@ -407,9 +407,9 @@ export default function ReadingLessonViewer() {
                               <Slider
                                 value={[accessibilitySettings.fontSize]}
                                 onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontSize: value[0] }))}
-                                min={12}
-                                max={24}
-                                step={1}
+                                min={16}
+                                max={60}
+                                step={2}
                                 className="mt-2"
                               />
                               <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.fontSize}px</div>

@@ -17,7 +17,7 @@ interface AccessibilitySettings {
 }
 
 const defaultSettings: AccessibilitySettings = {
-  fontSize: 16,
+  fontSize: 34,
   lineHeight: 1.5,
   fontFamily: 'standard',
   contrast: 'normal',
@@ -203,9 +203,9 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
             <Slider
               value={[settings.fontSize]}
               onValueChange={([value]) => updateSetting('fontSize', value)}
-              min={12}
-              max={36}
-              step={1}
+              min={16}
+              max={60}
+              step={2}
               className="w-full"
               data-testid="slider-font-size"
             />
