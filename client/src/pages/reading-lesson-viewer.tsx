@@ -223,7 +223,7 @@ export default function ReadingLessonViewer() {
   };
 
   // Handle answer changes for reading questions
-  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
+  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string, shouldAnimate: boolean = true) => {
     const questionKey = `${pageIndex}-${questionIndex}`;
     
     setReadingAnswers(prev => ({
@@ -234,66 +234,76 @@ export default function ReadingLessonViewer() {
       }
     }));
     
-    // Start collapse animation for this question
-    setAnimatingQuestions(prev => new Set([...prev, questionKey]));
-    
-    // Create flying animation to progress bar
-    setTimeout(() => {
-      const questionElement = document.querySelector(`[data-question-key="${questionKey}"]`);
-      const progressBar = document.querySelector('.progress-bar');
+    // Only trigger animation for multiple choice and true/false, not for open text while typing
+    if (shouldAnimate && answer && answer.trim().length > 0) {
+      // Start collapse animation for this question
+      setAnimatingQuestions(prev => new Set([...prev, questionKey]));
       
-      if (questionElement && progressBar) {
-        // Create a flying element
-        const flyingElement = document.createElement('div');
-        flyingElement.innerHTML = '✓';
-        flyingElement.className = 'fixed z-50 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold pointer-events-none';
+      // Create flying animation to progress bar
+      setTimeout(() => {
+        const questionElement = document.querySelector(`[data-question-key="${questionKey}"]`);
+        const progressBar = document.querySelector('.progress-bar');
         
-        const questionRect = questionElement.getBoundingClientRect();
-        const progressRect = progressBar.getBoundingClientRect();
-        
-        flyingElement.style.left = `${questionRect.left + questionRect.width / 2 - 16}px`;
-        flyingElement.style.top = `${questionRect.top + questionRect.height / 2 - 16}px`;
-        flyingElement.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        
-        document.body.appendChild(flyingElement);
-        
-        // Animate to progress bar
-        requestAnimationFrame(() => {
-          flyingElement.style.left = `${progressRect.right - 20}px`;
-          flyingElement.style.top = `${progressRect.top + progressRect.height / 2 - 16}px`;
-          flyingElement.style.transform = 'scale(0.5)';
-          flyingElement.style.opacity = '0';
+        if (questionElement && progressBar) {
+          // Create a flying element
+          const flyingElement = document.createElement('div');
+          flyingElement.innerHTML = '✓';
+          flyingElement.className = 'fixed z-50 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold pointer-events-none';
+          
+          const questionRect = questionElement.getBoundingClientRect();
+          const progressRect = progressBar.getBoundingClientRect();
+          
+          flyingElement.style.left = `${questionRect.left + questionRect.width / 2 - 16}px`;
+          flyingElement.style.top = `${questionRect.top + questionRect.height / 2 - 16}px`;
+          flyingElement.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+          
+          document.body.appendChild(flyingElement);
+          
+          // Animate to progress bar
+          requestAnimationFrame(() => {
+            flyingElement.style.left = `${progressRect.right - 20}px`;
+            flyingElement.style.top = `${progressRect.top + progressRect.height / 2 - 16}px`;
+            flyingElement.style.transform = 'scale(0.5)';
+            flyingElement.style.opacity = '0';
+          });
+          
+          // Clean up flying element
+          setTimeout(() => {
+            if (flyingElement.parentNode) {
+              flyingElement.parentNode.removeChild(flyingElement);
+            }
+          }, 800);
+        }
+      }, 200);
+      
+      setTimeout(() => {
+        // Collapse the question
+        setCollapsedQuestions(prev => new Set([...prev, questionKey]));
+        setAnimatingQuestions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(questionKey);
+          return newSet;
         });
         
-        // Clean up flying element
-        setTimeout(() => {
-          if (flyingElement.parentNode) {
-            flyingElement.parentNode.removeChild(flyingElement);
-          }
-        }, 800);
-      }
-    }, 200);
-    
-    setTimeout(() => {
-      // Collapse the question
-      setCollapsedQuestions(prev => new Set([...prev, questionKey]));
-      setAnimatingQuestions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(questionKey);
-        return newSet;
-      });
-      
-      // Auto-advance to next section if current page is completed
-      if (areAllQuestionsAnsweredForPage(pageIndex) && lesson?.pages && pageIndex < lesson.pages.length - 1) {
-        // Scroll to next page section smoothly
-        setTimeout(() => {
-          const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
-          if (nextPageElement) {
-            nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 500);
-      }
-    }, 600); // Animation duration
+        // Auto-advance to next section if current page is completed
+        if (areAllQuestionsAnsweredForPage(pageIndex) && lesson?.pages && pageIndex < lesson.pages.length - 1) {
+          // Scroll to next page section smoothly
+          setTimeout(() => {
+            const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
+            if (nextPageElement) {
+              nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 500);
+        }
+      }, 600); // Animation duration
+    }
+  };
+  
+  // Special handler for text inputs that only animates on blur (when user finishes typing)
+  const handleTextAnswerComplete = (pageIndex: number, questionIndex: number, answer: string) => {
+    if (answer && answer.trim().length > 0) {
+      handleAnswerChange(pageIndex, questionIndex, answer, true);
+    }
   };
   
   const expandQuestion = (pageIndex: number, questionIndex: number) => {
@@ -832,11 +842,13 @@ export default function ReadingLessonViewer() {
                                   <div className="space-y-2">
                                     <textarea
                                       value={readingAnswers[activePage]?.[questionIndex] || ''}
-                                      onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value)}
+                                      onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value, false)}
+                                      onBlur={(e) => handleTextAnswerComplete(activePage, questionIndex, e.target.value)}
                                       placeholder="Skriv ditt svar här..."
-                                      className="w-full p-3 border rounded-lg resize-none h-20"
+                                      className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-blue-500"
                                       rows={3}
                                     />
+                                    <p className="text-xs text-gray-500">Tryck utanför textfältet för att bekräfta ditt svar</p>
                                   </div>
                                 )}
                               </>
