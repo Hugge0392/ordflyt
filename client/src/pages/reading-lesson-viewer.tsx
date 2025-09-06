@@ -322,14 +322,14 @@ export default function ReadingLessonViewer() {
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
               <Card className="questionsPanel12-wrapper order-1 lg:order-1">
-                <CardHeader>
+                <CardHeader className="pb-2 px-3 pt-3">
                   <CardTitle className="text-lg">Frågor12</CardTitle>
                   <CardDescription>
                     Svara på frågorna från lektionen
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                <CardContent className="px-3 pb-3">
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
                     {/* Import questions from lesson.questions */}
                     {lesson.questions && lesson.questions.map((question, index) => {
                       
