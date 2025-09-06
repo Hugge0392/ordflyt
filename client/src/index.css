@@ -159,22 +159,24 @@
 @media screen and (max-width: 1024px) {
   /* iPad and smaller tablets */
   .reading-content.max-w-\[59vw\] {
-    max-width: 64vw !important;
+    max-width: 59vw !important;
   }
   
   .questions-card.w-\[23vw\] {
     width: 25vw !important;
+    right: 1rem !important;
   }
 }
 
 @media screen and (max-width: 768px) {
   /* Small tablets */
   .reading-content.max-w-\[59vw\] {
-    max-width: 69vw !important;
+    max-width: 55vw !important;
   }
   
   .questions-card.w-\[23vw\] {
     width: 28vw !important;
+    right: 1rem !important;
   }
 }
 
