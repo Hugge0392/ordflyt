@@ -566,9 +566,8 @@ export default function ReadingLessonViewer() {
             </Card>
 
             {/* Questions Panel for Normal Mode */}
-            {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
-              (lesson.questions && lesson.questions.length > 0)) && 
-              (
+            {!isFocusMode && ((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+              (lesson.questions && lesson.questions.length > 0)) && (
               <Card 
                 className="questions-card normal-mode md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
                 style={{ 
@@ -608,9 +607,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple-choice' && question.alternatives && (
+                          {question.type === 'multiple_choice' && question.options && (
                             <div className="space-y-2">
-                              {question.alternatives.map((option, optionIndex) => {
+                              {question.options.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
@@ -638,7 +637,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'true-false' && (
+                          {question.type === 'true_false' && (
                             <div className="space-y-2">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
@@ -668,7 +667,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open' && (
+                          {question.type === 'open_ended' && (
                             <div className="space-y-2">
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
@@ -735,6 +734,11 @@ export default function ReadingLessonViewer() {
               </Card>
             )}
 
+            {/* Questions Panel for Focus Mode */}
+            {isFocusMode && ((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+              (lesson.questions && lesson.questions.length > 0)) && (
+              <Card 
+                className="questions-card focus-mode fixed bottom-4 right-4 w-96 max-h-96 flex flex-col z-50"
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
                   color: accessibilityColors.textColor,
@@ -772,9 +776,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple-choice' && question.alternatives && (
+                          {question.type === 'multiple_choice' && question.options && (
                             <div className="space-y-2">
-                              {question.alternatives.map((option, optionIndex) => {
+                              {question.options.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
@@ -802,7 +806,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'true-false' && (
+                          {question.type === 'true_false' && (
                             <div className="space-y-2">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
@@ -832,7 +836,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open' && (
+                          {question.type === 'open_ended' && (
                             <div className="space-y-2">
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
