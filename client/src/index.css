@@ -233,18 +233,20 @@ div.reading-content.accessibility-enhanced.prose h6 {
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-track {
   background: transparent;
+  margin-left: 2px;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
   background-color: var(--accessibility-text-color);
   opacity: 0.4;
-  border-radius: 3px;
+  border-radius: 2px;
   border: none;
+  margin-left: 2px;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
