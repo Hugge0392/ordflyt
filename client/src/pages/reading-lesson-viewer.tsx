@@ -620,20 +620,26 @@ export default function ReadingLessonViewer() {
                                   <button
                                     key={optionIndex}
                                     onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-start gap-2 p-2 rounded ${
+                                    className={`w-full flex items-start gap-2 p-2 rounded border ${
                                       isSelected 
-                                        ? 'ring-2 ring-blue-500 font-medium' 
-                                        : ''
+                                        ? 'ring-2 ring-blue-500 font-medium bg-blue-50 border-blue-200' 
+                                        : 'bg-white border-gray-300 hover:bg-gray-50'
                                     }`}
+                                    style={{
+                                      backgroundColor: isSelected ? '#dbeafe' : '#ffffff',
+                                      color: '#000000',
+                                      borderColor: isSelected ? '#3b82f6' : '#d1d5db'
+                                    }}
                                   >
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
-                                      isSelected 
-                                        ? 'border-blue-500 bg-blue-500 text-white' 
-                                        : 'border-gray-400 bg-white text-black'
-                                    }`}>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0`}
+                                         style={{
+                                           borderColor: isSelected ? '#3b82f6' : '#6b7280',
+                                           backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                           color: isSelected ? '#ffffff' : '#000000'
+                                         }}>
                                       {optionValue}
                                     </div>
-                                    <span className="text-left">{option}</span>
+                                    <span className="text-left" style={{ color: '#000000' }}>{option}</span>
                                   </button>
                                 );
                               })}
@@ -650,20 +656,26 @@ export default function ReadingLessonViewer() {
                                   <button
                                     key={optionIndex}
                                     onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-start gap-2 p-2 rounded ${
+                                    className={`w-full flex items-start gap-2 p-2 rounded border ${
                                       isSelected 
-                                        ? 'ring-2 ring-blue-500 font-medium' 
-                                        : ''
+                                        ? 'ring-2 ring-blue-500 font-medium bg-blue-50 border-blue-200' 
+                                        : 'bg-white border-gray-300 hover:bg-gray-50'
                                     }`}
+                                    style={{
+                                      backgroundColor: isSelected ? '#dbeafe' : '#ffffff',
+                                      color: '#000000',
+                                      borderColor: isSelected ? '#3b82f6' : '#d1d5db'
+                                    }}
                                   >
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
-                                      isSelected 
-                                        ? 'border-blue-500 bg-blue-500 text-white' 
-                                        : 'border-gray-400 bg-white text-black'
-                                    }`}>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0`}
+                                         style={{
+                                           borderColor: isSelected ? '#3b82f6' : '#6b7280',
+                                           backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                           color: isSelected ? '#ffffff' : '#000000'
+                                         }}>
                                       {option.charAt(0)}
                                     </div>
-                                    <span className="text-left">{option}</span>
+                                    <span className="text-left" style={{ color: '#000000' }}>{option}</span>
                                   </button>
                                 );
                               })}
@@ -677,6 +689,11 @@ export default function ReadingLessonViewer() {
                                 onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
                                 placeholder="Skriv ditt svar här..."
                                 className="w-full p-3 border rounded-lg resize-none h-20"
+                                style={{
+                                  backgroundColor: '#ffffff',
+                                  color: '#000000',
+                                  borderColor: '#d1d5db'
+                                }}
                                 rows={3}
                               />
                             </div>
