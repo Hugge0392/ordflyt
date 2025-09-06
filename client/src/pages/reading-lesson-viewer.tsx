@@ -55,14 +55,10 @@ export default function ReadingLessonViewer() {
   const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
   
   // Accessibility settings state for focus mode
-  const [accessibilitySettings, setAccessibilitySettings] = useState<{
-    fontSize: number;
-    backgroundColor: 'black-on-white' | 'light-gray-on-gray' | 'white-on-black' | 'black-on-light-yellow' | 'black-on-light-blue' | 'light-yellow-on-blue' | 'black-on-light-red';
-    fontFamily: 'standard' | 'dyslexia-friendly';
-  }>({
+  const [accessibilitySettings, setAccessibilitySettings] = useState({
     fontSize: 44,
-    backgroundColor: 'black-on-white',
-    fontFamily: 'standard'
+    backgroundColor: 'black-on-white' as const,
+    fontFamily: 'standard' as const
   });
   
   // State for accessibility colors
@@ -367,7 +363,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'relative w-full h-screen' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className={`${isFocusMode ? 'relative w-full' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
@@ -375,11 +371,10 @@ export default function ReadingLessonViewer() {
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{
                 ...(isFocusMode ? {
-                  position: 'absolute' as const,
-                  left: showQuestionsInFocus ? '0px' : '50%',
-                  transform: showQuestionsInFocus ? 'none' : 'translateX(-50%)',
-                  top: '0px',
-                  zIndex: 10
+                  left: showQuestionsInFocus ? '0px !important' : '50%',
+                  transform: showQuestionsInFocus ? 'none !important' : 'translateX(-50%)',
+                  marginLeft: showQuestionsInFocus ? '0px !important' : 'auto',
+                  position: 'absolute !important' as any
                 } : {}),
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
@@ -632,7 +627,7 @@ export default function ReadingLessonViewer() {
             {/* Questions - Right Column */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              (!isFocusMode || (isFocusMode && showQuestionsInFocus)) && (
+              (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`questions-card ${isFocusMode 
                   ? 'absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col' 
@@ -674,9 +669,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' && question.options && (
+                          {question.type === 'multiple-choice' && question.alternatives && (
                             <div className="space-y-2">
-                              {question.options.map((option, optionIndex) => {
+                              {question.alternatives.map((option, optionIndex) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
@@ -704,7 +699,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'true_false' && (
+                          {question.type === 'true-false' && (
                             <div className="space-y-2">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
@@ -734,7 +729,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open_ended' && (
+                          {question.type === 'open' && (
                             <div className="space-y-2">
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
