@@ -531,18 +531,54 @@ export default function ReadingLessonViewer() {
                     <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
-                      className="pure-nav-button flex items-center gap-2"
+                      className="custom-nav-btn"
+                      style={{
+                        background: '#ffffff',
+                        color: '#000000',
+                        border: '1px solid #000000',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        cursor: isFirstQuestion ? 'not-allowed' : 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontFamily: 'system-ui, sans-serif',
+                        opacity: '1',
+                        filter: 'none',
+                        boxShadow: 'none',
+                        outline: 'none'
+                      }}
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft style={{ width: '16px', height: '16px' }} />
                       Tillbaka
                     </button>
 
                     <button
                       onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
-                      className="pure-nav-button flex items-center gap-2"
+                      className="custom-nav-btn"
+                      style={{
+                        background: '#ffffff',
+                        color: '#000000',
+                        border: '1px solid #000000',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontFamily: 'system-ui, sans-serif',
+                        opacity: '1',
+                        filter: 'none',
+                        boxShadow: 'none',
+                        outline: 'none'
+                      }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight style={{ width: '16px', height: '16px' }} />
                     </button>
                   </div>
                 </fieldset>

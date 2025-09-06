@@ -253,43 +253,32 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
-/* Pure HTML navigation buttons - completely custom styling */
-.pure-nav-button {
-  background: #fff;
-  color: #000;
-  border: 1px solid #000;
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.15s ease;
+/* Ultra forceful button styling that no CSS can override */
+.custom-nav-btn,
+.custom-nav-btn:hover,
+.custom-nav-btn:focus,
+.custom-nav-btn:active,
+.custom-nav-btn:disabled,
+.custom-nav-btn[disabled] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  border-color: #000000 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  background-gradient: none !important;
+  transform: none !important;
+  -webkit-filter: none !important;
+  -webkit-transform: none !important;
 }
 
-.pure-nav-button:hover {
-  background: #f8f8f8;
-  color: #000;
-  border-color: #000;
-}
-
-.pure-nav-button:focus {
-  outline: 2px solid #000;
-  outline-offset: 2px;
-}
-
-.pure-nav-button:disabled {
-  background: #fff;
-  color: #000;
-  border-color: #000;
-  opacity: 1;
-  filter: none;
-  cursor: not-allowed;
+/* Remove all Tailwind effects */
+.custom-nav-btn * {
+  color: inherit !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */
