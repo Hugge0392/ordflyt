@@ -896,7 +896,6 @@ export default function ReadingLessonViewer() {
                         {(() => {
                           // Use percentage-based positioning relative to text lines
                           const totalLines = textLines.length;
-                          const linePercent = 100 / totalLines;
                           
                           // Calculate top position (start of current line)
                           const topPercent = (currentReadingLine / totalLines) * 100;
@@ -908,34 +907,34 @@ export default function ReadingLessonViewer() {
                           const bottomPercent = 100 - (topPercent + windowHeightPercent);
                           
                           return (
-                            <>
-                              {/* Top dark overlay */}
-                              <div 
-                                className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                                style={{ 
-                                  height: `${topPercent}%`
-                                }}
-                              />
-                              
-                              {/* Bottom dark overlay */}
-                              <div 
-                                className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                                style={{ 
-                                  height: `${bottomPercent}%`
-                                }}
-                              />
-                              
-                              {/* Clear reading window with border */}
+                            <div 
+                              className="absolute inset-0 transition-all duration-300"
+                              style={{
+                                background: `linear-gradient(
+                                  to bottom,
+                                  rgba(0,0,0,0.85) 0%,
+                                  rgba(0,0,0,0.85) ${topPercent}%,
+                                  transparent ${topPercent}%,
+                                  transparent ${topPercent + windowHeightPercent}%,
+                                  rgba(0,0,0,0.85) ${topPercent + windowHeightPercent}%,
+                                  rgba(0,0,0,0.85) 100%
+                                )`,
+                                border: `2px solid transparent`,
+                                backgroundClip: 'padding-box'
+                              }}
+                            >
+                              {/* Border for the clear window */}
                               <div 
                                 className="absolute left-0 right-0 transition-all duration-300"
                                 style={{ 
                                   top: `${topPercent}%`,
                                   height: `${windowHeightPercent}%`,
                                   border: `2px solid ${accessibilityColors.textColor}`,
-                                  boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                                  boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`,
+                                  pointerEvents: 'none'
                                 }}
                               />
-                            </>
+                            </div>
                           );
                         })()}
                       </div>
