@@ -397,7 +397,7 @@ export default function ReadingLessonViewer() {
             {/* New Questions Panel - One Question at a Time */}
             {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
               <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
-                <fieldset 
+                <div 
                   className="border rounded-lg p-6"
                   style={{
                     backgroundColor: accessibilityColors.backgroundColor,
@@ -407,9 +407,9 @@ export default function ReadingLessonViewer() {
                     maxWidth: '720px'
                   } as React.CSSProperties}
                 >
-                  <legend className="px-3 text-lg font-semibold">
+                  <h3 className="text-lg font-semibold mb-4">
                     Frågor
-                  </legend>
+                  </h3>
 
                   {/* Progress indicator */}
                   <div className="mb-6">
@@ -586,7 +586,7 @@ export default function ReadingLessonViewer() {
                       <ChevronRight style={{ width: '16px', height: '16px' }} />
                     </button>
                   </div>
-                </fieldset>
+                </div>
               </div>
             )}
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
