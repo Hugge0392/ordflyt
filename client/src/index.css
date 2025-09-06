@@ -164,7 +164,6 @@
   
   .questions-card.w-\[23vw\] {
     width: 25vw !important;
-    left: calc(64vw + 2rem) !important;
   }
 }
 
@@ -176,7 +175,6 @@
   
   .questions-card.w-\[23vw\] {
     width: 28vw !important;
-    left: calc(69vw + 2rem) !important;
   }
 }
 
