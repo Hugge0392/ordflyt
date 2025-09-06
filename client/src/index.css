@@ -367,17 +367,15 @@ html .navigation-button * {
   border: 1px solid #CCCCCC !important;
 }
 
-/* Accessibility font size and line height overrides */
-.reading-content.accessibility-enhanced,
-.reading-content.accessibility-enhanced *,
+/* Accessibility font size and line height overrides - only for text content, not UI components */
 .reading-content.accessibility-enhanced p,
 .reading-content.accessibility-enhanced li,
 .reading-content.accessibility-enhanced h1,
 .reading-content.accessibility-enhanced h2,
 .reading-content.accessibility-enhanced h3,
 .reading-content.accessibility-enhanced h4,
-.reading-content.accessibility-enhanced span,
-.reading-content.accessibility-enhanced div {
+.reading-content.accessibility-enhanced span:not([class*="ui-"]):not([class*="button"]):not([role]):not([data-testid]),
+.reading-content.accessibility-enhanced div:not([class*="ui-"]):not([class*="button"]):not([class*="card"]):not([role]):not([data-testid]) {
   font-size: var(--reading-font-size) !important;
   line-height: var(--reading-line-height) !important;
 }

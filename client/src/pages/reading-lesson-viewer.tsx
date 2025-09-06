@@ -444,8 +444,10 @@ export default function ReadingLessonViewer() {
                   )}
 
                   <div 
-                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
+                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content"
                     style={{ 
+                      fontSize: `${accessibilitySettings.fontSize}px !important`,
+                      lineHeight: `${accessibilitySettings.lineHeight} !important`,
                       whiteSpace: 'pre-wrap', 
                       wordWrap: 'break-word',
                       fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
