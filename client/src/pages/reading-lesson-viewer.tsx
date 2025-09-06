@@ -611,72 +611,100 @@ export default function ReadingLessonViewer() {
                           </h4>
                           
                           {question.type === 'multiple_choice' && question.options && (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {question.options.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
                                 return (
-                                  <button
-                                    key={optionIndex}
-                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-start gap-2 p-2 rounded border ${
-                                      isSelected 
-                                        ? 'ring-2 ring-blue-500 font-medium bg-blue-50 border-blue-200' 
-                                        : 'bg-white border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                    style={{
-                                      backgroundColor: isSelected ? '#dbeafe' : '#ffffff',
-                                      color: '#000000',
-                                      borderColor: isSelected ? '#3b82f6' : '#d1d5db'
-                                    }}
-                                  >
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0`}
-                                         style={{
-                                           borderColor: isSelected ? '#3b82f6' : '#6b7280',
-                                           backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
-                                           color: isSelected ? '#ffffff' : '#000000'
-                                         }}>
-                                      {optionValue}
-                                    </div>
-                                    <span className="text-left" style={{ color: '#000000' }}>{option}</span>
-                                  </button>
+                                  <div key={optionIndex}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        console.log('Clicking option:', optionValue);
+                                        handleAnswerChange(currentPage, index, optionValue);
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '12px',
+                                        backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                        color: isSelected ? '#ffffff' : '#000000',
+                                        border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '16px'
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: '24px',
+                                        height: '24px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                                        color: isSelected ? '#3b82f6' : '#000000',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        flexShrink: '0'
+                                      }}>
+                                        {optionValue}
+                                      </span>
+                                      <span>{option}</span>
+                                    </button>
+                                  </div>
                                 );
                               })}
                             </div>
                           )}
                           
                           {question.type === 'true_false' && (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
                                 return (
-                                  <button
-                                    key={optionIndex}
-                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
-                                    className={`w-full flex items-start gap-2 p-2 rounded border ${
-                                      isSelected 
-                                        ? 'ring-2 ring-blue-500 font-medium bg-blue-50 border-blue-200' 
-                                        : 'bg-white border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                    style={{
-                                      backgroundColor: isSelected ? '#dbeafe' : '#ffffff',
-                                      color: '#000000',
-                                      borderColor: isSelected ? '#3b82f6' : '#d1d5db'
-                                    }}
-                                  >
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0`}
-                                         style={{
-                                           borderColor: isSelected ? '#3b82f6' : '#6b7280',
-                                           backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
-                                           color: isSelected ? '#ffffff' : '#000000'
-                                         }}>
-                                      {option.charAt(0)}
-                                    </div>
-                                    <span className="text-left" style={{ color: '#000000' }}>{option}</span>
-                                  </button>
+                                  <div key={optionIndex}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        console.log('Clicking true/false option:', optionValue);
+                                        handleAnswerChange(currentPage, index, optionValue);
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '12px',
+                                        backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                        color: isSelected ? '#ffffff' : '#000000',
+                                        border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '16px'
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: '24px',
+                                        height: '24px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                                        color: isSelected ? '#3b82f6' : '#000000',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        flexShrink: '0'
+                                      }}>
+                                        {option.charAt(0)}
+                                      </span>
+                                      <span>{option}</span>
+                                    </button>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -686,13 +714,22 @@ export default function ReadingLessonViewer() {
                             <div className="space-y-2">
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
-                                onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
+                                onChange={(e) => {
+                                  console.log('Text area changed:', e.target.value);
+                                  handleAnswerChange(currentPage, index, e.target.value);
+                                }}
                                 placeholder="Skriv ditt svar här..."
-                                className="w-full p-3 border rounded-lg resize-none h-20"
                                 style={{
+                                  width: '100%',
+                                  height: '80px',
+                                  padding: '12px',
                                   backgroundColor: '#ffffff',
                                   color: '#000000',
-                                  borderColor: '#d1d5db'
+                                  border: '2px solid #d1d5db',
+                                  borderRadius: '8px',
+                                  fontSize: '16px',
+                                  fontFamily: 'inherit',
+                                  resize: 'vertical'
                                 }}
                                 rows={3}
                               />
