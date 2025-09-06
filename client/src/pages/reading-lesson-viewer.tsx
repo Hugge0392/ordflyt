@@ -431,30 +431,6 @@ export default function ReadingLessonViewer() {
   return (
       <div className="min-h-screen bg-background relative">
         
-        {/* Full screen dark overlay when reading focus mode is active */}
-        {readingFocusMode && (
-          <div 
-            className="fixed inset-0 pointer-events-none z-40"
-            style={{
-              background: `
-                linear-gradient(to bottom, 
-                  rgba(0,0,0,0.85) 0%, 
-                  rgba(0,0,0,0.85) 12%, 
-                  transparent 12%, 
-                  transparent 88%, 
-                  rgba(0,0,0,0.85) 88%, 
-                  rgba(0,0,0,0.85) 100%),
-                linear-gradient(to right, 
-                  rgba(0,0,0,0.85) 0%, 
-                  rgba(0,0,0,0.85) 5%, 
-                  transparent 5%, 
-                  transparent 95%, 
-                  rgba(0,0,0,0.85) 95%, 
-                  rgba(0,0,0,0.85) 100%)
-              `
-            }}
-          ></div>
-        )}
         
         <div className="max-w-7xl mx-auto p-6">
           {/* Header */}
