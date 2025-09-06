@@ -905,6 +905,29 @@ export default function ReadingLessonViewer() {
                           </div>
                         </div>
                         
+                        {/* Full screen dark overlay using CSS to cut out the content area */}
+                        <div 
+                          className="fixed inset-0 pointer-events-none"
+                          style={{
+                            zIndex: -1,
+                            background: `
+                              linear-gradient(to bottom, 
+                                rgba(0,0,0,0.85) 0%, 
+                                rgba(0,0,0,0.85) 10%, 
+                                transparent 10%, 
+                                transparent 90%, 
+                                rgba(0,0,0,0.85) 90%, 
+                                rgba(0,0,0,0.85) 100%),
+                              linear-gradient(to right, 
+                                rgba(0,0,0,0.85) 0%, 
+                                rgba(0,0,0,0.85) 8%, 
+                                transparent 8%, 
+                                transparent 92%, 
+                                rgba(0,0,0,0.85) 92%, 
+                                rgba(0,0,0,0.85) 100%)
+                            `
+                          }}
+                        ></div>
                         
                         {/* Progress indicator at bottom */}
                         <div 
