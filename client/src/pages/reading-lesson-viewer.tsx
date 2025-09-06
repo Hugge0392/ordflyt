@@ -363,7 +363,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'relative flex justify-start items-start w-full' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className={`${isFocusMode ? `relative flex ${showQuestionsInFocus ? 'justify-start' : 'justify-center'} items-start w-full` : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
