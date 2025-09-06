@@ -527,7 +527,7 @@ export default function ReadingLessonViewer() {
                   )}
 
                   {/* Navigation buttons */}
-                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)', opacity: 0.2 }}>
+                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: '#000000', opacity: 0.2 }}>
                     <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
