@@ -528,42 +528,22 @@ export default function ReadingLessonViewer() {
 
                   {/* Navigation buttons */}
                   <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)', opacity: 0.2 }}>
-                    <Button
+                    <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
-                      variant="outline"
-                      className="flex items-center gap-2 question-nav-button"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#000000',
-                        border: '1px solid #000000',
-                        opacity: 1,
-                        filter: 'none',
-                        boxShadow: 'none'
-                      }}
+                      className="pure-nav-button flex items-center gap-2"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       Tillbaka
-                    </Button>
+                    </button>
 
-                    <Button
+                    <button
                       onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
-                      variant="outline"
-                      className="flex items-center gap-2 question-nav-button"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#000000',
-                        border: '1px solid #000000',
-                        opacity: 1,
-                        filter: 'none',
-                        boxShadow: 'none'
-                      }}
+                      className="pure-nav-button flex items-center gap-2"
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
                       <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    </button>
                   </div>
                 </fieldset>
               </div>

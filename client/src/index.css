@@ -253,45 +253,43 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
-/* Force black and white styling for question navigation buttons - ultra specific selectors */
-button.question-nav-button,
-.question-nav-button,
-[class*="question-nav-button"] {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  border: 1px solid #000000 !important;
-  border-color: #000000 !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  box-shadow: none !important;
+/* Pure HTML navigation buttons - completely custom styling */
+.pure-nav-button {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.15s ease;
 }
 
-button.question-nav-button:hover,
-.question-nav-button:hover,
-[class*="question-nav-button"]:hover {
-  background-color: #F8F8F8 !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
-  box-shadow: none !important;
+.pure-nav-button:hover {
+  background: #f8f8f8;
+  color: #000;
+  border-color: #000;
 }
 
-/* Viktigt: överskugga default disabled-grått med ultra specifika selektorer */
-button.question-nav-button:disabled,
-.question-nav-button:disabled,
-[class*="question-nav-button"]:disabled,
-button[disabled].question-nav-button,
-.question-nav-button[disabled] {
-  background-color: #FFFFFF !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
-  border: 1px solid #000000 !important;
-  opacity: 1 !important;       /* bibliotek sätter ofta 0.65 */
-  filter: none !important;      /* om någon satt grayscale */
-  cursor: not-allowed !important;
-  pointer-events: auto !important;
-  box-shadow: none !important;
-  background-image: none !important;
-  transform: none !important;
+.pure-nav-button:focus {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.pure-nav-button:disabled {
+  background: #fff;
+  color: #000;
+  border-color: #000;
+  opacity: 1;
+  filter: none;
+  cursor: not-allowed;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */
