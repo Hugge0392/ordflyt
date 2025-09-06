@@ -536,7 +536,7 @@ export default function ReadingLessonViewer() {
                       style={{
                         backgroundColor: '#FFFFFF',
                         color: '#000000',
-                        borderColor: '#CCCCCC'
+                        borderColor: '#000000'
                       }}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -550,7 +550,7 @@ export default function ReadingLessonViewer() {
                       style={{
                         backgroundColor: '#FFFFFF',
                         color: '#000000',
-                        borderColor: '#CCCCCC'
+                        borderColor: '#000000'
                       }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
