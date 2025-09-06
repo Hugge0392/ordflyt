@@ -403,10 +403,10 @@ button.navigation-button:active,
   border: 1px solid #CCCCCC !important;
 }
 
-/* Extra force to override shadcn Button hover styles */
+/* Extra force to override shadcn Button hover styles - only for navigation buttons */
 [data-testid*="button"]:hover,
 button[class*="navigation-button"]:hover,
-button[style*="backgroundColor"]:hover {
+.navigation-button[style*="backgroundColor"]:hover {
   background-color: #FFFFFF !important;
   background: #FFFFFF !important;
   border-color: #CCCCCC !important;
@@ -435,12 +435,12 @@ button[style*="backgroundColor"]:hover {
   border: 1px solid #CCCCCC !important;
 }
 
-/* Remove all hover effects from question answer buttons */
-.reading-lesson-viewer button:hover,
-.reading-lesson-viewer button:focus,
-.reading-lesson-viewer button:active {
+/* Remove hover effects only from navigation buttons in reading lesson viewer */
+.reading-lesson-viewer .navigation-button:hover,
+.reading-lesson-viewer .navigation-button:focus,
+.reading-lesson-viewer .navigation-button:active {
   opacity: 1 !important;
-  background-color: initial !important;
+  background-color: #FFFFFF !important;
   transform: none !important;
   transition: none !important;
 }

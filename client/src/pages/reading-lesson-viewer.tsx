@@ -11,31 +11,6 @@ import { Label } from "@/components/ui/label";
 import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, Settings } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
-// Simple markdown-to-HTML converter for displaying lesson content
-function formatMarkdownToHTML(text: string): string {
-  let html = text;
-  
-  // Convert headings - only at start of line followed by space
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
-  // Convert bold (**text**) - must have content between
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert italic (*text*) - must have content between and not interfere with bold
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  
-  // Don't convert line breaks - let CSS handle with pre-wrap
-  
-  // Convert bullet points - only at start of line
-  html = html.replace(/^- (.+)$/gm, '<ul><li>$1</li></ul>');
-  
-  // Clean up consecutive ul tags
-  html = html.replace(/<\/ul>\s*<ul>/g, '');
-  
-  return html;
-}
 
 interface HoveredWord {
   word: string;
