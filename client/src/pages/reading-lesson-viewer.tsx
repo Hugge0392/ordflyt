@@ -371,8 +371,10 @@ export default function ReadingLessonViewer() {
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{
                 ...(isFocusMode ? {
-                  left: showQuestionsInFocus ? '0' : '50%',
-                  transform: showQuestionsInFocus ? 'none' : 'translateX(-50%)'
+                  left: showQuestionsInFocus ? '0px !important' : '50%',
+                  transform: showQuestionsInFocus ? 'none !important' : 'translateX(-50%)',
+                  marginLeft: showQuestionsInFocus ? '0px !important' : 'auto',
+                  position: 'absolute !important' as any
                 } : {}),
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
