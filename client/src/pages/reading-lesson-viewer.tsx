@@ -797,7 +797,7 @@ export default function ReadingLessonViewer() {
               (lesson.questions && lesson.questions.length > 0)) && 
               isFocusMode && showQuestionsInFocus && (
               <Card 
-                className="questions-card focus-mode absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
+                className="questions-card focus-mode absolute left-[calc(59vw+2rem)] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
                   color: accessibilityColors.textColor,

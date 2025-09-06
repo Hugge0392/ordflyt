@@ -176,7 +176,7 @@
   
   .questions-card.focus-mode {
     width: 25vw !important;
-    right: 1rem !important;
+    left: calc(59vw + 2rem) !important;
   }
 }
 
@@ -190,7 +190,7 @@
   
   .questions-card.focus-mode {
     width: 28vw !important;
-    right: 1rem !important;
+    left: calc(55vw + 2rem) !important;
   }
 }
 
