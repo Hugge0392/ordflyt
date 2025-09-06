@@ -873,9 +873,10 @@ export default function ReadingLessonViewer() {
                       const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
                       const windowHeight = lineHeight * readingFocusLines;
                       
-                      // Position the window centered on the current line
-                      const currentLineTopPosition = getTextLinePosition(currentReadingLine);
-                      const windowTopPosition = currentLineTopPosition;
+                      // Add offset to account for content above text and center the window
+                      const textStartOffset = 20; // Small offset for the text area padding
+                      const currentLinePosition = textStartOffset + (currentReadingLine * lineHeight);
+                      const windowTopPosition = currentLinePosition - (windowHeight / 2) + (lineHeight / 2);
                       
                       return (
                         <>
@@ -883,7 +884,7 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
                             style={{ 
-                              height: `${windowTopPosition}px`
+                              height: `${Math.max(0, windowTopPosition)}px`
                             }}
                           />
                           
@@ -896,12 +897,14 @@ export default function ReadingLessonViewer() {
                             }}
                           />
                           
-                          {/* Clear reading window with border */}
+                          {/* Clear reading window with border - only width of text area */}
                           <div 
-                            className="absolute left-0 right-0 transition-all duration-300"
+                            className="absolute transition-all duration-300"
                             style={{ 
                               top: `${windowTopPosition}px`,
                               height: `${windowHeight}px`,
+                              left: '0px',
+                              right: '0px',
                               border: `2px solid ${accessibilityColors.textColor}`,
                               boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
                             }}
