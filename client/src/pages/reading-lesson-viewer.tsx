@@ -490,13 +490,13 @@ export default function ReadingLessonViewer() {
           )}
 
 
-          {/* Main Content */}
-          <div className={`${isFocusMode ? 'flex justify-center gap-6 items-start' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
-            {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
+          {/* Main Content - Full Width */}
+          <div className={`${isFocusMode ? 'flex justify-center items-start' : 'flex justify-center'} mb-6`}>
+            {/* Main Content - Full Width */}
             <Card 
               className={`${isFocusMode 
-                ? 'w-full max-w-5xl transition-all duration-300' 
-                : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
+                ? 'w-full max-w-6xl transition-all duration-300' 
+                : 'w-full max-w-6xl'} reading-content`}
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
@@ -616,10 +616,11 @@ export default function ReadingLessonViewer() {
               <CardContent className="relative">
                 <div className="space-y-6">
 
-                  {/* All pages in continuous scroll */}
+                  {/* All pages in continuous scroll with embedded questions */}
                   {pages.map((pageContent, pageIndex) => {
                     const isPageUnlocked = pageIndex === 0 || areAllQuestionsAnsweredForPage(pageIndex - 1);
                     const shouldShowBlurred = !isPageUnlocked && pageIndex > 0;
+                    const pageQuestions = lesson?.pages?.[pageIndex]?.questions || [];
                     
                     return (
                       <div key={pageIndex} className="relative" data-page-index={pageIndex}>
@@ -633,6 +634,173 @@ export default function ReadingLessonViewer() {
                           onMouseOver={shouldShowBlurred ? undefined : handleContentMouseOver}
                           onMouseOut={shouldShowBlurred ? undefined : handleContentMouseOut}
                         />
+                        
+                        {/* Page Questions - Embedded directly after page content */}
+                        {pageQuestions.length > 0 && !shouldShowBlurred && (
+                          <div className="mt-8 mb-6 p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-xl font-bold text-blue-800">Frågor för Avsnitt {pageIndex + 1}</h3>
+                              <div className="text-sm text-blue-600">
+                                {pageQuestions.filter((_, qIndex) => readingAnswers[pageIndex]?.[qIndex]?.trim()).length} av {pageQuestions.length} besvarade
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-6">
+                              {pageQuestions.map((question, questionIndex) => {
+                                const isAnswered = !!(readingAnswers[pageIndex]?.[questionIndex]?.trim());
+                                const questionKey = `${pageIndex}-${questionIndex}`;
+                                const isCollapsed = collapsedQuestions.has(questionKey);
+                                const isAnimating = animatingQuestions.has(questionKey);
+                                
+                                return (
+                                  <div 
+                                    key={`reading-${pageIndex}-${questionIndex}`} 
+                                    data-question-key={questionKey}
+                                    className={`border-b pb-4 last:border-b-0 transition-all duration-600 ease-in-out ${
+                                      isAnimating ? 'animate-pulse scale-95 ring-4 ring-green-300' : ''
+                                    } ${isCollapsed ? 'p-2' : 'p-4'} bg-white rounded-lg`}
+                                    style={{
+                                      maxHeight: isCollapsed ? '60px' : '1000px',
+                                      overflow: 'hidden'
+                                    }}
+                                  >
+                                    {isCollapsed ? (
+                                      // Collapsed view
+                                      <div 
+                                        className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                        onClick={() => expandQuestion(pageIndex, questionIndex)}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="default" className="text-xs bg-green-500">✓</Badge>
+                                          <span className="text-sm font-medium text-green-700">
+                                            Fråga {questionIndex + 1} - Ändra ditt svar
+                                          </span>
+                                        </div>
+                                        <ChevronDown className="w-4 h-4 text-green-600" />
+                                      </div>
+                                    ) : (
+                                      // Expanded view
+                                      <>
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h4 className="font-bold text-lg">
+                                            Uppgift {questionIndex + 1}
+                                          </h4>
+                                          {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                                        </div>
+                                        <h5 className="font-medium mb-3">
+                                          {question.question}
+                                        </h5>
+                                        
+                                        {question.type === 'multiple-choice' && question.alternatives && (
+                                          <div className="space-y-2">
+                                            {question.alternatives.map((option, optionIndex) => {
+                                              const optionValue = String.fromCharCode(65 + optionIndex);
+                                              const isSelected = readingAnswers[pageIndex]?.[questionIndex] === optionValue;
+                                              
+                                              return (
+                                                <button
+                                                  key={optionIndex}
+                                                  onClick={() => {
+                                                    // Auto-save active text question before answering multiple choice
+                                                    if (activeTextQuestion) {
+                                                      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                      if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                        setActiveTextQuestion(null);
+                                                        handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                      }
+                                                    }
+                                                    handleAnswerChange(pageIndex, questionIndex, optionValue);
+                                                  }}
+                                                  className={`w-full flex items-start gap-2 p-2 rounded ${
+                                                    isSelected 
+                                                      ? 'ring-2 ring-blue-500 font-medium' 
+                                                      : ''
+                                                  }`}
+                                                >
+                                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                                    isSelected 
+                                                      ? 'border-blue-500 bg-blue-500 text-white' 
+                                                      : 'border-gray-400 bg-white text-black'
+                                                  }`}>
+                                                    {optionValue}
+                                                  </div>
+                                                  <span className="text-left">{option}</span>
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                        
+                                        {question.type === 'true-false' && (
+                                          <div className="space-y-2">
+                                            {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                              const optionValue = option;
+                                              const isSelected = readingAnswers[pageIndex]?.[questionIndex] === optionValue;
+                                              
+                                              return (
+                                                <button
+                                                  key={optionIndex}
+                                                  onClick={() => {
+                                                    // Auto-save active text question before answering true/false
+                                                    if (activeTextQuestion) {
+                                                      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                      if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                        setActiveTextQuestion(null);
+                                                        handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                      }
+                                                    }
+                                                    handleAnswerChange(pageIndex, questionIndex, optionValue);
+                                                  }}
+                                                  className={`w-full flex items-start gap-2 p-2 rounded ${
+                                                    isSelected 
+                                                      ? 'ring-2 ring-blue-500 font-medium' 
+                                                      : ''
+                                                  }`}
+                                                >
+                                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                                    isSelected 
+                                                      ? 'border-blue-500 bg-blue-500 text-white' 
+                                                      : 'border-gray-400 bg-white text-black'
+                                                  }`}>
+                                                    {option.charAt(0)}
+                                                  </div>
+                                                  <span className="text-left">{option}</span>
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                        
+                                        {question.type === 'open' && (
+                                          <div className="space-y-3">
+                                            <textarea
+                                              value={readingAnswers[pageIndex]?.[questionIndex] || ''}
+                                              onChange={(e) => handleAnswerChange(pageIndex, questionIndex, e.target.value, false)}
+                                              onFocus={() => handleTextFieldFocus(pageIndex, questionIndex)}
+                                              placeholder="Skriv ditt svar här..."
+                                              className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-blue-500"
+                                              rows={3}
+                                            />
+                                            {readingAnswers[pageIndex]?.[questionIndex] && readingAnswers[pageIndex][questionIndex].trim().length > 0 && (
+                                              <button
+                                                onClick={() => handleTextAnswerComplete(pageIndex, questionIndex)}
+                                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                                              >
+                                                Spara
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Paywall overlay for locked pages */}
                         {shouldShowBlurred && (
@@ -656,6 +824,175 @@ export default function ReadingLessonViewer() {
                       </div>
                     );
                   })}
+
+                  
+                  {/* Final Comprehension Questions - Only shown when all reading questions are answered */}
+                  {areAllReadingQuestionsAnswered() && lesson.questions && lesson.questions.length > 0 && (
+                    <div className="mt-12 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="text-2xl">🎆</div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-green-800">Slutfrågor om hela texten</h3>
+                          <p className="text-green-600">Nu när du har läst hela texten, svara på dessa frågor om din förståelse</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        {lesson.questions.map((question, questionIndex) => {
+                          const globalQuestionKey = `final-${questionIndex}`;
+                          const isAnswered = !!(readingAnswers[-1]?.[questionIndex]?.trim()); // Use -1 for final questions
+                          const isCollapsed = collapsedQuestions.has(globalQuestionKey);
+                          const isAnimating = animatingQuestions.has(globalQuestionKey);
+                          
+                          return (
+                            <div 
+                              key={`final-${questionIndex}`} 
+                              data-question-key={globalQuestionKey}
+                              className={`border-b pb-4 last:border-b-0 transition-all duration-600 ease-in-out ${
+                                isAnimating ? 'animate-pulse scale-95 ring-4 ring-green-300' : ''
+                              } ${isCollapsed ? 'p-2' : 'p-4'} bg-white rounded-lg shadow-sm`}
+                              style={{
+                                maxHeight: isCollapsed ? '60px' : '1000px',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {isCollapsed ? (
+                                // Collapsed view
+                                <div 
+                                  className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                  onClick={() => expandQuestion(-1, questionIndex)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="default" className="text-xs bg-green-500">✓</Badge>
+                                    <span className="text-sm font-medium text-green-700">
+                                      Slutfråga {questionIndex + 1} - Ändra ditt svar
+                                    </span>
+                                  </div>
+                                  <ChevronDown className="w-4 h-4 text-green-600" />
+                                </div>
+                              ) : (
+                                // Expanded view
+                                <>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-bold text-lg text-green-800">
+                                      Slutfråga {questionIndex + 1}
+                                    </h4>
+                                    {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                                  </div>
+                                  <h5 className="font-medium mb-3">
+                                    {question.question}
+                                  </h5>
+                                  
+                                  {question.type === 'multiple-choice' && question.alternatives && (
+                                    <div className="space-y-2">
+                                      {question.alternatives.map((option, optionIndex) => {
+                                        const optionValue = String.fromCharCode(65 + optionIndex);
+                                        const isSelected = readingAnswers[-1]?.[questionIndex] === optionValue;
+                                        
+                                        return (
+                                          <button
+                                            key={optionIndex}
+                                            onClick={() => {
+                                              // Auto-save active text question before answering multiple choice
+                                              if (activeTextQuestion) {
+                                                const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                  setActiveTextQuestion(null);
+                                                  handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                }
+                                              }
+                                              handleAnswerChange(-1, questionIndex, optionValue);
+                                            }}
+                                            className={`w-full flex items-start gap-2 p-2 rounded ${
+                                              isSelected 
+                                                ? 'ring-2 ring-green-500 font-medium bg-green-50' 
+                                                : ''
+                                            }`}
+                                          >
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                              isSelected 
+                                                ? 'border-green-500 bg-green-500 text-white' 
+                                                : 'border-gray-400 bg-white text-black'
+                                            }`}>
+                                              {optionValue}
+                                            </div>
+                                            <span className="text-left">{option}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {question.type === 'true-false' && (
+                                    <div className="space-y-2">
+                                      {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                        const optionValue = option;
+                                        const isSelected = readingAnswers[-1]?.[questionIndex] === optionValue;
+                                        
+                                        return (
+                                          <button
+                                            key={optionIndex}
+                                            onClick={() => {
+                                              // Auto-save active text question before answering true/false
+                                              if (activeTextQuestion) {
+                                                const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                  setActiveTextQuestion(null);
+                                                  handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                }
+                                              }
+                                              handleAnswerChange(-1, questionIndex, optionValue);
+                                            }}
+                                            className={`w-full flex items-start gap-2 p-2 rounded ${
+                                              isSelected 
+                                                ? 'ring-2 ring-green-500 font-medium bg-green-50' 
+                                                : ''
+                                            }`}
+                                          >
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                              isSelected 
+                                                ? 'border-green-500 bg-green-500 text-white' 
+                                                : 'border-gray-400 bg-white text-black'
+                                            }`}>
+                                              {option.charAt(0)}
+                                            </div>
+                                            <span className="text-left">{option}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {question.type === 'open' && (
+                                    <div className="space-y-3">
+                                      <textarea
+                                        value={readingAnswers[-1]?.[questionIndex] || ''}
+                                        onChange={(e) => handleAnswerChange(-1, questionIndex, e.target.value, false)}
+                                        onFocus={() => handleTextFieldFocus(-1, questionIndex)}
+                                        placeholder="Skriv ditt svar här..."
+                                        className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-green-500"
+                                        rows={3}
+                                      />
+                                      {readingAnswers[-1]?.[questionIndex] && readingAnswers[-1][questionIndex].trim().length > 0 && (
+                                        <button
+                                          onClick={() => handleTextAnswerComplete(-1, questionIndex)}
+                                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                                        >
+                                          Spara
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                 </div>
                 
