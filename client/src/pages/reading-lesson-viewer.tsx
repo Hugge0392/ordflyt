@@ -345,6 +345,19 @@ export default function ReadingLessonViewer() {
                             </div>
                             
                             <div>
+                              <Label className="text-sm font-medium">Radavstånd</Label>
+                              <Slider
+                                value={[accessibilitySettings.lineHeight]}
+                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, lineHeight: value[0] }))}
+                                min={1.0}
+                                max={3.0}
+                                step={0.1}
+                                className="mt-2"
+                              />
+                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.lineHeight.toFixed(1)}</div>
+                            </div>
+                            
+                            <div>
                               <Label className="text-sm font-medium">Bakgrundsfärg</Label>
                               <Select
                                 value={accessibilitySettings.backgroundColor}
@@ -363,19 +376,6 @@ export default function ReadingLessonViewer() {
                                   <SelectItem value="black-on-light-red">Svart på ljusröd</SelectItem>
                                 </SelectContent>
                               </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Radavstånd</Label>
-                              <Slider
-                                value={[accessibilitySettings.lineHeight]}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, lineHeight: value[0] }))}
-                                min={1.0}
-                                max={3.0}
-                                step={0.1}
-                                className="mt-2"
-                              />
-                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.lineHeight.toFixed(1)}</div>
                             </div>
                             
                             <div>
