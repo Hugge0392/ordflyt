@@ -865,53 +865,43 @@ export default function ReadingLessonViewer() {
                     }}
                   >
                     {readingFocusMode ? (
-                      <div>
-                        {/* Dark background overlay */}
-                        <div 
-                          className="fixed inset-0 bg-black bg-opacity-85 z-10"
-                          style={{ pointerEvents: 'none' }}
+                      <div className="relative">
+                        {/* Keep original text but with reading ruler overlay */}
+                        <div
+                          dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                          onMouseOver={handleContentMouseOver}
+                          onMouseOut={handleContentMouseOut}
                         />
                         
-                        {/* Text with line separators */}
-                        <div className="relative z-20">
-                          {textLines.map((line, index) => {
-                            const isHighlighted = index >= currentReadingLine && index < currentReadingLine + readingFocusLines;
-                            
-                            return (
-                              <div 
-                                key={index}
-                                data-reading-line={index}
-                                className={`transition-all duration-300 relative py-2 ${
-                                  isHighlighted 
-                                    ? 'opacity-100 z-30' 
-                                    : 'opacity-20'
-                                }`}
-                                style={{
-                                  backgroundColor: isHighlighted ? accessibilityColors.backgroundColor : 'transparent',
-                                  color: isHighlighted ? accessibilityColors.textColor : 'inherit',
-                                  margin: '8px 0',
-                                  padding: '12px 16px',
-                                  borderRadius: '8px',
-                                  border: isHighlighted ? `2px solid ${accessibilityColors.textColor}` : '2px solid transparent',
-                                  position: 'relative',
-                                  zIndex: isHighlighted ? 30 : 'auto'
-                                }}
-                              >
-                                {line}
-                                
-                                {/* Line separator after highlighted lines */}
-                                {isHighlighted && index < currentReadingLine + readingFocusLines - 1 && index < textLines.length - 1 && (
-                                  <div 
-                                    className="absolute bottom-0 left-4 right-4 h-px"
-                                    style={{ 
-                                      backgroundColor: accessibilityColors.textColor,
-                                      opacity: 0.3
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
+                        {/* Reading ruler overlay - dark masks with clear window */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          {/* Top dark overlay */}
+                          <div 
+                            className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              height: `${(currentReadingLine / textLines.length) * 100}%`
+                            }}
+                          />
+                          
+                          {/* Bottom dark overlay */}
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
+                            }}
+                          />
+                          
+                          {/* Clear reading window with border */}
+                          <div 
+                            className="absolute left-0 right-0 transition-all duration-300"
+                            style={{ 
+                              top: `${(currentReadingLine / textLines.length) * 100}%`,
+                              height: `${(readingFocusLines / textLines.length) * 100}%`,
+                              border: `2px solid ${accessibilityColors.textColor}`,
+                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                            }}
+                          />
+                        </div>
                           
                           {/* Progress indicator at bottom */}
                           <div 
