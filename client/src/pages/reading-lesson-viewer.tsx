@@ -345,10 +345,10 @@ export default function ReadingLessonViewer() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {}}
+                          onClick={() => setShowQuestions(v => !v)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
-                          Visa frågor
+                          {showQuestions ? 'Dölj frågor' : 'Visa frågor'}
                         </Button>
                       )}
                       
@@ -576,7 +576,7 @@ export default function ReadingLessonViewer() {
             </Card>
 
             {/* Questions Panel */}
-            {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+            {showQuestions && ((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && (
               <Card 
                 className="questions-card md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
