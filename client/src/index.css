@@ -229,7 +229,7 @@ div.reading-content.accessibility-enhanced.prose h6 {
 /* Custom minimalistic scrollbar for questions panel */
 .space-y-3.max-h-\[60vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--accessibility-text-color) transparent;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar {
@@ -241,13 +241,14 @@ div.reading-content.accessibility-enhanced.prose h6 {
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--accessibility-text-color);
+  opacity: 0.4;
   border-radius: 3px;
   border: none;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  opacity: 0.7;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */
