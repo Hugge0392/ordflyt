@@ -73,6 +73,10 @@
   --secondary: hsl(159.7826 100% 36.0784%);
   --secondary-foreground: hsl(0 0% 100%);
   --muted: hsl(240 1.9608% 90%);
+  
+  /* Accessibility variables */
+  --reading-font-size: 34px;
+  --reading-line-height: 1.8;
   --muted-foreground: hsl(210 25% 7.8431%);
   --accent: hsl(43.2432 96.0526% 56.2745%);
   --accent-foreground: hsl(0 0% 100%);
@@ -361,6 +365,21 @@ html .navigation-button * {
   color: #000000 !important;
   border-color: #CCCCCC !important;
   border: 1px solid #CCCCCC !important;
+}
+
+/* Accessibility font size and line height overrides */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced *,
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2,
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced span,
+.reading-content.accessibility-enhanced div {
+  font-size: var(--reading-font-size) !important;
+  line-height: var(--reading-line-height) !important;
 }
 
 /* Remove all hover effects from navigation buttons - use highest specificity */

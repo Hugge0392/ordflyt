@@ -95,6 +95,29 @@ export default function ReadingLessonViewer() {
     return () => observer.disconnect();
   }, []);
 
+  // Update accessibility settings in CSS variables
+  useEffect(() => {
+    const bgColorMap = {
+      'black-on-white': { bg: '#FFFFFF', text: '#000000' },
+      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
+      'white-on-black': { bg: '#000000', text: '#FFFFFF' },
+      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
+      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
+      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
+      'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
+    };
+    
+    const colors = bgColorMap[accessibilitySettings.backgroundColor];
+    
+    const root = document.documentElement;
+    root.style.setProperty('--accessibility-bg-color', colors.bg);
+    root.style.setProperty('--accessibility-text-color', colors.text);
+    
+    // Update font size and line height CSS variables
+    root.style.setProperty('--reading-font-size', `${accessibilitySettings.fontSize}px`);
+    root.style.setProperty('--reading-line-height', accessibilitySettings.lineHeight.toString());
+  }, [accessibilitySettings]);
+
 
 
   // Create interactive content with word definitions
@@ -421,10 +444,8 @@ export default function ReadingLessonViewer() {
                   )}
 
                   <div 
-                    className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
+                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
                     style={{ 
-                      fontSize: `${accessibilitySettings.fontSize}px`, 
-                      lineHeight: accessibilitySettings.lineHeight, 
                       whiteSpace: 'pre-wrap', 
                       wordWrap: 'break-word',
                       fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
