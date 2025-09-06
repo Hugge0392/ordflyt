@@ -594,6 +594,7 @@ export default function ReadingLessonViewer() {
               style={{
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
+                borderColor: 'var(--accessibility-text-color)',
                 '--card-text-color': accessibilityColors.textColor
               } as React.CSSProperties}
             >
