@@ -905,6 +905,21 @@ export default function ReadingLessonViewer() {
                           </div>
                         </div>
                         
+                        {/* Full-screen dark overlay for everything outside the reading area */}
+                        <div className="fixed inset-0 pointer-events-none z-10 bg-black bg-opacity-85">
+                          {/* Central clear area for the main content */}
+                          <div 
+                            className="absolute bg-transparent"
+                            style={{
+                              top: '10vh',
+                              bottom: '10vh', 
+                              left: '5vw',
+                              right: '5vw',
+                              background: accessibilityColors.backgroundColor
+                            }}
+                          />
+                        </div>
+                        
                         {/* Progress indicator at bottom */}
                         <div 
                           className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
