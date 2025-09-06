@@ -241,7 +241,7 @@ export default function ReadingLessonViewer() {
     return allQuestions;
   };
 
-  const allQuestions = getAllQuestions();
+  const allQuestions = useMemo(() => getAllQuestions(), [lesson]);
   const totalQuestions = allQuestions.length;
 
   // Navigation functions for questions
@@ -264,6 +264,14 @@ export default function ReadingLessonViewer() {
   const isCurrentQuestionAnswered = useMemo(() => {
     return currentAnswer.trim().length > 0;
   }, [currentAnswer]);
+
+  // Calculate progress percentage
+  const progressPercentage = useMemo(() => {
+    const answeredQuestions = Object.keys(questionsPanel12Answers).filter(key => 
+      questionsPanel12Answers[parseInt(key)]?.trim().length > 0
+    ).length;
+    return (answeredQuestions / totalQuestions) * 100;
+  }, [questionsPanel12Answers, totalQuestions]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
@@ -421,12 +429,7 @@ export default function ReadingLessonViewer() {
                       <div 
                         className="h-2 rounded-full transition-all duration-300"
                         style={{ 
-                          width: `${useMemo(() => {
-                            const answeredQuestions = Object.keys(questionsPanel12Answers).filter(key => 
-                              questionsPanel12Answers[parseInt(key)]?.trim().length > 0
-                            ).length;
-                            return (answeredQuestions / totalQuestions) * 100;
-                          }, [questionsPanel12Answers, totalQuestions])}%`,
+                          width: `${progressPercentage}%`,
                           backgroundColor: 'var(--accessibility-text-color)',
                           opacity: 0.8
                         }}
