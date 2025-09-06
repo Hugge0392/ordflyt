@@ -326,6 +326,20 @@ export default function ReadingLessonViewer() {
     }
   }, [pages, currentPage]);
 
+  // Auto-scroll to current reading line in focus mode
+  useEffect(() => {
+    if (readingFocusMode && textLines.length > 0) {
+      const currentLineElement = document.querySelector(`[data-reading-line="${currentReadingLine}"]`);
+      if (currentLineElement) {
+        currentLineElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+      }
+    }
+  }, [currentReadingLine, readingFocusMode, textLines.length]);
+
   // Keyboard navigation for reading focus mode
   useEffect(() => {
     if (!readingFocusMode) return;
@@ -866,6 +880,7 @@ export default function ReadingLessonViewer() {
                             return (
                               <div 
                                 key={index}
+                                data-reading-line={index}
                                 className={`transition-all duration-300 relative py-2 ${
                                   isHighlighted 
                                     ? 'opacity-100 z-30' 
