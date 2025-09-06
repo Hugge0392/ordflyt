@@ -827,13 +827,14 @@ export default function ReadingLessonViewer() {
                             </h4>
 
                             {question.type === 'multiple_choice' && question.options && (
-                              <div className="space-y-3">
+                              <div className="space-y-4">
+                                <p className="text-sm font-medium text-gray-700 mb-3">Välj det rätta svaret:</p>
                                 {question.options.map((option: string, optionIndex: number) => {
                                   const optionValue = String.fromCharCode(65 + optionIndex);
                                   const isSelected = generalAnswers[index] === optionValue;
 
                                   return (
-                                    <div key={optionIndex}>
+                                    <div key={optionIndex} className="answer-option">
                                       <button
                                         type="button"
                                         onClick={() => handleGeneralAnswerChange(index, optionValue)}
@@ -841,31 +842,58 @@ export default function ReadingLessonViewer() {
                                           width: '100%',
                                           display: 'flex',
                                           alignItems: 'center',
-                                          gap: '12px',
-                                          padding: '12px',
-                                          backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
-                                          color: isSelected ? '#ffffff' : '#000000',
-                                          border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
-                                          borderRadius: '8px',
+                                          gap: '16px',
+                                          padding: '16px 20px',
+                                          backgroundColor: isSelected ? '#3b82f6' : '#f8fafc',
+                                          color: isSelected ? '#ffffff' : '#1e293b',
+                                          border: '3px solid ' + (isSelected ? '#3b82f6' : '#cbd5e1'),
+                                          borderRadius: '12px',
                                           cursor: 'pointer',
-                                          fontSize: '16px'
+                                          fontSize: '18px',
+                                          fontWeight: '500',
+                                          transition: 'all 0.2s ease',
+                                          boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                          transform: isSelected ? 'translateY(-1px)' : 'none'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (!isSelected) {
+                                            e.currentTarget.style.borderColor = '#94a3b8';
+                                            e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                            e.currentTarget.style.transform = 'translateY(-1px)';
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          if (!isSelected) {
+                                            e.currentTarget.style.borderColor = '#cbd5e1';
+                                            e.currentTarget.style.backgroundColor = '#f8fafc';
+                                            e.currentTarget.style.transform = 'none';
+                                          }
                                         }}
                                       >
                                         <span style={{
-                                          width: '24px',
-                                          height: '24px',
+                                          width: '36px',
+                                          height: '36px',
                                           borderRadius: '50%',
-                                          backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
-                                          color: isSelected ? '#3b82f6' : '#000000',
+                                          backgroundColor: isSelected ? '#ffffff' : '#e2e8f0',
+                                          color: isSelected ? '#3b82f6' : '#475569',
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
                                           fontWeight: 'bold',
-                                          flexShrink: '0'
+                                          fontSize: '18px',
+                                          flexShrink: 0,
+                                          border: '2px solid ' + (isSelected ? '#ffffff' : '#cbd5e1')
                                         }}>
                                           {optionValue}
                                         </span>
-                                        <span>{option}</span>
+                                        <span style={{ flex: 1, textAlign: 'left' }}>{option}</span>
+                                        {isSelected && (
+                                          <span style={{
+                                            color: '#ffffff',
+                                            fontSize: '20px',
+                                            fontWeight: 'bold'
+                                          }}>✓</span>
+                                        )}
                                       </button>
                                     </div>
                                   );
@@ -921,25 +949,56 @@ export default function ReadingLessonViewer() {
                             )}
 
                             {question.type === 'open_ended' && (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={generalAnswers[index] || ''}
-                                  onChange={(e) => handleGeneralAnswerChange(index, e.target.value)}
-                                  placeholder="Skriv ditt svar här..."
-                                  style={{
-                                    width: '100%',
-                                    height: '80px',
-                                    padding: '12px',
-                                    backgroundColor: '#ffffff',
-                                    color: '#000000',
-                                    border: '2px solid #d1d5db',
-                                    borderRadius: '8px',
-                                    fontSize: '16px',
-                                    fontFamily: 'inherit',
-                                    resize: 'vertical'
-                                  }}
-                                  rows={3}
-                                />
+                              <div className="space-y-3">
+                                <p className="text-sm font-medium text-gray-700 mb-3">Skriv ditt svar i rutan nedan:</p>
+                                <div className="answer-textarea-wrapper">
+                                  <textarea
+                                    value={generalAnswers[index] || ''}
+                                    onChange={(e) => handleGeneralAnswerChange(index, e.target.value)}
+                                    placeholder="Skriv ditt svar här... Du kan skriva så mycket du vill."
+                                    style={{
+                                      width: '100%',
+                                      minHeight: '120px',
+                                      padding: '16px 20px',
+                                      backgroundColor: '#ffffff',
+                                      color: '#1e293b',
+                                      border: '3px solid #cbd5e1',
+                                      borderRadius: '12px',
+                                      fontSize: '16px',
+                                      lineHeight: '1.6',
+                                      fontFamily: 'inherit',
+                                      resize: 'vertical',
+                                      transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    onFocus={(e) => {
+                                      e.target.style.borderColor = '#3b82f6';
+                                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                                    }}
+                                    onBlur={(e) => {
+                                      e.target.style.borderColor = '#cbd5e1';
+                                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                                    }}
+                                    rows={4}
+                                  />
+                                  {generalAnswers[index] && (
+                                    <div style={{
+                                      marginTop: '8px',
+                                      padding: '8px 12px',
+                                      backgroundColor: '#f0f9ff',
+                                      border: '1px solid #0ea5e9',
+                                      borderRadius: '6px',
+                                      fontSize: '14px',
+                                      color: '#0369a1',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px'
+                                    }}>
+                                      <span>✓</span>
+                                      <span>Svar sparat: {generalAnswers[index]?.length || 0} tecken</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
