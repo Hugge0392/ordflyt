@@ -906,18 +906,18 @@ export default function ReadingLessonViewer() {
                         </div>
                         
                         {/* Full-screen dark overlay for everything outside the reading area */}
-                        <div className="fixed inset-0 pointer-events-none z-10 bg-black bg-opacity-85">
-                          {/* Central clear area for the main content */}
-                          <div 
-                            className="absolute bg-transparent"
-                            style={{
-                              top: '10vh',
-                              bottom: '10vh', 
-                              left: '5vw',
-                              right: '5vw',
-                              background: accessibilityColors.backgroundColor
-                            }}
-                          />
+                        <div className="fixed inset-0 pointer-events-none z-10">
+                          {/* Top dark overlay */}
+                          <div className="absolute top-0 left-0 right-0 bg-black bg-opacity-85" style={{ height: '15vh' }} />
+                          
+                          {/* Bottom dark overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85" style={{ height: '15vh' }} />
+                          
+                          {/* Left dark overlay */}
+                          <div className="absolute top-0 bottom-0 left-0 bg-black bg-opacity-85" style={{ width: '10vw' }} />
+                          
+                          {/* Right dark overlay */}
+                          <div className="absolute top-0 bottom-0 right-0 bg-black bg-opacity-85" style={{ width: '10vw' }} />
                         </div>
                         
                         {/* Progress indicator at bottom */}
