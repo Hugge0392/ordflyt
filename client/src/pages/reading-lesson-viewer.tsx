@@ -33,8 +33,8 @@ export default function ReadingLessonViewer() {
   
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 34,
-    lineHeight: 1.8,
+    fontSize: 30,
+    lineHeight: 1.5,
     backgroundColor: 'black-on-white' as const,
     fontFamily: 'standard' as const
   });
