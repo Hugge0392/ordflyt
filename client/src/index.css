@@ -172,20 +172,12 @@
   background: var(--accessibility-bg-color) !important;
 }
 
-/* Full text formatting for main reading content */
+/* Full text formatting for main reading content - body text elements */
 .reading-content.accessibility-enhanced,
-.reading-content.accessibility-enhanced *,
 .reading-content.accessibility-enhanced .prose,
-.reading-content.accessibility-enhanced .prose *,
 .reading-content.accessibility-enhanced .prose p,
 .reading-content.accessibility-enhanced .prose div,
 .reading-content.accessibility-enhanced .prose span,
-.reading-content.accessibility-enhanced .prose h1,
-.reading-content.accessibility-enhanced .prose h2,
-.reading-content.accessibility-enhanced .prose h3,
-.reading-content.accessibility-enhanced .prose h4,
-.reading-content.accessibility-enhanced .prose h5,
-.reading-content.accessibility-enhanced .prose h6,
 .reading-content.accessibility-enhanced .prose strong,
 .reading-content.accessibility-enhanced .prose b,
 .reading-content.accessibility-enhanced .prose em,
@@ -203,10 +195,35 @@
   background-color: var(--accessibility-bg-color) !important;
 }
 
-/* Extra specific override to force font size on all text elements */
-div.reading-content.accessibility-enhanced.prose * {
+/* Headings - only font size and colors, not line-height */
+.reading-content.accessibility-enhanced .prose h1,
+.reading-content.accessibility-enhanced .prose h2,
+.reading-content.accessibility-enhanced .prose h3,
+.reading-content.accessibility-enhanced .prose h4,
+.reading-content.accessibility-enhanced .prose h5,
+.reading-content.accessibility-enhanced .prose h6 {
+  font-size: var(--accessibility-font-size) !important;
+  font-family: var(--accessibility-font-family) !important;
+  color: var(--accessibility-text-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
+  line-height: 1.2 !important; /* Fixed line height for headings */
+}
+
+/* Extra specific override to force font size on body text elements */
+div.reading-content.accessibility-enhanced.prose *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
+}
+
+/* Extra specific override for headings - only font size */
+div.reading-content.accessibility-enhanced.prose h1,
+div.reading-content.accessibility-enhanced.prose h2,
+div.reading-content.accessibility-enhanced.prose h3,
+div.reading-content.accessibility-enhanced.prose h4,
+div.reading-content.accessibility-enhanced.prose h5,
+div.reading-content.accessibility-enhanced.prose h6 {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: 1.2 !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */
