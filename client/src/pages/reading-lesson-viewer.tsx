@@ -27,6 +27,10 @@ export default function ReadingLessonViewer() {
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
   const [showQuestions, setShowQuestions] = useState(true);
   
+  // New questions panel state with unique names
+  const [questionsPanel12Answers, setQuestionsPanel12Answers] = useState<Record<number, string>>({});
+  const [showQuestionsPanel12, setShowQuestionsPanel12] = useState(true);
+  
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
     fontSize: 34,
@@ -181,6 +185,11 @@ export default function ReadingLessonViewer() {
     setGeneralAnswers(prev => ({ ...prev, [questionIndex]: answer }));
   };
 
+  // Handle answer changes for questions panel 12
+  const handleQuestionsPanel12Change = (questionIndex: number, answer: string) => {
+    setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: answer }));
+  };
+
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
     const currentPageQuestions = lesson?.pages?.[currentPage]?.questions;
@@ -298,6 +307,261 @@ export default function ReadingLessonViewer() {
 
           {/* Main Content */}
           <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+            
+            {/* New Questions Panel 12 - positioned on the left */}
+            {showQuestionsPanel12 && lesson && (
+              <Card className="questionsPanel12-wrapper order-1 lg:order-1">
+                <CardHeader>
+                  <CardTitle className="text-lg">Frågor12</CardTitle>
+                  <CardDescription>
+                    Svara på frågorna från lektionen
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                    {/* Import questions from lesson.questions */}
+                    {lesson.questions && lesson.questions.map((question, index) => {
+                      const isAnsweredPanel12 = !!(questionsPanel12Answers[index]?.trim());
+                      
+                      return (
+                        <div key={`panel12-${index}`} className="p-3 border rounded-lg bg-slate-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-bold text-sm">Fråga {index + 1}</h3>
+                            {isAnsweredPanel12 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓</span>}
+                          </div>
+                          <h4 className="font-medium mb-3 text-sm">
+                            {question.question}
+                          </h4>
+                          
+                          {question.type === 'multiple_choice' && question.options && (
+                            <div className="space-y-2">
+                              {question.options.map((option: string, optionIndex: number) => {
+                                const optionValue = String.fromCharCode(65 + optionIndex);
+                                const isSelectedPanel12 = questionsPanel12Answers[index] === optionValue;
+                                
+                                return (
+                                  <div key={optionIndex}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuestionsPanel12Change(index, optionValue)}
+                                      style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 12px',
+                                        backgroundColor: isSelectedPanel12 ? '#2563eb' : '#ffffff',
+                                        color: isSelectedPanel12 ? '#ffffff' : '#1e293b',
+                                        border: '2px solid ' + (isSelectedPanel12 ? '#2563eb' : '#cbd5e1'),
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '500'
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isSelectedPanel12 ? '#ffffff' : '#e2e8f0',
+                                        color: isSelectedPanel12 ? '#2563eb' : '#475569',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px',
+                                        flexShrink: 0
+                                      }}>
+                                        {optionValue}
+                                      </span>
+                                      <span style={{ flex: 1, textAlign: 'left' }}>{option}</span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'true_false' && (
+                            <div className="space-y-2">
+                              {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                const optionValue = option;
+                                const isSelectedPanel12 = questionsPanel12Answers[index] === optionValue;
+                                
+                                return (
+                                  <div key={optionIndex}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuestionsPanel12Change(index, optionValue)}
+                                      style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 12px',
+                                        backgroundColor: isSelectedPanel12 ? '#2563eb' : '#ffffff',
+                                        color: isSelectedPanel12 ? '#ffffff' : '#1e293b',
+                                        border: '2px solid ' + (isSelectedPanel12 ? '#2563eb' : '#cbd5e1'),
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '500'
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isSelectedPanel12 ? '#ffffff' : '#e2e8f0',
+                                        color: isSelectedPanel12 ? '#2563eb' : '#475569',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px',
+                                        flexShrink: 0
+                                      }}>
+                                        {option.charAt(0)}
+                                      </span>
+                                      <span>{option}</span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'open_ended' && (
+                            <div className="space-y-2">
+                              <textarea
+                                value={questionsPanel12Answers[index] || ''}
+                                onChange={(e) => handleQuestionsPanel12Change(index, e.target.value)}
+                                placeholder="Skriv ditt svar här..."
+                                style={{
+                                  width: '100%',
+                                  minHeight: '80px',
+                                  padding: '12px',
+                                  backgroundColor: '#ffffff',
+                                  color: '#1e293b',
+                                  border: '2px solid #cbd5e1',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontFamily: 'inherit',
+                                  resize: 'vertical'
+                                }}
+                                rows={3}
+                              />
+                              {questionsPanel12Answers[index] && (
+                                <div style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: '#f0f9ff',
+                                  border: '1px solid #0ea5e9',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  color: '#0369a1'
+                                }}>
+                                  Sparat: {questionsPanel12Answers[index]?.length || 0} tecken
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Also import page-specific questions if available */}
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
+                      const pageQuestionIndex = (lesson.questions?.length || 0) + index;
+                      const isAnsweredPanel12 = !!(questionsPanel12Answers[pageQuestionIndex]?.trim());
+                      
+                      return (
+                        <div key={`panel12-page-${index}`} className="p-3 border rounded-lg bg-blue-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-bold text-sm">Sidfråga {index + 1}</h3>
+                            {isAnsweredPanel12 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓</span>}
+                          </div>
+                          <h4 className="font-medium mb-3 text-sm">
+                            {question.question}
+                          </h4>
+                          
+                          {question.type === 'multiple_choice' && question.options && (
+                            <div className="space-y-2">
+                              {question.options.map((option: string, optionIndex: number) => {
+                                const optionValue = String.fromCharCode(65 + optionIndex);
+                                const isSelectedPanel12 = questionsPanel12Answers[pageQuestionIndex] === optionValue;
+                                
+                                return (
+                                  <div key={optionIndex}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuestionsPanel12Change(pageQuestionIndex, optionValue)}
+                                      style={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 12px',
+                                        backgroundColor: isSelectedPanel12 ? '#1d4ed8' : '#ffffff',
+                                        color: isSelectedPanel12 ? '#ffffff' : '#1e293b',
+                                        border: '2px solid ' + (isSelectedPanel12 ? '#1d4ed8' : '#cbd5e1'),
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: '500'
+                                      }}
+                                    >
+                                      <span style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isSelectedPanel12 ? '#ffffff' : '#e2e8f0',
+                                        color: isSelectedPanel12 ? '#1d4ed8' : '#475569',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px',
+                                        flexShrink: 0
+                                      }}>
+                                        {optionValue}
+                                      </span>
+                                      <span style={{ flex: 1, textAlign: 'left' }}>{option}</span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'open_ended' && (
+                            <div className="space-y-2">
+                              <textarea
+                                value={questionsPanel12Answers[pageQuestionIndex] || ''}
+                                onChange={(e) => handleQuestionsPanel12Change(pageQuestionIndex, e.target.value)}
+                                placeholder="Skriv ditt svar här..."
+                                style={{
+                                  width: '100%',
+                                  minHeight: '80px',
+                                  padding: '12px',
+                                  backgroundColor: '#ffffff',
+                                  color: '#1e293b',
+                                  border: '2px solid #cbd5e1',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontFamily: 'inherit',
+                                  resize: 'vertical'
+                                }}
+                                rows={3}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
