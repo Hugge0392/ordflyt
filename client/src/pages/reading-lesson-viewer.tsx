@@ -316,6 +316,26 @@ export default function ReadingLessonViewer() {
                   <CardDescription>
                     Svara på frågorna från lektionen
                   </CardDescription>
+                  {/* Debug box to show imported alternatives */}
+                  <div className="mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded text-xs">
+                    <strong>DEBUG - Importerade alternativ:</strong>
+                    {lesson.questions?.map((q, i) => (
+                      q.type === 'multiple_choice' && q.alternatives ? (
+                        <div key={i} className="mt-1">
+                          <div><strong>Fråga {i+1}:</strong> {q.question.slice(0, 50)}...</div>
+                          <div><strong>Alternativ:</strong> {q.alternatives.join(' | ')}</div>
+                        </div>
+                      ) : null
+                    ))}
+                    {lesson.pages?.[currentPage]?.questions?.map((q, i) => (
+                      q.type === 'multiple_choice' && q.alternatives ? (
+                        <div key={`page-${i}`} className="mt-1">
+                          <div><strong>Sidfråga {i+1}:</strong> {q.question.slice(0, 50)}...</div>
+                          <div><strong>Alternativ:</strong> {q.alternatives.join(' | ')}</div>
+                        </div>
+                      ) : null
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
