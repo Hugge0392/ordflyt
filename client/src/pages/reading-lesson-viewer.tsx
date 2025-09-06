@@ -10,7 +10,6 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, EyeOff, Settings } from "lucide-react";
-import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 // Simple markdown-to-HTML converter for displaying lesson content
@@ -55,6 +54,7 @@ export default function ReadingLessonViewer() {
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
     fontSize: 34,
+    lineHeight: 1.8,
     backgroundColor: 'black-on-white' as const,
     fontFamily: 'standard' as const
   });
@@ -225,9 +225,8 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background relative">
-        <AccessibilitySidebar />
         
-        <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
+        <div className="max-w-7xl mx-auto p-6">
           {/* Header */}
           <Card className="mb-6">
             <CardHeader>
@@ -367,6 +366,19 @@ export default function ReadingLessonViewer() {
                             </div>
                             
                             <div>
+                              <Label className="text-sm font-medium">Radavstånd</Label>
+                              <Slider
+                                value={[accessibilitySettings.lineHeight]}
+                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, lineHeight: value[0] }))}
+                                min={1.0}
+                                max={3.0}
+                                step={0.1}
+                                className="mt-2"
+                              />
+                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.lineHeight.toFixed(1)}</div>
+                            </div>
+                            
+                            <div>
                               <Label className="text-sm font-medium">Teckensnitt</Label>
                               <Select
                                 value={accessibilitySettings.fontFamily}
@@ -410,7 +422,15 @@ export default function ReadingLessonViewer() {
 
                   <div 
                     className="prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content"
-                    style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                    style={{ 
+                      fontSize: `${accessibilitySettings.fontSize}px`, 
+                      lineHeight: accessibilitySettings.lineHeight, 
+                      whiteSpace: 'pre-wrap', 
+                      wordWrap: 'break-word',
+                      fontFamily: accessibilitySettings.fontFamily === 'dyslexia-friendly' 
+                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                        : 'inherit'
+                    }}
                     dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
                     onMouseOver={handleContentMouseOver}
                     onMouseOut={handleContentMouseOut}
