@@ -735,12 +735,6 @@ export default function ReadingLessonViewer() {
               </Card>
             )}
 
-            {/* Questions Panel for Focus Mode */}
-            {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
-              (lesson.questions && lesson.questions.length > 0)) && 
-              !isFocusMode && (
-              <Card 
-                className="questions-card focus-mode absolute left-[calc(59vw+2rem)] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
                   color: accessibilityColors.textColor,
