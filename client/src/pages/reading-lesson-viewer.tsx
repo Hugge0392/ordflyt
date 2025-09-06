@@ -227,15 +227,6 @@ export default function ReadingLessonViewer() {
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string, shouldAnimate: boolean = true) => {
     const questionKey = `${pageIndex}-${questionIndex}`;
     
-    // Auto-save previous text question if switching to a different question
-    if (activeTextQuestion && activeTextQuestion !== questionKey) {
-      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
-      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
-      if (prevAnswer && prevAnswer.trim().length > 0) {
-        handleTextAnswerComplete(prevPageIndex, prevQuestionIndex);
-      }
-    }
-    
     setReadingAnswers(prev => ({
       ...prev,
       [pageIndex]: {
@@ -321,6 +312,18 @@ export default function ReadingLessonViewer() {
   // Handler for when user starts typing in a text field
   const handleTextFieldFocus = (pageIndex: number, questionIndex: number) => {
     const questionKey = `${pageIndex}-${questionIndex}`;
+    
+    // Auto-save and animate previous text question if switching to a different text field
+    if (activeTextQuestion && activeTextQuestion !== questionKey) {
+      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+      if (prevAnswer && prevAnswer.trim().length > 0) {
+        // Trigger the animation for the previous question
+        setActiveTextQuestion(null); // Clear active text question first
+        handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+      }
+    }
+    
     setActiveTextQuestion(questionKey);
   };
   
@@ -805,7 +808,18 @@ export default function ReadingLessonViewer() {
                                       return (
                                         <button
                                           key={optionIndex}
-                                          onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
+                                          onClick={() => {
+                                            // Auto-save active text question before answering multiple choice
+                                            if (activeTextQuestion) {
+                                              const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                              const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                              if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                setActiveTextQuestion(null);
+                                                handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                              }
+                                            }
+                                            handleAnswerChange(activePage, questionIndex, optionValue);
+                                          }}
                                           className={`w-full flex items-start gap-2 p-2 rounded ${
                                             isSelected 
                                               ? 'ring-2 ring-blue-500 font-medium' 
@@ -835,7 +849,18 @@ export default function ReadingLessonViewer() {
                                       return (
                                         <button
                                           key={optionIndex}
-                                          onClick={() => handleAnswerChange(activePage, questionIndex, optionValue)}
+                                          onClick={() => {
+                                            // Auto-save active text question before answering true/false
+                                            if (activeTextQuestion) {
+                                              const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                              const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                              if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                setActiveTextQuestion(null);
+                                                handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                              }
+                                            }
+                                            handleAnswerChange(activePage, questionIndex, optionValue);
+                                          }}
                                           className={`w-full flex items-start gap-2 p-2 rounded ${
                                             isSelected 
                                               ? 'ring-2 ring-blue-500 font-medium' 
