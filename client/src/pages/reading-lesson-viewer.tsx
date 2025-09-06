@@ -534,9 +534,9 @@ export default function ReadingLessonViewer() {
                       variant="outline"
                       className="flex items-center gap-2"
                       style={{
-                        borderColor: isFirstQuestion ? 'transparent' : 'var(--accessibility-text-color)',
-                        color: isFirstQuestion ? 'transparent' : 'var(--accessibility-text-color)',
-                        backgroundColor: 'transparent'
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        borderColor: '#CCCCCC'
                       }}
                     >
                       <ChevronLeft className="w-4 h-4" />
