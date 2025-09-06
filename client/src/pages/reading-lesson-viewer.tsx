@@ -865,67 +865,67 @@ export default function ReadingLessonViewer() {
                     }}
                   >
                     {readingFocusMode ? (
-                      <div className="relative">
-                        {/* Keep original text but with reading ruler overlay */}
-                        <div
-                          dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                          onMouseOver={handleContentMouseOver}
-                          onMouseOut={handleContentMouseOut}
-                        />
-                        
-                        {/* Reading ruler overlay - dark masks with clear window */}
-                        <div className="absolute inset-0 pointer-events-none">
-                          {/* Top dark overlay */}
-                          <div 
-                            className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              height: `${(currentReadingLine / textLines.length) * 100}%`
-                            }}
+                      <>
+                        <div className="relative">
+                          {/* Keep original text but with reading ruler overlay */}
+                          <div
+                            dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                            onMouseOver={handleContentMouseOver}
+                            onMouseOut={handleContentMouseOut}
                           />
                           
-                          {/* Bottom dark overlay */}
-                          <div 
-                            className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
-                            }}
-                          />
-                          
-                          {/* Clear reading window with border */}
-                          <div 
-                            className="absolute left-0 right-0 transition-all duration-300"
-                            style={{ 
-                              top: `${(currentReadingLine / textLines.length) * 100}%`,
-                              height: `${(readingFocusLines / textLines.length) * 100}%`,
-                              border: `2px solid ${accessibilityColors.textColor}`,
-                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
-                            }}
-                          />
+                          {/* Reading ruler overlay - dark masks with clear window */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            {/* Top dark overlay */}
+                            <div 
+                              className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                              style={{ 
+                                height: `${(currentReadingLine / textLines.length) * 100}%`
+                              }}
+                            />
+                            
+                            {/* Bottom dark overlay */}
+                            <div 
+                              className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                              style={{ 
+                                height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
+                              }}
+                            />
+                            
+                            {/* Clear reading window with border */}
+                            <div 
+                              className="absolute left-0 right-0 transition-all duration-300"
+                              style={{ 
+                                top: `${(currentReadingLine / textLines.length) * 100}%`,
+                                height: `${(readingFocusLines / textLines.length) * 100}%`,
+                                border: `2px solid ${accessibilityColors.textColor}`,
+                                boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                              }}
+                            />
+                          </div>
                         </div>
                         
                         {/* Progress indicator at bottom */}
                         <div 
-                            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
-                            style={{ 
-                              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                              color: 'white'
-                            }}
-                          >
-                            <div className="text-sm text-center">
-                              Rad {currentReadingLine + 1} av {textLines.length}
-                            </div>
-                            <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
-                              <div 
-                                className="h-1 bg-white rounded-full transition-all duration-300"
-                                style={{ 
-                                  width: `${((currentReadingLine + 1) / textLines.length) * 100}%`
-                                }}
-                              />
-                            </div>
+                          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
+                          style={{ 
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            color: 'white'
+                          }}
+                        >
+                          <div className="text-sm text-center">
+                            Rad {currentReadingLine + 1} av {textLines.length}
+                          </div>
+                          <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
+                            <div 
+                              className="h-1 bg-white rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${((currentReadingLine + 1) / textLines.length) * 100}%`
+                              }}
+                            />
                           </div>
                         </div>
                         
-                        {/* Exit button */}
                         <button
                           onClick={() => setReadingFocusMode(false)}
                           className="fixed top-4 right-4 z-30 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
@@ -935,7 +935,7 @@ export default function ReadingLessonViewer() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
-                      </div>
+                      </>
                     ) : (
                       <div
                         dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
