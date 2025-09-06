@@ -317,10 +317,10 @@ export default function ReadingLessonViewer() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => setShowQuestionsInFocus(!showQuestionsInFocus)}
+                          onClick={() => {}}
                         >
-                          {showQuestionsInFocus ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-                          {showQuestionsInFocus ? "Dölj frågor" : "Visa frågor"}
+                          <Eye className="w-4 h-4 mr-1" />
+                          Visa frågor
                         </Button>
                       )}
                       
