@@ -402,7 +402,7 @@ export default function ReadingLessonViewer() {
                   style={{
                     backgroundColor: accessibilityColors.backgroundColor,
                     color: accessibilityColors.textColor,
-                    borderColor: 'var(--accessibility-text-color)',
+                    borderColor: '#e2eaef',
                     maxWidth: '720px'
                   } as React.CSSProperties}
                 >
