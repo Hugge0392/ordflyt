@@ -313,6 +313,20 @@ export default function ReadingLessonViewer() {
                   <CardTitle className="text-lg">
                     <span>Läs texten</span>
                   </CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsFocusMode(!isFocusMode)}
+                      >
+                        <Focus className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isFocusMode ? 'Avaktivera fokusläge' : 'Aktivera fokusläge för bättre koncentration'}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   {false && (
                     <div className="flex gap-2">
                       {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
