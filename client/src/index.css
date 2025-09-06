@@ -155,11 +155,13 @@
   font-size: clamp(16px, 2vw, 20px) !important;
 }
 
-/* Responsive focus mode adjustments */
+/* Responsive focus mode adjustments - Force consistent width */
 @media screen and (max-width: 1024px) {
   /* iPad and smaller tablets */
   .reading-content.w-\[59vw\] {
     width: 59vw !important;
+    min-width: 59vw !important;
+    max-width: 59vw !important;
   }
   
   .questions-card.w-\[23vw\] {
@@ -172,6 +174,8 @@
   /* Small tablets */
   .reading-content.w-\[59vw\] {
     width: 55vw !important;
+    min-width: 55vw !important;
+    max-width: 55vw !important;
   }
   
   .questions-card.w-\[23vw\] {
