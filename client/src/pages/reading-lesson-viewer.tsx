@@ -317,11 +317,11 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-4 lg:grid-cols-4 gap-6 lg:items-start mb-6">
+          <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
             
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
-              <Card className="questionsPanel12-wrapper order-1 lg:order-1">
+              <Card className="questionsPanel12-wrapper order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
                 <CardHeader className="pb-2 px-3 pt-3">
                   <CardTitle className="text-lg">Frågor12</CardTitle>
                   <CardDescription>
@@ -582,7 +582,7 @@ export default function ReadingLessonViewer() {
             )}
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
-              className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-3 lg:col-span-3"
+              className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
               style={{
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
