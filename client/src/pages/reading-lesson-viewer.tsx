@@ -624,7 +624,7 @@ export default function ReadingLessonViewer() {
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`questions-card ${isFocusMode 
-                  ? 'absolute right-[-25vw] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col z-40' 
+                  ? 'absolute left-[calc(59vw+2rem)] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col z-40' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
