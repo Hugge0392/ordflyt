@@ -907,23 +907,24 @@ export default function ReadingLessonViewer() {
                           const bottomPercent = 100 - (topPercent + windowHeightPercent);
                           
                           return (
-                            <div 
-                              className="absolute inset-0 transition-all duration-300"
-                              style={{
-                                background: `linear-gradient(
-                                  to bottom,
-                                  rgba(0,0,0,0.85) 0%,
-                                  rgba(0,0,0,0.85) ${topPercent}%,
-                                  transparent ${topPercent}%,
-                                  transparent ${topPercent + windowHeightPercent}%,
-                                  rgba(0,0,0,0.85) ${topPercent + windowHeightPercent}%,
-                                  rgba(0,0,0,0.85) 100%
-                                )`,
-                                border: `2px solid transparent`,
-                                backgroundClip: 'padding-box'
-                              }}
-                            >
-                              {/* Border for the clear window */}
+                            <>
+                              {/* Top overlay */}
+                              {topPercent > 0 && (
+                                <div 
+                                  className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                                  style={{ height: `${topPercent}%` }}
+                                />
+                              )}
+                              
+                              {/* Bottom overlay */}
+                              {(topPercent + windowHeightPercent) < 100 && (
+                                <div 
+                                  className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                                  style={{ height: `${100 - (topPercent + windowHeightPercent)}%` }}
+                                />
+                              )}
+                              
+                              {/* Focus border around clear area */}
                               <div 
                                 className="absolute left-0 right-0 transition-all duration-300"
                                 style={{ 
@@ -934,7 +935,7 @@ export default function ReadingLessonViewer() {
                                   pointerEvents: 'none'
                                 }}
                               />
-                            </div>
+                            </>
                           );
                         })()}
                       </div>
