@@ -49,7 +49,9 @@ export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
+  const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
+  const [showQuestions, setShowQuestions] = useState(true);
   
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
