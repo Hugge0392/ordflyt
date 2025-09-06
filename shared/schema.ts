@@ -400,7 +400,7 @@ export interface PreReadingQuestion {
 
 export interface ReadingQuestion {
   id: string;
-  type: "multiple_choice" | "open_ended" | "true_false";
+  type: "multiple_choice" | "multiple-choice" | "open_ended" | "open" | "true_false" | "true-false";
   question: string;
   options?: string[]; // for multiple choice (legacy)
   alternatives?: string[]; // for multiple choice (current)

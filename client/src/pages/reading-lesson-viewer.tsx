@@ -316,46 +316,6 @@ export default function ReadingLessonViewer() {
                   <CardDescription>
                     Svara på frågorna från lektionen
                   </CardDescription>
-                  {/* Debug box to show imported alternatives */}
-                  <div className="mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded text-xs">
-                    <strong>DEBUG - Hela lesson objektet:</strong>
-                    <div className="mt-1">
-                      <strong>lesson.questions antal:</strong> {lesson.questions?.length || 0}
-                    </div>
-                    <div className="mt-1">
-                      <strong>lesson.pages antal:</strong> {lesson.pages?.length || 0}
-                    </div>
-                    <div className="mt-1">
-                      <strong>Nuvarande sida:</strong> {currentPage}
-                    </div>
-                    <div className="mt-1">
-                      <strong>Frågor på nuvarande sida:</strong> {lesson.pages?.[currentPage]?.questions?.length || 0}
-                    </div>
-                    
-                    <div className="mt-2 border-t pt-2">
-                      <strong>Allmänna frågor:</strong>
-                      {lesson.questions?.length > 0 ? lesson.questions.map((q, i) => (
-                        <div key={i} className="mt-1 pl-2 border-l-2 border-gray-400">
-                          <div><strong>Fråga {i+1}:</strong> {q.question.slice(0, 30)}...</div>
-                          <div><strong>Type:</strong> {q.type}</div>
-                          <div><strong>options:</strong> {q.options ? JSON.stringify(q.options) : 'null'}</div>
-                          <div><strong>alternatives:</strong> {q.alternatives ? JSON.stringify(q.alternatives) : 'null'}</div>
-                        </div>
-                      )) : 'Inga allmänna frågor'}
-                    </div>
-                    
-                    <div className="mt-2 border-t pt-2">
-                      <strong>Sidfrågor (sida {currentPage}):</strong>
-                      {(lesson.pages && lesson.pages[currentPage]?.questions?.length > 0) ? lesson.pages[currentPage]!.questions!.map((q, i) => (
-                        <div key={i} className="mt-1 pl-2 border-l-2 border-blue-400">
-                          <div><strong>Sidfråga {i+1}:</strong> {q.question.slice(0, 30)}...</div>
-                          <div><strong>Type:</strong> {q.type}</div>
-                          <div><strong>options:</strong> {q.options ? JSON.stringify(q.options) : 'null'}</div>
-                          <div><strong>alternatives:</strong> {q.alternatives ? JSON.stringify(q.alternatives) : 'null'}</div>
-                        </div>
-                      )) : 'Inga sidfrågor'}
-                    </div>
-                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
