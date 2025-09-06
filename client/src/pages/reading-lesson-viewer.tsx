@@ -346,7 +346,7 @@ export default function ReadingLessonViewer() {
                     
                     <div className="mt-2 border-t pt-2">
                       <strong>Sidfrågor (sida {currentPage}):</strong>
-                      {lesson.pages?.[currentPage]?.questions?.length > 0 ? lesson.pages[currentPage]?.questions.map((q, i) => (
+                      {lesson.pages?.[currentPage]?.questions?.length > 0 ? lesson.pages[currentPage]?.questions?.map((q, i) => (
                         <div key={i} className="mt-1 pl-2 border-l-2 border-blue-400">
                           <div><strong>Sidfråga {i+1}:</strong> {q.question.slice(0, 30)}...</div>
                           <div><strong>Type:</strong> {q.type}</div>
@@ -527,7 +527,7 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' ? (
+                          {question.type === 'multiple_choice' && (
                             <div className="space-y-2">
                               {(question.alternatives || question.options)!.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
