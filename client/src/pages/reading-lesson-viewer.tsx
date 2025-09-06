@@ -624,14 +624,12 @@ export default function ReadingLessonViewer() {
               </CardContent>
             </Card>
 
-            {/* Questions - Right Column */}
+            {/* Questions Panel for Normal Mode */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              (!isFocusMode || showQuestionsInFocus) && (
+              !isFocusMode && (
               <Card 
-                className={`questions-card ${isFocusMode 
-                  ? 'absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col' 
-                  : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
+                className="questions-card normal-mode md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
                   color: accessibilityColors.textColor,
@@ -748,6 +746,176 @@ export default function ReadingLessonViewer() {
                     {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
                      lesson.questions && lesson.questions.map((question, index) => (
                       <div key={index} className="p-4 border rounded-lg">
+                        <h4 className="font-medium mb-3">
+                          {index + 1}. {question.question}
+                        </h4>
+                        
+                        {question.type === 'multiple_choice' && question.options && (
+                          <div className="space-y-2">
+                            {question.options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                  {String.fromCharCode(65 + optionIndex)}
+                                </div>
+                                <span>{option}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {question.type === 'true_false' && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                S
+                              </div>
+                              <span>Sant</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
+                                F
+                              </div>
+                              <span>Falskt</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {question.type === 'open_ended' && (
+                          <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
+                            <p className="text-sm text-muted-foreground">
+                              Skriv ditt svar här...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Questions Panel for Focus Mode */}
+            {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
+              (lesson.questions && lesson.questions.length > 0)) && 
+              isFocusMode && showQuestionsInFocus && (
+              <Card 
+                className="questions-card focus-mode absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
+                style={{ 
+                  backgroundColor: accessibilityColors.backgroundColor,
+                  color: accessibilityColors.textColor,
+                  '--card-text-color': accessibilityColors.textColor
+                } as React.CSSProperties}
+              >
+                <CardHeader className="border-b-2" style={{ borderBottomColor: '#e2eaef' }}>
+                  <CardTitle className="text-lg">
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                      ? 'Frågor under läsning' 
+                      : 'Förståelsefrågor'}
+                  </CardTitle>
+                  <CardDescription style={{ color: accessibilityColors.textColor }}>
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0 
+                      ? 'Svara på frågorna medan du läser för att hänga med i texten'
+                      : 'Svara på frågorna för att kontrollera din förståelse'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden">
+                  <div className="space-y-6 h-full overflow-y-auto">
+                    {/* Show reading questions for current page first */}
+                    {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
+                      const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
+                      
+                      return (
+                        <div 
+                          key={`focus-reading-${index}`} 
+                          className="p-4 border-b pb-4 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
+                            {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                          </div>
+                          <h4 className="font-medium mb-3">
+                            {question.question}
+                          </h4>
+                          
+                          {question.type === 'multiple-choice' && question.alternatives && (
+                            <div className="space-y-2">
+                              {question.alternatives.map((option, optionIndex) => {
+                                const optionValue = String.fromCharCode(65 + optionIndex);
+                                const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
+                                
+                                return (
+                                  <button
+                                    key={optionIndex}
+                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
+                                    className={`w-full flex items-start gap-2 p-2 rounded ${
+                                      isSelected 
+                                        ? 'ring-2 ring-blue-500 font-medium' 
+                                        : ''
+                                    }`}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                      isSelected 
+                                        ? 'border-blue-500 bg-blue-500 text-white' 
+                                        : 'border-gray-400 bg-white text-black'
+                                    }`}>
+                                      {optionValue}
+                                    </div>
+                                    <span className="text-left">{option}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'true-false' && (
+                            <div className="space-y-2">
+                              {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                const optionValue = option;
+                                const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
+                                
+                                return (
+                                  <button
+                                    key={optionIndex}
+                                    onClick={() => handleAnswerChange(currentPage, index, optionValue)}
+                                    className={`w-full flex items-start gap-2 p-2 rounded ${
+                                      isSelected 
+                                        ? 'ring-2 ring-blue-500 font-medium' 
+                                        : ''
+                                    }`}
+                                  >
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                      isSelected 
+                                        ? 'border-blue-500 bg-blue-500 text-white' 
+                                        : 'border-gray-400 bg-white text-black'
+                                    }`}>
+                                      {option.charAt(0)}
+                                    </div>
+                                    <span className="text-left">{option}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {question.type === 'open' && (
+                            <div className="space-y-2">
+                              <textarea
+                                value={readingAnswers[currentPage]?.[index] || ''}
+                                onChange={(e) => handleAnswerChange(currentPage, index, e.target.value)}
+                                placeholder="Skriv ditt svar här..."
+                                className="w-full p-3 border rounded-lg resize-none h-20"
+                                rows={3}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Show general questions only if no reading questions for current page */}
+                    {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
+                     lesson.questions && lesson.questions.map((question, index) => (
+                      <div key={`focus-general-${index}`} className="p-4 border rounded-lg">
                         <h4 className="font-medium mb-3">
                           {index + 1}. {question.question}
                         </h4>
