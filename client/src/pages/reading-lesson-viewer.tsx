@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -322,14 +322,14 @@ export default function ReadingLessonViewer() {
                         </Button>
                       )}
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      <Popover>
+                        <PopoverTrigger asChild>
                           <Button variant="outline" size="sm">
                             <Settings className="w-4 h-4 mr-1" />
                             Inställningar
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-80 p-4" align="end">
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-4" align="end">
                           <div className="space-y-4">
                             <div>
                               <Label className="text-sm font-medium">Textstorlek</Label>
@@ -394,8 +394,8 @@ export default function ReadingLessonViewer() {
                               </Select>
                             </div>
                           </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                 </div>
                 {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
