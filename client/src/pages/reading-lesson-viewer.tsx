@@ -402,7 +402,7 @@ export default function ReadingLessonViewer() {
                   style={{
                     backgroundColor: accessibilityColors.backgroundColor,
                     color: accessibilityColors.textColor,
-                    borderColor: '#e2eaef',
+                    borderColor: 'var(--accessibility-text-color)',
                     maxWidth: '720px'
                   } as React.CSSProperties}
                 >
@@ -527,7 +527,7 @@ export default function ReadingLessonViewer() {
                   )}
 
                   {/* Navigation buttons */}
-                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: '#000000' }}>
+                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)' }}>
                     <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
