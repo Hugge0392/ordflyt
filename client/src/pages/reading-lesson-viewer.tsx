@@ -872,11 +872,14 @@ export default function ReadingLessonViewer() {
                                     : 'opacity-20'
                                 }`}
                                 style={{
-                                  backgroundColor: isHighlighted ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                                  backgroundColor: isHighlighted ? accessibilityColors.backgroundColor : 'transparent',
+                                  color: isHighlighted ? accessibilityColors.textColor : 'inherit',
                                   margin: '8px 0',
                                   padding: '12px 16px',
                                   borderRadius: '8px',
-                                  border: isHighlighted ? `2px solid ${accessibilityColors.textColor}` : '2px solid transparent'
+                                  border: isHighlighted ? `2px solid ${accessibilityColors.textColor}` : '2px solid transparent',
+                                  position: 'relative',
+                                  zIndex: isHighlighted ? 30 : 'auto'
                                 }}
                               >
                                 {line}
