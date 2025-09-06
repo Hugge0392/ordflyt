@@ -101,7 +101,7 @@ export default function ReadingLessonViewer() {
     root.style.setProperty('--reading-line-height', accessibilitySettings.lineHeight.toString());
     
     // Update font family
-    const fontFamily = accessibilitySettings.fontFamily === 'dyslexia-friendly' 
+    const fontFamily = (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
       ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
       : 'system-ui, -apple-system, sans-serif';
     root.style.setProperty('--accessibility-font-family', fontFamily);
