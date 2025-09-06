@@ -22,93 +22,6 @@ interface HoveredWord {
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(0);
-
-  // Function to split text into lines for reading focus mode
-  const splitTextIntoLines = (htmlContent: string) => {
-    // Create a temporary div to parse HTML and extract text
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-    
-    // Split into sentences and then into lines based on sentence length
-    const sentences = textContent.split(/[.!?]+/);
-    const lines: string[] = [];
-    
-    sentences.forEach(sentence => {
-      const trimmed = sentence.trim();
-      if (trimmed) {
-        // If sentence is long, split it further
-        if (trimmed.length > 80) {
-          const words = trimmed.split(' ');
-          let currentLine = '';
-          
-          words.forEach(word => {
-            if (currentLine.length + word.length + 1 > 80) {
-              if (currentLine) lines.push(currentLine.trim());
-              currentLine = word;
-            } else {
-              currentLine += (currentLine ? ' ' : '') + word;
-            }
-          });
-          
-          if (currentLine) lines.push(currentLine.trim());
-        } else {
-          lines.push(trimmed);
-        }
-      }
-    });
-    
-    return lines.filter(line => line.length > 0);
-  };
-
-  // Update text lines when content changes
-  useEffect(() => {
-    if (pages[currentPage]) {
-      const lines = splitTextIntoLines(pages[currentPage]);
-      setTextLines(lines);
-      setCurrentReadingLine(0);
-    }
-  }, [pages, currentPage]);
-
-  // Keyboard navigation for reading focus mode
-  useEffect(() => {
-    if (!readingFocusMode) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowRight') {
-        e.preventDefault();
-        setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
-        );
-      } else if (e.code === 'ArrowLeft') {
-        e.preventDefault();
-        setCurrentReadingLine(prev => Math.max(0, prev - 1));
-      } else if (e.code === 'Escape') {
-        setReadingFocusMode(false);
-      }
-    };
-
-    const handleScroll = (e: WheelEvent) => {
-      e.preventDefault();
-      if (e.deltaY > 0) {
-        // Scroll down
-        setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
-        );
-      } else {
-        // Scroll up
-        setCurrentReadingLine(prev => Math.max(0, prev - 1));
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('wheel', handleScroll, { passive: false });
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('wheel', handleScroll);
-    };
-  }, [readingFocusMode, textLines.length, readingFocusLines]);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
@@ -365,6 +278,93 @@ export default function ReadingLessonViewer() {
     ).length;
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
+
+  // Function to split text into lines for reading focus mode
+  const splitTextIntoLines = (htmlContent: string) => {
+    // Create a temporary div to parse HTML and extract text
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Split into sentences and then into lines based on sentence length
+    const sentences = textContent.split(/[.!?]+/);
+    const lines: string[] = [];
+    
+    sentences.forEach(sentence => {
+      const trimmed = sentence.trim();
+      if (trimmed) {
+        // If sentence is long, split it further
+        if (trimmed.length > 80) {
+          const words = trimmed.split(' ');
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if (currentLine.length + word.length + 1 > 80) {
+              if (currentLine) lines.push(currentLine.trim());
+              currentLine = word;
+            } else {
+              currentLine += (currentLine ? ' ' : '') + word;
+            }
+          });
+          
+          if (currentLine) lines.push(currentLine.trim());
+        } else {
+          lines.push(trimmed);
+        }
+      }
+    });
+    
+    return lines.filter(line => line.length > 0);
+  };
+
+  // Update text lines when content changes
+  useEffect(() => {
+    if (pages[currentPage]) {
+      const lines = splitTextIntoLines(pages[currentPage]);
+      setTextLines(lines);
+      setCurrentReadingLine(0);
+    }
+  }, [pages, currentPage]);
+
+  // Keyboard navigation for reading focus mode
+  useEffect(() => {
+    if (!readingFocusMode) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentReadingLine(prev => 
+          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+        );
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentReadingLine(prev => Math.max(0, prev - 1));
+      } else if (e.code === 'Escape') {
+        setReadingFocusMode(false);
+      }
+    };
+
+    const handleScroll = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        // Scroll down
+        setCurrentReadingLine(prev => 
+          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+        );
+      } else {
+        // Scroll up
+        setCurrentReadingLine(prev => Math.max(0, prev - 1));
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('wheel', handleScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('wheel', handleScroll);
+    };
+  }, [readingFocusMode, textLines.length, readingFocusLines]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
