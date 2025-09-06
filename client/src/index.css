@@ -158,8 +158,8 @@
 /* Responsive focus mode adjustments */
 @media screen and (max-width: 1024px) {
   /* iPad and smaller tablets */
-  .reading-content.max-w-\[65vw\] {
-    max-width: 70vw !important;
+  .reading-content.max-w-\[59vw\] {
+    max-width: 64vw !important;
   }
   
   .questions-card.w-\[23vw\] {
@@ -170,8 +170,8 @@
 
 @media screen and (max-width: 768px) {
   /* Small tablets */
-  .reading-content.max-w-\[65vw\] {
-    max-width: 75vw !important;
+  .reading-content.max-w-\[59vw\] {
+    max-width: 69vw !important;
   }
   
   .questions-card.w-\[23vw\] {
