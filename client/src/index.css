@@ -253,31 +253,45 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
-/* Force black and white styling for question navigation buttons */
-.question-nav-button {
+/* Force black and white styling for question navigation buttons - ultra specific selectors */
+button.question-nav-button,
+.question-nav-button,
+[class*="question-nav-button"] {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border: 1px solid #000000 !important;
   border-color: #000000 !important;
   appearance: none !important;
   -webkit-appearance: none !important;
+  box-shadow: none !important;
 }
 
-.question-nav-button:hover {
+button.question-nav-button:hover,
+.question-nav-button:hover,
+[class*="question-nav-button"]:hover {
   background-color: #F8F8F8 !important;
   color: #000000 !important;
   border-color: #000000 !important;
+  box-shadow: none !important;
 }
 
-/* Viktigt: överskugga default disabled-grått */
-.question-nav-button:disabled {
+/* Viktigt: överskugga default disabled-grått med ultra specifika selektorer */
+button.question-nav-button:disabled,
+.question-nav-button:disabled,
+[class*="question-nav-button"]:disabled,
+button[disabled].question-nav-button,
+.question-nav-button[disabled] {
   background-color: #FFFFFF !important;
   color: #000000 !important;
   border-color: #000000 !important;
+  border: 1px solid #000000 !important;
   opacity: 1 !important;       /* bibliotek sätter ofta 0.65 */
   filter: none !important;      /* om någon satt grayscale */
   cursor: not-allowed !important;
   pointer-events: auto !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  transform: none !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */

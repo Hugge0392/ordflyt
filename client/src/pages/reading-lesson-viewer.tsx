@@ -534,10 +534,13 @@ export default function ReadingLessonViewer() {
                       variant="outline"
                       className="flex items-center gap-2 question-nav-button"
                       style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        borderColor: '#000000 !important',
-                        border: '1px solid #000000 !important'
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        borderColor: '#000000',
+                        border: '1px solid #000000',
+                        opacity: 1,
+                        filter: 'none',
+                        boxShadow: 'none'
                       }}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -549,10 +552,13 @@ export default function ReadingLessonViewer() {
                       variant="outline"
                       className="flex items-center gap-2 question-nav-button"
                       style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        borderColor: '#000000 !important',
-                        border: '1px solid #000000 !important'
+                        backgroundColor: '#FFFFFF',
+                        color: '#000000',
+                        borderColor: '#000000',
+                        border: '1px solid #000000',
+                        opacity: 1,
+                        filter: 'none',
+                        boxShadow: 'none'
                       }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
