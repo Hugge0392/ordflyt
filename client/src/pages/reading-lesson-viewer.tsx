@@ -860,12 +860,14 @@ export default function ReadingLessonViewer() {
                 {readingFocusMode && (
                   <div className="absolute inset-0 pointer-events-none z-20">
                     {(() => {
-                      // Calculate positions based on actual line height
+                      // Calculate positions more precisely based on actual text layout
                       const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
-                      const totalHeight = textLines.length * lineHeight;
-                      const topOffset = currentReadingLine * lineHeight;
+                      
+                      // Calculate offset based on actual content above text
+                      const hasImagesAbove = lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0;
+                      const textAreaOffset = hasImagesAbove ? 150 : 24; // Account for images above and spacing
+                      const topOffset = textAreaOffset + (currentReadingLine * lineHeight);
                       const windowHeight = readingFocusLines * lineHeight;
-                      const bottomOffset = totalHeight - topOffset - windowHeight;
                       
                       return (
                         <>
