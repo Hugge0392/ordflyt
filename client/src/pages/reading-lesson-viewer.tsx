@@ -892,7 +892,7 @@ export default function ReadingLessonViewer() {
                   >
                     {/* Reading focus overlay - positioned directly on text area */}
                     {readingFocusMode && textLines.length > 0 && (
-                      <div className="absolute inset-0 pointer-events-none z-20">
+                      <div className="absolute inset-0 pointer-events-none z-10">
                         {(() => {
                           // Use percentage-based positioning relative to text lines
                           const totalLines = textLines.length;
