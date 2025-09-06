@@ -747,52 +747,139 @@ export default function ReadingLessonViewer() {
                     })}
                     
                     {/* Show general questions only if no reading questions for current page */}
-                    {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) && 
-                     lesson.questions && lesson.questions.map((question, index) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <h4 className="font-medium mb-3">
-                          {index + 1}. {question.question}
-                        </h4>
-                        
-                        {question.type === 'multiple_choice' && question.options && (
-                          <div className="space-y-2">
-                            {question.options.map((option, optionIndex) => (
-                              <div key={optionIndex} className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                  {String.fromCharCode(65 + optionIndex)}
-                                </div>
-                                <span>{option}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {question.type === 'true_false' && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                S
-                              </div>
-                              <span>Sant</span>
+                    {!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) &&
+                      lesson.questions && lesson.questions.map((question, index) => {
+                        const isAnswered = !!(generalAnswers[index]?.trim());
+                        return (
+                          <div key={index} className="p-4 border-b pb-4 last:border-b-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
+                              {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                F
+                            <h4 className="font-medium mb-3">
+                              {question.question}
+                            </h4>
+
+                            {question.type === 'multiple_choice' && question.options && (
+                              <div className="space-y-3">
+                                {question.options.map((option: string, optionIndex: number) => {
+                                  const optionValue = String.fromCharCode(65 + optionIndex);
+                                  const isSelected = generalAnswers[index] === optionValue;
+
+                                  return (
+                                    <div key={optionIndex}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleGeneralAnswerChange(index, optionValue)}
+                                        style={{
+                                          width: '100%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '12px',
+                                          padding: '12px',
+                                          backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                          color: isSelected ? '#ffffff' : '#000000',
+                                          border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                                          borderRadius: '8px',
+                                          cursor: 'pointer',
+                                          fontSize: '16px'
+                                        }}
+                                      >
+                                        <span style={{
+                                          width: '24px',
+                                          height: '24px',
+                                          borderRadius: '50%',
+                                          backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                                          color: isSelected ? '#3b82f6' : '#000000',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 'bold',
+                                          flexShrink: '0'
+                                        }}>
+                                          {optionValue}
+                                        </span>
+                                        <span>{option}</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <span>Falskt</span>
-                            </div>
+                            )}
+
+                            {question.type === 'true_false' && (
+                              <div className="space-y-3">
+                                {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                  const optionValue = option;
+                                  const isSelected = generalAnswers[index] === optionValue;
+
+                                  return (
+                                    <div key={optionIndex}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleGeneralAnswerChange(index, optionValue)}
+                                        style={{
+                                          width: '100%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '12px',
+                                          padding: '12px',
+                                          backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                                          color: isSelected ? '#ffffff' : '#000000',
+                                          border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                                          borderRadius: '8px',
+                                          cursor: 'pointer',
+                                          fontSize: '16px'
+                                        }}
+                                      >
+                                        <span style={{
+                                          width: '24px',
+                                          height: '24px',
+                                          borderRadius: '50%',
+                                          backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                                          color: isSelected ? '#3b82f6' : '#000000',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 'bold',
+                                          flexShrink: '0'
+                                        }}>
+                                          {option.charAt(0)}
+                                        </span>
+                                        <span>{option}</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {question.type === 'open_ended' && (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={generalAnswers[index] || ''}
+                                  onChange={(e) => handleGeneralAnswerChange(index, e.target.value)}
+                                  placeholder="Skriv ditt svar här..."
+                                  style={{
+                                    width: '100%',
+                                    height: '80px',
+                                    padding: '12px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#000000',
+                                    border: '2px solid #d1d5db',
+                                    borderRadius: '8px',
+                                    fontSize: '16px',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical'
+                                  }}
+                                  rows={3}
+                                />
+                              </div>
+                            )}
                           </div>
-                        )}
-                        
-                        {question.type === 'open_ended' && (
-                          <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
-                            <p className="text-sm text-muted-foreground">
-                              Skriv ditt svar här...
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })
+                    }
                   </div>
                 </CardContent>
               </Card>
