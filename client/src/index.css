@@ -145,14 +145,39 @@
   border-color: var(--accessibility-border-color) !important;
 }
 
-/* Questions text size */
+/* Questions text size - Responsive */
 .questions-card .font-medium,
 .questions-card .font-bold {
-  font-size: 24px !important;
+  font-size: clamp(20px, 2.5vw, 24px) !important;
 }
 
 .questions-card .text-left {
-  font-size: 20px !important;
+  font-size: clamp(16px, 2vw, 20px) !important;
+}
+
+/* Responsive focus mode adjustments */
+@media screen and (max-width: 1024px) {
+  /* iPad and smaller tablets */
+  .reading-content.max-w-\[65vw\] {
+    max-width: 70vw !important;
+  }
+  
+  .questions-card.w-\[23vw\] {
+    width: 25vw !important;
+    right: -26vw !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  /* Small tablets */
+  .reading-content.max-w-\[65vw\] {
+    max-width: 75vw !important;
+  }
+  
+  .questions-card.w-\[23vw\] {
+    width: 28vw !important;
+    right: -29vw !important;
+  }
 }
 
 /* Force Card component background - highest specificity */
