@@ -317,11 +317,11 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-4 lg:grid-cols-4 gap-6 lg:items-start mb-6">
+          <div className="grid grid-cols-1 md:landscape:grid-cols-5 lg:grid-cols-5 gap-6 lg:items-start mb-6">
             
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
-              <Card className="questionsPanel12-wrapper order-1 lg:order-1">
+              <Card className="questionsPanel12-wrapper order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-lg">Frågor12</CardTitle>
                   <CardDescription>
