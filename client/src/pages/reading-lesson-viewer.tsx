@@ -195,11 +195,13 @@ export default function ReadingLessonViewer() {
     const currentPageQuestions = lesson?.pages?.[currentPage]?.questions;
     if (!currentPageQuestions || currentPageQuestions.length === 0) return true;
     
-    const currentPageAnswers = readingAnswers[currentPage];
-    if (!currentPageAnswers) return false;
+    // Check page-specific questions in questionsPanel12Answers
+    // Page questions are stored with index offset by the number of general questions
+    const generalQuestionsCount = lesson?.questions?.length || 0;
     
     return currentPageQuestions.every((_, index) => {
-      const answer = currentPageAnswers[index];
+      const questionIndex = generalQuestionsCount + index;
+      const answer = questionsPanel12Answers[questionIndex];
       return answer && answer.trim().length > 0;
     });
   };
