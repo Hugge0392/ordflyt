@@ -532,11 +532,12 @@ export default function ReadingLessonViewer() {
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 question-nav-button"
                       style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#000000'
+                        backgroundColor: '#FFFFFF !important',
+                        color: '#000000 !important',
+                        borderColor: '#000000 !important',
+                        border: '1px solid #000000 !important'
                       }}
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -546,11 +547,12 @@ export default function ReadingLessonViewer() {
                     <Button
                       onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 question-nav-button"
                       style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#000000'
+                        backgroundColor: '#FFFFFF !important',
+                        color: '#000000 !important',
+                        borderColor: '#000000 !important',
+                        border: '1px solid #000000 !important'
                       }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
