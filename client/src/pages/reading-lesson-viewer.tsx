@@ -374,7 +374,7 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' && (question.alternatives || question.options) && (
+                          {(question.type === 'multiple_choice' || question.type === 'multiple-choice') && (question.alternatives || question.options) && (
                             <div className="space-y-2">
                               <p className="text-xs text-gray-600 mb-2">Välj ett alternativ:</p>
                               {(question.alternatives || question.options)!.map((option: string, optionIndex: number) => {
@@ -424,7 +424,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'true_false' && (
+                          {(question.type === 'true_false' || question.type === 'true-false') && (
                             <div className="space-y-2">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
@@ -473,7 +473,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open_ended' && (
+                          {(question.type === 'open_ended' || question.type === 'open') && (
                             <div className="space-y-2">
                               <textarea
                                 value={questionsPanel12Answers[index] || ''}
@@ -527,8 +527,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' && (
+                          {(question.type === 'multiple_choice' || question.type === 'multiple-choice') && (question.alternatives || question.options) && (
                             <div className="space-y-2">
+                              <p className="text-xs text-gray-600 mb-2">Välj ett alternativ:</p>
                               {(question.alternatives || question.options)!.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelectedPanel12 = questionsPanel12Answers[pageQuestionIndex] === optionValue;
@@ -576,7 +577,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open_ended' && (
+                          {(question.type === 'open_ended' || question.type === 'open') && (
                             <div className="space-y-2">
                               <textarea
                                 value={questionsPanel12Answers[pageQuestionIndex] || ''}
