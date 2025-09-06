@@ -155,14 +155,17 @@
   font-size: clamp(16px, 2vw, 20px) !important;
 }
 
-/* Force left positioning in focus mode */
-.reading-content.w-\[59vw\][style*="left: 0px"] {
-  left: 0px !important;
-  margin-left: 0px !important;
-  transform: none !important;
+/* Separate positioning for different question panels */
+.questions-card.normal-mode {
+  /* Normal mode positioning - unchanged */
 }
 
-/* Responsive focus mode adjustments - Force consistent width */
+.questions-card.focus-mode {
+  /* Focus mode positioning - absolute right with margin */
+  right: 1rem !important;
+}
+
+/* Responsive adjustments for text content */
 @media screen and (max-width: 1024px) {
   /* iPad and smaller tablets */
   .reading-content.w-\[59vw\] {
@@ -171,7 +174,7 @@
     max-width: 59vw !important;
   }
   
-  .questions-card.w-\[23vw\] {
+  .questions-card.focus-mode {
     width: 25vw !important;
     right: 1rem !important;
   }
@@ -185,7 +188,7 @@
     max-width: 55vw !important;
   }
   
-  .questions-card.w-\[23vw\] {
+  .questions-card.focus-mode {
     width: 28vw !important;
     right: 1rem !important;
   }
