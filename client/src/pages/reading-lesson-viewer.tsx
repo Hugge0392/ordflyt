@@ -363,7 +363,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'relative w-full' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className={`${isFocusMode ? 'relative w-full h-screen' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
@@ -371,10 +371,11 @@ export default function ReadingLessonViewer() {
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{
                 ...(isFocusMode ? {
-                  left: showQuestionsInFocus ? '0px !important' : '50%',
-                  transform: showQuestionsInFocus ? 'none !important' : 'translateX(-50%)',
-                  marginLeft: showQuestionsInFocus ? '0px !important' : 'auto',
-                  position: 'absolute !important' as any
+                  position: 'absolute' as const,
+                  left: showQuestionsInFocus ? '0px' : '50%',
+                  transform: showQuestionsInFocus ? 'none' : 'translateX(-50%)',
+                  top: '0px',
+                  zIndex: 10
                 } : {}),
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
@@ -627,7 +628,7 @@ export default function ReadingLessonViewer() {
             {/* Questions - Right Column */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              (!isFocusMode || showQuestionsInFocus) && (
+              (!isFocusMode || (isFocusMode && showQuestionsInFocus)) && (
               <Card 
                 className={`questions-card ${isFocusMode 
                   ? 'absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col' 
