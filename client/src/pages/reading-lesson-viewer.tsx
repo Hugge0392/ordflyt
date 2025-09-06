@@ -538,7 +538,7 @@ export default function ReadingLessonViewer() {
                         border: '1px solid #000000 !important',
                         padding: '10px 16px !important',
                         borderRadius: '8px !important',
-                        cursor: isFirstQuestion ? 'not-allowed !important' : 'pointer !important',
+                        cursor: isFirstQuestion ? 'not-allowed' : 'pointer',
                         fontSize: '14px !important',
                         fontWeight: '500 !important',
                         display: 'flex !important',
@@ -549,8 +549,8 @@ export default function ReadingLessonViewer() {
                         filter: 'none !important',
                         boxShadow: 'none !important',
                         outline: 'none !important',
-                        position: 'relative !important',
-                        zIndex: '999 !important'
+                        position: 'relative',
+                        zIndex: 999
                       }}
                     >
                       <ChevronLeft style={{ width: '16px', height: '16px' }} />
@@ -566,7 +566,7 @@ export default function ReadingLessonViewer() {
                         border: '1px solid #000000 !important',
                         padding: '10px 16px !important',
                         borderRadius: '8px !important',
-                        cursor: 'pointer !important',
+                        cursor: 'pointer',
                         fontSize: '14px !important',
                         fontWeight: '500 !important',
                         display: 'flex !important',
@@ -577,8 +577,8 @@ export default function ReadingLessonViewer() {
                         filter: 'none !important',
                         boxShadow: 'none !important',
                         outline: 'none !important',
-                        position: 'relative !important',
-                        zIndex: '999 !important'
+                        position: 'relative',
+                        zIndex: 999
                       }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
