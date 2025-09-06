@@ -260,24 +260,6 @@
 }
 
 
-/* Focus mode - darken everything except reading content */
-.focus-mode-blur > * {
-  transition: opacity 0.3s ease-in-out, filter 0.3s ease-in-out;
-}
-
-.focus-mode-blur > *:not(.reading-content) {
-  opacity: 0.15;
-  filter: brightness(0.3);
-}
-
-.focus-mode-blur .reading-content {
-  opacity: 1 !important;
-  filter: none !important;
-  position: relative;
-  z-index: 10;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-}
-
 /* Large text styles for reading content */
 .prose-lg {
   font-size: 1.25rem !important;
