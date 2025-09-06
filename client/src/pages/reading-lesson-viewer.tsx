@@ -299,8 +299,9 @@ export default function ReadingLessonViewer() {
     }
   };
   
-  // Special handler for text inputs that only animates on blur (when user finishes typing)
-  const handleTextAnswerComplete = (pageIndex: number, questionIndex: number, answer: string) => {
+  // Special handler for text inputs that only animates when user clicks "Klar" button
+  const handleTextAnswerComplete = (pageIndex: number, questionIndex: number) => {
+    const answer = readingAnswers[pageIndex]?.[questionIndex] || '';
     if (answer && answer.trim().length > 0) {
       handleAnswerChange(pageIndex, questionIndex, answer, true);
     }
@@ -839,16 +840,22 @@ export default function ReadingLessonViewer() {
                                 )}
                                 
                                 {question.type === 'open' && (
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     <textarea
                                       value={readingAnswers[activePage]?.[questionIndex] || ''}
                                       onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value, false)}
-                                      onBlur={(e) => handleTextAnswerComplete(activePage, questionIndex, e.target.value)}
                                       placeholder="Skriv ditt svar här..."
                                       className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-blue-500"
                                       rows={3}
                                     />
-                                    <p className="text-xs text-gray-500">Tryck utanför textfältet för att bekräfta ditt svar</p>
+                                    {readingAnswers[activePage]?.[questionIndex] && readingAnswers[activePage][questionIndex].trim().length > 0 && (
+                                      <button
+                                        onClick={() => handleTextAnswerComplete(activePage, questionIndex)}
+                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                                      >
+                                        Klar ✓
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </>
