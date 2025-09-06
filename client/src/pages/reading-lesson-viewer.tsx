@@ -860,14 +860,19 @@ export default function ReadingLessonViewer() {
                 {readingFocusMode && (
                   <div className="absolute inset-0 pointer-events-none z-20">
                     {(() => {
-                      // Calculate positions more precisely based on actual text layout
-                      const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
+                      // Use percentage-based positioning for better alignment
+                      const totalLines = textLines.length;
+                      if (totalLines === 0) return null;
                       
-                      // Calculate offset based on actual content above text
-                      const hasImagesAbove = lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0;
-                      const textAreaOffset = hasImagesAbove ? 150 : 24; // Account for images above and spacing
-                      const topOffset = textAreaOffset + (currentReadingLine * lineHeight);
-                      const windowHeight = readingFocusLines * lineHeight;
+                      // Calculate center position of current reading line as percentage
+                      const currentLineCenterPercent = ((currentReadingLine + 0.5) / totalLines) * 100;
+                      
+                      // Calculate window size as percentage
+                      const windowSizePercent = (readingFocusLines / totalLines) * 100;
+                      
+                      // Calculate top and bottom positions centered on current line
+                      const windowTopPercent = Math.max(0, currentLineCenterPercent - (windowSizePercent / 2));
+                      const windowBottomPercent = Math.min(100, currentLineCenterPercent + (windowSizePercent / 2));
                       
                       return (
                         <>
@@ -875,7 +880,7 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
                             style={{ 
-                              height: `${Math.max(0, topOffset)}px`
+                              height: `${windowTopPercent}%`
                             }}
                           />
                           
@@ -883,7 +888,7 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
                             style={{ 
-                              top: `${topOffset + windowHeight}px`,
+                              top: `${windowBottomPercent}%`,
                               bottom: '0px'
                             }}
                           />
@@ -892,8 +897,8 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute left-0 right-0 transition-all duration-300"
                             style={{ 
-                              top: `${topOffset}px`,
-                              height: `${windowHeight}px`,
+                              top: `${windowTopPercent}%`,
+                              height: `${windowBottomPercent - windowTopPercent}%`,
                               border: `2px solid ${accessibilityColors.textColor}`,
                               boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
                             }}
