@@ -341,7 +341,7 @@ export default function ReadingLessonViewer() {
                             <h3 className="font-bold text-sm">Fråga {index + 1}</h3>
                             {isAnsweredPanel12 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓</span>}
                           </div>
-                          <h4 className="font-medium mb-3 text-sm">
+                          <h4 className="font-medium mb-3" style={{ fontSize: '20px' }}>
                             {question.question}
                           </h4>
                           
@@ -497,7 +497,7 @@ export default function ReadingLessonViewer() {
                             <h3 className="font-bold text-sm">Sidfråga {index + 1}</h3>
                             {isAnsweredPanel12 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓</span>}
                           </div>
-                          <h4 className="font-medium mb-3 text-sm">
+                          <h4 className="font-medium mb-3" style={{ fontSize: '20px' }}>
                             {question.question}
                           </h4>
                           
