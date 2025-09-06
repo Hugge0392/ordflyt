@@ -606,18 +606,6 @@ export default function ReadingLessonViewer() {
                     <span>Läs texten</span>
                   </CardTitle>
                   <div className="flex gap-2">
-                      {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
-                        (lesson.questions && lesson.questions.length > 0)) && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowQuestions(v => !v)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          {showQuestions ? 'Dölj frågor' : 'Visa frågor'}
-                        </Button>
-                      )}
-                      
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" size="sm">
