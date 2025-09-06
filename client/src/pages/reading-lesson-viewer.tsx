@@ -51,6 +51,7 @@ export default function ReadingLessonViewer() {
   const [currentPage, setCurrentPage] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
@@ -310,6 +311,22 @@ export default function ReadingLessonViewer() {
                   <CardTitle className="text-lg">
                     <span>Läs texten</span>
                   </CardTitle>
+                  <div className="flex gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsFocusMode(!isFocusMode)}
+                        >
+                          <Focus className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{isFocusMode ? 'Avaktivera fokusläge' : 'Aktivera fokusläge för ostörd läsning'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   {false && (
                     <div className="flex gap-2">
                       {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
