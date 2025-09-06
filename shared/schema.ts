@@ -402,7 +402,8 @@ export interface ReadingQuestion {
   id: string;
   type: "multiple_choice" | "open_ended" | "true_false";
   question: string;
-  options?: string[]; // for multiple choice
+  options?: string[]; // for multiple choice (legacy)
+  alternatives?: string[]; // for multiple choice (current)
   correctAnswer?: string | number | boolean; // for multiple choice (index) or true/false
   explanation?: string; // optional explanation for the answer
   pageNumber?: number; // which page this question belongs to
