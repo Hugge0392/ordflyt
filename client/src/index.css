@@ -230,6 +230,11 @@ div.reading-content.accessibility-enhanced.prose h6 {
 .space-y-3.max-h-\[60vh\].overflow-y-auto {
   scrollbar-width: thin;
   scrollbar-color: var(--accessibility-text-color) transparent;
+  direction: rtl;
+}
+
+.space-y-3.max-h-\[60vh\].overflow-y-auto > * {
+  direction: ltr;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar {
@@ -238,7 +243,6 @@ div.reading-content.accessibility-enhanced.prose h6 {
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-track {
   background: transparent;
-  margin-left: 2px;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
@@ -246,7 +250,6 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.4;
   border-radius: 2px;
   border: none;
-  margin-left: 2px;
 }
 
 .space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
