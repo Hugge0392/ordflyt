@@ -374,9 +374,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' && question.alternatives && (
+                          {question.type === 'multiple_choice' && (question.alternatives || question.options) && (
                             <div className="space-y-2">
-                              {question.alternatives.map((option: string, optionIndex: number) => {
+                              {(question.alternatives || question.options)!.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelectedPanel12 = questionsPanel12Answers[index] === optionValue;
                                 
@@ -526,9 +526,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple_choice' && question.alternatives && (
+                          {question.type === 'multiple_choice' && (question.alternatives || question.options) && (
                             <div className="space-y-2">
-                              {question.alternatives.map((option: string, optionIndex: number) => {
+                              {(question.alternatives || question.options)!.map((option: string, optionIndex: number) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelectedPanel12 = questionsPanel12Answers[pageQuestionIndex] === optionValue;
                                 
