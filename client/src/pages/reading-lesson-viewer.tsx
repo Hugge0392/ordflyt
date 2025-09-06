@@ -863,59 +863,7 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                {/* Full card dark overlay when reading focus mode is active */}
-                {readingFocusMode && (
-                  <div className="absolute inset-0 pointer-events-none z-20">
-                    {(() => {
-                      if (textLines.length === 0) return null;
-                      
-                      // Calculate exact pixel positions using actual line height
-                      const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
-                      const windowHeight = lineHeight * readingFocusLines;
-                      
-                      // Add offset to account for content above text and center the window
-                      const textStartOffset = 20; // Small offset for the text area padding
-                      const currentLinePosition = textStartOffset + (currentReadingLine * lineHeight);
-                      const windowTopPosition = currentLinePosition - (windowHeight / 2) + (lineHeight / 2);
-                      
-                      return (
-                        <>
-                          {/* Top dark overlay */}
-                          <div 
-                            className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              height: `${Math.max(0, windowTopPosition)}px`
-                            }}
-                          />
-                          
-                          {/* Bottom dark overlay */}
-                          <div 
-                            className="absolute left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              top: `${windowTopPosition + windowHeight}px`,
-                              bottom: '0px'
-                            }}
-                          />
-                          
-                          {/* Clear reading window with border - only width of text area */}
-                          <div 
-                            className="absolute transition-all duration-300"
-                            style={{ 
-                              top: `${windowTopPosition}px`,
-                              height: `${windowHeight}px`,
-                              left: '0px',
-                              right: '0px',
-                              border: `2px solid ${accessibilityColors.textColor}`,
-                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
-                            }}
-                          />
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
-                
-                <div className="space-y-6 relative z-10">
+                <div className="space-y-6">
                   {/* Bilder ovanför texten för denna sida */}
                   {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
                     <div className="space-y-4">
@@ -942,6 +890,57 @@ export default function ReadingLessonViewer() {
                         : 'inherit'
                     }}
                   >
+                    {/* Reading focus overlay - positioned directly on text area */}
+                    {readingFocusMode && textLines.length > 0 && (
+                      <div className="absolute inset-0 pointer-events-none z-20">
+                        {(() => {
+                          // Use percentage-based positioning relative to text lines
+                          const totalLines = textLines.length;
+                          const linePercent = 100 / totalLines;
+                          
+                          // Calculate top position (start of current line)
+                          const topPercent = (currentReadingLine / totalLines) * 100;
+                          
+                          // Calculate window height (number of lines to show)
+                          const windowHeightPercent = (readingFocusLines / totalLines) * 100;
+                          
+                          // Calculate bottom position
+                          const bottomPercent = 100 - (topPercent + windowHeightPercent);
+                          
+                          return (
+                            <>
+                              {/* Top dark overlay */}
+                              <div 
+                                className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                                style={{ 
+                                  height: `${topPercent}%`
+                                }}
+                              />
+                              
+                              {/* Bottom dark overlay */}
+                              <div 
+                                className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                                style={{ 
+                                  height: `${bottomPercent}%`
+                                }}
+                              />
+                              
+                              {/* Clear reading window with border */}
+                              <div 
+                                className="absolute left-0 right-0 transition-all duration-300"
+                                style={{ 
+                                  top: `${topPercent}%`,
+                                  height: `${windowHeightPercent}%`,
+                                  border: `2px solid ${accessibilityColors.textColor}`,
+                                  boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                                }}
+                              />
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    
                     {readingFocusMode ? (
                       <>
                         <div
