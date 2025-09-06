@@ -317,6 +317,13 @@ export default function ReadingLessonViewer() {
     return lines.filter(line => line.length > 0);
   };
 
+  // Calculate optimal reading window height based on font settings
+  const getReadingWindowHeight = () => {
+    const baseLineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
+    const windowHeight = baseLineHeight * readingFocusLines;
+    return windowHeight;
+  };
+
   // Update text lines when content changes
   useEffect(() => {
     if (pages[currentPage]) {
@@ -852,32 +859,46 @@ export default function ReadingLessonViewer() {
                 {/* Full card dark overlay when reading focus mode is active */}
                 {readingFocusMode && (
                   <div className="absolute inset-0 pointer-events-none z-20">
-                    {/* Top dark overlay */}
-                    <div 
-                      className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                      style={{ 
-                        height: `${(currentReadingLine / textLines.length) * 100}%`
-                      }}
-                    />
-                    
-                    {/* Bottom dark overlay */}
-                    <div 
-                      className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                      style={{ 
-                        height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
-                      }}
-                    />
-                    
-                    {/* Clear reading window with border */}
-                    <div 
-                      className="absolute left-0 right-0 transition-all duration-300"
-                      style={{ 
-                        top: `${(currentReadingLine / textLines.length) * 100}%`,
-                        height: `${(readingFocusLines / textLines.length) * 100}%`,
-                        border: `2px solid ${accessibilityColors.textColor}`,
-                        boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
-                      }}
-                    />
+                    {(() => {
+                      // Calculate positions based on actual line height
+                      const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
+                      const totalHeight = textLines.length * lineHeight;
+                      const topOffset = currentReadingLine * lineHeight;
+                      const windowHeight = readingFocusLines * lineHeight;
+                      const bottomOffset = totalHeight - topOffset - windowHeight;
+                      
+                      return (
+                        <>
+                          {/* Top dark overlay */}
+                          <div 
+                            className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              height: `${Math.max(0, topOffset)}px`
+                            }}
+                          />
+                          
+                          {/* Bottom dark overlay */}
+                          <div 
+                            className="absolute left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              top: `${topOffset + windowHeight}px`,
+                              bottom: '0px'
+                            }}
+                          />
+                          
+                          {/* Clear reading window with border */}
+                          <div 
+                            className="absolute left-0 right-0 transition-all duration-300"
+                            style={{ 
+                              top: `${topOffset}px`,
+                              height: `${windowHeight}px`,
+                              border: `2px solid ${accessibilityColors.textColor}`,
+                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                            }}
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
                 
