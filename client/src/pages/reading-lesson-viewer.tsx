@@ -368,8 +368,8 @@ export default function ReadingLessonViewer() {
             <Card 
               className={`${isFocusMode 
                 ? showQuestionsInFocus 
-                  ? 'absolute left-4 w-full max-w-[59vw] transition-all duration-300' 
-                  : 'absolute left-1/2 transform -translate-x-1/2 w-full max-w-[59vw] transition-all duration-300'
+                  ? 'absolute left-4 w-[59vw] transition-all duration-300' 
+                  : 'absolute left-1/2 transform -translate-x-1/2 w-[59vw] transition-all duration-300'
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
@@ -626,7 +626,7 @@ export default function ReadingLessonViewer() {
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`questions-card ${isFocusMode 
-                  ? 'absolute right-4 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col' 
+                  ? 'absolute right-0 top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,

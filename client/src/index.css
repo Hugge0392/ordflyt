@@ -158,25 +158,25 @@
 /* Responsive focus mode adjustments */
 @media screen and (max-width: 1024px) {
   /* iPad and smaller tablets */
-  .reading-content.max-w-\[59vw\] {
-    max-width: 59vw !important;
+  .reading-content.w-\[59vw\] {
+    width: 59vw !important;
   }
   
   .questions-card.w-\[23vw\] {
     width: 25vw !important;
-    right: 1rem !important;
+    right: 0 !important;
   }
 }
 
 @media screen and (max-width: 768px) {
   /* Small tablets */
-  .reading-content.max-w-\[59vw\] {
-    max-width: 55vw !important;
+  .reading-content.w-\[59vw\] {
+    width: 55vw !important;
   }
   
   .questions-card.w-\[23vw\] {
     width: 28vw !important;
-    right: 1rem !important;
+    right: 0 !important;
   }
 }
 
