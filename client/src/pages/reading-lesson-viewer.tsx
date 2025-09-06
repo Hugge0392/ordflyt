@@ -902,9 +902,9 @@ export default function ReadingLessonViewer() {
                             }}
                           />
                         </div>
-                          
-                          {/* Progress indicator at bottom */}
-                          <div 
+                        
+                        {/* Progress indicator at bottom */}
+                        <div 
                             className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
                             style={{ 
                               backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -1082,5 +1082,5 @@ export default function ReadingLessonViewer() {
           )}
         </div>
       </div>
-  );
+    );
 }
