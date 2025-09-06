@@ -155,44 +155,6 @@
   font-size: clamp(16px, 2vw, 20px) !important;
 }
 
-/* Separate positioning for different question panels */
-.questions-card.normal-mode {
-  /* Normal mode positioning - unchanged */
-}
-
-.questions-card.focus-mode {
-  /* Focus mode positioning - absolute right with margin */
-  right: 1rem !important;
-}
-
-/* Responsive adjustments for text content */
-@media screen and (max-width: 1024px) {
-  /* iPad and smaller tablets */
-  .reading-content.w-\[59vw\] {
-    width: 59vw !important;
-    min-width: 59vw !important;
-    max-width: 59vw !important;
-  }
-  
-  .questions-card.focus-mode {
-    width: 25vw !important;
-    left: calc(59vw + 2rem) !important;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  /* Small tablets */
-  .reading-content.w-\[59vw\] {
-    width: 55vw !important;
-    min-width: 55vw !important;
-    max-width: 55vw !important;
-  }
-  
-  .questions-card.focus-mode {
-    width: 28vw !important;
-    left: calc(55vw + 2rem) !important;
-  }
-}
 
 /* Force Card component background - highest specificity */
 .reading-content.accessibility-enhanced.rounded-lg.border.bg-card.text-card-foreground.shadow-sm,

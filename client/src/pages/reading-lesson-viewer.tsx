@@ -224,25 +224,12 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background relative">
-        {!isFocusMode && <AccessibilitySidebar />}
+        <AccessibilitySidebar />
         
-        {/* Focus Mode Backdrop */}
-        {isFocusMode && (
-          <div 
-            className="fixed inset-0 bg-black/60 z-10 transition-opacity duration-300"
-            onClick={(e) => {
-              // Only close if clicking on the backdrop itself, not child elements
-              if (e.target === e.currentTarget) {
-                setIsFocusMode(false);
-                setShowQuestionsInFocus(false);
-              }
-            }}
-          />
-        )}
         
-        <div className={`${isFocusMode ? 'relative z-20 max-w-7xl mx-auto p-6' : 'max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4'}`}>
+        <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
           {/* Header */}
-          <Card className={`mb-6 focus-mode-transition ${isFocusMode ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}>
+          <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -286,7 +273,7 @@ export default function ReadingLessonViewer() {
           </Card>
 
           {/* Pre-reading Questions */}
-          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && !isFocusMode && (
+          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="text-lg">Innan du läser</CardTitle>
@@ -308,49 +295,22 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'relative w-full' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
-              className={`${isFocusMode 
-                ? 'absolute w-[59vw] transition-all duration-300'
-                : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
+              className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content"
               style={{
-                ...(isFocusMode ? {
-                  left: '0px',
-                  position: 'absolute' as const
-                } : {}),
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
                 '--card-text-color': accessibilityColors.textColor
               } as React.CSSProperties}
             >
               <CardHeader className="relative">
-                {/* Focus Mode Button - Top Right Corner */}
-                {!isFocusMode && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="absolute top-4 right-4 z-10"
-                        onClick={() => {
-                          setIsFocusMode(true);
-                          setShowQuestionsInFocus(false);
-                        }}
-                      >
-                        <Focus className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Aktivera fokusläge för ostörd läsning</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">
                     <span>Läs texten</span>
                   </CardTitle>
-                  {isFocusMode && (
+                  {false && (
                     <div className="flex gap-2">
                       {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
                         (lesson.questions && lesson.questions.length > 0)) && (
@@ -570,7 +530,7 @@ export default function ReadingLessonViewer() {
             {/* Questions Panel for Normal Mode */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              !isFocusMode && (
+              (
               <Card 
                 className="questions-card normal-mode md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
                 style={{ 
@@ -591,8 +551,8 @@ export default function ReadingLessonViewer() {
                       : 'Svara på frågorna för att kontrollera din förståelse'}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className={`${isFocusMode ? 'flex-1 overflow-hidden' : ''}`}>
-                  <div className={`space-y-6 ${isFocusMode ? 'h-full overflow-y-auto' : 'max-h-[70vh] overflow-y-auto'}`}>
+                <CardContent>
+                  <div className="space-y-6 max-h-[70vh] overflow-y-auto">
                     {/* Show reading questions for current page first */}
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
                       const isAnswered = !!(readingAnswers[currentPage]?.[index]?.trim());
@@ -740,7 +700,7 @@ export default function ReadingLessonViewer() {
             {/* Questions Panel for Focus Mode */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              isFocusMode && showQuestionsInFocus && (
+              false && (
               <Card 
                 className="questions-card focus-mode absolute left-[calc(59vw+2rem)] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
                 style={{ 
