@@ -317,6 +317,13 @@ export default function ReadingLessonViewer() {
     return lines.filter(line => line.length > 0);
   };
 
+  // Function to get actual line position in DOM
+  const getTextLinePosition = (lineIndex: number) => {
+    // Use the line height from settings to calculate position
+    const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
+    return lineIndex * lineHeight;
+  };
+
   // Calculate optimal reading window height based on font settings
   const getReadingWindowHeight = () => {
     const baseLineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
@@ -860,19 +867,15 @@ export default function ReadingLessonViewer() {
                 {readingFocusMode && (
                   <div className="absolute inset-0 pointer-events-none z-20">
                     {(() => {
-                      // Use percentage-based positioning for better alignment
-                      const totalLines = textLines.length;
-                      if (totalLines === 0) return null;
+                      if (textLines.length === 0) return null;
                       
-                      // Calculate center position of current reading line as percentage
-                      const currentLineCenterPercent = ((currentReadingLine + 0.5) / totalLines) * 100;
+                      // Calculate exact pixel positions using actual line height
+                      const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
+                      const windowHeight = lineHeight * readingFocusLines;
                       
-                      // Calculate window size as percentage
-                      const windowSizePercent = (readingFocusLines / totalLines) * 100;
-                      
-                      // Calculate top and bottom positions centered on current line
-                      const windowTopPercent = Math.max(0, currentLineCenterPercent - (windowSizePercent / 2));
-                      const windowBottomPercent = Math.min(100, currentLineCenterPercent + (windowSizePercent / 2));
+                      // Position the window centered on the current line
+                      const currentLineTopPosition = getTextLinePosition(currentReadingLine);
+                      const windowTopPosition = currentLineTopPosition;
                       
                       return (
                         <>
@@ -880,7 +883,7 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
                             style={{ 
-                              height: `${windowTopPercent}%`
+                              height: `${windowTopPosition}px`
                             }}
                           />
                           
@@ -888,7 +891,7 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
                             style={{ 
-                              top: `${windowBottomPercent}%`,
+                              top: `${windowTopPosition + windowHeight}px`,
                               bottom: '0px'
                             }}
                           />
@@ -897,8 +900,8 @@ export default function ReadingLessonViewer() {
                           <div 
                             className="absolute left-0 right-0 transition-all duration-300"
                             style={{ 
-                              top: `${windowTopPercent}%`,
-                              height: `${windowBottomPercent - windowTopPercent}%`,
+                              top: `${windowTopPosition}px`,
+                              height: `${windowHeight}px`,
                               border: `2px solid ${accessibilityColors.textColor}`,
                               boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
                             }}
