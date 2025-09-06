@@ -321,6 +321,11 @@ export default function ReadingLessonViewer() {
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {/* Import questions from lesson.questions */}
                     {lesson.questions && lesson.questions.map((question, index) => {
+                      // Debug: Log question data to see what's available
+                      console.log(`Question ${index}:`, question);
+                      console.log(`Question type:`, question.type);
+                      console.log(`Question options:`, question.options);
+                      
                       const isAnsweredPanel12 = !!(questionsPanel12Answers[index]?.trim());
                       
                       return (
@@ -471,6 +476,11 @@ export default function ReadingLessonViewer() {
                     
                     {/* Also import page-specific questions if available */}
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
+                      // Debug: Log page question data
+                      console.log(`Page Question ${index}:`, question);
+                      console.log(`Page Question type:`, question.type);
+                      console.log(`Page Question options:`, question.options);
+                      
                       const pageQuestionIndex = (lesson.questions?.length || 0) + index;
                       const isAnsweredPanel12 = !!(questionsPanel12Answers[pageQuestionIndex]?.trim());
                       
