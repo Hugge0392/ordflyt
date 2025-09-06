@@ -202,6 +202,11 @@ export default function ReadingLessonViewer() {
     }));
   };
 
+  // Handle answer changes for general questions
+  const handleGeneralAnswerChange = (questionIndex: number, answer: string) => {
+    setGeneralAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+  };
+
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
     const currentPageQuestions = lesson?.pages?.[currentPage]?.questions;
