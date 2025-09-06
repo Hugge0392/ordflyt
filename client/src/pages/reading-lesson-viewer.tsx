@@ -196,11 +196,12 @@ export default function ReadingLessonViewer() {
     if (!currentPageQuestions || currentPageQuestions.length === 0) return true;
     
     // Check page-specific questions in questionsPanel12Answers
-    // Page questions are stored with index offset by the number of general questions
+    // Calculate unique index for each page question across all pages
     const generalQuestionsCount = lesson?.questions?.length || 0;
+    const previousPagesQuestionsCount = lesson?.pages?.slice(0, currentPage).reduce((sum, page) => sum + (page.questions?.length || 0), 0) || 0;
     
     return currentPageQuestions.every((_, index) => {
-      const questionIndex = generalQuestionsCount + index;
+      const questionIndex = generalQuestionsCount + previousPagesQuestionsCount + index;
       const answer = questionsPanel12Answers[questionIndex];
       return answer && answer.trim().length > 0;
     });
@@ -476,7 +477,10 @@ export default function ReadingLessonViewer() {
                     {/* Also import page-specific questions if available */}
                     {lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.map((question, index) => {
                       
-                      const pageQuestionIndex = (lesson.questions?.length || 0) + index;
+                      // Calculate unique index for each page question across all pages
+                      const generalQuestionsCount = lesson.questions?.length || 0;
+                      const previousPagesQuestionsCount = lesson.pages!.slice(0, currentPage).reduce((sum, page) => sum + (page.questions?.length || 0), 0);
+                      const pageQuestionIndex = generalQuestionsCount + previousPagesQuestionsCount + index;
                       const isAnsweredPanel12 = !!(questionsPanel12Answers[pageQuestionIndex]?.trim());
                       
                       return (
