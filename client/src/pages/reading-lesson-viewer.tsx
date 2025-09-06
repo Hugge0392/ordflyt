@@ -838,7 +838,39 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                <div className="space-y-6">
+                {/* Full card dark overlay when reading focus mode is active */}
+                {readingFocusMode && (
+                  <div className="absolute inset-0 pointer-events-none z-20">
+                    {/* Top dark overlay */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                      style={{ 
+                        height: `${(currentReadingLine / textLines.length) * 100}%`
+                      }}
+                    />
+                    
+                    {/* Bottom dark overlay */}
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
+                      style={{ 
+                        height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
+                      }}
+                    />
+                    
+                    {/* Clear reading window with border */}
+                    <div 
+                      className="absolute left-0 right-0 transition-all duration-300"
+                      style={{ 
+                        top: `${(currentReadingLine / textLines.length) * 100}%`,
+                        height: `${(readingFocusLines / textLines.length) * 100}%`,
+                        border: `2px solid ${accessibilityColors.textColor}`,
+                        boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-6 relative z-10">
                   {/* Bilder ovanför texten för denna sida */}
                   {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
                     <div className="space-y-4">
@@ -867,45 +899,11 @@ export default function ReadingLessonViewer() {
                   >
                     {readingFocusMode ? (
                       <>
-                        <div className="relative">
-                          {/* Keep original text but with reading ruler overlay */}
-                          <div
-                            dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                            onMouseOver={handleContentMouseOver}
-                            onMouseOut={handleContentMouseOut}
-                          />
-                          
-                          {/* Reading ruler overlay - dark masks with clear window */}
-                          <div className="absolute inset-0 pointer-events-none">
-                            {/* Top dark overlay */}
-                            <div 
-                              className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                              style={{ 
-                                height: `${(currentReadingLine / textLines.length) * 100}%`
-                              }}
-                            />
-                            
-                            {/* Bottom dark overlay */}
-                            <div 
-                              className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                              style={{ 
-                                height: `${((textLines.length - currentReadingLine - readingFocusLines) / textLines.length) * 100}%`
-                              }}
-                            />
-                            
-                            {/* Clear reading window with border */}
-                            <div 
-                              className="absolute left-0 right-0 transition-all duration-300"
-                              style={{ 
-                                top: `${(currentReadingLine / textLines.length) * 100}%`,
-                                height: `${(readingFocusLines / textLines.length) * 100}%`,
-                                border: `2px solid ${accessibilityColors.textColor}`,
-                                boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
-                              }}
-                            />
-                          </div>
-                        </div>
-                        
+                        <div
+                          dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                          onMouseOver={handleContentMouseOver}
+                          onMouseOut={handleContentMouseOut}
+                        />
                         
                         {/* Progress indicator at bottom */}
                         <div 
