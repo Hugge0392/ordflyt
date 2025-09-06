@@ -22,6 +22,93 @@ interface HoveredWord {
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Function to split text into lines for reading focus mode
+  const splitTextIntoLines = (htmlContent: string) => {
+    // Create a temporary div to parse HTML and extract text
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    // Split into sentences and then into lines based on sentence length
+    const sentences = textContent.split(/[.!?]+/);
+    const lines: string[] = [];
+    
+    sentences.forEach(sentence => {
+      const trimmed = sentence.trim();
+      if (trimmed) {
+        // If sentence is long, split it further
+        if (trimmed.length > 80) {
+          const words = trimmed.split(' ');
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if (currentLine.length + word.length + 1 > 80) {
+              if (currentLine) lines.push(currentLine.trim());
+              currentLine = word;
+            } else {
+              currentLine += (currentLine ? ' ' : '') + word;
+            }
+          });
+          
+          if (currentLine) lines.push(currentLine.trim());
+        } else {
+          lines.push(trimmed);
+        }
+      }
+    });
+    
+    return lines.filter(line => line.length > 0);
+  };
+
+  // Update text lines when content changes
+  useEffect(() => {
+    if (pages[currentPage]) {
+      const lines = splitTextIntoLines(pages[currentPage]);
+      setTextLines(lines);
+      setCurrentReadingLine(0);
+    }
+  }, [pages, currentPage]);
+
+  // Keyboard navigation for reading focus mode
+  useEffect(() => {
+    if (!readingFocusMode) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentReadingLine(prev => 
+          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+        );
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentReadingLine(prev => Math.max(0, prev - 1));
+      } else if (e.code === 'Escape') {
+        setReadingFocusMode(false);
+      }
+    };
+
+    const handleScroll = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        // Scroll down
+        setCurrentReadingLine(prev => 
+          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+        );
+      } else {
+        // Scroll up
+        setCurrentReadingLine(prev => Math.max(0, prev - 1));
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('wheel', handleScroll, { passive: false });
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('wheel', handleScroll);
+    };
+  }, [readingFocusMode, textLines.length, readingFocusLines]);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
@@ -45,6 +132,12 @@ export default function ReadingLessonViewer() {
     backgroundColor: '#ffffff',
     textColor: '#000000'
   });
+  
+  // Reading Focus Mode states - using "readingFocus" prefix to avoid conflicts
+  const [readingFocusMode, setReadingFocusMode] = useState(false);
+  const [readingFocusLines, setReadingFocusLines] = useState(1); // 1, 3, or 5 lines
+  const [currentReadingLine, setCurrentReadingLine] = useState(0);
+  const [textLines, setTextLines] = useState<string[]>([]);
 
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
@@ -677,6 +770,47 @@ export default function ReadingLessonViewer() {
                                 </SelectContent>
                               </Select>
                             </div>
+                            
+                            <div className="border-t pt-4">
+                              <Label className="text-sm font-medium">Läsfokus</Label>
+                              <div className="space-y-3 mt-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm">Aktivera läsfokus</span>
+                                  <button
+                                    onClick={() => setReadingFocusMode(!readingFocusMode)}
+                                    className={`w-12 h-6 rounded-full transition-colors ${
+                                      readingFocusMode ? 'bg-blue-600' : 'bg-gray-300'
+                                    }`}
+                                  >
+                                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                                      readingFocusMode ? 'translate-x-6' : 'translate-x-0.5'
+                                    }`} />
+                                  </button>
+                                </div>
+                                
+                                {readingFocusMode && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">Antal rader samtidigt</Label>
+                                    <Select
+                                      value={readingFocusLines.toString()}
+                                      onValueChange={(value) => setReadingFocusLines(parseInt(value))}
+                                    >
+                                      <SelectTrigger className="mt-1">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="1">1 rad</SelectItem>
+                                        <SelectItem value="3">3 rader</SelectItem>
+                                        <SelectItem value="5">5 rader</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <div className="text-xs text-muted-foreground mt-2">
+                                      💡 Använd Space/pilar eller scrolla för att navigera
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </PopoverContent>
                       </Popover>
@@ -704,21 +838,100 @@ export default function ReadingLessonViewer() {
                     </div>
                   )}
 
-                  <div 
-                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
-                    style={{ 
-                      fontSize: `${accessibilitySettings.fontSize}px !important`,
-                      lineHeight: `${accessibilitySettings.lineHeight} !important`,
-                      whiteSpace: 'pre-wrap', 
-                      wordWrap: 'break-word',
-                      fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
-                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                        : 'inherit'
-                    }}
-                    dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                    onMouseOver={handleContentMouseOver}
-                    onMouseOut={handleContentMouseOut}
-                  />
+                  {readingFocusMode ? (
+                    <div className="reading-focus-container relative">
+                      {/* Dark overlay */}
+                      <div 
+                        className="fixed inset-0 bg-black bg-opacity-80 z-10"
+                        style={{ pointerEvents: 'none' }}
+                      />
+                      
+                      {/* Focused text area */}
+                      <div 
+                        className="relative z-20 min-h-[400px] flex items-center justify-center"
+                        style={{ 
+                          backgroundColor: accessibilityColors.backgroundColor,
+                          color: accessibilityColors.textColor,
+                          padding: '40px',
+                          borderRadius: '12px',
+                          margin: '60px auto',
+                          maxWidth: '800px',
+                          boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        <div 
+                          className="text-center space-y-4"
+                          style={{ 
+                            fontSize: `${accessibilitySettings.fontSize * 1.2}px`,
+                            lineHeight: `${accessibilitySettings.lineHeight * 1.3}`,
+                            fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
+                              ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                              : 'inherit'
+                          }}
+                        >
+                          {textLines.slice(currentReadingLine, currentReadingLine + readingFocusLines).map((line, index) => (
+                            <div 
+                              key={currentReadingLine + index}
+                              className={`transition-opacity duration-300 ${
+                                index === 0 ? 'opacity-100' : 'opacity-70'
+                              }`}
+                              style={{ 
+                                marginBottom: index < readingFocusLines - 1 ? '16px' : '0'
+                              }}
+                            >
+                              {line}
+                            </div>
+                          ))}
+                          
+                          {/* Progress indicator */}
+                          <div className="mt-8 pt-4 border-t opacity-50" style={{ borderColor: accessibilityColors.textColor }}>
+                            <div className="text-sm">
+                              Rad {currentReadingLine + 1} av {textLines.length}
+                            </div>
+                            <div 
+                              className="w-full bg-gray-300 rounded-full h-1 mt-2"
+                              style={{ backgroundColor: accessibilityColors.textColor, opacity: 0.3 }}
+                            >
+                              <div 
+                                className="h-1 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: `${((currentReadingLine + 1) / textLines.length) * 100}%`,
+                                  backgroundColor: accessibilityColors.textColor
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Exit button */}
+                      <button
+                        onClick={() => setReadingFocusMode(false)}
+                        className="fixed top-4 right-4 z-30 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                        title="Avsluta läsfokus (Esc)"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
+                      style={{ 
+                        fontSize: `${accessibilitySettings.fontSize}px !important`,
+                        lineHeight: `${accessibilitySettings.lineHeight} !important`,
+                        whiteSpace: 'pre-wrap', 
+                        wordWrap: 'break-word',
+                        fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
+                          ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                          : 'inherit'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                      onMouseOver={handleContentMouseOver}
+                      onMouseOut={handleContentMouseOut}
+                    />
+                  )}
 
                   {/* Bilder under texten för denna sida */}
                   {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
