@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Focus, Eye, EyeOff, Settings } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, EyeOff, Settings } from "lucide-react";
 import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
@@ -51,7 +51,6 @@ export default function ReadingLessonViewer() {
   const [currentPage, setCurrentPage] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
-  const [isFocusMode, setIsFocusMode] = useState(false);
   
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
@@ -166,17 +165,6 @@ export default function ReadingLessonViewer() {
     }
   };
 
-  // Handle escape key to exit focus mode
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isFocusMode) {
-        setIsFocusMode(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isFocusMode]);
 
   // Handle answer changes for reading questions
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
@@ -237,19 +225,9 @@ export default function ReadingLessonViewer() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background relative">
-        {!isFocusMode && <AccessibilitySidebar />}
+        <AccessibilitySidebar />
         
-        {/* Focus Mode Overlay */}
-        {isFocusMode && (
-          <div 
-            className="fixed inset-0 bg-black/90 z-40 pointer-events-none"
-            style={{
-              clipPath: 'polygon(0% 0%, 0% 100%, 15% 100%, 15% 20%, 80% 20%, 80% 85%, 15% 85%, 15% 100%, 100% 100%, 100% 0%)'
-            }}
-          />
-        )}
-        
-        <div className={`max-w-7xl mx-auto p-6 ${isFocusMode ? '' : 'lg:ml-80 lg:mr-4'}`}>
+        <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
           {/* Header */}
           {!isFocusMode && <Card className="mb-6">
             <CardHeader>
