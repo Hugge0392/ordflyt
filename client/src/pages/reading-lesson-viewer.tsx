@@ -714,6 +714,17 @@ export default function ReadingLessonViewer() {
                     <span>Läs texten</span>
                   </CardTitle>
                   <div className="flex gap-2">
+                      {/* Focus Mode Toggle Button */}
+                      <Button
+                        variant={readingFocusMode ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setReadingFocusMode(!readingFocusMode)}
+                        className={readingFocusMode ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        {readingFocusMode ? "Avsluta fokus" : "Fokusläge"}
+                      </Button>
+                      
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button variant="outline" size="sm">
