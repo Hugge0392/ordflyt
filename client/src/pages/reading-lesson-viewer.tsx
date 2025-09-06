@@ -528,10 +528,10 @@ export default function ReadingLessonViewer() {
 
                   {/* Navigation buttons */}
                   <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: '#000000', opacity: 0.2 }}>
-                    <button
+                    <button1
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
-                      className="question-nav-only-btn-prev"
+                      className="question-nav-btn1-prev"
                       style={{
                         background: '#ffffff !important',
                         color: '#000000 !important',
@@ -555,11 +555,11 @@ export default function ReadingLessonViewer() {
                     >
                       <ChevronLeft style={{ width: '16px', height: '16px' }} />
                       Tillbaka
-                    </button>
+                    </button1>
 
-                    <button
+                    <button2
                       onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
-                      className="question-nav-only-btn-next"
+                      className="question-nav-btn2-next"
                       style={{
                         background: '#ffffff !important',
                         color: '#000000 !important',
@@ -583,7 +583,7 @@ export default function ReadingLessonViewer() {
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
                       <ChevronRight style={{ width: '16px', height: '16px' }} />
-                    </button>
+                    </button2>
                   </div>
                 </fieldset>
               </div>

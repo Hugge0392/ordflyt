@@ -253,9 +253,9 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
-/* EXTREMT KRAFTFULLA REGLER - ÖVERSKUGGAR ALLT */
-.question-nav-only-btn-prev,
-.question-nav-only-btn-next {
+/* HELT UNIKA ELEMENT - KAN ALDRIG KOLLIDERA MED ANDRA KNAPPAR */
+button1.question-nav-btn1-prev,
+button2.question-nav-btn2-next {
   /* Nollställ ALLT som kan påverka utseende */
   all: initial !important;
   /* Sätt de exakta stilar vi vill ha */
@@ -287,17 +287,17 @@ div.reading-content.accessibility-enhanced.prose h6 {
   z-index: 999 !important;
 }
 
-/* Hover och disabled - samma stil */
-.question-nav-only-btn-prev:hover,
-.question-nav-only-btn-next:hover,
-.question-nav-only-btn-prev:focus,
-.question-nav-only-btn-next:focus,
-.question-nav-only-btn-prev:active,
-.question-nav-only-btn-next:active,
-.question-nav-only-btn-prev:disabled,
-.question-nav-only-btn-next:disabled,
-.question-nav-only-btn-prev[disabled],
-.question-nav-only-btn-next[disabled] {
+/* Alla tillstånd - samma stil */
+button1.question-nav-btn1-prev:hover,
+button2.question-nav-btn2-next:hover,
+button1.question-nav-btn1-prev:focus,
+button2.question-nav-btn2-next:focus,
+button1.question-nav-btn1-prev:active,
+button2.question-nav-btn2-next:active,
+button1.question-nav-btn1-prev:disabled,
+button2.question-nav-btn2-next:disabled,
+button1.question-nav-btn1-prev[disabled],
+button2.question-nav-btn2-next[disabled] {
   background-color: white !important;
   background: white !important;
   color: black !important;
@@ -307,8 +307,8 @@ div.reading-content.accessibility-enhanced.prose h6 {
 }
 
 /* Säkerställ att alla child-element också är svarta */
-.question-nav-only-btn-prev *,
-.question-nav-only-btn-next * {
+button1.question-nav-btn1-prev *,
+button2.question-nav-btn2-next * {
   color: black !important;
   fill: black !important;
   stroke: black !important;
