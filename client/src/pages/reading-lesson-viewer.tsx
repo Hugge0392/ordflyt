@@ -55,6 +55,7 @@ export default function ReadingLessonViewer() {
   const [currentVisiblePage, setCurrentVisiblePage] = useState(0);
   const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
   const [animatingQuestions, setAnimatingQuestions] = useState<Set<string>>(new Set());
+  const [activeTextQuestion, setActiveTextQuestion] = useState<string | null>(null); // tracks which text question is currently being edited
   
   // Accessibility settings state for focus mode
   const [accessibilitySettings, setAccessibilitySettings] = useState({
@@ -226,6 +227,15 @@ export default function ReadingLessonViewer() {
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string, shouldAnimate: boolean = true) => {
     const questionKey = `${pageIndex}-${questionIndex}`;
     
+    // Auto-save previous text question if switching to a different question
+    if (activeTextQuestion && activeTextQuestion !== questionKey) {
+      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+      if (prevAnswer && prevAnswer.trim().length > 0) {
+        handleTextAnswerComplete(prevPageIndex, prevQuestionIndex);
+      }
+    }
+    
     setReadingAnswers(prev => ({
       ...prev,
       [pageIndex]: {
@@ -299,12 +309,19 @@ export default function ReadingLessonViewer() {
     }
   };
   
-  // Special handler for text inputs that only animates when user clicks "Klar" button
+  // Special handler for text inputs that only animates when user clicks "Spara" button
   const handleTextAnswerComplete = (pageIndex: number, questionIndex: number) => {
     const answer = readingAnswers[pageIndex]?.[questionIndex] || '';
     if (answer && answer.trim().length > 0) {
+      setActiveTextQuestion(null); // Clear active text question
       handleAnswerChange(pageIndex, questionIndex, answer, true);
     }
+  };
+  
+  // Handler for when user starts typing in a text field
+  const handleTextFieldFocus = (pageIndex: number, questionIndex: number) => {
+    const questionKey = `${pageIndex}-${questionIndex}`;
+    setActiveTextQuestion(questionKey);
   };
   
   const expandQuestion = (pageIndex: number, questionIndex: number) => {
@@ -844,6 +861,7 @@ export default function ReadingLessonViewer() {
                                     <textarea
                                       value={readingAnswers[activePage]?.[questionIndex] || ''}
                                       onChange={(e) => handleAnswerChange(activePage, questionIndex, e.target.value, false)}
+                                      onFocus={() => handleTextFieldFocus(activePage, questionIndex)}
                                       placeholder="Skriv ditt svar här..."
                                       className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-blue-500"
                                       rows={3}
@@ -851,9 +869,9 @@ export default function ReadingLessonViewer() {
                                     {readingAnswers[activePage]?.[questionIndex] && readingAnswers[activePage][questionIndex].trim().length > 0 && (
                                       <button
                                         onClick={() => handleTextAnswerComplete(activePage, questionIndex)}
-                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
                                       >
-                                        Klar ✓
+                                        Spara
                                       </button>
                                     )}
                                   </div>
