@@ -749,14 +749,14 @@ export default function ReadingLessonViewer() {
                         variant="outline"
                         onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                         className="flex items-center gap-2 navigation-button
-                                   bg-white text-black border-[#CCCCCC]
-                                   hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                                   bg-white text-black border-black
+                                   hover:bg-white hover:text-black hover:border-black
                                    focus-visible:ring-0 focus-visible:outline-none
                                    shadow-none hover:shadow-none active:shadow-none"
                         style={{
                           backgroundColor: '#FFFFFF',
                           color: '#000000',
-                          borderColor: '#CCCCCC'
+                          borderColor: '#000000'
                         }}
                       >
                         <ChevronLeft className="h-4 w-4" />
@@ -772,7 +772,7 @@ export default function ReadingLessonViewer() {
                       style={{
                         backgroundColor: '#FFFFFF !important',
                         color: '#000000 !important',
-                        border: '1px solid #CCCCCC !important',
+                        border: '1px solid #000000 !important',
                         fontFamily: 'system-ui, -apple-system, sans-serif !important',
                         textAlign: 'center',
                         width: 'auto',
@@ -796,14 +796,14 @@ export default function ReadingLessonViewer() {
                       }}
                       disabled={!areAllCurrentPageQuestionsAnswered()}
                       className="flex items-center gap-2 navigation-button
-                                 bg-white text-black border-[#CCCCCC]
-                                 hover:bg-white hover:text-black hover:border-[#CCCCCC]
+                                 bg-white text-black border-black
+                                 hover:bg-white hover:text-black hover:border-black
                                  focus-visible:ring-0 focus-visible:outline-none
                                  shadow-none hover:shadow-none active:shadow-none"
                       style={{
                         backgroundColor: '#FFFFFF',
                         color: '#000000',
-                        borderColor: '#CCCCCC'
+                        borderColor: '#000000'
                       }}
                       title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
                     >
