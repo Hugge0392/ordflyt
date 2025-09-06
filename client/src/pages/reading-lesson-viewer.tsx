@@ -838,100 +838,104 @@ export default function ReadingLessonViewer() {
                     </div>
                   )}
 
-                  {readingFocusMode ? (
-                    <div className="reading-focus-container relative">
-                      {/* Dark overlay */}
-                      <div 
-                        className="fixed inset-0 bg-black bg-opacity-80 z-10"
-                        style={{ pointerEvents: 'none' }}
-                      />
-                      
-                      {/* Focused text area */}
-                      <div 
-                        className="relative z-20 min-h-[400px] flex items-center justify-center"
-                        style={{ 
-                          backgroundColor: accessibilityColors.backgroundColor,
-                          color: accessibilityColors.textColor,
-                          padding: '40px',
-                          borderRadius: '12px',
-                          margin: '60px auto',
-                          maxWidth: '800px',
-                          boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
-                        }}
-                      >
+                  <div 
+                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
+                    style={{ 
+                      fontSize: `${accessibilitySettings.fontSize}px !important`,
+                      lineHeight: `${accessibilitySettings.lineHeight} !important`,
+                      whiteSpace: 'pre-wrap', 
+                      wordWrap: 'break-word',
+                      fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
+                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                        : 'inherit'
+                    }}
+                  >
+                    {readingFocusMode ? (
+                      <div>
+                        {/* Dark background overlay */}
                         <div 
-                          className="text-center space-y-4"
-                          style={{ 
-                            fontSize: `${accessibilitySettings.fontSize * 1.2}px`,
-                            lineHeight: `${accessibilitySettings.lineHeight * 1.3}`,
-                            fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
-                              ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                              : 'inherit'
-                          }}
-                        >
-                          {textLines.slice(currentReadingLine, currentReadingLine + readingFocusLines).map((line, index) => (
-                            <div 
-                              key={currentReadingLine + index}
-                              className={`transition-opacity duration-300 ${
-                                index === 0 ? 'opacity-100' : 'opacity-70'
-                              }`}
-                              style={{ 
-                                marginBottom: index < readingFocusLines - 1 ? '16px' : '0'
-                              }}
-                            >
-                              {line}
-                            </div>
-                          ))}
+                          className="fixed inset-0 bg-black bg-opacity-85 z-10"
+                          style={{ pointerEvents: 'none' }}
+                        />
+                        
+                        {/* Text with line separators */}
+                        <div className="relative z-20">
+                          {textLines.map((line, index) => {
+                            const isHighlighted = index >= currentReadingLine && index < currentReadingLine + readingFocusLines;
+                            
+                            return (
+                              <div 
+                                key={index}
+                                className={`transition-all duration-300 relative py-2 ${
+                                  isHighlighted 
+                                    ? 'opacity-100 z-30' 
+                                    : 'opacity-20'
+                                }`}
+                                style={{
+                                  backgroundColor: isHighlighted ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                                  margin: '8px 0',
+                                  padding: '12px 16px',
+                                  borderRadius: '8px',
+                                  border: isHighlighted ? `2px solid ${accessibilityColors.textColor}` : '2px solid transparent'
+                                }}
+                              >
+                                {line}
+                                
+                                {/* Line separator after highlighted lines */}
+                                {isHighlighted && index < currentReadingLine + readingFocusLines - 1 && index < textLines.length - 1 && (
+                                  <div 
+                                    className="absolute bottom-0 left-4 right-4 h-px"
+                                    style={{ 
+                                      backgroundColor: accessibilityColors.textColor,
+                                      opacity: 0.3
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                           
-                          {/* Progress indicator */}
-                          <div className="mt-8 pt-4 border-t opacity-50" style={{ borderColor: accessibilityColors.textColor }}>
-                            <div className="text-sm">
+                          {/* Progress indicator at bottom */}
+                          <div 
+                            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
+                            style={{ 
+                              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                              color: 'white'
+                            }}
+                          >
+                            <div className="text-sm text-center">
                               Rad {currentReadingLine + 1} av {textLines.length}
                             </div>
-                            <div 
-                              className="w-full bg-gray-300 rounded-full h-1 mt-2"
-                              style={{ backgroundColor: accessibilityColors.textColor, opacity: 0.3 }}
-                            >
+                            <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
                               <div 
-                                className="h-1 rounded-full transition-all duration-300"
+                                className="h-1 bg-white rounded-full transition-all duration-300"
                                 style={{ 
-                                  width: `${((currentReadingLine + 1) / textLines.length) * 100}%`,
-                                  backgroundColor: accessibilityColors.textColor
+                                  width: `${((currentReadingLine + 1) / textLines.length) * 100}%`
                                 }}
                               />
                             </div>
                           </div>
                         </div>
+                        
+                        {/* Exit button */}
+                        <button
+                          onClick={() => setReadingFocusMode(false)}
+                          className="fixed top-4 right-4 z-30 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                          title="Avsluta läsfokus (Esc)"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
-                      
-                      {/* Exit button */}
-                      <button
-                        onClick={() => setReadingFocusMode(false)}
-                        className="fixed top-4 right-4 z-30 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
-                        title="Avsluta läsfokus (Esc)"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div 
-                      className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
-                      style={{ 
-                        fontSize: `${accessibilitySettings.fontSize}px !important`,
-                        lineHeight: `${accessibilitySettings.lineHeight} !important`,
-                        whiteSpace: 'pre-wrap', 
-                        wordWrap: 'break-word',
-                        fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
-                          ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                          : 'inherit'
-                      }}
-                      dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                      onMouseOver={handleContentMouseOver}
-                      onMouseOut={handleContentMouseOut}
-                    />
-                  )}
+                    ) : (
+                      <div
+                        dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                        onMouseOver={handleContentMouseOver}
+                        onMouseOut={handleContentMouseOut}
+                      />
+                    )}
+                  </div>
 
                   {/* Bilder under texten för denna sida */}
                   {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
