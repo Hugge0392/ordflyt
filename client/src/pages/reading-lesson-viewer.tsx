@@ -260,8 +260,10 @@ export default function ReadingLessonViewer() {
   const currentQuestionData = allQuestions[currentQuestionIndex];
   const currentAnswer = questionsPanel12Answers[currentQuestionIndex] || '';
 
-  // Check if current question is answered
-  const isCurrentQuestionAnswered = currentAnswer.trim().length > 0;
+  // Check if current question is answered (update reactively)
+  const isCurrentQuestionAnswered = useMemo(() => {
+    return currentAnswer.trim().length > 0;
+  }, [currentAnswer]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
@@ -419,7 +421,12 @@ export default function ReadingLessonViewer() {
                       <div 
                         className="h-2 rounded-full transition-all duration-300"
                         style={{ 
-                          width: `${((currentQuestionIndex + (isCurrentQuestionAnswered ? 1 : 0)) / totalQuestions) * 100}%`,
+                          width: `${useMemo(() => {
+                            const answeredQuestions = Object.keys(questionsPanel12Answers).filter(key => 
+                              questionsPanel12Answers[parseInt(key)]?.trim().length > 0
+                            ).length;
+                            return (answeredQuestions / totalQuestions) * 100;
+                          }, [questionsPanel12Answers, totalQuestions])}%`,
                           backgroundColor: 'var(--accessibility-text-color)',
                           opacity: 0.8
                         }}
