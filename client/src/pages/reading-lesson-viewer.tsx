@@ -166,6 +166,18 @@ export default function ReadingLessonViewer() {
     }
   };
 
+  // Handle escape key to exit focus mode
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isFocusMode]);
+
   // Handle answer changes for reading questions
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
     setReadingAnswers(prev => ({
@@ -237,9 +249,9 @@ export default function ReadingLessonViewer() {
           />
         )}
         
-        <div className="max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4">
+        <div className={`max-w-7xl mx-auto p-6 ${isFocusMode ? '' : 'lg:ml-80 lg:mr-4'}`}>
           {/* Header */}
-          <Card className="mb-6">
+          {!isFocusMode && <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -280,10 +292,10 @@ export default function ReadingLessonViewer() {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Pre-reading Questions */}
-          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && (
+          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && !isFocusMode && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="text-lg">Innan du läser</CardTitle>
@@ -305,10 +317,10 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+          <div className={`${isFocusMode ? 'flex justify-center' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
-              className={`mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content ${isFocusMode ? 'relative z-50' : ''}`}
+              className={`reading-content ${isFocusMode ? 'relative z-50 max-w-4xl mx-auto' : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'}`}
               style={{
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
@@ -336,7 +348,7 @@ export default function ReadingLessonViewer() {
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {false && (
+                  {!isFocusMode && (
                     <div className="flex gap-2">
                       {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
                         (lesson.questions && lesson.questions.length > 0)) && (
@@ -726,7 +738,7 @@ export default function ReadingLessonViewer() {
             {/* Questions Panel for Focus Mode */}
             {((lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) || 
               (lesson.questions && lesson.questions.length > 0)) && 
-              false && (
+              !isFocusMode && (
               <Card 
                 className="questions-card focus-mode absolute left-[calc(59vw+2rem)] top-0 w-[23vw] min-w-[280px] max-w-[400px] max-h-[80vh] transition-all duration-300 shadow-2xl flex flex-col"
                 style={{ 
