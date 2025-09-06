@@ -259,6 +259,8 @@ div.reading-content.accessibility-enhanced.prose h6 {
   color: #000000 !important;
   border: 1px solid #000000 !important;
   border-color: #000000 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
 
 .question-nav-button:hover {
@@ -267,9 +269,15 @@ div.reading-content.accessibility-enhanced.prose h6 {
   border-color: #000000 !important;
 }
 
+/* Viktigt: överskugga default disabled-grått */
 .question-nav-button:disabled {
-  opacity: 0.5 !important;
-  pointer-events: none !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  opacity: 1 !important;       /* bibliotek sätter ofta 0.65 */
+  filter: none !important;      /* om någon satt grayscale */
+  cursor: not-allowed !important;
+  pointer-events: auto !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */

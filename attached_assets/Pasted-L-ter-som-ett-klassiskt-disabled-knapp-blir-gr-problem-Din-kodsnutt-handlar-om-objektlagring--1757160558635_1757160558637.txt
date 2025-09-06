@@ -1,0 +1,114 @@
+Låter som ett klassiskt “disabled-knapp blir grå”-problem 😅. Din kodsnutt handlar om objektlagring (GCS/Replit) och påverkar inte knappfärgerna. Det här är nästan alltid CSS/komponentspecifikt — och oftast att bibliotekets standardstil vinner, eller att :disabled ger grå färger och sänkt opacitet.
+
+Här är beprövade sätt att få svarta/vita “Nästa”/“Tillbaka”-knappar, oavsett ramverk:
+
+#1. Ren CSS (HTML-knapp)
+
+<button class="nav-btn next">Nästa</button>
+<button class="nav-btn prev" disabled>Tillbaka</button>
+
+/* Bas */
+.nav-btn{
+  background:#fff;
+  color:#000;
+  border:1px solid #000;
+  padding:.6rem 1rem;
+  border-radius:.5rem;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+/* Hover/fokus */
+.nav-btn:hover,
+.nav-btn:focus{
+  background:#000;
+  color:#fff;
+}
+
+/* Viktigt: överskugga default disabled-grått */
+.nav-btn:disabled{
+  background:#fff !important;
+  color:#000 !important;
+  border-color:#000 !important;
+  opacity:1 !important;       /* bibliotek sätter ofta 0.65 */
+  filter:none !important;      /* om någon satt grayscale */
+  cursor:not-allowed;
+}
+
+
+#2. Tailwind
+
+<button
+  className="nav-btn bg-white text-black border border-black rounded-lg px-4 py-2
+             hover:bg-black hover:text-white
+             disabled:bg-white disabled:text-black disabled:border-black
+             disabled:opacity-100 disabled:cursor-not-allowed appearance-none"
+  disabled
+>
+  Tillbaka
+</button>
+
+
+#3. Material UI (MUI)
+
+import Button from '@mui/material/Button';
+
+<Button
+  variant="contained"
+  sx={{
+    bgcolor:'#fff',
+    color:'#000',
+    border:'1px solid #000',
+    '&:hover': { bgcolor:'#000', color:'#fff' },
+    '&.Mui-disabled': {
+      bgcolor:'#fff',
+      color:'#000',
+      borderColor:'#000',
+      opacity:1,
+      filter:'none',
+    },
+  }}
+>
+  Nästa
+</Button>
+
+
+(Alternativt temaoverride: palette.action.disabledBackground = '#fff', palette.action.disabled = '#000', palette.action.disabledOpacity = 1.)
+
+#4. Bootstrap
+
+.btn.nav-btn,
+.btn.nav-btn:disabled,
+.btn.nav-btn.disabled{
+  background:#fff !important;
+  color:#000 !important;
+  border:1px solid #000 !important;
+  opacity:1 !important;
+  filter:none !important;
+}
+
+Varför det “inte tillåter” ändringen
+
+Specificitet/ordning: Ditt CSS laddas före bibliotekets CSS, eller har lägre specificitet. Lösning: mer specifik selektor (t.ex. .form .controls .nav-btn:disabled) eller lägg din CSS sist.
+
+Disabled-state: Browser/bibliotek sätter opacity och ibland filter: grayscale(1). Du måste nollställa dem som ovan.
+
+appearance: På vissa browsers (särskilt iOS) behöver du appearance: none; för att helt styra utseendet.
+
+Inline stil vs. pseudo: Om biblioteket använder starka regler kan inline-style hjälpa:
+<button disabled style="background:#fff;color:#000;border:1px solid #000;opacity:1;filter:none">…</button>
+
+Snabb felsökning
+
+Öppna DevTools → Inspect knappen → fliken “Styles”. Se vilken regel som vinner (ofta något med :disabled).
+
+Om du ser opacity, filter eller en tema-klass (t.ex. .Mui-disabled, .btn.disabled), överskugga den som i exemplen.
+
+Se till att din CSS importeras efter ramverkets CSS.
+
+Vill du, kan jag kika på just din knapp-HTML/CSS/komponent (React/Tailwind/MUI/Bootstrap) och skriva exakt rätt selektor åt dig.
+
+7
+
+ChatGPT
