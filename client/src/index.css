@@ -253,13 +253,19 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
-/* Ultra forceful button styling that no CSS can override */
-.custom-nav-btn,
-.custom-nav-btn:hover,
-.custom-nav-btn:focus,
-.custom-nav-btn:active,
-.custom-nav-btn:disabled,
-.custom-nav-btn[disabled] {
+/* Extremt specifika regler BARA för frågenavigering - kan aldrig överskuggas */
+.question-nav-only-btn-prev,
+.question-nav-only-btn-next,
+.question-nav-only-btn-prev:hover,
+.question-nav-only-btn-next:hover,
+.question-nav-only-btn-prev:focus,
+.question-nav-only-btn-next:focus,
+.question-nav-only-btn-prev:active,
+.question-nav-only-btn-next:active,
+.question-nav-only-btn-prev:disabled,
+.question-nav-only-btn-next:disabled,
+.question-nav-only-btn-prev[disabled],
+.question-nav-only-btn-next[disabled] {
   background-color: #ffffff !important;
   background: #ffffff !important;
   color: #000000 !important;
@@ -274,11 +280,16 @@ div.reading-content.accessibility-enhanced.prose h6 {
   transform: none !important;
   -webkit-filter: none !important;
   -webkit-transform: none !important;
+  z-index: 999 !important;
+  position: relative !important;
 }
 
-/* Remove all Tailwind effects */
-.custom-nav-btn * {
-  color: inherit !important;
+/* Säkerställ att alla child-element också är svarta */
+.question-nav-only-btn-prev *,
+.question-nav-only-btn-next * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */

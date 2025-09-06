@@ -531,24 +531,26 @@ export default function ReadingLessonViewer() {
                     <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
-                      className="custom-nav-btn"
+                      className="question-nav-only-btn-prev"
                       style={{
-                        background: '#ffffff',
-                        color: '#000000',
-                        border: '1px solid #000000',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        cursor: isFirstQuestion ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontFamily: 'system-ui, sans-serif',
-                        opacity: '1',
-                        filter: 'none',
-                        boxShadow: 'none',
-                        outline: 'none'
+                        background: '#ffffff !important',
+                        color: '#000000 !important',
+                        border: '1px solid #000000 !important',
+                        padding: '10px 16px !important',
+                        borderRadius: '8px !important',
+                        cursor: isFirstQuestion ? 'not-allowed !important' : 'pointer !important',
+                        fontSize: '14px !important',
+                        fontWeight: '500 !important',
+                        display: 'flex !important',
+                        alignItems: 'center !important',
+                        gap: '8px !important',
+                        fontFamily: 'system-ui, sans-serif !important',
+                        opacity: '1 !important',
+                        filter: 'none !important',
+                        boxShadow: 'none !important',
+                        outline: 'none !important',
+                        position: 'relative !important',
+                        zIndex: '999 !important'
                       }}
                     >
                       <ChevronLeft style={{ width: '16px', height: '16px' }} />
@@ -557,24 +559,26 @@ export default function ReadingLessonViewer() {
 
                     <button
                       onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
-                      className="custom-nav-btn"
+                      className="question-nav-only-btn-next"
                       style={{
-                        background: '#ffffff',
-                        color: '#000000',
-                        border: '1px solid #000000',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontFamily: 'system-ui, sans-serif',
-                        opacity: '1',
-                        filter: 'none',
-                        boxShadow: 'none',
-                        outline: 'none'
+                        background: '#ffffff !important',
+                        color: '#000000 !important',
+                        border: '1px solid #000000 !important',
+                        padding: '10px 16px !important',
+                        borderRadius: '8px !important',
+                        cursor: 'pointer !important',
+                        fontSize: '14px !important',
+                        fontWeight: '500 !important',
+                        display: 'flex !important',
+                        alignItems: 'center !important',
+                        gap: '8px !important',
+                        fontFamily: 'system-ui, sans-serif !important',
+                        opacity: '1 !important',
+                        filter: 'none !important',
+                        boxShadow: 'none !important',
+                        outline: 'none !important',
+                        position: 'relative !important',
+                        zIndex: '999 !important'
                       }}
                     >
                       {isLastQuestion ? 'Skicka in' : 'Nästa'}
