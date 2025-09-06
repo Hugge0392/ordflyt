@@ -260,6 +260,23 @@
 }
 
 
+/* Focus mode blur effect - blur everything except reading content */
+.focus-mode-blur > * {
+  transition: filter 0.3s ease-in-out;
+}
+
+.focus-mode-blur > *:not(.reading-content) {
+  filter: blur(3px);
+  opacity: 0.6;
+}
+
+.focus-mode-blur .reading-content {
+  filter: none !important;
+  opacity: 1 !important;
+  position: relative;
+  z-index: 10;
+}
+
 /* Large text styles for reading content */
 .prose-lg {
   font-size: 1.25rem !important;

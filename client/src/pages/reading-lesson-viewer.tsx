@@ -226,7 +226,7 @@ export default function ReadingLessonViewer() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background relative">
+      <div className={`min-h-screen bg-background relative ${isFocusMode ? 'focus-mode-blur' : ''}`}>
         <AccessibilitySidebar />
         
         
