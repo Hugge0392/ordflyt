@@ -403,6 +403,7 @@ export default function ReadingLessonViewer() {
                     backgroundColor: accessibilityColors.backgroundColor,
                     color: accessibilityColors.textColor,
                     borderColor: 'var(--accessibility-text-color)',
+                    borderWidth: '0.5px',
                     maxWidth: '720px'
                   } as React.CSSProperties}
                 >
@@ -527,7 +528,7 @@ export default function ReadingLessonViewer() {
                   )}
 
                   {/* Navigation buttons */}
-                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)' }}>
+                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)', borderTopWidth: '0.5px' }}>
                     <button
                       onClick={goToPreviousQuestion}
                       disabled={isFirstQuestion}
@@ -595,6 +596,7 @@ export default function ReadingLessonViewer() {
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
                 borderColor: 'var(--accessibility-text-color)',
+                borderWidth: '0.5px',
                 '--card-text-color': accessibilityColors.textColor
               } as React.CSSProperties}
             >
