@@ -51,12 +51,10 @@ export default function ReadingLessonViewer() {
   const [currentPage, setCurrentPage] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
   
-  // Accessibility settings state for focus mode
+  // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 44,
+    fontSize: 34,
     backgroundColor: 'black-on-white' as const,
     fontFamily: 'standard' as const
   });
@@ -97,60 +95,7 @@ export default function ReadingLessonViewer() {
     return () => observer.disconnect();
   }, []);
 
-  // Apply focus mode accessibility settings
-  useEffect(() => {
-    if (isFocusMode) {
-      const root = document.documentElement;
-      
-      // Apply font size
-      root.style.setProperty('--accessibility-font-size', `${accessibilitySettings.fontSize}px`);
-      
-      // Apply color scheme
-      const colorSchemes = {
-        'black-on-white': { bg: '#FFFFFF', text: '#000000' },
-        'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
-        'white-on-black': { bg: '#000000', text: '#FFFFFF' },
-        'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
-        'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
-        'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
-        'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
-      };
-      const scheme = colorSchemes[accessibilitySettings.backgroundColor] || colorSchemes['black-on-white'];
-      root.style.setProperty('--accessibility-bg-color', scheme.bg);
-      root.style.setProperty('--accessibility-text-color', scheme.text);
-      
-      // Apply font family
-      const fontFamily = accessibilitySettings.fontFamily === 'dyslexia-friendly' 
-        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-        : 'system-ui, -apple-system, sans-serif';
-      root.style.setProperty('--accessibility-font-family', fontFamily);
-      
-      // Add accessibility class to reading content
-      const readingContent = document.querySelector('.reading-content');
-      if (readingContent) {
-        readingContent.classList.add('accessibility-enhanced');
-      }
-      
-      // Update accessibility colors state
-      setAccessibilityColors({
-        backgroundColor: scheme.bg,
-        textColor: scheme.text
-      });
-    }
-  }, [isFocusMode, accessibilitySettings]);
 
-  // Handle escape key to exit focus mode
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isFocusMode) {
-        setIsFocusMode(false);
-        setShowQuestionsInFocus(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isFocusMode]);
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
