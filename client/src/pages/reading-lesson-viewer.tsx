@@ -317,7 +317,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+          <div className="grid grid-cols-1 md:landscape:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6 lg:items-start mb-6">
             
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
@@ -582,7 +582,7 @@ export default function ReadingLessonViewer() {
             )}
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
-              className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2"
+              className="reading-content mb-6 md:landscape:mb-0 lg:mb-0"
               style={{
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
