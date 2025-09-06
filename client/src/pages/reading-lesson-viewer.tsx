@@ -93,9 +93,17 @@ export default function ReadingLessonViewer() {
     root.style.setProperty('--accessibility-bg-color', colors.bg);
     root.style.setProperty('--accessibility-text-color', colors.text);
     
-    // Update font size and line height CSS variables
+    // Update font size, line height, and font family CSS variables
+    root.style.setProperty('--accessibility-font-size', `${accessibilitySettings.fontSize}px`);
+    root.style.setProperty('--accessibility-line-height', accessibilitySettings.lineHeight.toString());
     root.style.setProperty('--reading-font-size', `${accessibilitySettings.fontSize}px`);
     root.style.setProperty('--reading-line-height', accessibilitySettings.lineHeight.toString());
+    
+    // Update font family
+    const fontFamily = accessibilitySettings.fontFamily === 'dyslexia-friendly' 
+      ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+      : 'system-ui, -apple-system, sans-serif';
+    root.style.setProperty('--accessibility-font-family', fontFamily);
   }, [accessibilitySettings]);
 
 
@@ -698,7 +706,7 @@ export default function ReadingLessonViewer() {
                   )}
 
                   <div 
-                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content"
+                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced"
                     style={{ 
                       fontSize: `${accessibilitySettings.fontSize}px !important`,
                       lineHeight: `${accessibilitySettings.lineHeight} !important`,
