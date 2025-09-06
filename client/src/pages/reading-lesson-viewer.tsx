@@ -492,7 +492,7 @@ export default function ReadingLessonViewer() {
                       const isAnsweredPanel12 = !!(questionsPanel12Answers[pageQuestionIndex]?.trim());
                       
                       return (
-                        <div key={`panel12-page-${index}`} className="p-3 border rounded-lg bg-blue-50">
+                        <div key={`panel12-page-${index}`} className="pb-4">
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="font-bold text-sm">Sidfråga {index + 1}</h3>
                             {isAnsweredPanel12 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">✓</span>}
