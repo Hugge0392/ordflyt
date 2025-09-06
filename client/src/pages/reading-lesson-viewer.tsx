@@ -427,7 +427,7 @@ export default function ReadingLessonViewer() {
                       lineHeight: accessibilitySettings.lineHeight, 
                       whiteSpace: 'pre-wrap', 
                       wordWrap: 'break-word',
-                      fontFamily: accessibilitySettings.fontFamily === 'dyslexia-friendly' 
+                      fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
                         ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
                         : 'inherit'
                     }}
