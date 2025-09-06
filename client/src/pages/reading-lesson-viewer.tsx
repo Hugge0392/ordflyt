@@ -4,12 +4,11 @@ import { Link, useParams } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, EyeOff, Settings } from "lucide-react";
+import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, Settings } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 
 // Simple markdown-to-HTML converter for displaying lesson content
@@ -253,7 +252,6 @@ export default function ReadingLessonViewer() {
   }
 
   return (
-    <TooltipProvider>
       <div className="min-h-screen bg-background relative">
         
         <div className="max-w-7xl mx-auto p-6">
@@ -628,7 +626,6 @@ export default function ReadingLessonViewer() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        console.log('Clicking option:', optionValue);
                                         handleAnswerChange(currentPage, index, optionValue);
                                       }}
                                       style={{
@@ -678,7 +675,6 @@ export default function ReadingLessonViewer() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        console.log('Clicking true/false option:', optionValue);
                                         handleAnswerChange(currentPage, index, optionValue);
                                       }}
                                       style={{
@@ -722,7 +718,6 @@ export default function ReadingLessonViewer() {
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
                                 onChange={(e) => {
-                                  console.log('Text area changed:', e.target.value);
                                   handleAnswerChange(currentPage, index, e.target.value);
                                 }}
                                 placeholder="Skriv ditt svar här..."
@@ -911,6 +906,5 @@ export default function ReadingLessonViewer() {
           )}
         </div>
       </div>
-    </TooltipProvider>
   );
 }
