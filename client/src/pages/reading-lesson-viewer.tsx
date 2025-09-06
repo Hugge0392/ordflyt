@@ -367,11 +367,13 @@ export default function ReadingLessonViewer() {
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
-                ? showQuestionsInFocus 
-                  ? 'absolute left-4 w-[59vw] transition-all duration-300' 
-                  : 'absolute left-1/2 transform -translate-x-1/2 w-[59vw] transition-all duration-300'
+                ? 'absolute w-[59vw] transition-all duration-300'
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
-              style={{ 
+              style={{
+                ...(isFocusMode ? {
+                  left: showQuestionsInFocus ? '1rem' : '50%',
+                  transform: showQuestionsInFocus ? 'none' : 'translateX(-50%)'
+                } : {}),
                 backgroundColor: accessibilityColors.backgroundColor,
                 color: accessibilityColors.textColor,
                 '--card-text-color': accessibilityColors.textColor
