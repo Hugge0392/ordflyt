@@ -321,7 +321,14 @@ export default function ReadingLessonViewer() {
             
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
-              <Card className="questionsPanel12-wrapper order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+              <Card 
+                className="questionsPanel12-wrapper order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2"
+                style={{
+                  backgroundColor: accessibilityColors.backgroundColor,
+                  color: accessibilityColors.textColor,
+                  '--card-text-color': accessibilityColors.textColor
+                } as React.CSSProperties}
+              >
                 <CardHeader className="pb-2 px-3 pt-3">
                   <CardTitle className="text-lg">Frågor12</CardTitle>
                   <CardDescription>
