@@ -317,7 +317,7 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6 lg:items-start mb-6">
+          <div className="grid grid-cols-1 md:landscape:grid-cols-[200px_1fr] lg:grid-cols-[220px_1fr] gap-6 lg:items-start mb-6">
             
             {/* New Questions Panel 12 - positioned on the left */}
             {showQuestionsPanel12 && lesson && (
