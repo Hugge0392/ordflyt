@@ -55,10 +55,14 @@ export default function ReadingLessonViewer() {
   const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
   
   // Accessibility settings state for focus mode
-  const [accessibilitySettings, setAccessibilitySettings] = useState({
+  const [accessibilitySettings, setAccessibilitySettings] = useState<{
+    fontSize: number;
+    backgroundColor: 'black-on-white' | 'light-gray-on-gray' | 'white-on-black' | 'black-on-light-yellow' | 'black-on-light-blue' | 'light-yellow-on-blue' | 'black-on-light-red';
+    fontFamily: 'standard' | 'dyslexia-friendly';
+  }>({
     fontSize: 44,
-    backgroundColor: 'black-on-white' as const,
-    fontFamily: 'standard' as const
+    backgroundColor: 'black-on-white',
+    fontFamily: 'standard'
   });
   
   // State for accessibility colors
@@ -670,9 +674,9 @@ export default function ReadingLessonViewer() {
                             {question.question}
                           </h4>
                           
-                          {question.type === 'multiple-choice' && question.alternatives && (
+                          {question.type === 'multiple_choice' && question.options && (
                             <div className="space-y-2">
-                              {question.alternatives.map((option, optionIndex) => {
+                              {question.options.map((option, optionIndex) => {
                                 const optionValue = String.fromCharCode(65 + optionIndex);
                                 const isSelected = readingAnswers[currentPage]?.[index] === optionValue;
                                 
@@ -700,7 +704,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'true-false' && (
+                          {question.type === 'true_false' && (
                             <div className="space-y-2">
                               {['Sant', 'Falskt'].map((option, optionIndex) => {
                                 const optionValue = option;
@@ -730,7 +734,7 @@ export default function ReadingLessonViewer() {
                             </div>
                           )}
                           
-                          {question.type === 'open' && (
+                          {question.type === 'open_ended' && (
                             <div className="space-y-2">
                               <textarea
                                 value={readingAnswers[currentPage]?.[index] || ''}
