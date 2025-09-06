@@ -1,334 +1,168 @@
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, ArrowLeft, User, Target, Focus, Eye, EyeOff, Settings, ChevronDown } from "lucide-react";
-import { AccessibilitySidebar } from "@/components/ui/accessibility-sidebar";
-import type { ReadingLesson, WordDefinition } from "@shared/schema";
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ChevronDown, Settings } from 'lucide-react';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { AccessibilitySidebar, type AccessibilitySettings } from '@/components/accessibility-sidebar';
 
-// Simple markdown-to-HTML converter for displaying lesson content
-function formatMarkdownToHTML(text: string): string {
-  let html = text;
-  
-  // Convert headings - only at start of line followed by space
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
-  // Convert bold (**text**) - must have content between
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert italic (*text*) - must have content between and not interfere with bold
-  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-  
-  // Don't convert line breaks - let CSS handle with pre-wrap
-  
-  // Convert bullet points - only at start of line
-  html = html.replace(/^- (.+)$/gm, '<ul><li>$1</li></ul>');
-  
-  // Clean up consecutive ul tags
-  html = html.replace(/<\/ul>\s*<ul>/g, '');
-  
-  return html;
+interface Question {
+  question: string;
+  type: 'multiple-choice' | 'true-false' | 'open';
+  alternatives?: string[];
 }
 
-interface HoveredWord {
-  word: string;
-  definition: string;
-  x: number;
-  y: number;
+interface Page {
+  content: string;
+  questions?: Question[];
 }
 
-export default function ReadingLessonViewer() {
-  const { id } = useParams<{ id: string }>();
-  const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
-  const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [showQuestionsInFocus, setShowQuestionsInFocus] = useState(false);
-  const [currentVisiblePage, setCurrentVisiblePage] = useState(0);
-  const [collapsedQuestions, setCollapsedQuestions] = useState<Set<string>>(new Set());
-  const [animatingQuestions, setAnimatingQuestions] = useState<Set<string>>(new Set());
-  const [activeTextQuestion, setActiveTextQuestion] = useState<string | null>(null); // tracks which text question is currently being edited
+interface ReadingLesson {
+  id: string;
+  title: string;
+  description?: string;
+  pages: Page[];
+  questions?: Question[]; // Final questions
+  wordDefinitions?: {
+    word: string;
+    definition: string;
+  }[];
+}
+
+export function ReadingLessonViewer() {
+  const [location, setLocation] = useLocation();
+  const pathParts = location.split('/');
+  const lessonId = pathParts[pathParts.length - 1];
   
-  // Accessibility settings state for focus mode
-  const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 34,
-    backgroundColor: 'black-on-white' as const,
-    fontFamily: 'standard' as const
-  });
-  
-  // State for accessibility colors
-  const [accessibilityColors, setAccessibilityColors] = useState({
+  // State for tracking active page based on scroll position
+  const [activePage, setActivePage] = useState(0);
+  const [showAccessibility, setShowAccessibility] = useState(false);
+  const [accessibilitySettings, setAccessibilitySettings] = useState<AccessibilitySettings>({
     backgroundColor: '#ffffff',
-    textColor: '#000000'
+    textColor: '#000000',
+    fontSize: 'text-base'
   });
 
-  const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
-    queryKey: [`/api/reading-lessons/${id}`],
-    enabled: !!id,
+  // Track all answers: readingAnswers[pageIndex][questionIndex] = answer
+  const [readingAnswers, setReadingAnswers] = useState<{ [pageIndex: number]: { [questionIndex: number]: string } }>({});
+  const [collapsedQuestions, setCollapsedQuestions] = useState(new Set<string>());
+  const [animatingQuestions, setAnimatingQuestions] = useState(new Set<string>());
+  const [activeTextQuestion, setActiveTextQuestion] = useState<string | null>(null);
+
+  // Refs for page elements
+  const pageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  const { data: lesson } = useQuery<ReadingLesson>({
+    queryKey: ['/api/reading-lessons', lessonId],
+    enabled: !!lessonId
   });
 
-  // Update accessibility colors based on CSS variables
+  const accessibilityColors = {
+    backgroundColor: accessibilitySettings.backgroundColor,
+    textColor: accessibilitySettings.textColor
+  };
+
+  // Determine which page is currently visible based on scroll position
+  const getCurrentActivePage = (): number => {
+    if (!lesson?.pages) return 0;
+    
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const currentPosition = scrollTop + windowHeight / 2;
+    
+    let currentPage = 0;
+    for (let i = 0; i < lesson.pages.length; i++) {
+      const pageElement = pageRefs.current[i];
+      if (pageElement) {
+        const pageTop = pageElement.offsetTop;
+        const pageBottom = pageTop + pageElement.offsetHeight;
+        
+        if (currentPosition >= pageTop && currentPosition <= pageBottom) {
+          currentPage = i;
+          break;
+        } else if (currentPosition > pageBottom) {
+          currentPage = i + 1;
+        }
+      }
+    }
+    
+    return Math.min(currentPage, lesson.pages.length - 1);
+  };
+
+  // Update active page on scroll
   useEffect(() => {
-    const updateColors = () => {
-      const root = document.documentElement;
-      const bgColor = root.style.getPropertyValue('--accessibility-bg-color') || '#ffffff';
-      const textColor = root.style.getPropertyValue('--accessibility-text-color') || '#000000';
-      setAccessibilityColors({
-        backgroundColor: bgColor,
-        textColor: textColor
-      });
+    const handleScroll = () => {
+      setActivePage(getCurrentActivePage());
     };
 
-    // Update on mount
-    updateColors();
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lesson]);
+
+  // Check if all questions for a specific page are answered
+  const areAllQuestionsAnsweredForPage = (pageIndex: number): boolean => {
+    const page = lesson?.pages[pageIndex];
+    if (!page?.questions || page.questions.length === 0) return true;
     
-    // Listen for changes to CSS variables
-    const observer = new MutationObserver(updateColors);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['style']
+    return page.questions.every((_, questionIndex) => {
+      const answer = readingAnswers[pageIndex]?.[questionIndex];
+      return answer && answer.trim().length > 0;
     });
-
-    return () => observer.disconnect();
-  }, []);
-
-  // Apply focus mode accessibility settings
-  useEffect(() => {
-    if (isFocusMode) {
-      const root = document.documentElement;
-      
-      // Apply font size
-      root.style.setProperty('--accessibility-font-size', `${accessibilitySettings.fontSize}px`);
-      
-      // Apply color scheme
-      const colorSchemes = {
-        'black-on-white': { bg: '#FFFFFF', text: '#000000' },
-        'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
-        'white-on-black': { bg: '#000000', text: '#FFFFFF' },
-        'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
-        'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
-        'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
-        'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
-      };
-      const scheme = colorSchemes[accessibilitySettings.backgroundColor] || colorSchemes['black-on-white'];
-      root.style.setProperty('--accessibility-bg-color', scheme.bg);
-      root.style.setProperty('--accessibility-text-color', scheme.text);
-      
-      // Apply font family
-      const fontFamily = accessibilitySettings.fontFamily === 'dyslexia-friendly' 
-        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-        : 'system-ui, -apple-system, sans-serif';
-      root.style.setProperty('--accessibility-font-family', fontFamily);
-      
-      // Add accessibility class to reading content
-      const readingContent = document.querySelector('.reading-content');
-      if (readingContent) {
-        readingContent.classList.add('accessibility-enhanced');
-      }
-      
-      // Update accessibility colors state
-      setAccessibilityColors({
-        backgroundColor: scheme.bg,
-        textColor: scheme.text
-      });
-    }
-  }, [isFocusMode, accessibilitySettings]);
-
-  // Handle escape key to exit focus mode
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isFocusMode) {
-        setIsFocusMode(false);
-        setShowQuestionsInFocus(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isFocusMode]);
-
-  // Create interactive content with word definitions
-  const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
-    // Content is already HTML from RichTextEditor, don't convert markdown
-    let processedContent = content;
-    
-    if (!definitions.length) return processedContent;
-
-    // Create a map of words to definitions for quick lookup
-    const defMap = new Map(definitions.map(def => [def.word.toLowerCase(), def.definition]));
-    
-    // Process the HTML content to add tooltips to defined words
-    definitions.forEach(({ word, definition }) => {
-      // Create a regex that matches the word as a whole word (case insensitive)
-      const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-      
-      // Replace with tooltip-wrapped version
-      processedContent = processedContent.replace(regex, 
-        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
-      );
-    });
-    
-    return processedContent;
   };
 
-  // Split content into pages based on page break markers or use lesson.pages if available
-  const pages = useMemo(() => {
-    // If lesson has pages data, use that (this supports per-page questions and images)
-    if (lesson?.pages && lesson.pages.length > 0) {
-      return lesson.pages.map(page => page.content);
-    }
-    
-    // Fallback: split content by page break markers
-    if (!lesson?.content) return [];
-    
-    const pageBreakMarker = '--- SIDBRYTNING ---';
-    const contentParts = lesson.content.split(pageBreakMarker);
-    
-    if (contentParts.length === 1) {
-      // No page breaks, return single page
-      return [contentParts[0]];
-    }
-    
-    return contentParts.filter(part => part.trim().length > 0);
-  }, [lesson?.content, lesson?.pages]);
-
-  // Handle mouse events for word definitions
-  const handleContentMouseOver = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('defined-word')) {
-      const word = target.getAttribute('data-word') || '';
-      const definition = target.getAttribute('data-definition') || '';
-      const rect = target.getBoundingClientRect();
-      setHoveredWord({
-        word,
-        definition,
-        x: rect.left + rect.width / 2,
-        y: rect.top
-      });
-    }
+  // Check if all reading questions (all pages) are answered
+  const areAllReadingQuestionsAnswered = (): boolean => {
+    if (!lesson?.pages) return false;
+    return lesson.pages.every((_, pageIndex) => areAllQuestionsAnsweredForPage(pageIndex));
   };
 
-  const handleContentMouseOut = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('defined-word')) {
-      setHoveredWord(null);
-    }
-  };
-
-  // Handle answer changes for reading questions
-  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string, shouldAnimate: boolean = true) => {
-    const questionKey = `${pageIndex}-${questionIndex}`;
-    
+  // Handle answer changes
+  const handleAnswerChange = (pageIndex: number, questionIndex: number, value: string, shouldCollapse: boolean = false) => {
     setReadingAnswers(prev => ({
       ...prev,
       [pageIndex]: {
         ...prev[pageIndex],
-        [questionIndex]: answer
+        [questionIndex]: value
       }
     }));
-    
-    // Only trigger animation for multiple choice and true/false, not for open text while typing
-    if (shouldAnimate && answer && answer.trim().length > 0) {
-      // Start collapse animation for this question
+
+    if (shouldCollapse) {
+      const questionKey = pageIndex === -1 ? `final-${questionIndex}` : `${pageIndex}-${questionIndex}`;
+      
+      // Trigger animation
       setAnimatingQuestions(prev => new Set([...prev, questionKey]));
       
-      // Create flying animation to progress bar
       setTimeout(() => {
-        const questionElement = document.querySelector(`[data-question-key="${questionKey}"]`);
-        const progressBar = document.querySelector('.progress-bar');
-        
-        if (questionElement && progressBar) {
-          // Create a flying element
-          const flyingElement = document.createElement('div');
-          flyingElement.innerHTML = '✓';
-          flyingElement.className = 'fixed z-50 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold pointer-events-none';
-          
-          const questionRect = questionElement.getBoundingClientRect();
-          const progressRect = progressBar.getBoundingClientRect();
-          
-          flyingElement.style.left = `${questionRect.left + questionRect.width / 2 - 16}px`;
-          flyingElement.style.top = `${questionRect.top + questionRect.height / 2 - 16}px`;
-          flyingElement.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-          
-          document.body.appendChild(flyingElement);
-          
-          // Animate to progress bar
-          requestAnimationFrame(() => {
-            flyingElement.style.left = `${progressRect.right - 20}px`;
-            flyingElement.style.top = `${progressRect.top + progressRect.height / 2 - 16}px`;
-            flyingElement.style.transform = 'scale(0.5)';
-            flyingElement.style.opacity = '0';
-          });
-          
-          // Clean up flying element
-          setTimeout(() => {
-            if (flyingElement.parentNode) {
-              flyingElement.parentNode.removeChild(flyingElement);
-            }
-          }, 800);
-        }
-      }, 200);
-      
-      setTimeout(() => {
-        // Collapse the question
         setCollapsedQuestions(prev => new Set([...prev, questionKey]));
         setAnimatingQuestions(prev => {
           const newSet = new Set(prev);
           newSet.delete(questionKey);
           return newSet;
         });
-        
-        // Auto-advance to next section if current page is completed
-        if (areAllQuestionsAnsweredForPage(pageIndex) && lesson?.pages && pageIndex < lesson.pages.length - 1) {
-          // Scroll to next page section smoothly
-          setTimeout(() => {
-            const nextPageElement = document.querySelector(`[data-page-index="${pageIndex + 1}"]`);
-            if (nextPageElement) {
-              nextPageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 500);
-        }
-      }, 600); // Animation duration
+      }, 600);
     }
   };
-  
-  // Special handler for text inputs that only animates when user clicks "Spara" button
-  const handleTextAnswerComplete = (pageIndex: number, questionIndex: number) => {
-    const answer = readingAnswers[pageIndex]?.[questionIndex] || '';
-    if (answer && answer.trim().length > 0) {
-      setActiveTextQuestion(null); // Clear active text question
-      handleAnswerChange(pageIndex, questionIndex, answer, true);
-    }
-  };
-  
-  // Handler for when user starts typing in a text field
+
+  // Handle text field focus
   const handleTextFieldFocus = (pageIndex: number, questionIndex: number) => {
-    const questionKey = `${pageIndex}-${questionIndex}`;
-    
-    // Auto-save and animate previous text question if switching to a different text field
-    if (activeTextQuestion && activeTextQuestion !== questionKey) {
-      const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
-      const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
-      if (prevAnswer && prevAnswer.trim().length > 0) {
-        // Trigger the animation for the previous question
-        setActiveTextQuestion(null); // Clear active text question first
-        handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
-      }
-    }
-    
+    const questionKey = pageIndex === -1 ? `final-${questionIndex}` : `${pageIndex}-${questionIndex}`;
     setActiveTextQuestion(questionKey);
   };
-  
+
+  // Handle text answer completion
+  const handleTextAnswerComplete = (pageIndex: number, questionIndex: number) => {
+    const currentAnswer = readingAnswers[pageIndex]?.[questionIndex];
+    if (currentAnswer && currentAnswer.trim().length > 0) {
+      setActiveTextQuestion(null);
+      handleAnswerChange(pageIndex, questionIndex, currentAnswer, true);
+    }
+  };
+
+  // Expand a collapsed question
   const expandQuestion = (pageIndex: number, questionIndex: number) => {
-    const questionKey = `${pageIndex}-${questionIndex}`;
+    const questionKey = pageIndex === -1 ? `final-${questionIndex}` : `${pageIndex}-${questionIndex}`;
     setCollapsedQuestions(prev => {
       const newSet = new Set(prev);
       newSet.delete(questionKey);
@@ -336,69 +170,12 @@ export default function ReadingLessonViewer() {
     });
   };
 
-
-  // Function to check if all questions for a specific page are answered
-  const areAllQuestionsAnsweredForPage = (pageIndex: number) => {
-    const pageQuestions = lesson?.pages?.[pageIndex]?.questions;
-    if (!pageQuestions || pageQuestions.length === 0) return true;
-    
-    const pageAnswers = readingAnswers[pageIndex];
-    if (!pageAnswers) return false;
-    
-    return pageQuestions.every((_, questionIndex) => {
-      const answer = pageAnswers[questionIndex];
-      return answer && answer.trim().length > 0;
-    });
-  };
-
-  // Check if all reading questions from all pages are answered
-  const areAllReadingQuestionsAnswered = () => {
-    if (!lesson?.pages) return true;
-    
-    return lesson.pages.every((_, pageIndex) => 
-      areAllQuestionsAnsweredForPage(pageIndex)
-    );
-  };
-
-  // Get the current active page for questions (the furthest unlocked page)
-  const getCurrentActivePage = () => {
-    if (!lesson?.pages) return 0;
-    
-    // Find the last page that is unlocked
-    for (let i = lesson.pages.length - 1; i >= 0; i--) {
-      if (i === 0 || areAllQuestionsAnsweredForPage(i - 1)) {
-        return i;
-      }
-    }
-    return 0;
-  };
-
-  if (isLoading) {
+  if (!lesson) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center py-12">
-          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
-          <p className="text-muted-foreground">Laddar läsförståelseövning...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !lesson) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center py-12">
-          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Läsförståelseövning hittades inte</h2>
-          <p className="text-muted-foreground mb-4">
-            Den begärda övningen kunde inte laddas eller existerar inte.
-          </p>
-          <Link href="/lasforstaelse">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Tillbaka till läsförståelse
-            </Button>
-          </Link>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Laddar lektion...</h2>
+          <p className="text-gray-600">Vänligen vänta medan vi hämtar innehållet.</p>
         </div>
       </div>
     );
@@ -406,291 +183,96 @@ export default function ReadingLessonViewer() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background relative">
-        {!isFocusMode && <AccessibilitySidebar />}
-        
-        {/* Focus Mode Backdrop */}
-        {isFocusMode && (
-          <div 
-            className="fixed inset-0 bg-black/60 z-10 transition-opacity duration-300"
-            onClick={(e) => {
-              // Only close if clicking on the backdrop itself, not child elements
-              if (e.target === e.currentTarget) {
-                setIsFocusMode(false);
-                setShowQuestionsInFocus(false);
-              }
-            }}
-          />
-        )}
-        
-        <div className={`${isFocusMode ? 'relative z-20 max-w-7xl mx-auto p-6' : 'max-w-7xl mx-auto p-6 lg:ml-80 lg:mr-4'}`}>
-          {/* Header */}
-          <Card className={`mb-6 focus-mode-transition ${isFocusMode ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+      <div className="min-h-screen" style={{ backgroundColor: accessibilityColors.backgroundColor, color: accessibilityColors.textColor }}>
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b z-40 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setLocation('/reading')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Tillbaka
+                </Button>
                 <div>
-                  <Link href="/lasforstaelse">
-                    <Button variant="ghost" size="sm">
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Tillbaka till läsförståelse
-                    </Button>
-                  </Link>
-                </div>
-                <div>
+                  <h1 className="text-xl font-bold">{lesson.title}</h1>
+                  {lesson.description && (
+                    <p className="text-sm text-gray-600">{lesson.description}</p>
+                  )}
                 </div>
               </div>
-              <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAccessibility(!showAccessibility)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Tillgänglighet
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Accessibility Sidebar */}
+          <AccessibilitySidebar 
+            isOpen={showAccessibility}
+            onClose={() => setShowAccessibility(false)}
+            settings={accessibilitySettings}
+            onSettingsChange={setAccessibilitySettings}
+          />
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start mb-6">
+            {/* Main Content - Left Column (takes 2/3 of space) */}
+            <Card className="mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2 reading-content">
+              <CardHeader>
                 <CardTitle className="text-2xl">{lesson.title}</CardTitle>
                 {lesson.description && (
-                  <CardDescription className="mt-2 text-base">
-                    {lesson.description}
-                  </CardDescription>
+                  <CardDescription className="text-lg">{lesson.description}</CardDescription>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {lesson.readingTime || 15} min läsning
-                </div>
-                <div className="flex items-center gap-1">
-                  <User className="w-4 h-4" />
-                  Årskurs {lesson.gradeLevel}
-                </div>
-                {lesson.subject && (
-                  <div className="flex items-center gap-1">
-                    <Target className="w-4 h-4" />
-                    {lesson.subject}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Pre-reading Questions */}
-          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && !isFocusMode && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Innan du läser</CardTitle>
-                <CardDescription>
-                  Aktivera dina förkunskaper genom att fundera på dessa frågor
-                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {lesson.preReadingQuestions.map((question, index) => (
-                    <div key={index} className="p-3 bg-muted rounded-lg">
-                      <p className="font-medium mb-1">{question.question}</p>
+                <div className={`space-y-8 ${accessibilitySettings.fontSize}`} style={{ color: accessibilityColors.textColor }}>
+                  {lesson.pages.map((page, pageIndex) => (
+                    <div 
+                      key={pageIndex}
+                      ref={el => pageRefs.current[pageIndex] = el}
+                      className="page-content"
+                    >
+                      {/* Page Break - Only show if not first page */}
+                      {pageIndex > 0 && (
+                        <div className="flex items-center gap-4 my-8">
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                          <div className="px-4 py-2 bg-blue-50 rounded-full border border-blue-200">
+                            <span className="text-sm font-medium text-blue-700">Sida {pageIndex + 1}</span>
+                          </div>
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                        </div>
+                      )}
+                      
+                      {/* Page Content */}
+                      <div 
+                        className="prose prose-lg max-w-none leading-relaxed"
+                        style={{ color: accessibilityColors.textColor }}
+                        dangerouslySetInnerHTML={{ __html: page.content }}
+                      />
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          )}
-
-
-          {/* Main Content */}
-          <div className={`${isFocusMode ? 'flex justify-center gap-6 items-start' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
-            {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
-            <Card 
-              className={`${isFocusMode 
-                ? 'w-full max-w-5xl transition-all duration-300' 
-                : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
-              style={{ 
-                backgroundColor: accessibilityColors.backgroundColor,
-                color: accessibilityColors.textColor,
-                '--card-text-color': accessibilityColors.textColor
-              } as React.CSSProperties}
-            >
-              <CardHeader className="relative">
-                {/* Focus Mode Button - Top Right Corner */}
-                {!isFocusMode && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="absolute top-4 right-4 z-10"
-                        onClick={() => {
-                          setIsFocusMode(true);
-                          setShowQuestionsInFocus(false);
-                        }}
-                      >
-                        <Focus className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Aktivera fokusläge för ostörd läsning</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">
-                    <span>Läs texten</span>
-                  </CardTitle>
-                  {isFocusMode && (
-                    <div className="flex gap-2">
-                      {((lesson.pages && lesson.pages.some(page => page?.questions && page.questions.length > 0)) || 
-                        (lesson.questions && lesson.questions.length > 0)) && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setShowQuestionsInFocus(!showQuestionsInFocus)}
-                        >
-                          {showQuestionsInFocus ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-                          {showQuestionsInFocus ? "Dölj frågor" : "Visa frågor"}
-                        </Button>
-                      )}
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Settings className="w-4 h-4 mr-1" />
-                            Inställningar
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-80 p-4" align="end">
-                          <div className="space-y-4">
-                            <div>
-                              <Label className="text-sm font-medium">Textstorlek</Label>
-                              <Slider
-                                value={[accessibilitySettings.fontSize]}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontSize: value[0] }))}
-                                min={16}
-                                max={60}
-                                step={2}
-                                className="mt-2"
-                              />
-                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.fontSize}px</div>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Bakgrundsfärg</Label>
-                              <Select
-                                value={accessibilitySettings.backgroundColor}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, backgroundColor: value as any }))}
-                              >
-                                <SelectTrigger className="mt-2">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="black-on-white">Svart på vitt</SelectItem>
-                                  <SelectItem value="light-gray-on-gray">Ljusgrå på grå</SelectItem>
-                                  <SelectItem value="white-on-black">Vit på svart</SelectItem>
-                                  <SelectItem value="black-on-light-yellow">Svart på ljusgul</SelectItem>
-                                  <SelectItem value="black-on-light-blue">Svart på ljusblå</SelectItem>
-                                  <SelectItem value="light-yellow-on-blue">Ljusgul på blå</SelectItem>
-                                  <SelectItem value="black-on-light-red">Svart på ljusröd</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Teckensnitt</Label>
-                              <Select
-                                value={accessibilitySettings.fontFamily}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontFamily: value as any }))}
-                              >
-                                <SelectTrigger className="mt-2">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="standard">Standard</SelectItem>
-                                  <SelectItem value="dyslexia-friendly">Dyslexi-vänligt</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  )}
-                </div>
-                {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-                  <CardDescription>
-                    💡 Ord med prickad understrykning har förklaringar - håll musen över dem
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="space-y-6">
-
-                  {/* All pages in continuous scroll with embedded questions */}
-                  {pages.map((pageContent, pageIndex) => {
-                    const isPageUnlocked = pageIndex === 0 || areAllQuestionsAnsweredForPage(pageIndex - 1);
-                    const shouldShowBlurred = !isPageUnlocked && pageIndex > 0;
-                    const pageQuestions = lesson?.pages?.[pageIndex]?.questions || [];
-                    
-                    return (
-                      <div key={pageIndex} className="relative" data-page-index={pageIndex}>
-                        {/* Page content */}
-                        <div 
-                          className={`prose dark:prose-invert max-w-none min-h-[400px] prose-lg reading-content transition-all duration-300 ${
-                            shouldShowBlurred ? 'blur-sm opacity-60 pointer-events-none select-none' : ''
-                          }`}
-                          style={{ fontSize: '1.25rem', lineHeight: '1.8', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                          dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pageContent || '', lesson.wordDefinitions) }}
-                          onMouseOver={shouldShowBlurred ? undefined : handleContentMouseOver}
-                          onMouseOut={shouldShowBlurred ? undefined : handleContentMouseOut}
-                        />
-                        
-                        
-                        {/* Paywall overlay for locked pages */}
-                        {shouldShowBlurred && (
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/90 flex items-center justify-center">
-                            <div className="text-center p-6 bg-white/95 rounded-lg shadow-lg border-2 border-blue-200 max-w-md">
-                              <div className="text-2xl mb-2">🔒</div>
-                              <h3 className="font-bold text-lg mb-2">Svara på frågorna för att fortsätta</h3>
-                              <p className="text-gray-600 text-sm">Du behöver besvara alla frågor för föregående avsnitt innan du kan läsa vidare.</p>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Page separator (except for last page) */}
-                        {pageIndex < pages.length - 1 && (
-                          <div className="my-8 border-t border-gray-200 pt-8">
-                            <div className="text-center text-sm text-gray-500 bg-gray-50 py-2 rounded">
-                              Avsnitt {pageIndex + 2}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                </div>
-                
-                
-                {/* Custom tooltip */}
-                {hoveredWord && (
-                  <div
-                    className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
-                    style={{
-                      left: `${hoveredWord.x}px`,
-                      top: `${hoveredWord.y}px`,
-                      transform: 'translate(-50%, -100%)'
-                    }}
-                  >
-                    <div className="font-semibold">{hoveredWord.word}</div>
-                    <div className="text-gray-200">{hoveredWord.definition}</div>
-                    {/* Arrow pointing down */}
-                    <div 
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Questions - Right Column */}
             {((lesson.pages && lesson.pages.some(page => page?.questions && page.questions.length > 0)) || 
-              (lesson.questions && lesson.questions.length > 0)) && 
-              (!isFocusMode || showQuestionsInFocus) && (
+              (lesson.questions && lesson.questions.length > 0)) && (
               <Card 
-                className={`questions-card ${isFocusMode 
-                  ? 'sticky top-6 w-96 max-h-[80vh] flex-shrink-0 transition-all duration-300 shadow-2xl flex flex-col' 
-                  : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
+                className="questions-card md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6"
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
                   color: accessibilityColors.textColor,
@@ -701,12 +283,12 @@ export default function ReadingLessonViewer() {
                   <CardTitle className="text-lg">
                     {areAllReadingQuestionsAnswered() 
                       ? 'Förståelsefrågor om hela texten' 
-                      : `Frågor för Avsnitt ${getCurrentActivePage() + 1}`}
+                      : `Frågor för Avsnitt ${activePage + 1}`}
                   </CardTitle>
                   <CardDescription style={{ color: accessibilityColors.textColor }}>
                     {areAllReadingQuestionsAnswered() 
                       ? 'Svara på frågorna för att kontrollera din förståelse av hela texten'
-                      : 'Svara på frågorna för att låsa upp nästa avsnitt'}
+                      : 'Svara på frågorna för denna sida'}
                   </CardDescription>
                   
                   {/* Progress indicator */}
@@ -723,7 +305,6 @@ export default function ReadingLessonViewer() {
                             width: `${(lesson.pages.filter((_, index) => areAllQuestionsAnsweredForPage(index)).length / lesson.pages.length) * 100}%` 
                           }}
                         />
-                        {/* Sparkling effect when progress increases */}
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
                         </div>
@@ -741,11 +322,10 @@ export default function ReadingLessonViewer() {
                     </div>
                   )}
                 </CardHeader>
-                <CardContent className={`${isFocusMode ? 'flex-1 overflow-hidden' : ''}`}>
-                  <div className={`space-y-6 ${isFocusMode ? 'h-full overflow-y-auto' : 'max-h-[70vh] overflow-y-auto'}`}>
+                <CardContent>
+                  <div className="space-y-6 max-h-[70vh] overflow-y-auto">
                     {/* Phase 1: Show reading questions for current active page only */}
                     {!areAllReadingQuestionsAnswered() && lesson.pages && (() => {
-                      const activePage = getCurrentActivePage();
                       const page = lesson.pages[activePage];
                       
                       if (!page?.questions || page.questions.length === 0) {
@@ -811,7 +391,6 @@ export default function ReadingLessonViewer() {
                                         <button
                                           key={optionIndex}
                                           onClick={() => {
-                                            // Auto-save active text question before answering multiple choice
                                             if (activeTextQuestion) {
                                               const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
                                               const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
@@ -820,7 +399,7 @@ export default function ReadingLessonViewer() {
                                                 handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
                                               }
                                             }
-                                            handleAnswerChange(activePage, questionIndex, optionValue);
+                                            handleAnswerChange(activePage, questionIndex, optionValue, true);
                                           }}
                                           className={`w-full flex items-start gap-2 p-2 rounded ${
                                             isSelected 
@@ -852,7 +431,6 @@ export default function ReadingLessonViewer() {
                                         <button
                                           key={optionIndex}
                                           onClick={() => {
-                                            // Auto-save active text question before answering true/false
                                             if (activeTextQuestion) {
                                               const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
                                               const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
@@ -861,7 +439,7 @@ export default function ReadingLessonViewer() {
                                                 handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
                                               }
                                             }
-                                            handleAnswerChange(activePage, questionIndex, optionValue);
+                                            handleAnswerChange(activePage, questionIndex, optionValue, true);
                                           }}
                                           className={`w-full flex items-start gap-2 p-2 rounded ${
                                             isSelected 
@@ -909,62 +487,167 @@ export default function ReadingLessonViewer() {
                         );
                       });
                     })()}
-                    
-                    {/* Phase 2: Show final comprehension questions when all reading questions are answered */}
-                    {areAllReadingQuestionsAnswered() && lesson.questions && lesson.questions.map((question, index) => (
-                      <div key={`final-${index}`} className="p-4 border-b pb-4 last:border-b-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
-                        </div>
-                        <h4 className="font-medium mb-3">
-                          {question.question}
-                        </h4>
-                        
-                        {question.type === 'multiple_choice' && question.options && (
-                          <div className="space-y-2">
-                            {question.options.map((option, optionIndex) => (
-                              <div key={optionIndex} className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                  {String.fromCharCode(65 + optionIndex)}
+
+                    {/* Phase 2: Show final questions when all reading questions are answered */}
+                    {areAllReadingQuestionsAnswered() && lesson.questions && lesson.questions.length > 0 && (
+                      <div className="space-y-4">
+                        {lesson.questions.map((question, questionIndex) => {
+                          const questionKey = `final-${questionIndex}`;
+                          const isAnswered = !!(readingAnswers[-1]?.[questionIndex]?.trim());
+                          const isCollapsed = collapsedQuestions.has(questionKey);
+                          const isAnimating = animatingQuestions.has(questionKey);
+                          
+                          return (
+                            <div 
+                              key={`final-${questionIndex}`} 
+                              data-question-key={questionKey}
+                              className={`border-b pb-4 last:border-b-0 transition-all duration-600 ease-in-out ${
+                                isAnimating ? 'animate-pulse scale-95 ring-4 ring-green-300' : ''
+                              } ${isCollapsed ? 'p-2' : 'p-4'}`}
+                              style={{
+                                maxHeight: isCollapsed ? '60px' : '1000px',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {isCollapsed ? (
+                                // Collapsed view
+                                <div 
+                                  className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                  onClick={() => expandQuestion(-1, questionIndex)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="default" className="text-xs bg-green-500">✓</Badge>
+                                    <span className="text-sm font-medium text-green-700">
+                                      Slutfråga {questionIndex + 1} - Ändra ditt svar
+                                    </span>
+                                  </div>
+                                  <ChevronDown className="w-4 h-4 text-green-600" />
                                 </div>
-                                <span>{option}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {question.type === 'true_false' && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                S
-                              </div>
-                              <span>Sant</span>
+                              ) : (
+                                // Expanded view
+                                <>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-bold text-lg text-green-800">
+                                      Slutfråga {questionIndex + 1}
+                                    </h3>
+                                    {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+                                  </div>
+                                  <h4 className="font-medium mb-3">
+                                    {question.question}
+                                  </h4>
+                                  
+                                  {question.type === 'multiple-choice' && question.alternatives && (
+                                    <div className="space-y-2">
+                                      {question.alternatives.map((option, optionIndex) => {
+                                        const optionValue = String.fromCharCode(65 + optionIndex);
+                                        const isSelected = readingAnswers[-1]?.[questionIndex] === optionValue;
+                                        
+                                        return (
+                                          <button
+                                            key={optionIndex}
+                                            onClick={() => {
+                                              if (activeTextQuestion) {
+                                                const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                  setActiveTextQuestion(null);
+                                                  handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                }
+                                              }
+                                              handleAnswerChange(-1, questionIndex, optionValue, true);
+                                            }}
+                                            className={`w-full flex items-start gap-2 p-2 rounded ${
+                                              isSelected 
+                                                ? 'ring-2 ring-green-500 font-medium bg-green-50' 
+                                                : ''
+                                            }`}
+                                          >
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                              isSelected 
+                                                ? 'border-green-500 bg-green-500 text-white' 
+                                                : 'border-gray-400 bg-white text-black'
+                                            }`}>
+                                              {optionValue}
+                                            </div>
+                                            <span className="text-left">{option}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {question.type === 'true-false' && (
+                                    <div className="space-y-2">
+                                      {['Sant', 'Falskt'].map((option, optionIndex) => {
+                                        const optionValue = option;
+                                        const isSelected = readingAnswers[-1]?.[questionIndex] === optionValue;
+                                        
+                                        return (
+                                          <button
+                                            key={optionIndex}
+                                            onClick={() => {
+                                              if (activeTextQuestion) {
+                                                const [prevPageIndex, prevQuestionIndex] = activeTextQuestion.split('-').map(Number);
+                                                const prevAnswer = readingAnswers[prevPageIndex]?.[prevQuestionIndex];
+                                                if (prevAnswer && prevAnswer.trim().length > 0) {
+                                                  setActiveTextQuestion(null);
+                                                  handleAnswerChange(prevPageIndex, prevQuestionIndex, prevAnswer, true);
+                                                }
+                                              }
+                                              handleAnswerChange(-1, questionIndex, optionValue, true);
+                                            }}
+                                            className={`w-full flex items-start gap-2 p-2 rounded ${
+                                              isSelected 
+                                                ? 'ring-2 ring-green-500 font-medium bg-green-50' 
+                                                : ''
+                                            }`}
+                                          >
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs flex-shrink-0  ${
+                                              isSelected 
+                                                ? 'border-green-500 bg-green-500 text-white' 
+                                                : 'border-gray-400 bg-white text-black'
+                                            }`}>
+                                              {option.charAt(0)}
+                                            </div>
+                                            <span className="text-left">{option}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {question.type === 'open' && (
+                                    <div className="space-y-3">
+                                      <textarea
+                                        value={readingAnswers[-1]?.[questionIndex] || ''}
+                                        onChange={(e) => handleAnswerChange(-1, questionIndex, e.target.value, false)}
+                                        onFocus={() => handleTextFieldFocus(-1, questionIndex)}
+                                        placeholder="Skriv ditt svar här..."
+                                        className="w-full p-3 border rounded-lg resize-none h-20 focus:ring-2 focus:ring-green-500"
+                                        rows={3}
+                                      />
+                                      {readingAnswers[-1]?.[questionIndex] && readingAnswers[-1][questionIndex].trim().length > 0 && (
+                                        <button
+                                          onClick={() => handleTextAnswerComplete(-1, questionIndex)}
+                                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                                        >
+                                          Spara
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full border-2 border-muted-foreground flex items-center justify-center text-xs">
-                                F
-                              </div>
-                              <span>Falskt</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {question.type === 'open_ended' && (
-                          <div className="p-3 bg-muted rounded border-2 border-dashed border-muted-foreground/30">
-                            <p className="text-sm text-muted-foreground">
-                              Skriv ditt svar här...
-                            </p>
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
           </div>
-
 
           {/* Word Definitions */}
           {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
