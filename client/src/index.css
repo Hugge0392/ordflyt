@@ -173,7 +173,10 @@
 }
 
 /* Full text formatting for main reading content */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced *,
 .reading-content.accessibility-enhanced .prose,
+.reading-content.accessibility-enhanced .prose *,
 .reading-content.accessibility-enhanced .prose p,
 .reading-content.accessibility-enhanced .prose div,
 .reading-content.accessibility-enhanced .prose span,
@@ -186,12 +189,24 @@
 .reading-content.accessibility-enhanced .prose strong,
 .reading-content.accessibility-enhanced .prose b,
 .reading-content.accessibility-enhanced .prose em,
-.reading-content.accessibility-enhanced .prose i {
+.reading-content.accessibility-enhanced .prose i,
+.reading-content.accessibility-enhanced .prose ul,
+.reading-content.accessibility-enhanced .prose ol,
+.reading-content.accessibility-enhanced .prose li,
+.reading-content.accessibility-enhanced .prose blockquote,
+.reading-content.accessibility-enhanced .prose a,
+.reading-content.accessibility-enhanced .prose code {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
   background-color: var(--accessibility-bg-color) !important;
+}
+
+/* Extra specific override to force font size on all text elements */
+div.reading-content.accessibility-enhanced.prose * {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
 }
 
 /* Limited styling for sidebar - only background, text color, and font family */
