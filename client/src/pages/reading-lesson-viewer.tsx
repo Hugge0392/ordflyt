@@ -56,7 +56,7 @@ export default function ReadingLessonViewer() {
   
   // Accessibility settings state for focus mode
   const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 34,
+    fontSize: 44,
     backgroundColor: 'black-on-white' as const,
     fontFamily: 'standard' as const
   });
