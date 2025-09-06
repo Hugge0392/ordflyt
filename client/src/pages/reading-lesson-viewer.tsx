@@ -64,6 +64,9 @@ export default function ReadingLessonViewer() {
     backgroundColor: '#ffffff',
     textColor: '#000000'
   });
+  
+  // Focus mode state
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
