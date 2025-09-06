@@ -363,11 +363,11 @@ export default function ReadingLessonViewer() {
 
 
           {/* Main Content */}
-          <div className={`${isFocusMode ? 'flex justify-center gap-6 items-start' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
+          <div className={`${isFocusMode ? 'relative flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-3 lg:grid-cols-3 gap-6 lg:items-start'} mb-6`}>
             {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
             <Card 
               className={`${isFocusMode 
-                ? 'w-full max-w-5xl transition-all duration-300' 
+                ? 'w-full max-w-6xl transition-all duration-300' 
                 : 'mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-2 lg:col-span-2'} reading-content`}
               style={{ 
                 backgroundColor: accessibilityColors.backgroundColor,
@@ -624,7 +624,7 @@ export default function ReadingLessonViewer() {
               (!isFocusMode || showQuestionsInFocus) && (
               <Card 
                 className={`questions-card ${isFocusMode 
-                  ? 'sticky top-6 w-96 max-h-[80vh] flex-shrink-0 transition-all duration-300 shadow-2xl flex flex-col' 
+                  ? 'absolute right-[-24rem] top-0 sticky w-96 max-h-[80vh] flex-shrink-0 transition-all duration-300 shadow-2xl flex flex-col' 
                   : 'md:landscape:sticky md:landscape:top-6 lg:sticky lg:top-6'}`}
                 style={{ 
                   backgroundColor: accessibilityColors.backgroundColor,
