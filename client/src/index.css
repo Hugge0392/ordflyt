@@ -660,7 +660,7 @@ button[class*="navigation-button"]:hover,
 
 /* Ramen runt fönstret */
 .reading-content.accessibility-enhanced .rf-frame {
-  border: 2px solid var(--accessibility-text-color) !important;
+  border: none !important;
   border-radius: 4px !important;
   background: transparent !important;
   pointer-events: none !important;
