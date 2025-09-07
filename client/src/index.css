@@ -289,6 +289,12 @@ div.reading-content.accessibility-enhanced.prose h6 {
   z-index: 30;
 }
 
+/* Tvinga färgarv på allt innehåll - eliminerar prose och RTE-konflikter */
+.reading-content, .reading-content * {
+  color: var(--accessibility-text-color) !important;
+  background: transparent !important; /* motverkar ev. inline-bakgrunder från RTE */
+}
+
 /* SUPER UNIKA FRÅGENAVIGATIONSKNAPPAR - KAN ALDRIG PÅVERKAS */
 .unique-prev-question-btn,
 .unique-next-question-btn {

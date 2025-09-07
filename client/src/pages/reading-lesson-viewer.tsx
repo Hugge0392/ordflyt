@@ -162,18 +162,7 @@ export default function ReadingLessonViewer() {
     enabled: !!id,
   });
 
-  // Safety check against same colors
-  useEffect(() => {
-    const cs = getComputedStyle(document.documentElement);
-    const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
-    const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
-    if (bg && tx && bg === tx) {
-      document.documentElement.style.setProperty(
-        "--accessibility-text-color",
-        bg === "#000000" ? "#ffffff" : "#000000"
-      );
-    }
-  }, [accessibilitySettings.backgroundColor]);
+  // Accessibility colors are handled in the main useEffect below
 
   // Update accessibility settings in CSS variables
   useEffect(() => {
@@ -192,6 +181,14 @@ export default function ReadingLessonViewer() {
     const root = document.documentElement;
     root.style.setProperty("--accessibility-bg-color", colors.bg);
     root.style.setProperty("--accessibility-text-color", colors.text);
+    
+    // failsafe: om lika, invertera texten
+    const cs = getComputedStyle(root);
+    const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
+    const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
+    if (bg && tx && bg === tx) {
+      root.style.setProperty("--accessibility-text-color", bg === "#000000" ? "#ffffff" : "#000000");
+    }
 
     // Update font size, line height, and font family CSS variables
     root.style.setProperty(
@@ -1125,7 +1122,7 @@ export default function ReadingLessonViewer() {
 
                 <div
                   ref={contentRef}
-                  className="prose max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                  className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
                   style={{
                     fontSize: `${accessibilitySettings.fontSize}px`,
                     lineHeight: `${accessibilitySettings.lineHeight}`,
@@ -1133,19 +1130,6 @@ export default function ReadingLessonViewer() {
                     wordWrap: "break-word",
                     backgroundColor: "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
-                    /* Gör Tailwind Typography följsam mot dina färgvariabler */
-                    // Bastext, listor, citat, headers, länkar m.m.
-                    ['--tw-prose-body' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-headings' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-bullets' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-quotes' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-counters' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-captions' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-links' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-hr' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-code' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-th-borders' as any]: 'var(--accessibility-text-color)',
-                    ['--tw-prose-td-borders' as any]: 'var(--accessibility-text-color)',
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                     fontFamily:
                       (accessibilitySettings.fontFamily as string) ===
@@ -1161,6 +1145,8 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     style={{
                       position: "relative",
+                      zIndex: 10,
+                      mixBlendMode: "normal",
                       paddingTop: 1, // extra säkerhet mot margin-collaps
                     }}
                     dangerouslySetInnerHTML={{
@@ -1172,7 +1158,8 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <div className="pointer-events-none absolute inset-0 z-30">
+                    <div className="pointer-events-none absolute inset-0 z-30"
+                         style={{ isolation: 'isolate', mixBlendMode: 'normal' }}>
                       {/* mask ovanför */}
                       <div
                         style={{
