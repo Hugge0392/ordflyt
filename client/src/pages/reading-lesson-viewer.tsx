@@ -1402,8 +1402,7 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     data-reading-text=""     // märkning för killswitch-regeln
                     style={{
-                      fontSize: readingFocusMode ? `${accessibilitySettings.fontSize + 4}px` : `${accessibilitySettings.fontSize}px`, // större font i fokusläge
-                      lineHeight: `${accessibilitySettings.lineHeight}`, // flyttat hit från container
+                      // fontSize and lineHeight now handled by CSS rules
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
                       mixBlendMode: "normal",
