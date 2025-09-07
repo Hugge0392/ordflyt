@@ -182,7 +182,7 @@
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
-  background-color: var(--accessibility-bg-color) !important;
+  /* ❌ ingen background-color här */
 }
 
 /* Headings - only font size and colors, not line-height */
@@ -195,7 +195,7 @@
   font-size: var(--accessibility-font-size) !important;
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
-  background-color: var(--accessibility-bg-color) !important;
+  /* ❌ ingen background-color här */
   line-height: 1.2 !important; /* Fixed line height for headings */
 }
 
@@ -654,7 +654,57 @@ button[class*="navigation-button"]:hover,
   background: transparent !important;
   mix-blend-mode: normal !important;
   pointer-events: none !important;
-  z-index: 100 !important;
+  z-index: 2147483647 !important; /* över allt i containern */
+}
+.reading-content.accessibility-enhanced { isolation: isolate !important; }
+
+/* PROSE-NUKE: gör *alla* textnoder i .prose transparenta */
+.reading-content.accessibility-enhanced .prose p,
+.reading-content.accessibility-enhanced .prose div,
+.reading-content.accessibility-enhanced .prose span,
+.reading-content.accessibility-enhanced .prose li,
+.reading-content.accessibility-enhanced .prose ul,
+.reading-content.accessibility-enhanced .prose ol,
+.reading-content.accessibility-enhanced .prose blockquote,
+.reading-content.accessibility-enhanced .prose pre,
+.reading-content.accessibility-enhanced .prose code,
+.reading-content.accessibility-enhanced .prose table,
+.reading-content.accessibility-enhanced .prose tr,
+.reading-content.accessibility-enhanced .prose td,
+.reading-content.accessibility-enhanced .prose th,
+.reading-content.accessibility-enhanced .prose em,
+.reading-content.accessibility-enhanced .prose strong,
+.reading-content.accessibility-enhanced .prose a {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+/* Banhammer mot Tailwind/utility-klassers bakgrunder i läsytan */
+.reading-content.accessibility-enhanced [class*="bg-"],
+.reading-content.accessibility-enhanced [class*="shadow"],
+.reading-content.accessibility-enhanced [class*="backdrop-"],
+.reading-content.accessibility-enhanced [class*="mix-blend"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+/* Pseudo-element kan bära plattor */
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
 }
 
 /* Textlagret: eget paint-lager så WebKit inte "smälter ihop" med skuggan */
