@@ -288,9 +288,23 @@ export default function ReadingLessonViewer() {
     // Content is already HTML from RichTextEditor, don't convert markdown
     let processedContent = content;
 
-    // ta bort horisontella linjer/sep
-    processedContent = processedContent.replace(/<hr[^>]*>/gi, '');
-    processedContent = processedContent.replace(/<div[^>]+role=["']separator["'][^>]*><\/div>/gi, '');
+    // a) Ta bort vanliga block som skapar vita fält
+    processedContent = processedContent
+      // horisontella linjer / editor-dividers
+      .replace(/<hr[^>]*>/gi, "")
+      .replace(/<div[^>]+role=["']separator["'][^>]*><\/div>/gi, "")
+      .replace(/<div[^>]*class=["'][^"']*(?:divider|separator|ql-divider)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, "")
+      
+      // inputs/knappar (ibland råkar sådant följa med)
+      .replace(/<input[^>]*>/gi, "")
+      .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, "")
+      .replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, "");
+
+    // b) Ta bort inline vita bakgrunder som satts via style=""
+    processedContent = processedContent.replace(
+      /\sstyle=(["'])(?:(?!\1).)*background[^;>]*?(?:#fff|#ffffff|white)[^>]*\1/gi,
+      (m) => m.replace(/background[^;>]*;(?:\s*)?/gi, "")
+    );
 
     if (!definitions.length) return processedContent;
 
@@ -1148,17 +1162,31 @@ export default function ReadingLessonViewer() {
                     .reading-content {
                       background-color: var(--accessibility-bg-color) !important;
                     }
-                    .reading-content * {
-                      color: var(--accessibility-text-color) !important;
-                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
-                      mix-blend-mode: normal !important;
+
+                    /* döda ALL egen bakgrund/belysning i innehållet */
+                    .reading-content *,
+                    .reading-content *::before,
+                    .reading-content *::after {
+                      background: transparent !important;
+                      background-color: transparent !important;
+                      box-shadow: none !important;
                       text-shadow: none !important;
+                      mix-blend-mode: normal !important;
                       opacity: 1 !important;
                     }
 
-                    /* fixar den vita linjen */
+                    /* om något behöver kant, använd textfärgen */
+                    .reading-content * {
+                      border-color: var(--accessibility-text-color) !important;
+                      color: var(--accessibility-text-color) !important;
+                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
+                    }
+
+                    /* separators/linjer */
                     .reading-content hr,
-                    .reading-content [role="separator"] {
+                    .reading-content [role="separator"],
+                    .reading-content .ql-divider,
+                    .reading-content .divider {
                       display: none !important;
                     }
                   `}</style>
