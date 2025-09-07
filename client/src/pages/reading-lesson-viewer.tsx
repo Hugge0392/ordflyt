@@ -123,7 +123,7 @@ export default function ReadingLessonViewer() {
 
   // Focus mode settings management
   const defaultFocusSettings = {
-    fontSize: 48,
+    fontSize: 40,
     lineHeight: 1.5
   };
 
