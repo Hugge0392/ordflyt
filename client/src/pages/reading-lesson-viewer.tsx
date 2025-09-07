@@ -863,68 +863,24 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                {/* Reading focus overlay - covers everything EXCEPT the text area */}
+                {/* Reading focus overlay - simple approach */}
                 {readingFocusMode && (
                   <div className="fixed inset-0 pointer-events-none z-30">
-                    {/* Left side overlay */}
-                    <div 
-                      className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '18%' }}
-                    />
+                    {/* Full screen dark overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-85" />
                     
-                    {/* Right side overlay */}
+                    {/* Clear focus window that moves with current line */}
                     <div 
-                      className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '25%' }}
+                      className="absolute bg-transparent border-2 transition-all duration-300"
+                      style={{
+                        left: '18%',
+                        right: '25%',
+                        top: `${35 + currentReadingLine * 2.5}%`,
+                        height: `${readingFocusLines * 2.5}%`,
+                        borderColor: accessibilityColors.textColor,
+                        boxShadow: `0 0 0 999px rgba(0,0,0,0.85)`
+                      }}
                     />
-                    
-                    {(() => {
-                      // Calculate dynamic position based on current reading line
-                      const lineHeight = 2.5; // Line height in vh
-                      const startPosition = 35; // Where text starts
-                      const windowHeight = readingFocusLines * lineHeight; // Height of focus window
-                      
-                      // Calculate top position of current reading window
-                      const currentWindowTop = startPosition + (currentReadingLine * lineHeight);
-                      const currentWindowBottom = 100 - (currentWindowTop + windowHeight);
-                      
-                      return (
-                        <>
-                          {/* Top overlay in text area - above current reading window */}
-                          <div 
-                            className="absolute top-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              right: '25%',
-                              height: `${currentWindowTop}%`
-                            }}
-                          />
-                          
-                          {/* Bottom overlay in text area - below current reading window */}
-                          <div 
-                            className="absolute bottom-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              right: '25%',
-                              height: `${Math.max(0, currentWindowBottom)}%`
-                            }}
-                          />
-                          
-                          {/* Focus border around current reading window */}
-                          <div 
-                            className="absolute border-2 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              top: `${currentWindowTop}%`,
-                              right: '25%',
-                              height: `${windowHeight}%`,
-                              borderColor: accessibilityColors.textColor,
-                              boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
-                            }}
-                          />
-                        </>
-                      );
-                    })()}
                   </div>
                 )}
                 
