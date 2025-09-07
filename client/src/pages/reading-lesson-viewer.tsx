@@ -1125,7 +1125,7 @@ export default function ReadingLessonViewer() {
 
                 <div
                   ref={contentRef}
-                  className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                  className="prose max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
                   style={{
                     fontSize: `${accessibilitySettings.fontSize}px`,
                     lineHeight: `${accessibilitySettings.lineHeight}`,
@@ -1133,6 +1133,19 @@ export default function ReadingLessonViewer() {
                     wordWrap: "break-word",
                     backgroundColor: "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
+                    /* Gör Tailwind Typography följsam mot dina färgvariabler */
+                    // Bastext, listor, citat, headers, länkar m.m.
+                    ['--tw-prose-body' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-headings' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-bullets' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-quotes' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-counters' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-captions' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-links' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-hr' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-code' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-th-borders' as any]: 'var(--accessibility-text-color)',
+                    ['--tw-prose-td-borders' as any]: 'var(--accessibility-text-color)',
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                     fontFamily:
                       (accessibilitySettings.fontFamily as string) ===
