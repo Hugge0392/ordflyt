@@ -118,7 +118,7 @@ export default function ReadingLessonViewer() {
       .sort((a, b) => a.top - b.top)
       .map(r => new DOMRect(
         r.left - cont.left,
-        r.top - cont.top + container.scrollTop, // make them scroll-stable in container
+        r.top - cont.top, // ❗️remove + container.scrollTop
         r.width,
         r.height
       ));
@@ -957,6 +957,8 @@ export default function ReadingLessonViewer() {
                       lineHeight: `${accessibilitySettings.lineHeight}`,
                       whiteSpace: 'pre-wrap',
                       wordWrap: 'break-word',
+                      backgroundColor: accessibilityColors.backgroundColor,
+                      color: accessibilityColors.textColor,
                       fontFamily:
                         (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
                           ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
