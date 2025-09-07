@@ -86,6 +86,9 @@ export default function ReadingLessonViewer() {
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
+  // Focus mode settings management
+  const [preReadingFocusSettings, setPreReadingFocusSettings] = useState<any>(null);
+  
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
     try {
@@ -116,6 +119,50 @@ export default function ReadingLessonViewer() {
   const goToNextPageFromFocus = () => {
     setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
     setCurrentReadingLine(0); // Reset to first line of new page
+  };
+
+  // Focus mode settings management
+  const defaultFocusSettings = {
+    fontSize: 48,
+    lineHeight: 1.5
+  };
+
+  const applyFocusSettings = (settings: any) => {
+    const root = document.documentElement;
+    root.style.setProperty('--accessibility-font-size', `${settings.fontSize}px`);
+    root.style.setProperty('--accessibility-line-height', settings.lineHeight.toString());
+  };
+
+  const getCurrentAccessibilitySettings = () => {
+    try {
+      const saved = localStorage.getItem('accessibility-settings');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to read accessibility settings:', error);
+    }
+    return null;
+  };
+
+  const getFocusSettings = () => {
+    try {
+      const saved = localStorage.getItem('focus-mode-settings');
+      if (saved) {
+        return { ...defaultFocusSettings, ...JSON.parse(saved) };
+      }
+    } catch (error) {
+      console.error('Failed to read focus mode settings:', error);
+    }
+    return defaultFocusSettings;
+  };
+
+  const saveFocusSettings = (settings: any) => {
+    try {
+      localStorage.setItem('focus-mode-settings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save focus mode settings:', error);
+    }
   };
 
   // DOM measurement functions from ChatGPT's solution
@@ -514,6 +561,73 @@ export default function ReadingLessonViewer() {
     ).length;
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
+
+  // Handle focus mode settings switching
+  useEffect(() => {
+    if (readingFocusMode) {
+      // Entering focus mode - save current settings and apply focus settings
+      const currentSettings = getCurrentAccessibilitySettings();
+      setPreReadingFocusSettings(currentSettings);
+      
+      const focusSettings = getFocusSettings();
+      applyFocusSettings(focusSettings);
+    } else if (preReadingFocusSettings) {
+      // Exiting focus mode - restore previous settings
+      const root = document.documentElement;
+      if (preReadingFocusSettings.fontSize) {
+        root.style.setProperty('--accessibility-font-size', `${preReadingFocusSettings.fontSize}px`);
+      }
+      if (preReadingFocusSettings.lineHeight) {
+        root.style.setProperty('--accessibility-line-height', preReadingFocusSettings.lineHeight.toString());
+      }
+      setPreReadingFocusSettings(null);
+    }
+  }, [readingFocusMode]);
+
+  // Listen for accessibility settings changes while in focus mode
+  useEffect(() => {
+    if (!readingFocusMode) return;
+
+    const handleStorageChange = () => {
+      const currentSettings = getCurrentAccessibilitySettings();
+      if (currentSettings) {
+        // Save the font size and line height changes as focus mode settings
+        const focusSettings = {
+          fontSize: currentSettings.fontSize,
+          lineHeight: currentSettings.lineHeight
+        };
+        saveFocusSettings(focusSettings);
+      }
+    };
+
+    // Monitor for localStorage changes
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also set up an interval to check for changes (since storage event doesn't fire for same-origin)
+    const interval = setInterval(() => {
+      const currentSettings = getCurrentAccessibilitySettings();
+      if (currentSettings && preReadingFocusSettings) {
+        const currentFontSize = currentSettings.fontSize;
+        const currentLineHeight = currentSettings.lineHeight;
+        const originalFontSize = preReadingFocusSettings.fontSize || 16;
+        const originalLineHeight = preReadingFocusSettings.lineHeight || 1.5;
+        
+        // If settings have changed from original, save as focus settings
+        if (currentFontSize !== originalFontSize || currentLineHeight !== originalLineHeight) {
+          const focusSettings = {
+            fontSize: currentFontSize,
+            lineHeight: currentLineHeight
+          };
+          saveFocusSettings(focusSettings);
+        }
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [readingFocusMode, preReadingFocusSettings]);
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
