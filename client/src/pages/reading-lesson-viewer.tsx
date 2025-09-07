@@ -847,76 +847,78 @@ export default function ReadingLessonViewer() {
                   </div>
                 )}
 
-                {/* Navigation buttons */}
-                <div
-                  className="flex items-center justify-between mt-8 pt-4 border-t"
-                  style={{
-                    borderColor: "var(--accessibility-text-color)",
-                    borderTopWidth: "0.5px",
-                  }}
-                >
-                  <button
-                    onClick={goToPreviousQuestion}
-                    disabled={isFirstQuestion}
-                    className="unique-prev-question-btn"
+                {/* Navigation buttons - Hidden in focus mode */}
+                {!readingFocusMode && (
+                  <div
+                    className="flex items-center justify-between mt-8 pt-4 border-t"
                     style={{
-                      background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
-                      color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
-                      border: readingFocusMode ? "1px solid #242424 !important" : "1px solid #000000 !important",
-                      padding: "10px 16px !important",
-                      borderRadius: "8px !important",
-                      cursor: isFirstQuestion ? "not-allowed" : "pointer",
-                      fontSize: "14px !important",
-                      fontWeight: "500 !important",
-                      display: "flex !important",
-                      alignItems: "center !important",
-                      gap: "8px !important",
-                      fontFamily: "system-ui, sans-serif !important",
-                      opacity: "1 !important",
-                      filter: "none !important",
-                      boxShadow: "none !important",
-                      outline: "none !important",
-                      position: "relative",
-                      zIndex: 999,
+                      borderColor: "var(--accessibility-text-color)",
+                      borderTopWidth: "0.5px",
                     }}
                   >
-                    <ChevronLeft style={{ width: "16px", height: "16px" }} />
-                    Tillbaka
-                  </button>
+                    <button
+                      onClick={goToPreviousQuestion}
+                      disabled={isFirstQuestion}
+                      className="unique-prev-question-btn"
+                      style={{
+                        background: "#ffffff !important",
+                        color: "#000000 !important",
+                        border: "1px solid #000000 !important",
+                        padding: "10px 16px !important",
+                        borderRadius: "8px !important",
+                        cursor: isFirstQuestion ? "not-allowed" : "pointer",
+                        fontSize: "14px !important",
+                        fontWeight: "500 !important",
+                        display: "flex !important",
+                        alignItems: "center !important",
+                        gap: "8px !important",
+                        fontFamily: "system-ui, sans-serif !important",
+                        opacity: "1 !important",
+                        filter: "none !important",
+                        boxShadow: "none !important",
+                        outline: "none !important",
+                        position: "relative",
+                        zIndex: 999,
+                      }}
+                    >
+                      <ChevronLeft style={{ width: "16px", height: "16px" }} />
+                      Tillbaka
+                    </button>
 
-                  <button
-                    onClick={
-                      isLastQuestion
-                        ? () =>
-                            alert("Bra jobbat! Du har svarat på alla frågor.")
-                        : goToNextQuestion
-                    }
-                    className="unique-next-question-btn"
-                    style={{
-                      background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
-                      color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
-                      border: readingFocusMode ? "1px solid #242424 !important" : "1px solid #000000 !important",
-                      padding: "10px 16px !important",
-                      borderRadius: "8px !important",
-                      cursor: "pointer",
-                      fontSize: "14px !important",
-                      fontWeight: "500 !important",
-                      display: "flex !important",
-                      alignItems: "center !important",
-                      gap: "8px !important",
-                      fontFamily: "system-ui, sans-serif !important",
-                      opacity: "1 !important",
-                      filter: "none !important",
-                      boxShadow: "none !important",
-                      outline: "none !important",
-                      position: "relative",
-                      zIndex: 999,
-                    }}
-                  >
-                    {isLastQuestion ? "Skicka in" : "Nästa"}
-                    <ChevronRight style={{ width: "16px", height: "16px" }} />
-                  </button>
-                </div>
+                    <button
+                      onClick={
+                        isLastQuestion
+                          ? () =>
+                              alert("Bra jobbat! Du har svarat på alla frågor.")
+                          : goToNextQuestion
+                      }
+                      className="unique-next-question-btn"
+                      style={{
+                        background: "#ffffff !important",
+                        color: "#000000 !important",
+                        border: "1px solid #000000 !important",
+                        padding: "10px 16px !important",
+                        borderRadius: "8px !important",
+                        cursor: "pointer",
+                        fontSize: "14px !important",
+                        fontWeight: "500 !important",
+                        display: "flex !important",
+                        alignItems: "center !important",
+                        gap: "8px !important",
+                        fontFamily: "system-ui, sans-serif !important",
+                        opacity: "1 !important",
+                        filter: "none !important",
+                        boxShadow: "none !important",
+                        outline: "none !important",
+                        position: "relative",
+                        zIndex: 999,
+                      }}
+                    >
+                      {isLastQuestion ? "Skicka in" : "Nästa"}
+                      <ChevronRight style={{ width: "16px", height: "16px" }} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
