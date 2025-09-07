@@ -306,9 +306,11 @@ export default function ReadingLessonViewer() {
       const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
 
       if (!contentRef.current) return null;
-      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
+      const fullWidth = contentRef.current.clientWidth;
+      const width = fullWidth * 0.9; // Minska bredden med 10%
+      const left = (fullWidth - width) / 2; // Centrera den minskade bredden
 
-      return { top, height, left: 0, width };
+      return { top, height, left, width };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;
