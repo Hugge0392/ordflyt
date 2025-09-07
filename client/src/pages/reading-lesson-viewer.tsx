@@ -908,11 +908,7 @@ export default function ReadingLessonViewer() {
           )}
           {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
           <Card
-            className={`reading-content mb-6 md:landscape:mb-0 lg:mb-0 ${
-              readingFocusMode 
-                ? 'w-full max-w-4xl mx-auto' 
-                : 'md:landscape:col-span-4 lg:col-span-4'
-            }`}
+            className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
             style={
               {
                 backgroundColor: "var(--accessibility-bg-color)",
@@ -1178,6 +1174,8 @@ export default function ReadingLessonViewer() {
                     backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
+                    width: readingFocusMode ? "100%" : undefined,
+                    maxWidth: readingFocusMode ? "none" : undefined,
                     fontFamily:
                       (accessibilitySettings.fontFamily as string) ===
                       "dyslexia-friendly"
@@ -1222,7 +1220,7 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     data-reading-text=""     // märkning för killswitch-regeln
                     style={{
-                      fontSize: `${accessibilitySettings.fontSize}px`, // flyttat hit från container
+                      fontSize: readingFocusMode ? `${accessibilitySettings.fontSize + 4}px` : `${accessibilitySettings.fontSize}px`, // större font i fokusläge
                       lineHeight: `${accessibilitySettings.lineHeight}`, // flyttat hit från container
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
