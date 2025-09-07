@@ -1159,7 +1159,6 @@ export default function ReadingLessonViewer() {
                   onMouseOut={handleContentMouseOut}
                 >
                   <style>{`
-
                     /* Dölj bara divider/HR */
                     .reading-content hr,
                     .reading-content [role="separator"],
@@ -1178,13 +1177,21 @@ export default function ReadingLessonViewer() {
                       /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
                     }
 
-                    /* Ta bara bort explicita vita inline-bakgrunder från editorinnehållet */
-                    .reading-content [style*="background:#fff"],
-                    .reading-content [style*="background: #fff"],
-                    .reading-content [style*="background:#ffffff"],
-                    .reading-content [style*="background: #ffffff"],
-                    .reading-content [style*="background:white"] {
+                    /* Killswitch mot ALL inline-bakgrund & skuggor från editorn – oavsett färg/format */
+                    .reading-content [style*="background"],
+                    .reading-content [style*="background-color"],
+                    .reading-content [style*="background-image"],
+                    .reading-content [style*="box-shadow"],
+                    .reading-content [style*="filter"],
+                    .reading-content [style*="backdrop-filter"],
+                    .reading-content [style*="mix-blend-mode"] {
                       background: transparent !important;
+                      background-color: transparent !important;
+                      background-image: none !important;
+                      box-shadow: none !important;
+                      filter: none !important;
+                      backdrop-filter: none !important;
+                      mix-blend-mode: normal !important;
                     }
                   `}</style>
 
