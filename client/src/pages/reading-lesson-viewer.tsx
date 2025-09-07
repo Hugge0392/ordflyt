@@ -1145,7 +1145,7 @@ export default function ReadingLessonViewer() {
                     fontSize: "16px", // stable measuring font for ch units
                     whiteSpace: "normal",
                     wordWrap: "break-word",
-                    backgroundColor: "var(--accessibility-bg-color)",
+                    backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                     fontFamily:
