@@ -128,9 +128,11 @@ export default function ReadingLessonViewer() {
   };
 
   const applyFocusSettings = (settings: any) => {
+    console.log('Applying focus settings:', settings);
     const root = document.documentElement;
     root.style.setProperty('--accessibility-font-size', `${settings.fontSize}px`);
     root.style.setProperty('--accessibility-line-height', settings.lineHeight.toString());
+    console.log('Focus settings applied - font size:', settings.fontSize, 'line height:', settings.lineHeight);
   };
 
   const getCurrentAccessibilitySettings = () => {
@@ -148,22 +150,40 @@ export default function ReadingLessonViewer() {
   const getFocusSettings = () => {
     try {
       const saved = localStorage.getItem('focus-mode-settings');
+      console.log('Saved focus settings from localStorage:', saved);
       if (saved) {
-        return { ...defaultFocusSettings, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        const merged = { ...defaultFocusSettings, ...parsed };
+        console.log('Merged focus settings:', merged);
+        return merged;
       }
     } catch (error) {
       console.error('Failed to read focus mode settings:', error);
     }
+    console.log('Using default focus settings:', defaultFocusSettings);
     return defaultFocusSettings;
   };
 
   const saveFocusSettings = (settings: any) => {
     try {
+      console.log('Saving focus settings:', settings);
       localStorage.setItem('focus-mode-settings', JSON.stringify(settings));
     } catch (error) {
       console.error('Failed to save focus mode settings:', error);
     }
   };
+
+  // Reset focus settings to defaults (for debugging)
+  const resetFocusSettings = () => {
+    console.log('Resetting focus settings to defaults');
+    localStorage.removeItem('focus-mode-settings');
+  };
+
+  // Reset focus settings on component mount to ensure we start fresh
+  useEffect(() => {
+    console.log('Component mounted, resetting focus settings to ensure 48px default');
+    resetFocusSettings();
+  }, []);
 
   // DOM measurement functions from ChatGPT's solution
 
@@ -564,15 +584,19 @@ export default function ReadingLessonViewer() {
 
   // Handle focus mode settings switching
   useEffect(() => {
+    console.log('Focus mode useEffect triggered, readingFocusMode:', readingFocusMode);
     if (readingFocusMode) {
       // Entering focus mode - save current settings and apply focus settings
       const currentSettings = getCurrentAccessibilitySettings();
+      console.log('Current accessibility settings before focus mode:', currentSettings);
       setPreReadingFocusSettings(currentSettings);
       
       const focusSettings = getFocusSettings();
+      console.log('About to apply focus settings:', focusSettings);
       applyFocusSettings(focusSettings);
     } else if (preReadingFocusSettings) {
       // Exiting focus mode - restore previous settings
+      console.log('Exiting focus mode, restoring settings:', preReadingFocusSettings);
       const root = document.documentElement;
       if (preReadingFocusSettings.fontSize) {
         root.style.setProperty('--accessibility-font-size', `${preReadingFocusSettings.fontSize}px`);
