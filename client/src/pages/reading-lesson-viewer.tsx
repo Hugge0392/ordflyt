@@ -1118,7 +1118,12 @@ export default function ReadingLessonViewer() {
                 </CardDescription>
               )}
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent 
+              className="relative"
+              style={{
+                backgroundColor: readingFocusMode ? "#242424" : undefined,
+              }}
+            >
               <div className="space-y-6">
                 {/* Bilder ovanför texten för denna sida */}
                 {lesson.pages &&
