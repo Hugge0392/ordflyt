@@ -909,6 +909,7 @@ export default function ReadingLessonViewer() {
                 borderColor: "var(--accessibility-text-color)",
                 borderWidth: "0.5px",
                 "--card-text-color": "var(--accessibility-text-color)",
+                overflow: readingFocusMode ? "hidden" : undefined,
               } as React.CSSProperties
             }
           >
@@ -918,6 +919,7 @@ export default function ReadingLessonViewer() {
                 backgroundColor: readingFocusMode ? "#242424" : undefined,
                 borderTopLeftRadius: readingFocusMode ? "0.5rem" : undefined,
                 borderTopRightRadius: readingFocusMode ? "0.5rem" : undefined,
+                margin: readingFocusMode ? "0" : undefined,
               }}
             >
               <div className="flex items-center justify-between">
@@ -1131,6 +1133,7 @@ export default function ReadingLessonViewer() {
                 backgroundColor: readingFocusMode ? "#242424" : undefined,
                 borderBottomLeftRadius: readingFocusMode ? "0.5rem" : undefined,
                 borderBottomRightRadius: readingFocusMode ? "0.5rem" : undefined,
+                margin: readingFocusMode ? "0" : undefined,
               }}
             >
               <div className="space-y-6">
