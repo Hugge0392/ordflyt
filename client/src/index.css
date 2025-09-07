@@ -291,12 +291,10 @@ div.reading-content.accessibility-enhanced.prose h6 {
 }
 
 /* --- Läsfokus: tvinga synlig text i läsytan (utan att röra spotlighten) --- */
+/* ❌ INGEN text-fill här – det orsakar compositing-buggar i "hålet" */
 .reading-content,
 .reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
   color: var(--accessibility-text-color) !important;
-  -webkit-text-fill-color: var(--accessibility-text-color) !important;
-  /* TA BORT background-reset eller begränsa den: */
-  /* background: transparent !important; ← ta bort helt eller lämna kvar rad nedan */
 }
 
 /* Om du vill nolla vita inline-bakgrunder – gör det selektivt (du har redan detta högre upp) */

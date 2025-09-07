@@ -300,10 +300,10 @@ export default function ReadingLessonViewer() {
       .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, "")
       .replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, "");
 
-    // b) Ta bort inline vita bakgrunder som satts via style=""
+    // b) Ta bort inline vita bakgrunder som satts via style="" (inkl RGB)
     processedContent = processedContent.replace(
-      /\sstyle=(["'])(?:(?!\1).)*background[^;>]*?(?:#fff|#ffffff|white)[^>]*\1/gi,
-      (m) => m.replace(/background[^;>]*;(?:\s*)?/gi, "")
+      /\sstyle=(["'])(?:(?!\1).)*(background(?:-color)?\s*:\s*(?:#fff(?:fff)?|white|rgb\s*\(\s*255\s*,\s*255\s*,\s*255\s*\))(?:[^;>]*)?);?(?:(?!\1).)*\1/gi,
+      (m) => m.replace(/background(?:-color)?\s*:[^;>]+;?/gi, "")
     );
 
     if (!definitions.length) return processedContent;
@@ -1193,10 +1193,11 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     style={{
                       position: "relative",
-                      zIndex: 10, // Lägre än spotlight
+                      zIndex: 10, // lägre än spotlight
                       mixBlendMode: "normal",
                       paddingTop: 1,
-                      pointerEvents: "auto"
+                      pointerEvents: "auto",
+                      transform: "translateZ(0)" // eget compositing-lager
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(
@@ -1216,12 +1217,13 @@ export default function ReadingLessonViewer() {
                         left: `${focusRect.left}px`,
                         width: `${focusRect.width}px`,
                         height: `${focusRect.height}px`,
-                        boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)", // mörka allt utanför
+                        boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
                         border: "2px solid var(--accessibility-text-color)",
                         borderRadius: 4,
                         background: "transparent",
                         pointerEvents: "none",
-                        zIndex: 50
+                        zIndex: 50,
+                        mixBlendMode: "normal" // säkerställ
                       }}
                     />
                   )}
