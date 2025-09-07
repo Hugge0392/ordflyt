@@ -1140,6 +1140,17 @@ export default function ReadingLessonViewer() {
                   onMouseOver={handleContentMouseOver}
                   onMouseOut={handleContentMouseOut}
                 >
+                  <style>{`
+                    .reading-content, .reading-content * {
+                      color: var(--accessibility-text-color) !important;
+                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
+                      background: transparent !important;
+                      opacity: 1 !important;
+                      mix-blend-mode: normal !important;
+                      text-shadow: none !important;
+                    }
+                  `}</style>
+
                   {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
                   <div
                     ref={textRef}
@@ -1158,43 +1169,26 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <div className="pointer-events-none absolute inset-0 z-30"
-                         style={{ isolation: 'isolate', mixBlendMode: 'normal' }}>
-                      {/* mask ovanför */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          height: `${focusRect.top}px`,
-                          background: "rgba(0,0,0,0.85)",
-                        }}
-                      />
-                      {/* mask under */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: 0,
-                          right: 0,
-                          top: `${focusRect.top + focusRect.height}px`,
-                          bottom: 0,
-                          background: "rgba(0,0,0,0.85)",
-                        }}
-                      />
-                      {/* kant runt fokus */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: `${focusRect.left}px`,
-                          width: `${focusRect.width}px`,
-                          top: `${focusRect.top}px`,
-                          height: `${focusRect.height}px`,
-                          border: "2px solid var(--accessibility-text-color)",
-                          boxShadow: "0 0 0 2px rgba(0,0,0,0.3)",
-                        }}
-                      />
-                    </div>
+                    <div
+                      className="pointer-events-none absolute z-30"
+                      style={{
+                        top: `${focusRect.top}px`,
+                        left: `${focusRect.left}px`,
+                        width: `${focusRect.width}px`,
+                        height: `${focusRect.height}px`,
+
+                        // Mörkare runtom – hål i mitten
+                        boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
+
+                        // Visuell kant runt fokus
+                        border: "2px solid var(--accessibility-text-color)",
+                        borderRadius: "4px",
+
+                        // Viktigt för att undvika konstiga blend-effekter
+                        mixBlendMode: "normal",
+                        isolation: "isolate",
+                      }}
+                    />
                   )}
                 </div>
 
