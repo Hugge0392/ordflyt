@@ -252,7 +252,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   overflow: auto;             /* container scroll */
   width: 100%;                /* fyller hela kortet */
   max-width: none;            /* ingen begränsning */
-  padding-inline: 1rem;
+  padding: 0;                 /* ingen padding alls */
+  margin: 0;                  /* ingen margin */
   display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
 }
 

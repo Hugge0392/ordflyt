@@ -1118,8 +1118,8 @@ export default function ReadingLessonViewer() {
                 </CardDescription>
               )}
             </CardHeader>
-            <CardContent className="relative">
-              <div className="space-y-6">
+            <CardContent className="relative p-0">
+              <div className="space-y-6 p-6">
                 {/* Bilder ovanför texten för denna sida */}
                 {lesson.pages &&
                   lesson.pages[currentPage]?.imagesAbove &&
