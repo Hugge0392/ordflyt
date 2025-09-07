@@ -863,6 +863,55 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
+                {/* Reading focus overlay - covers everything EXCEPT the text area */}
+                {readingFocusMode && (
+                  <div className="fixed inset-0 pointer-events-none z-30">
+                    {/* Left side overlay */}
+                    <div 
+                      className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
+                      style={{ width: '18%' }}
+                    />
+                    
+                    {/* Right side overlay */}
+                    <div 
+                      className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
+                      style={{ width: '25%' }}
+                    />
+                    
+                    {/* Top overlay in text area */}
+                    <div 
+                      className="absolute top-0 bg-black bg-opacity-85"
+                      style={{ 
+                        left: '18%',
+                        right: '25%',
+                        height: '35%'
+                      }}
+                    />
+                    
+                    {/* Bottom overlay in text area */}
+                    <div 
+                      className="absolute bottom-0 bg-black bg-opacity-85"
+                      style={{ 
+                        left: '18%',
+                        right: '25%',
+                        height: '35%'
+                      }}
+                    />
+                    
+                    {/* Focus border around the clear text area */}
+                    <div 
+                      className="absolute border-2 transition-all duration-300"
+                      style={{ 
+                        left: '18%',
+                        top: '35%',
+                        right: '25%',
+                        bottom: '35%',
+                        borderColor: accessibilityColors.textColor,
+                        boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
+                      }}
+                    />
+                  </div>
+                )}
                 
                 <div className="space-y-6">
                   {/* Bilder ovanför texten för denna sida */}
@@ -891,54 +940,6 @@ export default function ReadingLessonViewer() {
                         : 'inherit'
                     }}
                   >
-                    {/* Reading focus overlay directly on text area */}
-                    {readingFocusMode && textLines.length > 0 && (
-                      <div className="absolute inset-0 pointer-events-none z-10">
-                        {(() => {
-                          // Calculate position based on current reading line within this text area
-                          const totalLines = textLines.length;
-                          const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
-                          
-                          // Calculate pixel positions
-                          const currentLinePosition = currentReadingLine * lineHeight;
-                          const windowHeight = readingFocusLines * lineHeight;
-                          
-                          return (
-                            <>
-                              {/* Top overlay - covers text above current reading area */}
-                              {currentLinePosition > 0 && (
-                                <div 
-                                  className="absolute top-0 left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                                  style={{ height: `${currentLinePosition}px` }}
-                                />
-                              )}
-                              
-                              {/* Bottom overlay - covers text below current reading area */}
-                              {(currentLinePosition + windowHeight) < (totalLines * lineHeight) && (
-                                <div 
-                                  className="absolute left-0 right-0 bg-black bg-opacity-85 transition-all duration-300"
-                                  style={{ 
-                                    top: `${currentLinePosition + windowHeight}px`,
-                                    bottom: '0'
-                                  }}
-                                />
-                              )}
-                              
-                              {/* Focus border around current reading area */}
-                              <div 
-                                className="absolute left-0 right-0 transition-all duration-300"
-                                style={{ 
-                                  top: `${currentLinePosition}px`,
-                                  height: `${windowHeight}px`,
-                                  border: `2px solid ${accessibilityColors.textColor}`,
-                                  boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
-                                }}
-                              />
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
                     
                     {readingFocusMode ? (
                       <>
