@@ -586,7 +586,12 @@ export default function ReadingLessonViewer() {
   }
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div 
+      className="min-h-screen bg-background relative"
+      style={{
+        backgroundColor: readingFocusMode ? "#242424" : undefined,
+      }}
+    >
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <Card className="mb-6">
