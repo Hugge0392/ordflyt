@@ -1,0 +1,195 @@
+Yes — flera av filerna du listar kan fortfarande “läcka in” vita plattor. Här är en konkret, bit-för-bit plan med exakta patchar för varje fil som påverkar fokusverktyget. Kör dem i ordning.
+
+1) client/src/pages/reading-lesson-viewer.tsx
+
+Byt ut saneringen till DOM-baserad (tar bort all bakgrund/box-shadow/filter som kommer från editorn), och se till att “defined-word” aldrig får egen bakgrund.
+
+1a. Ersätt hela processContentWithDefinitions med detta
+
+(Detta är drop-in; inga övriga ändringar behövs.)
+
+// >>> REPLACE the whole function
+const processContentWithDefinitions = (
+  content: string,
+  definitions: WordDefinition[] = [],
+) => {
+  // Bygg DOM, rensa aggressivt
+  const tmp = document.createElement("div");
+  tmp.innerHTML = content;
+
+  // Döda element som brukar skapa band/plattor
+  tmp.querySelectorAll("hr,[role='separator'],.ql-divider,.divider,input,button,textarea").forEach(el => el.remove());
+
+  // Rensa inline-stilar: ALL background*/shadow/filter/blend/backdrop
+  tmp.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+    const style = el.getAttribute("style") || "";
+    const cleaned = style
+      .replace(/\bbackground(?:-image|-color)?\s*:[^;"]*;?/gi, "")
+      .replace(/\bbackground\s*:[^;"]*;?/gi, "")
+      .replace(/\bbox-shadow\s*:[^;"]*;?/gi, "")
+      .replace(/\bfilter\s*:[^;"]*;?/gi, "")
+      .replace(/\bbackdrop-filter\s*:[^;"]*;?/gi, "")
+      .replace(/\bmix-blend-mode\s*:[^;"]*;?/gi, "");
+    if (cleaned.trim()) el.setAttribute("style", cleaned);
+    else el.removeAttribute("style");
+  });
+
+  // Rensa typiska "bg-*" klassnamn från editor/utilitys
+  tmp.querySelectorAll<HTMLElement>("[class]").forEach((el) => {
+    el.className = el.className
+      .split(/\s+/)
+      .filter((c) => !/^bg(-|$)/.test(c) && !/^(ql-)?bg-white$/.test(c))
+      .join(" ");
+  });
+
+  // Lägg in ordförklarings-spans
+  if (definitions?.length) {
+    let html = tmp.innerHTML;
+    definitions.forEach(({ word, definition }) => {
+      const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "gi");
+      html = html.replace(
+        regex,
+        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
+      );
+    });
+    return html;
+  }
+
+  return tmp.innerHTML;
+};
+
+1b. Lägg minimal stil för “defined-word” (ingen bakgrund)
+
+Lägg precis under din inline <style> i reading-lesson-viewer.tsx:
+
+/* Ordförklaring – aldrig bakgrund */
+.defined-word {
+  background: transparent !important;
+  background-color: transparent !important;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+}
+
+
+(Du har redan tooltip-logik; detta ger bara en diskret prickad understrykning utan platta.)
+
+2) client/src/index.css
+
+Här gör vi tre saker:
+
+A) En failsafe som neutraliserar ALL inline-bakgrund/skugga i läsytan (träffar rgba/hsl/gradients också).
+
+B) Tar bort/reglerar de få rader som kan råka göra text osynlig (du har aggressiva “PROSE-NUKE” block; de behålls men utan risk för text-fill/blend glitch).
+
+C) Obligatorisk topp-z för spotlight (du har det, men vi gör den deterministiskt högst i containern).
+
+2a. Lägg till detta block (i sektionen “KILLSWITCH” nära rader ~621–690)
+
+(Om liknande selektorer redan finns: behåll dem men lägg till/ersätt så här med bredare match.)
+
+/* UNIVERSAL inline-style neutralizer för läsytan */
+.reading-content.accessibility-enhanced [style*="background"],
+.reading-content.accessibility-enhanced [style*="background-color"],
+.reading-content.accessibility-enhanced [style*="background-image"],
+.reading-content.accessibility-enhanced [style*="box-shadow"],
+.reading-content.accessibility-enhanced [style*="filter"],
+.reading-content.accessibility-enhanced [style*="backdrop-filter"],
+.reading-content.accessibility-enhanced [style*="mix-blend-mode"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+2b. Säker spotlight-prio
+
+(du har två .reading-spotlight-window block; förena så här):
+
+.reading-spotlight-window {
+  position: absolute;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;  /* över allt inom containern */
+  background: transparent !important;
+  mix-blend-mode: normal !important;
+}
+.reading-content.accessibility-enhanced { isolation: isolate !important; }
+
+2c. PROSE-regler: inga bakgrunder, men rör inte textmålning
+
+Se till att det inte finns någon regel som sätter -webkit-text-fill-color eller konstiga blend-stilar. Behåll dina regler som sätter color men ta bort ev. mix-blend-mode/text-shadow/filter på textnoder. (I din fil ser det OK ut – dubbelkolla att inga andra globala regler sätter -webkit-text-fill-color.)
+
+Om du fortfarande har blocket som sätter pointer-events: none på alla absolut positionerade element i läsytan:
+
+.reading-content.accessibility-enhanced *[style*="position:absolute"],
+.reading-content.accessibility-enhanced *[style*="position: fixed"] {
+  pointer-events: none !important;
+}
+
+
+Låt det vara kvar (bra i fokusläge), men lägg till undantag för tooltips om du vill kunna interagera med egna överlägg:
+
+.reading-content.accessibility-enhanced .reading-spotlight-window,
+.reading-content.accessibility-enhanced .defined-word-tooltip {
+  pointer-events: none !important;
+}
+
+3) client/src/components/ui/accessibility-controls.tsx och accessibility-sidebar.tsx
+
+De här två påverkar bara CSS-variablerna. Lägg in en kontrast-failsafe när användaren väljer bakgrund/foreground så att de aldrig blir samma:
+
+// efter att du satt --accessibility-bg-color / --accessibility-text-color:
+const root = document.documentElement;
+const bg = getComputedStyle(root).getPropertyValue("--accessibility-bg-color").trim();
+const tx = getComputedStyle(root).getPropertyValue("--accessibility-text-color").trim();
+
+// Enkel kontrast-fallback om lika
+if (bg && tx && bg.toLowerCase() === tx.toLowerCase()) {
+  root.style.setProperty("--accessibility-text-color",
+    bg.toLowerCase() === "#000000" ? "#ffffff" : "#000000"
+  );
+}
+
+
+(Det här har du redan i viewer-komponenten; det skadar inte att ha samma skydd även här, eftersom dessa komponenter kan uppdatera variablerna utanför viewer.)
+
+4) Tailwind / Typography (.prose)
+
+Det som kan ställa till det är bakgrunder på typografikomponenter (t.ex. blockquote, code, pre) från editorinnehållet.
+
+Lägg därför (en gång, globalt) i index.css:
+
+/* Inga bakgrunder inne i .prose när det renderas i läsytan */
+.reading-content.accessibility-enhanced .prose * {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+(Det här ersätter dina tidigare, mer fragmenterade “prose-nuke” block och är enklare att underhålla.)
+
+5) Snabb sanity-check (DevTools, 10s)
+
+Efter patchen: öppna DevTools, hovra den vita plankan (element pickern). Om du fortfarande ser en vit rektangel:
+
+Är det ett tomt p/div med inline background? → Då fångas den nu av 2a och tas bort i 1a.
+
+Är det ett ::before/::after? → Din 2a-regel nollar även box-shadow/filter men pseudo kan bära background utan inline-style. Lägg i så fall till:
+
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+
+(Du har redan ett liknande block; se att det saknar background-color → inkludera det som ovan.)
+
+Varför det här löser jus

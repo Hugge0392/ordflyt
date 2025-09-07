@@ -625,7 +625,8 @@ button[class*="navigation-button"]:hover,
 
 /* Nolla alla barns bakgrunder och skuggor – utom sådant som *ska* vara rutor/bilder/spotlight */
 .reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
-:not(.reading-spotlight-window):not(.navigation-page-counter)
+:not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame)
+:not(.navigation-page-counter)
 :not(.unique-prev-question-btn):not(.unique-next-question-btn) {
   background: transparent !important;
   background-color: transparent !important;
@@ -633,29 +634,38 @@ button[class*="navigation-button"]:hover,
 }
 
 /* Om något framework smyger in bg via data-attribut/utility-klasser */
-.reading-content.accessibility-enhanced [class*="bg-"],
-.reading-content.accessibility-enhanced [class*="bg-card"],
-.reading-content.accessibility-enhanced [class*="shadow"] {
+.reading-content.accessibility-enhanced [class*="bg-"]:not(.rf-scrim):not(.rf-frame),
+.reading-content.accessibility-enhanced [class*="bg-card"]:not(.rf-scrim):not(.rf-frame),
+.reading-content.accessibility-enhanced [class*="shadow"]:not(.rf-scrim):not(.rf-frame) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
 }
 
 /* Pseudo-element kan också lägga en platta – nolla dem */
-.reading-content.accessibility-enhanced *::before,
-.reading-content.accessibility-enhanced *::after {
+.reading-content.accessibility-enhanced *:not(.rf-scrim):not(.rf-frame)::before,
+.reading-content.accessibility-enhanced *:not(.rf-scrim):not(.rf-frame)::after {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
 }
 
-/* Spotlighten själv: låt bara skuggan mörklägga UTANFÖR rutan */
-.reading-spotlight-window {
-  background: transparent !important;
-  mix-blend-mode: normal !important;
+/* Fokusmask – täckrutorna */
+.rf-scrim {
+  background: rgba(0,0,0,0.86) !important;
   pointer-events: none !important;
-  z-index: 2147483647 !important; /* över allt i containern */
+  z-index: 2147483646 !important;
 }
+
+/* Tunn ram runt fönstret */
+.rf-frame {
+  border: 2px solid var(--accessibility-text-color) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
 .reading-content.accessibility-enhanced { isolation: isolate !important; }
 
 /* PROSE-NUKE: gör *alla* textnoder i .prose transparenta */
@@ -684,10 +694,10 @@ button[class*="navigation-button"]:hover,
 }
 
 /* Banhammer mot Tailwind/utility-klassers bakgrunder i läsytan */
-.reading-content.accessibility-enhanced [class*="bg-"],
-.reading-content.accessibility-enhanced [class*="shadow"],
-.reading-content.accessibility-enhanced [class*="backdrop-"],
-.reading-content.accessibility-enhanced [class*="mix-blend"] {
+.reading-content.accessibility-enhanced [class*="bg-"]:not(.rf-scrim):not(.rf-frame),
+.reading-content.accessibility-enhanced [class*="shadow"]:not(.rf-scrim):not(.rf-frame),
+.reading-content.accessibility-enhanced [class*="backdrop-"]:not(.rf-scrim):not(.rf-frame),
+.reading-content.accessibility-enhanced [class*="mix-blend"]:not(.rf-scrim):not(.rf-frame) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -697,8 +707,8 @@ button[class*="navigation-button"]:hover,
 }
 
 /* Pseudo-element kan bära plattor */
-.reading-content.accessibility-enhanced *::before,
-.reading-content.accessibility-enhanced *::after {
+.reading-content.accessibility-enhanced *:not(.rf-scrim):not(.rf-frame)::before,
+.reading-content.accessibility-enhanced *:not(.rf-scrim):not(.rf-frame)::after {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -736,12 +746,35 @@ button[class*="navigation-button"]:hover,
   border: 1px solid #000000 !important;
 }
 
-/* Om du någon gång vill använda 4-delad mask */
-.reading-spotlight-mask {
-  position: absolute;
-  background: rgba(0,0,0,0.85) !important;
-  pointer-events: none !important;
-  z-index: 30;
+/* Definerade ord – aldrig bakgrund */
+.defined-word {
+  background: transparent !important;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+}
+
+/* Universal inline-style neutralizer för läsytan */
+.reading-content.accessibility-enhanced [style*="background"],
+.reading-content.accessibility-enhanced [style*="background-color"],
+.reading-content.accessibility-enhanced [style*="background-image"],
+.reading-content.accessibility-enhanced [style*="box-shadow"],
+.reading-content.accessibility-enhanced [style*="filter"],
+.reading-content.accessibility-enhanced [style*="backdrop-filter"],
+.reading-content.accessibility-enhanced [style*="mix-blend-mode"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Inga bakgrunder inne i .prose när det renderas i läsytan */
+.reading-content.accessibility-enhanced .prose * {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Den vi använder nu: ett fönster med box-shadow runtom */

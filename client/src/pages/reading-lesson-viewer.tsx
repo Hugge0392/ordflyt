@@ -1209,24 +1209,38 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <div
-                      className="reading-spotlight-window"
-                      aria-hidden
-                      style={{
-                        position: "absolute",
-                        top: `${focusRect.top}px`,
-                        left: `${focusRect.left}px`,
-                        width: `${focusRect.width}px`,
-                        height: `${focusRect.height}px`,
-                        boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
-                        border: "2px solid var(--accessibility-text-color)",
-                        borderRadius: 4,
-                        background: "transparent",
-                        pointerEvents: "none",
-                        zIndex: 50,
-                        mixBlendMode: "normal" // säkerställ
-                      }}
-                    />
+                    <>
+                      {/* TOP */}
+                      <div
+                        className="rf-scrim"
+                        aria-hidden
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
+                      />
+                      {/* BOTTOM */}
+                      <div
+                        className="rf-scrim"
+                        aria-hidden
+                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
+                      />
+                      {/* LEFT */}
+                      <div
+                        className="rf-scrim"
+                        aria-hidden
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
+                      />
+                      {/* RIGHT */}
+                      <div
+                        className="rf-scrim"
+                        aria-hidden
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
+                      />
+                      {/* FRAME */}
+                      <div
+                        className="rf-frame"
+                        aria-hidden
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
+                      />
+                    </>
                   )}
                 </div>
 

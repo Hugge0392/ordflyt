@@ -1,0 +1,143 @@
+1) Byt spotlight-renderingen till 4 täckrutor + ram
+
+I reading-lesson-viewer.tsx, ersätt hela blocket som renderar spotlighten (ditt {readingFocusMode && focusRect && ( ... )}) med detta:
+
+{readingFocusMode && focusRect && (
+  <>
+    {/* TOP – från toppen ner till fönstrets top */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{
+        top: 0,
+        left: 0,
+        right: 0,
+        height: `${focusRect.top}px`,
+        position: "absolute",
+      }}
+    />
+    {/* BOTTOM – från fönstrets bottom till containerns botten */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{
+        top: `${focusRect.top + focusRect.height}px`,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        position: "absolute",
+      }}
+    />
+    {/* LEFT – vänster sida av fönstret */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{
+        top: `${focusRect.top}px`,
+        left: 0,
+        width: `${focusRect.left}px`,
+        height: `${focusRect.height}px`,
+        position: "absolute",
+      }}
+    />
+    {/* RIGHT – höger sida av fönstret */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{
+        top: `${focusRect.top}px`,
+        left: `${focusRect.left + focusRect.width}px`,
+        right: 0,
+        height: `${focusRect.height}px`,
+        position: "absolute",
+      }}
+    />
+
+    {/* Tunn ram runt fönstret */}
+    <div
+      className="rf-frame"
+      aria-hidden
+      style={{
+        top: `${focusRect.top}px`,
+        left: `${focusRect.left}px`,
+        width: `${focusRect.width}px`,
+        height: `${focusRect.height}px`,
+        position: "absolute",
+      }}
+    />
+  </>
+)}
+
+
+Denna metod täcker allt utom själva fönstret. Ingen box-shadow, inget blend-läge — texten under syns rakt igenom.
+
+2) Lägg till minimala, superstarka stilar för masken
+
+I samma fil, i din inline <style> i läs-containern (eller i index.css), lägg till:
+
+/* Fokusmask: fyra täckrutor + en ram – alltid överst i containern */
+.rf-scrim {
+  background: rgba(0,0,0,0.85) !important;
+  pointer-events: none !important;
+  z-index: 2147483646 !important;
+}
+
+.rf-frame {
+  border: 2px solid var(--accessibility-text-color) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
+3) Undanta masken från dina “killswitch”-regler
+
+I index.css har du regler som nollar bakgrunder i läsytan:
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) { ... }
+
+
+Uppdatera undantagen så att rf-scrim och rf-frame inte nollas:
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame)
+:not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+(Om du har fler liknande “nolla bakgrund”-block i filen: lägg till :not(.rf-scrim):not(.rf-frame) i dem också.)
+
+4) Säkerställ stacking-context på containern (du har redan)
+
+I index.css har du:
+
+.reading-content.accessibility-enhanced { position: relative; isolation: isolate; }
+
+
+Behåll det. Det gör att masken alltid hamnar över allt i läsytan men under resten av sidan.
+
+5) Liten fix för definierade ord (ingen bakgrund)
+
+Lägg till (om du inte redan har):
+
+.defined-word {
+  background: transparent !important;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+}
+
+Varför detta funkar där box-shadow inte gjorde det
+
+Box-shadow-”hål” kan se ut som blockering när något bakgrundslager/pseudo-element målar ovanför texten eller när webkit gör en dum compositing.
+
+Fyra riktiga täckrutor lämnar en verklig öppning; inget blandas, ingenting målas i själva fönstret.
+
+Vi höjer z-index till max inom containern och undantar masken från dina globala reset-regler.
+
+Klistra in ändringarna ovan och kör. Om något ändå strular efter detta, ge mig klassnamnet på elementet som fortfarande täcker fönstret (via Inspect) så skriver jag en en-raders CSS som nollar exakt den boven.
