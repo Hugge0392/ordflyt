@@ -71,11 +71,7 @@ export default function ReadingLessonViewer() {
     fontFamily: "standard" as const,
   });
 
-  // State for accessibility colors
-  const [accessibilityColors, setAccessibilityColors] = useState({
-    backgroundColor: "#ffffff",
-    textColor: "#000000",
-  });
+  // Accessibility colors are now handled via CSS variables
 
   // Reading Focus Mode states - using "readingFocus" prefix to avoid conflicts
   const [readingFocusMode, setReadingFocusMode] = useState(false);
@@ -166,32 +162,18 @@ export default function ReadingLessonViewer() {
     enabled: !!id,
   });
 
-  // Update accessibility colors based on CSS variables
+  // Safety check against same colors
   useEffect(() => {
-    const updateColors = () => {
-      const root = document.documentElement;
-      const bgColor =
-        root.style.getPropertyValue("--accessibility-bg-color") || "#ffffff";
-      const textColor =
-        root.style.getPropertyValue("--accessibility-text-color") || "#000000";
-      setAccessibilityColors({
-        backgroundColor: bgColor,
-        textColor: textColor,
-      });
-    };
-
-    // Update on mount
-    updateColors();
-
-    // Listen for changes to CSS variables
-    const observer = new MutationObserver(updateColors);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["style"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
+    const cs = getComputedStyle(document.documentElement);
+    const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
+    const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
+    if (bg && tx && bg === tx) {
+      document.documentElement.style.setProperty(
+        "--accessibility-text-color",
+        bg === "#000000" ? "#ffffff" : "#000000"
+      );
+    }
+  }, [accessibilitySettings.backgroundColor]);
 
   // Update accessibility settings in CSS variables
   useEffect(() => {
@@ -665,8 +647,8 @@ export default function ReadingLessonViewer() {
                 className="border rounded-lg p-6"
                 style={
                   {
-                    backgroundColor: accessibilityColors.backgroundColor,
-                    color: accessibilityColors.textColor,
+                    backgroundColor: "var(--accessibility-bg-color)",
+                    color: "var(--accessibility-text-color)",
                     borderColor: "var(--accessibility-text-color)",
                     borderWidth: "0.5px",
                     maxWidth: "720px",
@@ -811,9 +793,8 @@ export default function ReadingLessonViewer() {
                           placeholder="Skriv ditt svar här..."
                           className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                           style={{
-                            backgroundColor:
-                              accessibilityColors.backgroundColor,
-                            color: accessibilityColors.textColor,
+                            backgroundColor: "var(--accessibility-bg-color)",
+                            color: "var(--accessibility-text-color)",
                             borderColor: "var(--accessibility-text-color)",
                             fontSize: "16px",
                             lineHeight: "1.5",
@@ -908,11 +889,11 @@ export default function ReadingLessonViewer() {
             className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
             style={
               {
-                backgroundColor: accessibilityColors.backgroundColor,
-                color: accessibilityColors.textColor,
+                backgroundColor: "var(--accessibility-bg-color)",
+                color: "var(--accessibility-text-color)",
                 borderColor: "var(--accessibility-text-color)",
                 borderWidth: "0.5px",
-                "--card-text-color": accessibilityColors.textColor,
+                "--card-text-color": "var(--accessibility-text-color)",
               } as React.CSSProperties
             }
           >
@@ -1150,8 +1131,8 @@ export default function ReadingLessonViewer() {
                     lineHeight: `${accessibilitySettings.lineHeight}`,
                     whiteSpace: "pre-wrap",
                     wordWrap: "break-word",
-                    backgroundColor: accessibilityColors.backgroundColor,
-                    color: accessibilityColors.textColor,
+                    backgroundColor: "var(--accessibility-bg-color)",
+                    color: "var(--accessibility-text-color)",
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                     fontFamily:
                       (accessibilitySettings.fontFamily as string) ===
@@ -1209,7 +1190,7 @@ export default function ReadingLessonViewer() {
                           width: `${focusRect.width}px`,
                           top: `${focusRect.top}px`,
                           height: `${focusRect.height}px`,
-                          border: `2px solid ${accessibilityColors.textColor}`,
+                          border: "2px solid var(--accessibility-text-color)",
                           boxShadow: "0 0 0 2px rgba(0,0,0,0.3)",
                         }}
                       />
