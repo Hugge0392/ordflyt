@@ -261,24 +261,28 @@ export default function ReadingLessonViewer() {
   // Calculate focus rectangle (covers N lines)
   const focusRect = useMemo(() => {
     try {
-      if (!lineRects.length) return null;
+      if (!lineRects.length || !contentRef.current) return null;
 
-      const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
-      const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+      // Fast position: 1/3 från toppen av viewport (ögonhöjd)
+      const eyeLevel = contentRef.current.clientHeight / 3;
+      const currentLineRect = lineRects[currentReadingLine];
+      if (!currentLineRect) return null;
 
-      const top = lineRects[start]?.top || 0;
-      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
-      const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
+      // Höjd baserad på antal linjer
+      const height = currentLineRect.height * readingFocusLines + 3; // +3px för descenders
+      const width = contentRef.current.clientWidth;
 
-      if (!contentRef.current) return null;
-      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
-
-      return { top, height, left: 0, width };
+      return { 
+        top: eyeLevel - height / 2, // Centrera runt ögonhöjd
+        height, 
+        left: 0, 
+        width 
+      };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;
     }
-  }, [lineRects, currentReadingLine, readingFocusLines]);
+  }, [lineRects, readingFocusLines]); // Ta bort currentReadingLine dependency
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (
@@ -520,17 +524,23 @@ export default function ReadingLessonViewer() {
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
-  // Position focus window at eye level (1/3 from top) for consistent reading position
+  // Scroll text so current reading line appears in the static focus window
   useEffect(() => {
-    if (!readingFocusMode || !focusRect || !contentRef.current) return;
+    if (!readingFocusMode || !lineRects.length || !contentRef.current) return;
+    
     const cont = contentRef.current;
-    const eyeLevel = cont.clientHeight / 3; // Ögonhöjd - 1/3 från toppen
+    const currentLineRect = lineRects[currentReadingLine];
+    if (!currentLineRect) return;
+
+    // Beräkna hur mycket vi behöver scrolla för att nuvarande rad ska hamna i ögonhöjd
+    const eyeLevel = cont.clientHeight / 3;
     const targetScrollTop = Math.max(
       0,
-      focusRect.top + focusRect.height / 2 - eyeLevel,
+      currentLineRect.top - eyeLevel + currentLineRect.height / 2
     );
+    
     cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
-  }, [currentReadingLine, readingFocusMode, focusRect]);
+  }, [currentReadingLine, readingFocusMode, lineRects]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
