@@ -861,7 +861,7 @@ export default function ReadingLessonViewer() {
                     className="unique-prev-question-btn"
                     style={{
                       background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
-                      color: "#000000 !important",
+                      color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
                       border: "1px solid #000000 !important",
                       padding: "10px 16px !important",
                       borderRadius: "8px !important",
@@ -894,7 +894,7 @@ export default function ReadingLessonViewer() {
                     className="unique-next-question-btn"
                     style={{
                       background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
-                      color: "#000000 !important",
+                      color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
                       border: "1px solid #000000 !important",
                       padding: "10px 16px !important",
                       borderRadius: "8px !important",
