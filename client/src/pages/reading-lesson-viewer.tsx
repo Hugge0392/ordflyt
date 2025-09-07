@@ -100,6 +100,24 @@ export default function ReadingLessonViewer() {
     return true; // Default to true
   };
 
+  // Check if user is on the last line in focus mode
+  const isOnLastLine = () => {
+    if (!readingFocusMode || !lineRects.length) return false;
+    const maxLine = Math.max(0, lineRects.length - readingFocusLines);
+    return currentReadingLine >= maxLine;
+  };
+
+  // Check if there's a next page available
+  const hasNextPage = () => {
+    return currentPage < pages.length - 1;
+  };
+
+  // Navigate to next page from focus mode
+  const goToNextPageFromFocus = () => {
+    setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
+    setCurrentReadingLine(0); // Reset to first line of new page
+  };
+
   // DOM measurement functions from ChatGPT's solution
 
   function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
@@ -1384,6 +1402,30 @@ export default function ReadingLessonViewer() {
                           />
                         </svg>
                         <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
+                      </button>
+                    )}
+
+                    {/* Next page button when on last line */}
+                    {isOnLastLine() && hasNextPage() && (
+                      <button
+                        onClick={goToNextPageFromFocus}
+                        className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+                        title="Gå till nästa sida"
+                      >
+                        <span className="text-sm font-medium">Nästa sida</span>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
                       </button>
                     )}
 
