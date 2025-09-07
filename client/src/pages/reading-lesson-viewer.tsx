@@ -127,7 +127,7 @@ export default function ReadingLessonViewer() {
       }
     }
 
-    // normalisera till container + ta hänsyn till scroll
+    // normalisera till container koordinater
     const cont = containerEl.getBoundingClientRect();
     const normalized = rects
       .filter((r) => r.height > 0 && r.width > 0)
@@ -135,8 +135,8 @@ export default function ReadingLessonViewer() {
       .map(
         (r) =>
           new DOMRect(
-            r.left - cont.left + containerEl.scrollLeft,
-            r.top - cont.top + containerEl.scrollTop,
+            r.left - cont.left,   // ⬅️ ingen scrollLeft här
+            r.top - cont.top,     // ⬅️ ingen scrollTop här
             r.width,
             r.height
           )
