@@ -288,6 +288,10 @@ export default function ReadingLessonViewer() {
     // Content is already HTML from RichTextEditor, don't convert markdown
     let processedContent = content;
 
+    // ta bort horisontella linjer/sep
+    processedContent = processedContent.replace(/<hr[^>]*>/gi, '');
+    processedContent = processedContent.replace(/<div[^>]+role=["']separator["'][^>]*><\/div>/gi, '');
+
     if (!definitions.length) return processedContent;
 
     // Create a map of words to definitions for quick lookup
@@ -1150,6 +1154,12 @@ export default function ReadingLessonViewer() {
                       mix-blend-mode: normal !important;
                       text-shadow: none !important;
                       opacity: 1 !important;
+                    }
+
+                    /* fixar den vita linjen */
+                    .reading-content hr,
+                    .reading-content [role="separator"] {
+                      display: none !important;
                     }
                   `}</style>
 
