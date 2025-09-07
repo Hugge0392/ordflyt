@@ -1161,33 +1161,30 @@ export default function ReadingLessonViewer() {
                   <style>{`
                     .reading-content {
                       background-color: var(--accessibility-bg-color) !important;
-                    }
-
-                    /* döda ALL egen bakgrund i innehållet – men INTE spotlight-masken */
-                    .reading-content *:not(.reading-spotlight-mask),
-                    .reading-content *:not(.reading-spotlight-mask)::before,
-                    .reading-content *:not(.reading-spotlight-mask)::after {
-                      background: transparent !important;
-                      background-color: transparent !important;
-                      box-shadow: none !important;
-                      text-shadow: none !important;
-                      mix-blend-mode: normal !important;
-                      opacity: 1 !important;
-                    }
-
-                    /* färg/kant */
-                    .reading-content * {
-                      border-color: var(--accessibility-text-color) !important;
                       color: var(--accessibility-text-color) !important;
-                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
                     }
 
-                    /* ta bort dividers */
+                    /* Dölj divider/HR som orsakar vita band */
                     .reading-content hr,
                     .reading-content [role="separator"],
                     .reading-content .ql-divider,
                     .reading-content .divider {
                       display: none !important;
+                    }
+
+                    /* Nollställ *endast* explicita vita bakgrunder från innehållet */
+                    .reading-content [style*="background:#fff"],
+                    .reading-content [style*="background: #fff"],
+                    .reading-content [style*="background:#ffffff"],
+                    .reading-content [style*="background: #ffffff"],
+                    .reading-content [style*="background:white"] {
+                      background: transparent !important;
+                    }
+
+                    /* Textfärg överstyr ev. inbäddad färg i editorinnehåll */
+                    .reading-content * {
+                      color: var(--accessibility-text-color) !important;
+                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
                     }
                   `}</style>
 
@@ -1210,41 +1207,52 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <>
-                      {/* toppgardin */}
+                      {/* topp */}
                       <div
-                        className="reading-spotlight-mask pointer-events-none absolute z-30"
-                        style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px`,
-                                 background: "rgba(0,0,0,0.85)" }}
+                        className="reading-spotlight-el pointer-events-none absolute z-30"
+                        style={{
+                          top: 0, left: 0, right: 0,
+                          height: `${focusRect.top}px`,
+                          background: "rgba(0,0,0,0.85)"
+                        }}
                       />
                       {/* botten */}
                       <div
-                        className="reading-spotlight-mask pointer-events-none absolute z-30"
-                        style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0,
-                                 background: "rgba(0,0,0,0.85)" }}
+                        className="reading-spotlight-el pointer-events-none absolute z-30"
+                        style={{
+                          top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0,
+                          background: "rgba(0,0,0,0.85)"
+                        }}
                       />
                       {/* vänster */}
                       <div
-                        className="reading-spotlight-mask pointer-events-none absolute z-30"
-                        style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`,
-                                 height: `${focusRect.height}px`, background: "rgba(0,0,0,0.85)" }}
+                        className="reading-spotlight-el pointer-events-none absolute z-30"
+                        style={{
+                          top: `${focusRect.top}px`, left: 0,
+                          width: `${focusRect.left}px`, height: `${focusRect.height}px`,
+                          background: "rgba(0,0,0,0.85)"
+                        }}
                       />
                       {/* höger */}
                       <div
-                        className="reading-spotlight-mask pointer-events-none absolute z-30"
-                        style={{ top: `${focusRect.top}px`,
-                                 left: `${focusRect.left + focusRect.width}px`, right: 0,
-                                 height: `${focusRect.height}px`, background: "rgba(0,0,0,0.85)" }}
+                        className="reading-spotlight-el pointer-events-none absolute z-30"
+                        style={{
+                          top: `${focusRect.top}px`,
+                          left: `${focusRect.left + focusRect.width}px`, right: 0,
+                          height: `${focusRect.height}px`,
+                          background: "rgba(0,0,0,0.85)"
+                        }}
                       />
-                      {/* bara en ram runt fokusfönstret */}
+                      {/* ram */}
                       <div
-                        className="pointer-events-none absolute z-30"
+                        className="reading-spotlight-el pointer-events-none absolute z-30"
                         style={{
                           top: `${focusRect.top}px`,
                           left: `${focusRect.left}px`,
                           width: `${focusRect.width}px`,
                           height: `${focusRect.height}px`,
                           border: "2px solid var(--accessibility-text-color)",
-                          borderRadius: "4px"
+                          borderRadius: 4
                         }}
                       />
                     </>

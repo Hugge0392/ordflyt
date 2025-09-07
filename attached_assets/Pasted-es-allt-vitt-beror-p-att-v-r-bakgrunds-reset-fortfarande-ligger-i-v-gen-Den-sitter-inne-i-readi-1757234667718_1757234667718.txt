@@ -1,0 +1,96 @@
+es—allt vitt beror på att vår “bakgrunds-reset” fortfarande ligger i vägen. Den sitter inne i .reading-content och använder !important, så min mask (även med inline styles) blir neutraliserad/överkörd någonstans och texten hamnar i ett helt vitt “inget”.
+
+Lös det genom att göra reseten minimal och låta spotlighten rita fritt. Byt ut din <style> i .reading-content + tweak på overlayn enligt nedan.
+
+1) Minimal, säker reset (ersätt hela <style>…</style>-blocket)
+.reading-content {
+  background-color: var(--accessibility-bg-color) !important;
+  color: var(--accessibility-text-color) !important;
+}
+
+/* Dölj divider/HR som orsakar vita band */
+.reading-content hr,
+.reading-content [role="separator"],
+.reading-content .ql-divider,
+.reading-content .divider {
+  display: none !important;
+}
+
+/* Nollställ *endast* explicita vita bakgrunder från innehållet */
+.reading-content [style*="background:#fff"],
+.reading-content [style*="background: #fff"],
+.reading-content [style*="background:#ffffff"],
+.reading-content [style*="background: #ffffff"],
+.reading-content [style*="background:white"] {
+  background: transparent !important;
+}
+
+/* Textfärg överstyr ev. inbäddad färg i editorinnehåll */
+.reading-content * {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+}
+
+
+Viktigt: ta bort den gamla, breda reseten som satte background: transparent !important på “allt” (inkl. pseudo-element) – det är den som gör hela ytan vit och även kan slå ut masken.
+
+2) Spotlight med fyra “gardiner” (behåll – men gör dem immun mot reset)
+
+Lägg till en klass på alla fyra mask-divar och på ramen, t.ex. reading-spotlight-el, och exkludera den i din reset om du senare behöver utöka den. Exempel:
+
+{readingFocusMode && focusRect && (
+  <>
+    {/* topp */}
+    <div
+      className="reading-spotlight-el pointer-events-none absolute z-30"
+      style={{
+        top: 0, left: 0, right: 0,
+        height: `${focusRect.top}px`,
+        background: "rgba(0,0,0,0.85)"
+      }}
+    />
+    {/* botten */}
+    <div
+      className="reading-spotlight-el pointer-events-none absolute z-30"
+      style={{
+        top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0,
+        background: "rgba(0,0,0,0.85)"
+      }}
+    />
+    {/* vänster */}
+    <div
+      className="reading-spotlight-el pointer-events-none absolute z-30"
+      style={{
+        top: `${focusRect.top}px`, left: 0,
+        width: `${focusRect.left}px`, height: `${focusRect.height}px`,
+        background: "rgba(0,0,0,0.85)"
+      }}
+    />
+    {/* höger */}
+    <div
+      className="reading-spotlight-el pointer-events-none absolute z-30"
+      style={{
+        top: `${focusRect.top}px`,
+        left: `${focusRect.left + focusRect.width}px`, right: 0,
+        height: `${focusRect.height}px`,
+        background: "rgba(0,0,0,0.85)"
+      }}
+    />
+    {/* ram */}
+    <div
+      className="reading-spotlight-el pointer-events-none absolute z-30"
+      style={{
+        top: `${focusRect.top}px`,
+        left: `${focusRect.left}px`,
+        width: `${focusRect.width}px`,
+        height: `${focusRect.height}px`,
+        border: "2px solid var(--accessibility-text-color)",
+        borderRadius: 4
+      }}
+    />
+  </>
+)}
+
+
+(Om du någon gång behöver en bredare reset igen, använd selektorn
+.reading-content *:not(.reading-spotlight-el) så att spotlighten aldrig drabbas.)
