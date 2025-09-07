@@ -594,6 +594,7 @@ export default function ReadingLessonViewer() {
     >
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
+        {!readingFocusMode && (
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -635,6 +636,7 @@ export default function ReadingLessonViewer() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Pre-reading Questions */}
         {!readingFocusMode && lesson.preReadingQuestions &&
