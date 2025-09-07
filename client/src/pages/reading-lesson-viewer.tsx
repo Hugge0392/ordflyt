@@ -1363,11 +1363,11 @@ export default function ReadingLessonViewer() {
                       </svg>
                     </button>
 
-                    {/* Floating questions button */}
+                    {/* Questions button next to accessibility controls */}
                     {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                       <button
                         onClick={() => setShowFocusQuestionsPopup(true)}
-                        className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-4 py-3 rounded-full hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+                        className="fixed top-4 right-[160px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
                         title="Visa frågor"
                       >
                         <svg
