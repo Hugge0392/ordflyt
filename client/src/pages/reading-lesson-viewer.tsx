@@ -659,7 +659,13 @@ export default function ReadingLessonViewer() {
               <CardContent>
                 <div className="space-y-3">
                   {lesson.preReadingQuestions.map((question, index) => (
-                    <div key={index} className="p-3 bg-muted rounded-lg">
+                    <div 
+                      key={index} 
+                      className="p-3 bg-muted rounded-lg"
+                      style={{
+                        backgroundColor: readingFocusMode ? "#242424" : undefined,
+                      }}
+                    >
                       <p className="font-medium mb-1">{question.question}</p>
                     </div>
                   ))}
