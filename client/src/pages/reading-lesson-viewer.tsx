@@ -949,69 +949,67 @@ export default function ReadingLessonViewer() {
                     </div>
                   )}
 
-                  <div 
+                  <div
                     ref={contentRef}
-                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
-                    style={{ 
-                      fontSize: `${accessibilitySettings.fontSize}px !important`,
-                      lineHeight: `${accessibilitySettings.lineHeight} !important`,
-                      whiteSpace: 'pre-wrap', 
+                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                    style={{
+                      fontSize: `${accessibilitySettings.fontSize}px`,
+                      lineHeight: `${accessibilitySettings.lineHeight}`,
+                      whiteSpace: 'pre-wrap',
                       wordWrap: 'break-word',
-                      fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
-                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                        : 'inherit'
+                      fontFamily:
+                        (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
+                          ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                          : 'inherit'
                     }}
                     onMouseOver={handleContentMouseOver}
                     onMouseOut={handleContentMouseOut}
-                    dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                  />
-
-                  {/* ChatGPT's pixel-perfect reading focus overlay */}
-                  {readingFocusMode && focusRect && (
+                  >
                     <div
-                      className="pointer-events-none"
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        zIndex: 30
+                      dangerouslySetInnerHTML={{
+                        __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions)
                       }}
-                    >
-                      {/* Mask above focus */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          height: `${focusRect.top}px`,
-                          background: 'rgba(0,0,0,0.85)'
-                        }}
-                      />
-                      {/* Mask below focus */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          top: `${focusRect.top + focusRect.height}px`,
-                          bottom: 0,
-                          background: 'rgba(0,0,0,0.85)'
-                        }}
-                      />
-                      {/* Border around focus */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: `${focusRect.left}px`,
-                          width: `${focusRect.width}px`,
-                          top: `${focusRect.top}px`,
-                          height: `${focusRect.height}px`,
-                          border: `2px solid ${accessibilityColors.textColor}`,
-                          boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
-                        }}
-                      />
-                    </div>
-                  )}
+                    />
+
+                    {readingFocusMode && focusRect && (
+                      <div className="pointer-events-none absolute inset-0 z-30">
+                        {/* mask ovanför */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            height: `${focusRect.top}px`,
+                            background: 'rgba(0,0,0,0.85)'
+                          }}
+                        />
+                        {/* mask under */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            top: `${focusRect.top + focusRect.height}px`,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.85)'
+                          }}
+                        />
+                        {/* kant runt fokus */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: `${focusRect.left}px`,
+                            width: `${focusRect.width}px`,
+                            top: `${focusRect.top}px`,
+                            height: `${focusRect.height}px`,
+                            border: `2px solid ${accessibilityColors.textColor}`,
+                            boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Reading focus UI when active */}
                   {readingFocusMode && (
