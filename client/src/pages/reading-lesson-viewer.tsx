@@ -1159,12 +1159,13 @@ export default function ReadingLessonViewer() {
                   onMouseOut={handleContentMouseOut}
                 >
                   <style>{`
-                    .reading-content {
-                      background-color: var(--accessibility-bg-color) !important;
-                      color: var(--accessibility-text-color) !important;
+                    /* Spotlight måste få behålla sin bakgrund oavsett andra resets */
+                    .reading-spotlight-el {
+                      background: rgba(0,0,0,0.85) !important;
+                      pointer-events: none !important;
                     }
 
-                    /* Dölj divider/HR som orsakar vita band */
+                    /* Dölj bara divider/HR */
                     .reading-content hr,
                     .reading-content [role="separator"],
                     .reading-content .ql-divider,
@@ -1172,19 +1173,23 @@ export default function ReadingLessonViewer() {
                       display: none !important;
                     }
 
-                    /* Nollställ *endast* explicita vita bakgrunder från innehållet */
+                    /* Låt textfärgen vinna, men rör inte bakgrunder generellt */
+                    .reading-content {
+                      background-color: var(--accessibility-bg-color) !important;
+                      color: var(--accessibility-text-color) !important;
+                    }
+                    .reading-content * {
+                      color: var(--accessibility-text-color) !important;
+                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
+                    }
+
+                    /* Ta bara bort explicita vita inline-bakgrunder från editorinnehållet */
                     .reading-content [style*="background:#fff"],
                     .reading-content [style*="background: #fff"],
                     .reading-content [style*="background:#ffffff"],
                     .reading-content [style*="background: #ffffff"],
                     .reading-content [style*="background:white"] {
                       background: transparent !important;
-                    }
-
-                    /* Textfärg överstyr ev. inbäddad färg i editorinnehåll */
-                    .reading-content * {
-                      color: var(--accessibility-text-color) !important;
-                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
                     }
                   `}</style>
 
@@ -1207,54 +1212,16 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <>
-                      {/* topp */}
-                      <div
-                        className="reading-spotlight-el pointer-events-none absolute z-30"
-                        style={{
-                          top: 0, left: 0, right: 0,
-                          height: `${focusRect.top}px`,
-                          background: "rgba(0,0,0,0.85)"
-                        }}
-                      />
-                      {/* botten */}
-                      <div
-                        className="reading-spotlight-el pointer-events-none absolute z-30"
-                        style={{
-                          top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0,
-                          background: "rgba(0,0,0,0.85)"
-                        }}
-                      />
-                      {/* vänster */}
-                      <div
-                        className="reading-spotlight-el pointer-events-none absolute z-30"
-                        style={{
-                          top: `${focusRect.top}px`, left: 0,
-                          width: `${focusRect.left}px`, height: `${focusRect.height}px`,
-                          background: "rgba(0,0,0,0.85)"
-                        }}
-                      />
-                      {/* höger */}
-                      <div
-                        className="reading-spotlight-el pointer-events-none absolute z-30"
-                        style={{
-                          top: `${focusRect.top}px`,
-                          left: `${focusRect.left + focusRect.width}px`, right: 0,
-                          height: `${focusRect.height}px`,
-                          background: "rgba(0,0,0,0.85)"
-                        }}
-                      />
-                      {/* ram */}
-                      <div
-                        className="reading-spotlight-el pointer-events-none absolute z-30"
-                        style={{
-                          top: `${focusRect.top}px`,
-                          left: `${focusRect.left}px`,
-                          width: `${focusRect.width}px`,
-                          height: `${focusRect.height}px`,
-                          border: "2px solid var(--accessibility-text-color)",
-                          borderRadius: 4
-                        }}
-                      />
+                      <div className="reading-spotlight-el absolute z-30"
+                           style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px` }} />
+                      <div className="reading-spotlight-el absolute z-30"
+                           style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }} />
+                      <div className="reading-spotlight-el absolute z-30"
+                           style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }} />
+                      <div className="reading-spotlight-el absolute z-30"
+                           style={{ top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }} />
+                      <div className="absolute z-30 pointer-events-none"
+                           style={{ top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px`, border: "2px solid var(--accessibility-text-color)", borderRadius: 4 }} />
                     </>
                   )}
                 </div>
