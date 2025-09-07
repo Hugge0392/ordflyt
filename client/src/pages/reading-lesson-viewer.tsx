@@ -1373,6 +1373,129 @@ export default function ReadingLessonViewer() {
                         <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
                       </button>
                     )}
+
+                    {/* Questions popup overlay */}
+                    {showFocusQuestionsPopup && (
+                      <div 
+                        className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
+                        onClick={() => setShowFocusQuestionsPopup(false)}
+                      >
+                        <div 
+                          className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-xl font-semibold text-gray-900">Frågor</h3>
+                              <button
+                                onClick={() => setShowFocusQuestionsPopup(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                title="Stäng"
+                              >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                            
+                            <div className="space-y-6">
+                              {/* General questions */}
+                              {lesson.questions && lesson.questions.length > 0 && (
+                                <div>
+                                  <h4 className="text-lg font-medium text-gray-900 mb-3">Allmänna frågor</h4>
+                                  <div className="space-y-4">
+                                    {lesson.questions.map((question, index) => (
+                                      <div key={index} className="border rounded-lg p-4">
+                                        <p className="text-gray-800 mb-3">{question.question}</p>
+                                        {question.type === 'multiple_choice' && question.options ? (
+                                          <div className="space-y-2">
+                                            {question.options.map((option, optionIndex) => (
+                                              <label key={optionIndex} className="flex items-center">
+                                                <input
+                                                  type="radio"
+                                                  name={`general-q-${index}`}
+                                                  value={option}
+                                                  checked={generalAnswers[index] === option}
+                                                  onChange={(e) => setGeneralAnswers(prev => ({ ...prev, [index]: e.target.value }))}
+                                                  className="mr-2"
+                                                />
+                                                <span className="text-gray-700">{option}</span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <textarea
+                                            value={generalAnswers[index] || ''}
+                                            onChange={(e) => setGeneralAnswers(prev => ({ ...prev, [index]: e.target.value }))}
+                                            className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows={3}
+                                            placeholder="Skriv ditt svar här..."
+                                          />
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Page-specific questions */}
+                              {lesson.pages?.[currentPage]?.questions && lesson.pages[currentPage].questions!.length > 0 && (
+                                <div>
+                                  <h4 className="text-lg font-medium text-gray-900 mb-3">Frågor för denna sida</h4>
+                                  <div className="space-y-4">
+                                    {lesson.pages[currentPage].questions!.map((question, index) => {
+                                      const generalQuestionsCount = lesson?.questions?.length || 0;
+                                      const previousPagesQuestionsCount = lesson?.pages?.slice(0, currentPage).reduce((sum, page) => sum + (page.questions?.length || 0), 0) || 0;
+                                      const questionIndex = generalQuestionsCount + previousPagesQuestionsCount + index;
+                                      
+                                      return (
+                                        <div key={index} className="border rounded-lg p-4">
+                                          <p className="text-gray-800 mb-3">{question.question}</p>
+                                          {question.type === 'multiple_choice' && question.options ? (
+                                            <div className="space-y-2">
+                                              {question.options.map((option, optionIndex) => (
+                                                <label key={optionIndex} className="flex items-center">
+                                                  <input
+                                                    type="radio"
+                                                    name={`page-q-${index}`}
+                                                    value={option}
+                                                    checked={questionsPanel12Answers[questionIndex] === option}
+                                                    onChange={(e) => setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: e.target.value }))}
+                                                    className="mr-2"
+                                                  />
+                                                  <span className="text-gray-700">{option}</span>
+                                                </label>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <textarea
+                                              value={questionsPanel12Answers[questionIndex] || ''}
+                                              onChange={(e) => setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: e.target.value }))}
+                                              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                              rows={3}
+                                              placeholder="Skriv ditt svar här..."
+                                            />
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end gap-3">
+                              <button
+                                onClick={() => setShowFocusQuestionsPopup(false)}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                              >
+                                Tillbaka till läsning
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 
