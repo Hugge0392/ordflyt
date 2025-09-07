@@ -862,7 +862,7 @@ export default function ReadingLessonViewer() {
                     style={{
                       background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
                       color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
-                      border: "1px solid #000000 !important",
+                      border: readingFocusMode ? "1px solid #242424 !important" : "1px solid #000000 !important",
                       padding: "10px 16px !important",
                       borderRadius: "8px !important",
                       cursor: isFirstQuestion ? "not-allowed" : "pointer",
@@ -895,7 +895,7 @@ export default function ReadingLessonViewer() {
                     style={{
                       background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
                       color: readingFocusMode ? "#ffffff !important" : "#000000 !important",
-                      border: "1px solid #000000 !important",
+                      border: readingFocusMode ? "1px solid #242424 !important" : "1px solid #000000 !important",
                       padding: "10px 16px !important",
                       borderRadius: "8px !important",
                       cursor: "pointer",
