@@ -1193,9 +1193,10 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     style={{
                       position: "relative",
-                      zIndex: 10,
+                      zIndex: 35, // Högre än spotlight för att synas över box-shadow
                       mixBlendMode: "normal",
-                      paddingTop: 1, // extra säkerhet mot margin-collaps
+                      paddingTop: 1,
+                      pointerEvents: "auto" // Säkerställ att text är klickbar
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(
@@ -1215,7 +1216,8 @@ export default function ReadingLessonViewer() {
                         height: `${focusRect.height}px`,
                         boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",
                         border: "2px solid var(--accessibility-text-color)",
-                        borderRadius: 4
+                        borderRadius: 4,
+                        zIndex: 30 // Lägre än text så att text syns över skuggan
                       }}
                     />
                   )}
