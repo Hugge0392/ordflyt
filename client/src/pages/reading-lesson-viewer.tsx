@@ -70,8 +70,12 @@ export default function ReadingLessonViewer() {
   }
 
   function measureLineRects(container: HTMLElement): DOMRect[] {
+    if (!container) return [];
+    
     const rects: DOMRect[] = [];
     const textNodes = getAllTextNodes(container);
+    if (textNodes.length === 0) return [];
+    
     const range = document.createRange();
 
     for (const tn of textNodes) {
@@ -201,8 +205,15 @@ export default function ReadingLessonViewer() {
 
     const measure = () => {
       if (!contentRef.current) return;
-      setLineRects(measureLineRects(contentRef.current));
-      setCurrentReadingLine(0);
+      try {
+        const rects = measureLineRects(contentRef.current);
+        setLineRects(rects);
+        setCurrentReadingLine(0);
+      } catch (error) {
+        console.warn('Error measuring line rects:', error);
+        setLineRects([]);
+        setCurrentReadingLine(0);
+      }
     };
 
     // Measure on next tick when HTML is set
@@ -220,19 +231,24 @@ export default function ReadingLessonViewer() {
 
   // Calculate focus rectangle (covers N lines)
   const focusRect = useMemo(() => {
-    if (!lineRects.length) return null;
-    const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
-    const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
-    const top = lineRects[start].top;
-    const bottom = lineRects[end].top + lineRects[end].height;
-    const height = bottom - top;
+    try {
+      if (!lineRects.length) return null;
+      const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
+      const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+      const top = lineRects[start]?.top || 0;
+      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
+      const height = bottom - top;
 
-    // Width = text container's content width
-    if (!contentRef.current) return null;
-    const cont = contentRef.current.getBoundingClientRect();
-    const width = cont.width;
+      // Width = text container's content width
+      if (!contentRef.current) return null;
+      const cont = contentRef.current.getBoundingClientRect();
+      const width = cont.width;
 
-    return { top, height, left: 0, width };
+      return { top, height, left: 0, width };
+    } catch (error) {
+      console.warn('Error calculating focus rect:', error);
+      return null;
+    }
   }, [lineRects, currentReadingLine, readingFocusLines]);
 
   // Create interactive content with word definitions
