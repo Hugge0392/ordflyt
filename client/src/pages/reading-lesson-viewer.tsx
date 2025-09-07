@@ -916,6 +916,8 @@ export default function ReadingLessonViewer() {
               className="relative"
               style={{
                 backgroundColor: readingFocusMode ? "#242424" : undefined,
+                borderTopLeftRadius: readingFocusMode ? "0.5rem" : undefined,
+                borderTopRightRadius: readingFocusMode ? "0.5rem" : undefined,
               }}
             >
               <div className="flex items-center justify-between">
@@ -1127,6 +1129,8 @@ export default function ReadingLessonViewer() {
               className="relative"
               style={{
                 backgroundColor: readingFocusMode ? "#242424" : undefined,
+                borderBottomLeftRadius: readingFocusMode ? "0.5rem" : undefined,
+                borderBottomRightRadius: readingFocusMode ? "0.5rem" : undefined,
               }}
             >
               <div className="space-y-6">
