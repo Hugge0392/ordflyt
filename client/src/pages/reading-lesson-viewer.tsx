@@ -863,23 +863,51 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                {/* Reading focus overlay that darkens everything except current lines */}
-                {readingFocusMode && textLines.length > 0 && (
-                  <div className="fixed inset-0 pointer-events-none z-40">
-                    {/* Dark overlay covering the entire screen */}
-                    <div className="absolute inset-0 bg-black bg-opacity-90" />
-                    
-                    {/* Clear reading window that follows the current line */}
+                {/* Reading focus overlay - covers everything EXCEPT the text area */}
+                {readingFocusMode && (
+                  <div className="fixed inset-0 pointer-events-none z-30">
+                    {/* Left side overlay */}
                     <div 
-                      className="absolute bg-white transition-all duration-300"
-                      style={{
-                        left: '20%',
-                        top: `${40 + (currentReadingLine * 3)}%`, // Move with current line
-                        width: '55%',
-                        height: `${readingFocusLines * 3}%`, // Height based on number of lines
-                        mixBlendMode: 'screen',
-                        border: `2px solid ${accessibilityColors.textColor}`,
-                        borderRadius: '4px'
+                      className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
+                      style={{ width: '15%' }}
+                    />
+                    
+                    {/* Right side overlay */}
+                    <div 
+                      className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
+                      style={{ width: '25%' }}
+                    />
+                    
+                    {/* Top overlay */}
+                    <div 
+                      className="absolute top-0 bg-black bg-opacity-85"
+                      style={{ 
+                        left: '15%',
+                        right: '25%',
+                        height: '15%'
+                      }}
+                    />
+                    
+                    {/* Bottom overlay */}
+                    <div 
+                      className="absolute bottom-0 bg-black bg-opacity-85"
+                      style={{ 
+                        left: '15%',
+                        right: '25%',
+                        height: '15%'
+                      }}
+                    />
+                    
+                    {/* Focus border around the clear text area */}
+                    <div 
+                      className="absolute border-2 transition-all duration-300"
+                      style={{ 
+                        left: '15%',
+                        top: '15%',
+                        right: '25%',
+                        bottom: '15%',
+                        borderColor: accessibilityColors.textColor,
+                        boxShadow: `0 0 0 3px rgba(0,0,0,0.3)`
                       }}
                     />
                   </div>
