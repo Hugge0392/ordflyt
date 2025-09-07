@@ -594,7 +594,12 @@ export default function ReadingLessonViewer() {
     >
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <Card className="mb-6">
+        <Card 
+          className="mb-6"
+          style={{
+            backgroundColor: readingFocusMode ? "#242424" : undefined,
+          }}
+        >
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
