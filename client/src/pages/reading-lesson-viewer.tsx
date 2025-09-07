@@ -868,8 +868,8 @@ export default function ReadingLessonViewer() {
                   <div className="fixed inset-0 pointer-events-none z-30">
                     {(() => {
                       // Calculate position based on current reading line
-                      const lineHeight = 3; // Approximate line height in vh
-                      const startY = 25; // Start position for text area
+                      const lineHeight = 2.5; // Approximate line height in vh
+                      const startY = 35; // Start position for actual text content
                       const currentLineY = startY + (currentReadingLine * lineHeight);
                       const windowHeight = readingFocusLines * lineHeight;
                       
