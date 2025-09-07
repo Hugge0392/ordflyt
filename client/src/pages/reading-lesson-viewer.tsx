@@ -1208,16 +1208,10 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <>
-                      {/* Topp - mörk */}
-                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Botten - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Vänster - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Höger - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Ram runt fönstret */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px`, border: "2px solid var(--accessibility-text-color)", borderRadius: 4, pointerEvents: "none", zIndex: 20 }} />
+                      {/* Ovanför fokusraden - svart */}
+                      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: `${focusRect.top}px`, backgroundColor: "black", pointerEvents: "none", zIndex: 30 }} />
+                      {/* Under fokusraden - svart */}
+                      <div style={{ position: "fixed", top: `${focusRect.top + focusRect.height}px`, left: 0, width: "100vw", height: `calc(100vh - ${focusRect.top + focusRect.height}px)`, backgroundColor: "black", pointerEvents: "none", zIndex: 30 }} />
                     </>
                   )}
                 </div>
