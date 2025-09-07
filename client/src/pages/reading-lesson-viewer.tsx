@@ -132,7 +132,11 @@ export default function ReadingLessonViewer() {
     const root = document.documentElement;
     root.style.setProperty('--accessibility-font-size', `${settings.fontSize}px`);
     root.style.setProperty('--accessibility-line-height', settings.lineHeight.toString());
+    
+    // Add accessibility-enhanced class to body so CSS rules are applied
+    document.body.classList.add('accessibility-enhanced');
     console.log('Focus settings applied - font size:', settings.fontSize, 'line height:', settings.lineHeight);
+    console.log('Added accessibility-enhanced class to body');
   };
 
   const getCurrentAccessibilitySettings = () => {
@@ -181,7 +185,6 @@ export default function ReadingLessonViewer() {
 
   // Reset focus settings on component mount to ensure we start fresh
   useEffect(() => {
-    console.log('Component mounted, resetting focus settings to ensure 48px default');
     resetFocusSettings();
   }, []);
 
@@ -604,6 +607,19 @@ export default function ReadingLessonViewer() {
       if (preReadingFocusSettings.lineHeight) {
         root.style.setProperty('--accessibility-line-height', preReadingFocusSettings.lineHeight.toString());
       }
+      
+      // Restore accessibility-enhanced class based on whether original settings were modified
+      const defaultSettings = { fontSize: 16, lineHeight: 1.5, fontFamily: 'standard', contrast: 'normal', backgroundColor: 'white', wordSpacing: 0, letterSpacing: 0 };
+      const wasEnhanced = preReadingFocusSettings.fontSize !== defaultSettings.fontSize ||
+        preReadingFocusSettings.lineHeight !== defaultSettings.lineHeight ||
+        preReadingFocusSettings.fontFamily !== defaultSettings.fontFamily ||
+        preReadingFocusSettings.contrast !== defaultSettings.contrast ||
+        preReadingFocusSettings.backgroundColor !== defaultSettings.backgroundColor ||
+        preReadingFocusSettings.wordSpacing !== defaultSettings.wordSpacing ||
+        preReadingFocusSettings.letterSpacing !== defaultSettings.letterSpacing;
+      
+      document.body.classList.toggle('accessibility-enhanced', wasEnhanced);
+      console.log('Restored accessibility-enhanced class to:', wasEnhanced);
       setPreReadingFocusSettings(null);
     }
   }, [readingFocusMode]);
