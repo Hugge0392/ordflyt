@@ -160,17 +160,7 @@
 }
 
 
-/* Force Card component background - highest specificity */
-.reading-content.accessibility-enhanced.rounded-lg.border.bg-card.text-card-foreground.shadow-sm,
-.reading-content.accessibility-enhanced.rounded-lg.border,
-.reading-content.accessibility-enhanced.bg-card,
-.reading-content.accessibility-enhanced,
-.reading-content.accessibility-enhanced > *,
-.reading-content.accessibility-enhanced .rounded-lg,
-.reading-content.accessibility-enhanced .bg-card {
-  background-color: var(--accessibility-bg-color) !important;
-  background: var(--accessibility-bg-color) !important;
-}
+/* BORTTAGEN: Force Card component background - orsakade vita plattor */
 
 /* Full text formatting for main reading content - body text elements */
 .reading-content.accessibility-enhanced,
@@ -624,6 +614,63 @@ button[class*="navigation-button"]:hover,
   background-color: #FFFFFF !important;
   transform: none !important;
   transition: none !important;
+}
+
+/* === KILLSWITCH mot "vita band" i läsytan === */
+/* Endast containern får bakgrund. Inga barn får lägga plattor. */
+.reading-content.accessibility-enhanced {
+  background: var(--accessibility-bg-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+/* Nolla alla barns bakgrunder och skuggor – utom sådant som *ska* vara rutor/bilder/spotlight */
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Om något framework smyger in bg via data-attribut/utility-klasser */
+.reading-content.accessibility-enhanced [class*="bg-"],
+.reading-content.accessibility-enhanced [class*="bg-card"],
+.reading-content.accessibility-enhanced [class*="shadow"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Pseudo-element kan också lägga en platta – nolla dem */
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Spotlighten själv: låt bara skuggan mörklägga UTANFÖR rutan */
+.reading-spotlight-window {
+  background: transparent !important;
+  mix-blend-mode: normal !important;
+  pointer-events: none !important;
+  z-index: 100 !important;
+}
+
+/* Textlagret: eget paint-lager så WebKit inte "smälter ihop" med skuggan */
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced .reading-text,
+.reading-content.accessibility-enhanced [data-role="reading-text"] {
+  position: relative !important;
+  z-index: 1 !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
+}
+
+/* SISTA SKYDDET: om något absolut positionerat lägger sig över – gör det klickgenomskinligt */
+.reading-content.accessibility-enhanced *[style*="position:absolute"],
+.reading-content.accessibility-enhanced *[style*="position: fixed"] {
+  pointer-events: none !important;
 }
 
 /* Active page number gets special styling - light gray background */

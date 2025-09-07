@@ -1191,6 +1191,7 @@ export default function ReadingLessonViewer() {
                   {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
                   <div
                     ref={textRef}
+                    data-reading-text=""     // märkning för killswitch-regeln
                     style={{
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
