@@ -520,15 +520,40 @@ export default function ReadingLessonViewer() {
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
-  // Center focus window in container (smooth scroll)
+  // Center focus window in container and page (smooth scroll)
   useEffect(() => {
     if (!readingFocusMode || !focusRect || !contentRef.current) return;
     const cont = contentRef.current;
+    
+    // Scroll within container
     const targetScrollTop = Math.max(
       0,
       focusRect.top + focusRect.height / 2 - cont.clientHeight / 2,
     );
     cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    
+    // Also scroll the entire page to keep focus rect visible in viewport
+    const contRect = cont.getBoundingClientRect();
+    const focusTopInViewport = contRect.top + focusRect.top;
+    const focusBottomInViewport = focusTopInViewport + focusRect.height;
+    
+    // Check if focus rect is outside viewport
+    const viewportHeight = window.innerHeight;
+    const buffer = 100; // Extra space from edges
+    
+    if (focusTopInViewport < buffer) {
+      // Focus is above viewport, scroll up
+      window.scrollTo({
+        top: window.scrollY + focusTopInViewport - buffer,
+        behavior: "smooth"
+      });
+    } else if (focusBottomInViewport > viewportHeight - buffer) {
+      // Focus is below viewport, scroll down
+      window.scrollTo({
+        top: window.scrollY + (focusBottomInViewport - viewportHeight + buffer),
+        behavior: "smooth"
+      });
+    }
   }, [currentReadingLine, readingFocusMode, focusRect]);
 
   // Check if all questions for the current page are answered
