@@ -1367,7 +1367,7 @@ export default function ReadingLessonViewer() {
                     {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                       <button
                         onClick={() => setShowFocusQuestionsPopup(true)}
-                        className="fixed top-4 right-[160px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                        className="fixed top-4 right-[170px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
                         title="Visa frågor"
                       >
                         <svg
