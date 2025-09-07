@@ -63,18 +63,40 @@ export default function ReadingLessonViewer() {
   const [showQuestionsPanel12, setShowQuestionsPanel12] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // Accessibility settings state
-  const [accessibilitySettings, setAccessibilitySettings] = useState({
-    fontSize: 30,
-    lineHeight: 1.5,
-    backgroundColor: "black-on-white" as const,
-    fontFamily: "standard" as const,
+  // Reader settings type for both normal and focus modes
+  type ReaderSettings = {
+    fontSize: number;
+    lineHeight: number;
+    backgroundColor: "black-on-white" | "light-gray-on-gray" | "white-on-black" | "black-on-light-yellow" | "black-on-light-blue" | "light-yellow-on-blue" | "black-on-light-red";
+    fontFamily: "standard" | "dyslexia-friendly";
+  };
+
+  // Normal mode settings
+  const [normalSettings, setNormalSettings] = useState<ReaderSettings>(() => {
+    try {
+      const saved = localStorage.getItem("reading-normal-settings");
+      return saved ? JSON.parse(saved) : { fontSize: 30, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
+    } catch {
+      return { fontSize: 30, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
+    }
   });
 
-  // Accessibility colors are now handled via CSS variables
+  // Focus mode settings - separate defaults
+  const [focusSettings, setFocusSettings] = useState<ReaderSettings>(() => {
+    try {
+      const saved = localStorage.getItem("reading-focus-settings");
+      return saved ? JSON.parse(saved) : { fontSize: 34, lineHeight: 1.6, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+    } catch {
+      return { fontSize: 34, lineHeight: 1.6, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+    }
+  });
 
   // Reading Focus Mode states - using "readingFocus" prefix to avoid conflicts
   const [readingFocusMode, setReadingFocusMode] = useState(false);
+
+  // Active settings based on current mode (after readingFocusMode is declared)
+  const activeSettings = readingFocusMode ? focusSettings : normalSettings;
+  const setActiveSettings = readingFocusMode ? setFocusSettings : setNormalSettings;
   const [readingFocusLines, setReadingFocusLines] = useState(1); // 1, 3, or 5 lines
   const [currentReadingLine, setCurrentReadingLine] = useState(0);
 
@@ -197,9 +219,16 @@ export default function ReadingLessonViewer() {
     enabled: !!id,
   });
 
-  // Accessibility colors are handled in the main useEffect below
+  // Save settings separately to localStorage
+  useEffect(() => {
+    try { localStorage.setItem("reading-normal-settings", JSON.stringify(normalSettings)); } catch {}
+  }, [normalSettings]);
 
-  // Update accessibility settings in CSS variables
+  useEffect(() => {
+    try { localStorage.setItem("reading-focus-settings", JSON.stringify(focusSettings)); } catch {}
+  }, [focusSettings]);
+
+  // Update CSS variables for both normal and focus modes
   useEffect(() => {
     const bgColorMap = {
       "black-on-white": { bg: "#FFFFFF", text: "#000000" },
@@ -209,47 +238,44 @@ export default function ReadingLessonViewer() {
       "black-on-light-blue": { bg: "#CCFFFF", text: "#000000" },
       "light-yellow-on-blue": { bg: "#003399", text: "#FFFFCC" },
       "black-on-light-red": { bg: "#FFCCCC", text: "#000000" },
-    };
-
-    const colors = bgColorMap[accessibilitySettings.backgroundColor];
+    } as const;
 
     const root = document.documentElement;
-    root.style.setProperty("--accessibility-bg-color", colors.bg);
-    root.style.setProperty("--accessibility-text-color", colors.text);
+
+    // Helper function to apply a profile
+    const applyProfile = (prefix: string, s: ReaderSettings) => {
+      const colors = bgColorMap[s.backgroundColor];
+      root.style.setProperty(`${prefix}-bg-color`, colors.bg);
+      root.style.setProperty(`${prefix}-text-color`, colors.text);
+
+      // failsafe: invertera om lika
+      const bg = colors.bg.toLowerCase();
+      const tx = colors.text.toLowerCase();
+      root.style.setProperty(
+        `${prefix}-text-color`,
+        bg === tx ? (bg === "#000000" ? "#ffffff" : "#000000") : colors.text
+      );
+
+      root.style.setProperty(`${prefix}-font-size`, `${s.fontSize}px`);
+      root.style.setProperty(`${prefix}-line-height`, s.lineHeight.toString());
+
+      const fontFamily =
+        s.fontFamily === "dyslexia-friendly"
+          ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+          : "system-ui, -apple-system, sans-serif";
+      root.style.setProperty(`${prefix}-font-family`, fontFamily);
+    };
+
+    applyProfile("--normal", normalSettings);
+    applyProfile("--focus", focusSettings);
     
-    // failsafe: om lika, invertera texten
-    const cs = getComputedStyle(root);
-    const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
-    const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
-    if (bg && tx && bg === tx) {
-      root.style.setProperty("--accessibility-text-color", bg === "#000000" ? "#ffffff" : "#000000");
-    }
-
-    // Update font size, line height, and font family CSS variables
-    root.style.setProperty(
-      "--accessibility-font-size",
-      `${accessibilitySettings.fontSize}px`,
-    );
-    root.style.setProperty(
-      "--accessibility-line-height",
-      accessibilitySettings.lineHeight.toString(),
-    );
-    root.style.setProperty(
-      "--reading-font-size",
-      `${accessibilitySettings.fontSize}px`,
-    );
-    root.style.setProperty(
-      "--reading-line-height",
-      accessibilitySettings.lineHeight.toString(),
-    );
-
-    // Update font family
-    const fontFamily =
-      (accessibilitySettings.fontFamily as string) === "dyslexia-friendly"
-        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-        : "system-ui, -apple-system, sans-serif";
-    root.style.setProperty("--accessibility-font-family", fontFamily);
-  }, [accessibilitySettings]);
+    // Keep legacy variables for backwards compatibility
+    root.style.setProperty("--accessibility-bg-color", readingFocusMode ? bgColorMap[focusSettings.backgroundColor].bg : bgColorMap[normalSettings.backgroundColor].bg);
+    root.style.setProperty("--accessibility-text-color", readingFocusMode ? bgColorMap[focusSettings.backgroundColor].text : bgColorMap[normalSettings.backgroundColor].text);
+    root.style.setProperty("--accessibility-font-size", `${activeSettings.fontSize}px`);
+    root.style.setProperty("--accessibility-line-height", activeSettings.lineHeight.toString());
+    root.style.setProperty("--accessibility-font-family", activeSettings.fontFamily === "dyslexia-friendly" ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif' : "system-ui, -apple-system, sans-serif");
+  }, [normalSettings, focusSettings, readingFocusMode, activeSettings]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
@@ -288,9 +314,9 @@ export default function ReadingLessonViewer() {
   }, [
     lesson,
     currentPage,
-    accessibilitySettings.fontSize,
-    accessibilitySettings.lineHeight,
-    accessibilitySettings.fontFamily,
+    activeSettings.fontSize,
+    activeSettings.lineHeight,
+    activeSettings.fontFamily,
   ]);
 
   // Calculate focus rectangle (covers N lines)
@@ -811,7 +837,7 @@ export default function ReadingLessonViewer() {
                             (option: string, optionIndex: number) => {
                               const optionValue = String.fromCharCode(
                                 65 + optionIndex,
-                              );
+                              };
                               const isSelected = currentAnswer === optionValue;
 
                               return (
@@ -828,7 +854,7 @@ export default function ReadingLessonViewer() {
                                       handleQuestionsPanel12Change(
                                         currentQuestionIndex,
                                         optionValue,
-                                      )
+                                      }
                                     }
                                     className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                                     style={{
@@ -840,7 +866,7 @@ export default function ReadingLessonViewer() {
                                     {option}
                                   </span>
                                 </label>
-                              );
+                              };
                             },
                           )}
                         </div>
@@ -867,7 +893,7 @@ export default function ReadingLessonViewer() {
                                   handleQuestionsPanel12Change(
                                     currentQuestionIndex,
                                     option,
-                                  )
+                                  }
                                 }
                                 className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                                 style={{
@@ -893,7 +919,7 @@ export default function ReadingLessonViewer() {
                             handleQuestionsPanel12Change(
                               currentQuestionIndex,
                               e.target.value,
-                            )
+                            }
                           }
                           placeholder="Skriv ditt svar här..."
                           className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
@@ -1047,9 +1073,9 @@ export default function ReadingLessonViewer() {
                             Textstorlek
                           </Label>
                           <Slider
-                            value={[accessibilitySettings.fontSize]}
+                            value={[activeSettings.fontSize]}
                             onValueChange={(value) =>
-                              setAccessibilitySettings((prev) => ({
+                              setActiveSettings((prev) => ({
                                 ...prev,
                                 fontSize: value[0],
                               }))
@@ -1060,7 +1086,7 @@ export default function ReadingLessonViewer() {
                             className="mt-2"
                           />
                           <div className="text-xs text-muted-foreground mt-1">
-                            {accessibilitySettings.fontSize}px
+                            {activeSettings.fontSize}px
                           </div>
                         </div>
 
@@ -1069,9 +1095,9 @@ export default function ReadingLessonViewer() {
                             Radavstånd
                           </Label>
                           <Slider
-                            value={[accessibilitySettings.lineHeight]}
+                            value={[activeSettings.lineHeight]}
                             onValueChange={(value) =>
-                              setAccessibilitySettings((prev) => ({
+                              setActiveSettings((prev) => ({
                                 ...prev,
                                 lineHeight: value[0],
                               }))
@@ -1082,7 +1108,7 @@ export default function ReadingLessonViewer() {
                             className="mt-2"
                           />
                           <div className="text-xs text-muted-foreground mt-1">
-                            {accessibilitySettings.lineHeight.toFixed(1)}
+                            {activeSettings.lineHeight.toFixed(1)}
                           </div>
                         </div>
 
@@ -1091,11 +1117,11 @@ export default function ReadingLessonViewer() {
                             Bakgrundsfärg
                           </Label>
                           <Select
-                            value={accessibilitySettings.backgroundColor}
+                            value={activeSettings.backgroundColor}
                             onValueChange={(value) =>
-                              setAccessibilitySettings((prev) => ({
+                              setActiveSettings((prev) => ({
                                 ...prev,
-                                backgroundColor: value as any,
+                                backgroundColor: value as ReaderSettings["backgroundColor"],
                               }))
                             }
                           >
@@ -1133,11 +1159,11 @@ export default function ReadingLessonViewer() {
                             Teckensnitt
                           </Label>
                           <Select
-                            value={accessibilitySettings.fontFamily}
+                            value={activeSettings.fontFamily}
                             onValueChange={(value) =>
-                              setAccessibilitySettings((prev) => ({
+                              setActiveSettings((prev) => ({
                                 ...prev,
-                                fontFamily: value as any,
+                                fontFamily: value as ReaderSettings["fontFamily"],
                               }))
                             }
                           >
@@ -1205,7 +1231,7 @@ export default function ReadingLessonViewer() {
                                   navigera
                                 </div>
                               </div>
-                            )}
+                            }}
                           </div>
                         </div>
                       </div>
@@ -1260,11 +1286,7 @@ export default function ReadingLessonViewer() {
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                     width: readingFocusMode ? "100%" : undefined,
                     maxWidth: readingFocusMode ? "none" : undefined,
-                    fontFamily:
-                      (accessibilitySettings.fontFamily as string) ===
-                      "dyslexia-friendly"
-                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                        : "inherit",
+                    fontFamily: readingFocusMode ? "var(--focus-font-family)" : "var(--normal-font-family)",
                   }}
                   onMouseOver={handleContentMouseOver}
                   onMouseOut={handleContentMouseOut}
@@ -1304,8 +1326,8 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     data-reading-text=""     // märkning för killswitch-regeln
                     style={{
-                      fontSize: readingFocusMode ? `${accessibilitySettings.fontSize + 4}px` : `${accessibilitySettings.fontSize}px`, // större font i fokusläge
-                      lineHeight: `${accessibilitySettings.lineHeight}`, // flyttat hit från container
+                      fontSize: readingFocusMode ? "var(--focus-font-size)" : "var(--normal-font-size)",
+                      lineHeight: readingFocusMode ? "var(--focus-line-height)" : "var(--normal-line-height)",
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
                       mixBlendMode: "normal",
@@ -1476,9 +1498,9 @@ export default function ReadingLessonViewer() {
                                                 />
                                                 <span className="text-gray-700">{option}</span>
                                               </label>
-                                            ))}
+                                            })}
                                           </div>
-                                        ) : (
+                                        } : (
                                           <textarea
                                             value={generalAnswers[index] || ''}
                                             onChange={(e) => setGeneralAnswers(prev => ({ ...prev, [index]: e.target.value }))}
@@ -1486,12 +1508,12 @@ export default function ReadingLessonViewer() {
                                             rows={3}
                                             placeholder="Skriv ditt svar här..."
                                           />
-                                        )}
+                                        }}
                                       </div>
-                                    ))}
+                                    })}
                                   </div>
                                 </div>
-                              )}
+                              }}
                               
                               {/* Page-specific questions */}
                               {lesson.pages?.[currentPage]?.questions && lesson.pages[currentPage].questions!.length > 0 && (
@@ -1520,9 +1542,9 @@ export default function ReadingLessonViewer() {
                                                   />
                                                   <span className="text-gray-700">{option}</span>
                                                 </label>
-                                              ))}
+                                              })}
                                             </div>
-                                          ) : (
+                                          } : (
                                             <textarea
                                               value={questionsPanel12Answers[questionIndex] || ''}
                                               onChange={(e) => setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: e.target.value }))}
@@ -1530,13 +1552,13 @@ export default function ReadingLessonViewer() {
                                               rows={3}
                                               placeholder="Skriv ditt svar här..."
                                             />
-                                          )}
+                                          }}
                                         </div>
-                                      );
+                                      };
                                     })}
                                   </div>
                                 </div>
-                              )}
+                              }}
                             </div>
                             
                             <div className="mt-6 flex justify-end gap-3">
