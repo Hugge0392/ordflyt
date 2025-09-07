@@ -1141,13 +1141,15 @@ export default function ReadingLessonViewer() {
                   onMouseOut={handleContentMouseOut}
                 >
                   <style>{`
-                    .reading-content, .reading-content * {
+                    .reading-content {
+                      background-color: var(--accessibility-bg-color) !important;
+                    }
+                    .reading-content * {
                       color: var(--accessibility-text-color) !important;
                       -webkit-text-fill-color: var(--accessibility-text-color) !important;
-                      background: transparent !important;
-                      opacity: 1 !important;
                       mix-blend-mode: normal !important;
                       text-shadow: none !important;
+                      opacity: 1 !important;
                     }
                   `}</style>
 
@@ -1170,21 +1172,16 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <div
-                      className="pointer-events-none absolute z-30"
+                      className="reading-spotlight-overlay pointer-events-none absolute z-30"
                       style={{
                         top: `${focusRect.top}px`,
                         left: `${focusRect.left}px`,
                         width: `${focusRect.width}px`,
                         height: `${focusRect.height}px`,
-
-                        // Mörkare runtom – hål i mitten
                         boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
-
-                        // Visuell kant runt fokus
                         border: "2px solid var(--accessibility-text-color)",
                         borderRadius: "4px",
-
-                        // Viktigt för att undvika konstiga blend-effekter
+                        background: "transparent",
                         mixBlendMode: "normal",
                         isolation: "isolate",
                       }}
