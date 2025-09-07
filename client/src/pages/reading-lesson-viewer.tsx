@@ -1212,30 +1212,6 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <>
-                      {/* TOP */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
-                      />
-                      {/* BOTTOM */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
-                      />
-                      {/* LEFT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
-                      />
-                      {/* RIGHT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
-                      />
                       {/* FRAME */}
                       <div
                         className="rf-frame"
