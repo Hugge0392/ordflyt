@@ -367,6 +367,17 @@ export default function ReadingLessonViewer() {
       (m) => m.replace(/background(?:-color)?\s*:[^;>]+;?/gi, "")
     );
 
+    // c) Rensa font-size & line-height ur style-attribut
+    processedContent = processedContent.replace(
+      /\sstyle=(["'])(?:(?!\1).)*\1/gi,
+      (m) =>
+        m
+          .replace(/font-size\s*:\s*[^;>]+;?/gi, "")
+          .replace(/line-height\s*:\s*[^;>]+;?/gi, "")
+          // ta bort tomma style-attribut
+          .replace(/\sstyle=(["'])\s*\1/gi, "")
+    );
+
     if (!definitions.length) return processedContent;
 
     // Create a map of words to definitions for quick lookup
@@ -1309,6 +1320,16 @@ export default function ReadingLessonViewer() {
                     .reading-content * {
                       color: var(--accessibility-text-color) !important;
                       /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
+                    }
+
+                    /* Force font-size and line-height inheritance to override inline styles */
+                    .reading-content [data-reading-text] {
+                      font-size: ${readingFocusMode ? "var(--focus-font-size)" : "var(--normal-font-size)"} !important;
+                      line-height: ${readingFocusMode ? "var(--focus-line-height)" : "var(--normal-line-height)"} !important;
+                    }
+                    .reading-content [data-reading-text] * {
+                      font-size: inherit !important;
+                      line-height: inherit !important;
                     }
 
                     /* Ta bara bort explicita vita inline-bakgrunder från editorinnehållet */
