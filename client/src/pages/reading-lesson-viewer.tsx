@@ -592,7 +592,7 @@ export default function ReadingLessonViewer() {
         backgroundColor: readingFocusMode ? "#242424" : undefined,
       }}
     >
-      <div className="max-w-7xl mx-auto p-6">
+      <div className={`max-w-7xl mx-auto ${readingFocusMode ? 'p-2 pt-6' : 'p-6'}`}>
         {/* Header */}
         {!readingFocusMode && (
         <Card className="mb-6">
@@ -661,7 +661,7 @@ export default function ReadingLessonViewer() {
           )}
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
+        <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
             <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
@@ -908,7 +908,11 @@ export default function ReadingLessonViewer() {
           )}
           {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
           <Card
-            className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
+            className={`reading-content mb-6 md:landscape:mb-0 lg:mb-0 ${
+              readingFocusMode 
+                ? 'w-full max-w-4xl mx-auto' 
+                : 'md:landscape:col-span-4 lg:col-span-4'
+            }`}
             style={
               {
                 backgroundColor: "var(--accessibility-bg-color)",
