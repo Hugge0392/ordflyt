@@ -632,7 +632,7 @@ export default function ReadingLessonViewer() {
         </Card>
 
         {/* Pre-reading Questions */}
-        {lesson.preReadingQuestions &&
+        {!readingFocusMode && lesson.preReadingQuestions &&
           lesson.preReadingQuestions.length > 0 && (
             <Card className="mb-6">
               <CardHeader>
@@ -656,7 +656,7 @@ export default function ReadingLessonViewer() {
         {/* Main Content */}
         <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
           {/* New Questions Panel - One Question at a Time */}
-          {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
+          {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
             <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
               <div
                 className="border rounded-lg p-6"
@@ -1434,7 +1434,7 @@ export default function ReadingLessonViewer() {
         </div>
 
         {/* Word Definitions */}
-        {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+        {!readingFocusMode && lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Ordförklaringar</CardTitle>
