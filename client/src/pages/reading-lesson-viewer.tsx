@@ -863,53 +863,72 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                {/* Reading focus overlay - covers everything EXCEPT the text area */}
-                {readingFocusMode && (
+                {/* Reading focus overlay that follows current reading line */}
+                {readingFocusMode && textLines.length > 0 && (
                   <div className="fixed inset-0 pointer-events-none z-30">
-                    {/* Left side overlay */}
-                    <div 
-                      className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '15%' }}
-                    />
-                    
-                    {/* Right side overlay */}
-                    <div 
-                      className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '25%' }}
-                    />
-                    
-                    {/* Top overlay */}
-                    <div 
-                      className="absolute top-0 bg-black bg-opacity-85"
-                      style={{ 
-                        left: '15%',
-                        right: '25%',
-                        height: '15%'
-                      }}
-                    />
-                    
-                    {/* Bottom overlay */}
-                    <div 
-                      className="absolute bottom-0 bg-black bg-opacity-85"
-                      style={{ 
-                        left: '15%',
-                        right: '25%',
-                        height: '15%'
-                      }}
-                    />
-                    
-                    {/* Focus border around the clear text area */}
-                    <div 
-                      className="absolute border-2 transition-all duration-300"
-                      style={{ 
-                        left: '15%',
-                        top: '15%',
-                        right: '25%',
-                        bottom: '15%',
-                        borderColor: accessibilityColors.textColor,
-                        boxShadow: `0 0 0 3px rgba(0,0,0,0.3)`
-                      }}
-                    />
+                    {(() => {
+                      // Calculate position based on current reading line
+                      const lineHeight = 3; // Approximate line height in vh
+                      const startY = 25; // Start position for text area
+                      const currentLineY = startY + (currentReadingLine * lineHeight);
+                      const windowHeight = readingFocusLines * lineHeight;
+                      
+                      // Define text area boundaries
+                      const textLeft = '18%';
+                      const textRight = '25%';
+                      const windowTop = Math.max(15, currentLineY);
+                      const windowBottom = Math.min(85, currentLineY + windowHeight);
+                      
+                      return (
+                        <>
+                          {/* Left side overlay - always covers left side */}
+                          <div 
+                            className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
+                            style={{ width: textLeft }}
+                          />
+                          
+                          {/* Right side overlay - always covers right side */}
+                          <div 
+                            className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
+                            style={{ width: textRight }}
+                          />
+                          
+                          {/* Top overlay in text area - above current reading window */}
+                          <div 
+                            className="absolute top-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              left: textLeft,
+                              right: textRight,
+                              height: `${windowTop}%`
+                            }}
+                          />
+                          
+                          {/* Bottom overlay in text area - below current reading window */}
+                          <div 
+                            className="absolute bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              left: textLeft,
+                              right: textRight,
+                              top: `${windowBottom}%`,
+                              bottom: '0'
+                            }}
+                          />
+                          
+                          {/* Focus border around current reading area */}
+                          <div 
+                            className="absolute border-2 transition-all duration-300"
+                            style={{ 
+                              left: textLeft,
+                              top: `${windowTop}%`,
+                              right: textRight,
+                              height: `${windowBottom - windowTop}%`,
+                              borderColor: accessibilityColors.textColor,
+                              boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
+                            }}
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
                 
