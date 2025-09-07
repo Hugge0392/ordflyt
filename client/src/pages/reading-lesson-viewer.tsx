@@ -930,10 +930,12 @@ export default function ReadingLessonViewer() {
               }}
             >
               <div className="flex items-center justify-between">
+                {!readingFocusMode && (
                 <CardTitle className="text-lg">
                   <span>Läs texten</span>
                 </CardTitle>
-                <div className="flex gap-2">
+                )}
+                <div className={`flex gap-2 ${readingFocusMode ? 'ml-auto' : ''}`}>
                   {/* Focus Mode Toggle Button */}
                   <Button
                     variant={readingFocusMode ? "default" : "outline"}
@@ -1127,7 +1129,7 @@ export default function ReadingLessonViewer() {
                   </Popover>
                 </div>
               </div>
-              {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+              {!readingFocusMode && lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
                 <CardDescription>
                   💡 Ord med prickad understrykning har förklaringar - håll
                   musen över dem
@@ -1145,7 +1147,7 @@ export default function ReadingLessonViewer() {
             >
               <div className="space-y-6">
                 {/* Bilder ovanför texten för denna sida */}
-                {lesson.pages &&
+                {!readingFocusMode && lesson.pages &&
                   lesson.pages[currentPage]?.imagesAbove &&
                   lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
                     <div className="space-y-4">
@@ -1316,7 +1318,7 @@ export default function ReadingLessonViewer() {
                 )}
 
                 {/* Bilder under texten för denna sida */}
-                {lesson.pages &&
+                {!readingFocusMode && lesson.pages &&
                   lesson.pages[currentPage]?.imagesBelow &&
                   lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
                     <div className="space-y-4">
@@ -1335,7 +1337,7 @@ export default function ReadingLessonViewer() {
               </div>
 
               {/* Page Navigation - Only buttons inside Card */}
-              {pages.length > 1 && (
+              {!readingFocusMode && pages.length > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-4 border-t">
                   {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
                   {currentPage > 0 ? (
