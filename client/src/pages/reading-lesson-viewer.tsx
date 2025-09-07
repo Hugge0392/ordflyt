@@ -1142,9 +1142,8 @@ export default function ReadingLessonViewer() {
                   ref={contentRef}
                   className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
                   style={{
-                    fontSize: `${accessibilitySettings.fontSize}px`,
-                    lineHeight: `${accessibilitySettings.lineHeight}`,
-                    whiteSpace: "pre-wrap",
+                    fontSize: "16px", // stable measuring font for ch units
+                    whiteSpace: "normal",
                     wordWrap: "break-word",
                     backgroundColor: "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
@@ -1193,6 +1192,8 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     data-reading-text=""     // märkning för killswitch-regeln
                     style={{
+                      fontSize: `${accessibilitySettings.fontSize}px`, // flyttat hit från container
+                      lineHeight: `${accessibilitySettings.lineHeight}`, // flyttat hit från container
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
                       mixBlendMode: "normal",

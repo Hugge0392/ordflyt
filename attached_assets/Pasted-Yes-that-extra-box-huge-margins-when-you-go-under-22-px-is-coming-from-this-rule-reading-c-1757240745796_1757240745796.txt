@@ -1,0 +1,104 @@
+Yes — that “extra box / huge margins when you go under ~22 px” is coming from this rule:
+
+.reading-content.accessibility-enhanced { max-width: 68ch; }
+
+
+ch is calculated from the font size of that element.
+Because you’re setting the font size on the container (contentRef), every time you shrink the font the 68ch column also shrinks, so the text column becomes very narrow and the side margins look like a second box.
+
+Fix (decouple column width from text size)
+
+Stop changing the font size on the container. Move fontSize + lineHeight to the inner text wrapper (textRef) so the container’s ch (or rem) measure stays stable.
+
+// BEFORE (on the container)
+<div
+  ref={contentRef}
+  style={{
+    fontSize: `${accessibilitySettings.fontSize}px`,
+    lineHeight: `${accessibilitySettings.lineHeight}`,
+    /* ... */
+  }}
+>
+  <div ref={textRef} /* ... */ />
+</div>
+
+// AFTER
+<div
+  ref={contentRef}
+  style={{
+    /* remove fontSize & lineHeight here */
+    whiteSpace: "normal",         // you can keep pre-wrap if you need it
+    wordWrap: "break-word",
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
+    display: "flow-root",
+    fontFamily:
+      accessibilitySettings.fontFamily === "dyslexia-friendly"
+        ? '"OpenDyslexic","Comic Sans MS",cursive,sans-serif'
+        : "inherit",
+  }}
+>
+  <div
+    ref={textRef}
+    data-reading-text=""
+    style={{
+      fontSize: `${accessibilitySettings.fontSize}px`,   // ← move here
+      lineHeight: `${accessibilitySettings.lineHeight}`, // ← and here
+      position: "relative",
+      zIndex: 10,
+      mixBlendMode: "normal",
+      paddingTop: 1,
+      pointerEvents: "auto",
+      transform: "translateZ(0)",
+    }}
+    dangerouslySetInnerHTML={{ __html: processedHtml }}
+  />
+</div>
+
+
+Lock the container’s measuring font and keep a stable column width:
+
+/* keep the column width stable regardless of user text size */
+.reading-content.accessibility-enhanced {
+  /* give the container its own fixed measuring size */
+  font-size: 16px; /* or var(--measure-font, 16px) */
+  max-width: 68ch;           /* now 68ch = ~68 "0" characters at 16px */
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+
+(Alternative: skip ch completely and use a fixed/clamped width:
+max-width: clamp(42rem, 68ch, 72rem); or just max-width: 64rem;)
+
+Narrow your global font-size overrides so they don’t hit the container:
+
+Change selectors like
+
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced .prose,
+.reading-content.accessibility-enhanced .prose p,
+...
+
+
+to target only the inner text wrapper:
+
+/* only style the actual text, not the container */
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] * {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+  font-family: var(--accessibility-font-family) !important;
+  color: var(--accessibility-text-color) !important;
+}
+
+
+This prevents the container’s measuring font from changing when the user slides below 22 px.
+
+TL;DR
+
+The narrowing “extra box” is just your 68ch column shrinking with the font.
+
+Keep the container’s font constant and apply the variable font size to the inner text only.
+
+(Optionally) use rem/fixed/clamped widths for the column if you prefer.
