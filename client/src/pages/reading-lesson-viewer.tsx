@@ -917,6 +917,17 @@ export default function ReadingLessonViewer() {
                     <ChevronRight style={{ width: "16px", height: "16px" }} />
                   </button>
                 </div>
+                
+                {/* Focus Mode Barrier - covers navigation buttons */}
+                {readingFocusMode && (
+                  <div 
+                    className="absolute inset-0 z-50"
+                    style={{
+                      backgroundColor: "#242424",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
