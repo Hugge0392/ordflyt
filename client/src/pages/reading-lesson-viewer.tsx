@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReadingLesson } from "@shared/schema";
 
 export default function ReadingLessonViewer() {
-  const [match, params] = useRoute("/lasforstaelse/ovningar/:id");
+  const [match, params] = useRoute("/lasforstaelse/lektion/:id");
   const lessonId = params?.id;
   const [currentPage, setCurrentPage] = useState(0);
   const [readingFocusMode, setReadingFocusMode] = useState(false);
