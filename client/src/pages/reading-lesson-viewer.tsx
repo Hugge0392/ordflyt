@@ -88,43 +88,32 @@ export default function ReadingLessonViewer() {
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
 
   // DOM measurement functions from ChatGPT's solution
-  function getAllTextNodes(root: Node): Text[] {
-    const out: Text[] = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => {
-        // Skip empty text nodes (only whitespace)
-        return /\S/.test(n.nodeValue || "")
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_REJECT;
-      },
-    });
-    let n: Node | null;
-    while ((n = walker.nextNode())) out.push(n as Text);
-    return out;
-  }
 
   function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
     if (!textEl || !containerEl) return [];
+
+    const getAllTextNodes = (root: Node): Text[] => {
+      const out: Text[] = [];
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => (/\S/.test(n.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+      });
+      let n: Node | null;
+      while ((n = walker.nextNode())) out.push(n as Text);
+      return out;
+    };
 
     const rects: DOMRect[] = [];
     const textNodes = getAllTextNodes(textEl);
     if (!textNodes.length) return [];
 
     const range = document.createRange();
-
     for (const tn of textNodes) {
-      const len = tn.length;
       let lastTop: number | null = null;
-
-      for (let i = 0; i < len; i++) {
+      for (let i = 0; i < tn.length; i++) {
         range.setStart(tn, i);
         range.setEnd(tn, i + 1);
-
-        const clientRects = range.getClientRects();
-        if (!clientRects?.length) continue;
-
-        const r = clientRects[0];
-        if (r.width === 0 || r.height === 0) continue;
+        const r = range.getClientRects()[0];
+        if (!r || r.width === 0 || r.height === 0) continue;
 
         if (lastTop === null || Math.abs(r.top - lastTop) > 0.5) {
           rects.push(r);
@@ -133,41 +122,34 @@ export default function ReadingLessonViewer() {
           const prev = rects[rects.length - 1];
           const left = Math.min(prev.left, r.left);
           const right = Math.max(prev.right, r.right);
-          rects[rects.length - 1] = new DOMRect(
-            left,
-            prev.top,
-            right - left,
-            Math.max(prev.height, r.height)
-          );
+          rects[rects.length - 1] = new DOMRect(left, prev.top, right - left, Math.max(prev.height, r.height));
         }
       }
     }
 
-    // Normalisera till containerEl (där overlayn är absolut-positionerad)
+    // normalisera till container + ta hänsyn till scroll
     const cont = containerEl.getBoundingClientRect();
     const normalized = rects
-      .filter(r => r.width > 0 && r.height > 0)
+      .filter((r) => r.height > 0 && r.width > 0)
       .sort((a, b) => a.top - b.top)
-      .map(r => new DOMRect(
-        r.left - cont.left + containerEl.scrollLeft,
-        r.top  - cont.top  + containerEl.scrollTop,
-        r.width,
-        r.height
-      ));
+      .map(
+        (r) =>
+          new DOMRect(
+            r.left - cont.left + containerEl.scrollLeft,
+            r.top - cont.top + containerEl.scrollTop,
+            r.width,
+            r.height
+          )
+      );
 
-    // Slå ihop splittrade delar av samma rad
+    // slå ihop delar som ligger på samma rad
     const merged: DOMRect[] = [];
     for (const r of normalized) {
       const last = merged[merged.length - 1];
       if (last && Math.abs(last.top - r.top) < 0.5) {
         const left = Math.min(last.left, r.left);
         const right = Math.max(last.left + last.width, r.left + r.width);
-        merged[merged.length - 1] = new DOMRect(
-          left,
-          last.top,
-          right - left,
-          Math.max(last.height, r.height)
-        );
+        merged[merged.length - 1] = new DOMRect(left, last.top, right - left, Math.max(last.height, r.height));
       } else {
         merged.push(r);
       }
@@ -257,32 +239,37 @@ export default function ReadingLessonViewer() {
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
-    if (!textRef.current || !contentRef.current) return;
-
     const measure = () => {
       if (!textRef.current || !contentRef.current) return;
       try {
         const rects = measureLineRects(textRef.current, contentRef.current);
         setLineRects(rects);
         setCurrentReadingLine(0);
-      } catch (error) {
-        console.warn("Error measuring line rects:", error);
+      } catch (err) {
+        console.warn("Error measuring line rects:", err);
         setLineRects([]);
         setCurrentReadingLine(0);
       }
     };
 
-    const id = requestAnimationFrame(measure);
+    // mät på nästa tick
+    const raf = requestAnimationFrame(measure);
 
+    // reagera på resize för BÅDA
     const roText = new ResizeObserver(measure);
     const roCont = new ResizeObserver(measure);
-    roText.observe(textRef.current);
-    roCont.observe(contentRef.current);
+    if (textRef.current) roText.observe(textRef.current);
+    if (contentRef.current) roCont.observe(contentRef.current);
+
+    // uppdatera på scroll i containern (viktigt vid fokusflytt)
+    const onScroll = () => measure();
+    contentRef.current?.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      cancelAnimationFrame(id);
+      cancelAnimationFrame(raf);
       roText.disconnect();
       roCont.disconnect();
+      contentRef.current?.removeEventListener("scroll", onScroll);
     };
   }, [
     lesson,
@@ -296,21 +283,20 @@ export default function ReadingLessonViewer() {
   const focusRect = useMemo(() => {
     try {
       if (!lineRects.length) return null;
-      const start = Math.min(
-        currentReadingLine,
-        Math.max(0, lineRects.length - 1),
-      );
+
+      const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
       const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+
       const top = lineRects[start]?.top || 0;
       const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
       const height = bottom - top;
 
-      if (!contentRef.current) return null;           // <-- container
-      const width = contentRef.current.clientWidth;   // <-- container
+      if (!contentRef.current) return null;
+      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
 
       return { top, height, left: 0, width };
-    } catch (error) {
-      console.warn("Error calculating focus rect:", error);
+    } catch (e) {
+      console.warn("Error calculating focus rect:", e);
       return null;
     }
   }, [lineRects, currentReadingLine, readingFocusLines]);
