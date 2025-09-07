@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +50,89 @@ export default function ReadingLessonViewer() {
   const [readingFocusMode, setReadingFocusMode] = useState(false);
   const [readingFocusLines, setReadingFocusLines] = useState(1); // 1, 3, or 5 lines
   const [currentReadingLine, setCurrentReadingLine] = useState(0);
-  const [textLines, setTextLines] = useState<string[]>([]);
+  
+  // New DOM-based reading focus states
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [lineRects, setLineRects] = useState<DOMRect[]>([]);
+  
+  // DOM measurement functions from ChatGPT's solution
+  function getAllTextNodes(root: Node): Text[] {
+    const out: Text[] = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        // Skip empty text nodes (only whitespace)
+        return /\S/.test(n.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+    let n: Node | null;
+    while ((n = walker.nextNode())) out.push(n as Text);
+    return out;
+  }
+
+  function measureLineRects(container: HTMLElement): DOMRect[] {
+    const rects: DOMRect[] = [];
+    const textNodes = getAllTextNodes(container);
+    const range = document.createRange();
+
+    for (const tn of textNodes) {
+      const len = tn.length;
+      let lastTop: number | null = null;
+
+      for (let i = 0; i < len; i++) {
+        range.setStart(tn, i);
+        range.setEnd(tn, i + 1);
+        const clientRects = range.getClientRects();
+        if (!clientRects || clientRects.length === 0) continue;
+
+        // A single glyph can have multiple rects (ligatures/wrapping); take first
+        const r = clientRects[0];
+        if (r.width === 0 || r.height === 0) continue;
+
+        if (lastTop === null || Math.abs(r.top - lastTop) > 0.5) {
+          // New line box
+          rects.push(r);
+          lastTop = r.top;
+        } else {
+          // Same line – extend width if we want (optional)
+          const prev = rects[rects.length - 1];
+          const left = Math.min(prev.left, r.left);
+          const right = Math.max(prev.right, r.right);
+          rects[rects.length - 1] = new DOMRect(
+            left,
+            prev.top,
+            right - left,
+            Math.max(prev.height, r.height)
+          );
+        }
+      }
+    }
+
+    // Sort and normalize to container coordinates
+    const cont = container.getBoundingClientRect();
+    const normalized = rects
+      .filter(r => r.height > 0 && r.width > 0)
+      .sort((a, b) => a.top - b.top)
+      .map(r => new DOMRect(
+        r.left - cont.left,
+        r.top - cont.top + container.scrollTop, // make them scroll-stable in container
+        r.width,
+        r.height
+      ));
+
+    // Merge any split lines (e.g. at inline-block) if top is ~same
+    const merged: DOMRect[] = [];
+    for (const r of normalized) {
+      const last = merged[merged.length - 1];
+      if (last && Math.abs(last.top - r.top) < 0.5) {
+        const left = Math.min(last.left, r.left);
+        const right = Math.max(last.left + last.width, r.left + r.width);
+        merged[merged.length - 1] = new DOMRect(left, last.top, right - left, Math.max(last.height, r.height));
+      } else {
+        merged.push(r);
+      }
+    }
+    return merged;
+  }
 
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
@@ -113,7 +195,45 @@ export default function ReadingLessonViewer() {
     root.style.setProperty('--accessibility-font-family', fontFamily);
   }, [accessibilitySettings]);
 
+  // DOM measurement effect - measure lines after render and when settings change
+  useEffect(() => {
+    if (!contentRef.current) return;
 
+    const measure = () => {
+      if (!contentRef.current) return;
+      setLineRects(measureLineRects(contentRef.current));
+      setCurrentReadingLine(0);
+    };
+
+    // Measure on next tick when HTML is set
+    const id = requestAnimationFrame(measure);
+
+    // Measure on resize/zoom and when observer detects layout changes
+    const ro = new ResizeObserver(measure);
+    ro.observe(contentRef.current);
+
+    return () => {
+      cancelAnimationFrame(id);
+      ro.disconnect();
+    };
+  }, [lesson, currentPage, accessibilitySettings.fontSize, accessibilitySettings.lineHeight, accessibilitySettings.fontFamily]);
+
+  // Calculate focus rectangle (covers N lines)
+  const focusRect = useMemo(() => {
+    if (!lineRects.length) return null;
+    const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
+    const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+    const top = lineRects[start].top;
+    const bottom = lineRects[end].top + lineRects[end].height;
+    const height = bottom - top;
+
+    // Width = text container's content width
+    if (!contentRef.current) return null;
+    const cont = contentRef.current.getBoundingClientRect();
+    const width = cont.width;
+
+    return { top, height, left: 0, width };
+  }, [lineRects, currentReadingLine, readingFocusLines]);
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
@@ -279,80 +399,6 @@ export default function ReadingLessonViewer() {
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
 
-  // Function to split text into lines for reading focus mode
-  const splitTextIntoLines = (htmlContent: string) => {
-    // Create a temporary div to parse HTML and extract text
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-    
-    // Split into sentences and then into lines based on sentence length
-    const sentences = textContent.split(/[.!?]+/);
-    const lines: string[] = [];
-    
-    sentences.forEach(sentence => {
-      const trimmed = sentence.trim();
-      if (trimmed) {
-        // If sentence is long, split it further
-        if (trimmed.length > 80) {
-          const words = trimmed.split(' ');
-          let currentLine = '';
-          
-          words.forEach(word => {
-            if (currentLine.length + word.length + 1 > 80) {
-              if (currentLine) lines.push(currentLine.trim());
-              currentLine = word;
-            } else {
-              currentLine += (currentLine ? ' ' : '') + word;
-            }
-          });
-          
-          if (currentLine) lines.push(currentLine.trim());
-        } else {
-          lines.push(trimmed);
-        }
-      }
-    });
-    
-    return lines.filter(line => line.length > 0);
-  };
-
-  // Function to get actual line position in DOM
-  const getTextLinePosition = (lineIndex: number) => {
-    // Use the line height from settings to calculate position
-    const lineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
-    return lineIndex * lineHeight;
-  };
-
-  // Calculate optimal reading window height based on font settings
-  const getReadingWindowHeight = () => {
-    const baseLineHeight = accessibilitySettings.fontSize * accessibilitySettings.lineHeight;
-    const windowHeight = baseLineHeight * readingFocusLines;
-    return windowHeight;
-  };
-
-  // Update text lines when content changes
-  useEffect(() => {
-    if (pages[currentPage]) {
-      const lines = splitTextIntoLines(pages[currentPage]);
-      setTextLines(lines);
-      setCurrentReadingLine(0);
-    }
-  }, [pages, currentPage]);
-
-  // Auto-scroll to current reading line in focus mode
-  useEffect(() => {
-    if (readingFocusMode && textLines.length > 0) {
-      const currentLineElement = document.querySelector(`[data-reading-line="${currentReadingLine}"]`);
-      if (currentLineElement) {
-        currentLineElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'nearest'
-        });
-      }
-    }
-  }, [currentReadingLine, readingFocusMode, textLines.length]);
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
@@ -362,7 +408,7 @@ export default function ReadingLessonViewer() {
       if (e.code === 'Space' || e.code === 'ArrowRight') {
         e.preventDefault();
         setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines))
         );
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
@@ -377,7 +423,7 @@ export default function ReadingLessonViewer() {
       if (e.deltaY > 0) {
         // Scroll down
         setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, textLines.length - readingFocusLines))
+          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines))
         );
       } else {
         // Scroll up
@@ -392,7 +438,15 @@ export default function ReadingLessonViewer() {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('wheel', handleScroll);
     };
-  }, [readingFocusMode, textLines.length, readingFocusLines]);
+  }, [readingFocusMode, lineRects.length, readingFocusLines]);
+
+  // Center focus window in container (smooth scroll)
+  useEffect(() => {
+    if (!readingFocusMode || !focusRect || !contentRef.current) return;
+    const cont = contentRef.current;
+    const targetScrollTop = Math.max(0, focusRect.top + focusRect.height / 2 - cont.clientHeight / 2);
+    cont.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+  }, [currentReadingLine, readingFocusMode, focusRect]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
@@ -863,70 +917,6 @@ export default function ReadingLessonViewer() {
                 )}
               </CardHeader>
               <CardContent className="relative">
-                {/* Reading focus overlay - covers everything EXCEPT the text area */}
-                {readingFocusMode && (
-                  <div className="fixed inset-0 pointer-events-none z-30">
-                    {/* Left side overlay */}
-                    <div 
-                      className="absolute top-0 left-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '18%' }}
-                    />
-                    
-                    {/* Right side overlay */}
-                    <div 
-                      className="absolute top-0 right-0 bottom-0 bg-black bg-opacity-85"
-                      style={{ width: '25%' }}
-                    />
-                    
-                    {(() => {
-                      // Calculate dynamic position based on current reading line
-                      const lineHeight = 2.5; // Line height in vh
-                      const startPosition = 35; // Where text starts
-                      const windowHeight = readingFocusLines * lineHeight; // Height of focus window
-                      
-                      // Calculate top position of current reading window
-                      const currentWindowTop = startPosition + (currentReadingLine * lineHeight);
-                      const currentWindowBottom = 100 - (currentWindowTop + windowHeight);
-                      
-                      return (
-                        <>
-                          {/* Top overlay in text area - above current reading window */}
-                          <div 
-                            className="absolute top-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              right: '25%',
-                              height: `${currentWindowTop}%`
-                            }}
-                          />
-                          
-                          {/* Bottom overlay in text area - below current reading window */}
-                          <div 
-                            className="absolute bottom-0 bg-black bg-opacity-85 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              right: '25%',
-                              height: `${Math.max(0, currentWindowBottom)}%`
-                            }}
-                          />
-                          
-                          {/* Focus border around current reading window */}
-                          <div 
-                            className="absolute border-2 transition-all duration-300"
-                            style={{ 
-                              left: '18%',
-                              top: `${currentWindowTop}%`,
-                              right: '25%',
-                              height: `${windowHeight}%`,
-                              borderColor: accessibilityColors.textColor,
-                              boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
-                            }}
-                          />
-                        </>
-                      );
-                    })()}
-                  </div>
-                )}
                 
                 <div className="space-y-6">
                   {/* Bilder ovanför texten för denna sida */}
@@ -944,6 +934,7 @@ export default function ReadingLessonViewer() {
                   )}
 
                   <div 
+                    ref={contentRef}
                     className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
                     style={{ 
                       fontSize: `${accessibilitySettings.fontSize}px !important`,
@@ -954,55 +945,93 @@ export default function ReadingLessonViewer() {
                         ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
                         : 'inherit'
                     }}
-                  >
-                    
-                    {readingFocusMode ? (
-                      <>
-                        <div
-                          dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                          onMouseOver={handleContentMouseOver}
-                          onMouseOut={handleContentMouseOut}
-                        />
-                        
-                        {/* Progress indicator at bottom */}
-                        <div 
-                          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 px-4 py-2 rounded-lg"
-                          style={{ 
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            color: 'white'
-                          }}
-                        >
-                          <div className="text-sm text-center">
-                            Rad {currentReadingLine + 1} av {textLines.length}
-                          </div>
-                          <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
-                            <div 
-                              className="h-1 bg-white rounded-full transition-all duration-300"
-                              style={{ 
-                                width: `${((currentReadingLine + 1) / textLines.length) * 100}%`
-                              }}
-                            />
-                          </div>
-                        </div>
-                        
-                        <button
-                          onClick={() => setReadingFocusMode(false)}
-                          className="fixed top-4 right-4 z-30 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
-                          title="Avsluta läsfokus (Esc)"
-                        >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </>
-                    ) : (
+                    onMouseOver={handleContentMouseOver}
+                    onMouseOut={handleContentMouseOut}
+                    dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+                  />
+
+                  {/* ChatGPT's pixel-perfect reading focus overlay */}
+                  {readingFocusMode && focusRect && (
+                    <div
+                      className="pointer-events-none"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 30
+                      }}
+                    >
+                      {/* Mask above focus */}
                       <div
-                        dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
-                        onMouseOver={handleContentMouseOver}
-                        onMouseOut={handleContentMouseOut}
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: `${focusRect.top}px`,
+                          background: 'rgba(0,0,0,0.85)'
+                        }}
                       />
-                    )}
-                  </div>
+                      {/* Mask below focus */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: `${focusRect.top + focusRect.height}px`,
+                          bottom: 0,
+                          background: 'rgba(0,0,0,0.85)'
+                        }}
+                      />
+                      {/* Border around focus */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: `${focusRect.left}px`,
+                          width: `${focusRect.width}px`,
+                          top: `${focusRect.top}px`,
+                          height: `${focusRect.height}px`,
+                          border: `2px solid ${accessibilityColors.textColor}`,
+                          boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Reading focus UI when active */}
+                  {readingFocusMode && (
+                    <>
+                      {/* Progress indicator at bottom */}
+                      <div 
+                        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 px-4 py-2 rounded-lg"
+                        style={{ 
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          color: 'white'
+                        }}
+                      >
+                        <div className="text-sm text-center">
+                          Rad {currentReadingLine + 1} av {lineRects.length}
+                        </div>
+                        <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
+                          <div 
+                            className="h-1 bg-white rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${lineRects.length > 0 ? ((currentReadingLine + 1) / lineRects.length) * 100 : 0}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <button
+                        onClick={() => setReadingFocusMode(false)}
+                        className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                        title="Avsluta läsfokus (Esc)"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
 
                   {/* Bilder under texten för denna sida */}
                   {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
