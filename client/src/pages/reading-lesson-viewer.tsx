@@ -520,13 +520,14 @@ export default function ReadingLessonViewer() {
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
-  // Center focus window in container (smooth scroll)
+  // Position focus window at eye level (1/3 from top) for consistent reading position
   useEffect(() => {
     if (!readingFocusMode || !focusRect || !contentRef.current) return;
     const cont = contentRef.current;
+    const eyeLevel = cont.clientHeight / 3; // Ögonhöjd - 1/3 från toppen
     const targetScrollTop = Math.max(
       0,
-      focusRect.top + focusRect.height / 2 - cont.clientHeight / 2,
+      focusRect.top + focusRect.height / 2 - eyeLevel,
     );
     cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
   }, [currentReadingLine, readingFocusMode, focusRect]);
