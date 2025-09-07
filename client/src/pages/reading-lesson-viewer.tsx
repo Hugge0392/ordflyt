@@ -87,7 +87,6 @@ export default function ReadingLessonViewer() {
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
   // Focus mode settings management
-  const [preReadingFocusSettings, setPreReadingFocusSettings] = useState<any>(null);
   
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
@@ -130,13 +129,16 @@ export default function ReadingLessonViewer() {
   const applyFocusSettings = (settings: any) => {
     console.log('Applying focus settings:', settings);
     const root = document.documentElement;
-    root.style.setProperty('--accessibility-font-size', `${settings.fontSize}px`);
-    root.style.setProperty('--accessibility-line-height', settings.lineHeight.toString());
+    root.style.setProperty('--focus-font-size', `${settings.fontSize}px`);
+    root.style.setProperty('--focus-line-height', settings.lineHeight.toString());
     
-    // Add accessibility-enhanced class to body so CSS rules are applied
-    document.body.classList.add('accessibility-enhanced');
+    // Add reading-focus-mode class to reading content (not body)
+    const readingContent = document.querySelector('.reading-content');
+    if (readingContent) {
+      readingContent.classList.add('reading-focus-mode');
+    }
     console.log('Focus settings applied - font size:', settings.fontSize, 'line height:', settings.lineHeight);
-    console.log('Added accessibility-enhanced class to body');
+    console.log('Added reading-focus-mode class to reading content');
   };
 
   const getCurrentAccessibilitySettings = () => {
@@ -592,85 +594,24 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     console.log('Focus mode useEffect triggered, readingFocusMode:', readingFocusMode);
     if (readingFocusMode) {
-      // Entering focus mode - save current settings and apply focus settings
-      const currentSettings = getCurrentAccessibilitySettings();
-      console.log('Current accessibility settings before focus mode:', currentSettings);
-      setPreReadingFocusSettings(currentSettings);
-      
+      // Entering focus mode - apply focus settings
       const focusSettings = getFocusSettings();
       console.log('About to apply focus settings:', focusSettings);
       applyFocusSettings(focusSettings);
-    } else if (preReadingFocusSettings) {
-      // Exiting focus mode - restore previous settings
-      console.log('Exiting focus mode, restoring settings:', preReadingFocusSettings);
-      const root = document.documentElement;
-      if (preReadingFocusSettings.fontSize) {
-        root.style.setProperty('--accessibility-font-size', `${preReadingFocusSettings.fontSize}px`);
-      }
-      if (preReadingFocusSettings.lineHeight) {
-        root.style.setProperty('--accessibility-line-height', preReadingFocusSettings.lineHeight.toString());
+    } else {
+      // Exiting focus mode - remove focus mode class
+      console.log('Exiting focus mode');
+      
+      // Remove reading-focus-mode class from reading content
+      const readingContent = document.querySelector('.reading-content');
+      if (readingContent) {
+        readingContent.classList.remove('reading-focus-mode');
       }
       
-      // Restore accessibility-enhanced class based on whether original settings were modified
-      const defaultSettings = { fontSize: 16, lineHeight: 1.5, fontFamily: 'standard', contrast: 'normal', backgroundColor: 'white', wordSpacing: 0, letterSpacing: 0 };
-      const wasEnhanced = preReadingFocusSettings.fontSize !== defaultSettings.fontSize ||
-        preReadingFocusSettings.lineHeight !== defaultSettings.lineHeight ||
-        preReadingFocusSettings.fontFamily !== defaultSettings.fontFamily ||
-        preReadingFocusSettings.contrast !== defaultSettings.contrast ||
-        preReadingFocusSettings.backgroundColor !== defaultSettings.backgroundColor ||
-        preReadingFocusSettings.wordSpacing !== defaultSettings.wordSpacing ||
-        preReadingFocusSettings.letterSpacing !== defaultSettings.letterSpacing;
-      
-      document.body.classList.toggle('accessibility-enhanced', wasEnhanced);
-      console.log('Restored accessibility-enhanced class to:', wasEnhanced);
-      setPreReadingFocusSettings(null);
+      console.log('Removed reading-focus-mode class from reading content');
     }
   }, [readingFocusMode]);
 
-  // Listen for accessibility settings changes while in focus mode
-  useEffect(() => {
-    if (!readingFocusMode) return;
-
-    const handleStorageChange = () => {
-      const currentSettings = getCurrentAccessibilitySettings();
-      if (currentSettings) {
-        // Save the font size and line height changes as focus mode settings
-        const focusSettings = {
-          fontSize: currentSettings.fontSize,
-          lineHeight: currentSettings.lineHeight
-        };
-        saveFocusSettings(focusSettings);
-      }
-    };
-
-    // Monitor for localStorage changes
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also set up an interval to check for changes (since storage event doesn't fire for same-origin)
-    const interval = setInterval(() => {
-      const currentSettings = getCurrentAccessibilitySettings();
-      if (currentSettings && preReadingFocusSettings) {
-        const currentFontSize = currentSettings.fontSize;
-        const currentLineHeight = currentSettings.lineHeight;
-        const originalFontSize = preReadingFocusSettings.fontSize || 16;
-        const originalLineHeight = preReadingFocusSettings.lineHeight || 1.5;
-        
-        // If settings have changed from original, save as focus settings
-        if (currentFontSize !== originalFontSize || currentLineHeight !== originalLineHeight) {
-          const focusSettings = {
-            fontSize: currentFontSize,
-            lineHeight: currentLineHeight
-          };
-          saveFocusSettings(focusSettings);
-        }
-      }
-    }, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [readingFocusMode, preReadingFocusSettings]);
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
