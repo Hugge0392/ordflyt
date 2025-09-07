@@ -1208,8 +1208,8 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <div
-                      className="reading-spotlight-window"
                       style={{
+                        position: "absolute",
                         top: `${focusRect.top}px`,
                         left: `${focusRect.left}px`,
                         width: `${focusRect.width}px`,
@@ -1217,7 +1217,10 @@ export default function ReadingLessonViewer() {
                         boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",
                         border: "2px solid var(--accessibility-text-color)",
                         borderRadius: 4,
-                        zIndex: 30 // Lägre än text så att text syns över skuggan
+                        backgroundColor: "transparent",
+                        background: "none",
+                        pointerEvents: "none",
+                        zIndex: 5 // Lägre än text
                       }}
                     />
                   )}
