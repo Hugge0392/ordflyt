@@ -1,0 +1,60 @@
+ag ser exakt vad som händer nu: fönstret är “öppet”, men texten i fönstret hamnar under dina mörka lager – därför ser du bara en vit remsa med två “klamrar” (vänster/höger‐masken), medan själva texten dimmas utanför fönstret och blir osynlig i fönstret.
+
+Här är en robust lösning i två delar som tar bort de bråkiga fyra lagren och gör spotlighten till en enda, pålitlig ruta med “box-shadow-mask”. Samtidigt tar vi bort en regel som gör att texten ibland inte ritas ( -webkit-text-fill-color överallt med !important kan ge konstig komposition).
+
+1) Byt ut spotlighten till EN ruta
+
+Ta bort hela blocket med fyra <div> (Top/Bottom/Vänster/Höger) + ram inom readingFocusMode && focusRect && ( ... ).
+
+Ersätt med:
+
+{readingFocusMode && focusRect && (
+  <div
+    className="reading-spotlight-window"
+    aria-hidden
+    style={{
+      position: "absolute",
+      top: `${focusRect.top}px`,
+      left: `${focusRect.left}px`,
+      width: `${focusRect.width}px`,
+      height: `${focusRect.height}px`,
+      boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)", // mörka allt utanför
+      border: "2px solid var(--accessibility-text-color)",
+      borderRadius: 4,
+      background: "transparent",
+      pointerEvents: "none",
+      zIndex: 50
+    }}
+  />
+)}
+
+
+Det här elementet ligger överst och målar bara området utanför fönstret (tack vare den stora box-shadow-ringen). Själva fönstret är helt transparent – texten under syns alltid.
+
+Viktigt: behåll isolation: isolate; och position: relative; på din container .reading-content.accessibility-enhanced (du har redan båda).
+
+2) Ta bort problematisk färgtvingning
+
+I dina inbäddade <style> (och ev. i CSS-filen) har du:
+
+.reading-content * {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+}
+
+
+Ändra till (ta bort text-fill):
+
+.reading-content * {
+  color: var(--accessibility-text-color) !important;
+  /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
+}
+
+
+-webkit-text-fill-color ihop med halvtransparent overlay/stacking-contexts kan leda till att text inte compositas rätt (precis det “osynlig i fönstret” du ser). Att bara sätta color räcker.
+
+3) Små trygghetsdetaljer
+
+Låt textlagret (din textRef-wrapper) ha ett lägre z-index än spotlighten (t.ex. inget alls, eller zIndex: 10). Du har nu zIndex: 35 på texten – sänk eller ta bort den, spotlighten har zIndex: 50 i koden ovan.
+
+Behåll background-color och color på containern via dina variabler – spotlighten påverkar inte dem.

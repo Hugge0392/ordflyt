@@ -1175,7 +1175,7 @@ export default function ReadingLessonViewer() {
                     }
                     .reading-content * {
                       color: var(--accessibility-text-color) !important;
-                      -webkit-text-fill-color: var(--accessibility-text-color) !important;
+                      /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
                     }
 
                     /* Ta bara bort explicita vita inline-bakgrunder från editorinnehållet */
@@ -1193,10 +1193,10 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     style={{
                       position: "relative",
-                      zIndex: 35, // Högre än spotlight för att synas över box-shadow
+                      zIndex: 10, // Lägre än spotlight
                       mixBlendMode: "normal",
                       paddingTop: 1,
-                      pointerEvents: "auto" // Säkerställ att text är klickbar
+                      pointerEvents: "auto"
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(
@@ -1207,18 +1207,23 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <>
-                      {/* Topp - mörk */}
-                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Botten - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Vänster - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Höger - mörk */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px`, backgroundColor: "rgba(0,0,0,0.85)", pointerEvents: "none", zIndex: 20 }} />
-                      {/* Ram runt fönstret */}
-                      <div style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px`, border: "2px solid var(--accessibility-text-color)", borderRadius: 4, pointerEvents: "none", zIndex: 20 }} />
-                    </>
+                    <div
+                      className="reading-spotlight-window"
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        top: `${focusRect.top}px`,
+                        left: `${focusRect.left}px`,
+                        width: `${focusRect.width}px`,
+                        height: `${focusRect.height}px`,
+                        boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)", // mörka allt utanför
+                        border: "2px solid var(--accessibility-text-color)",
+                        borderRadius: 4,
+                        background: "transparent",
+                        pointerEvents: "none",
+                        zIndex: 50
+                      }}
+                    />
                   )}
                 </div>
 
