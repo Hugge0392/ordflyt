@@ -85,7 +85,20 @@ export default function ReadingLessonViewer() {
 
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
-  const [showFocusQuestionsButton, setShowFocusQuestionsButton] = useState(true);
+  
+  // Get show questions button setting from accessibility settings
+  const getShowFocusQuestionsButton = () => {
+    try {
+      const saved = localStorage.getItem('accessibility-settings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        return settings.showFocusQuestionsButton !== false; // Default to true if not set
+      }
+    } catch (error) {
+      console.error('Failed to read accessibility settings:', error);
+    }
+    return true; // Default to true
+  };
 
   // DOM measurement functions from ChatGPT's solution
 
@@ -1351,7 +1364,7 @@ export default function ReadingLessonViewer() {
                     </button>
 
                     {/* Floating questions button */}
-                    {showFocusQuestionsButton && getTotalQuestionsCount() > 0 && (
+                    {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                       <button
                         onClick={() => setShowFocusQuestionsPopup(true)}
                         className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-4 py-3 rounded-full hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"

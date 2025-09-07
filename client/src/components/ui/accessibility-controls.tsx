@@ -17,6 +17,7 @@ interface AccessibilitySettings {
   backgroundColor: 'white' | 'beige' | 'light-gray';
   wordSpacing: number;
   letterSpacing: number;
+  showFocusQuestionsButton: boolean;
 }
 
 const defaultSettings: AccessibilitySettings = {
@@ -27,6 +28,7 @@ const defaultSettings: AccessibilitySettings = {
   backgroundColor: 'white',
   wordSpacing: 0,
   letterSpacing: 0,
+  showFocusQuestionsButton: true,
 };
 
 export function AccessibilityControls() {
@@ -275,6 +277,21 @@ export function AccessibilityControls() {
                     updateSetting('contrast', checked ? 'high' : 'normal')
                   }
                   data-testid="switch-high-contrast"
+                />
+              </div>
+
+              {/* Focus Questions Button */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Frågor i fokusläge</Label>
+                  <p className="text-xs text-muted-foreground">Visa frågeknapp i fokusläget</p>
+                </div>
+                <Switch
+                  checked={settings.showFocusQuestionsButton}
+                  onCheckedChange={(checked) => 
+                    updateSetting('showFocusQuestionsButton', checked)
+                  }
+                  data-testid="switch-focus-questions"
                 />
               </div>
 
