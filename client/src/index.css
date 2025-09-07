@@ -250,8 +250,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   position: relative;         /* referens för overlay */
   isolation: isolate;         /* garantera eget stacking-context */
   overflow: auto;             /* container scroll */
-  max-width: 68ch;            /* trevlig läsbredd */
-  margin-inline: auto;
+  width: 100%;                /* fyller hela kortet */
+  max-width: none;            /* ingen begränsning */
   padding-inline: 1rem;
   display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
 }
