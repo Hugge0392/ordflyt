@@ -1303,48 +1303,25 @@ export default function ReadingLessonViewer() {
 
                 {/* Reading focus UI when active */}
                 {readingFocusMode && (
-                  <>
-                    {/* Progress indicator at bottom */}
-                    <div
-                      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 px-4 py-2 rounded-lg"
-                      style={{
-                        backgroundColor: "rgba(0, 0, 0, 0.8)",
-                        color: "white",
-                      }}
+                  <button
+                    onClick={() => setReadingFocusMode(false)}
+                    className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                    title="Avsluta läsfokus (Esc)"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <div className="text-sm text-center">
-                        Rad {currentReadingLine + 1} av {lineRects.length}
-                      </div>
-                      <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
-                        <div
-                          className="h-1 bg-white rounded-full transition-all duration-300"
-                          style={{
-                            width: `${lineRects.length > 0 ? ((currentReadingLine + 1) / lineRects.length) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setReadingFocusMode(false)}
-                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
-                      title="Avsluta läsfokus (Esc)"
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 )}
 
                 {/* Bilder under texten för denna sida */}
