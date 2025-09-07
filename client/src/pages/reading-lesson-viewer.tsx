@@ -864,35 +864,62 @@ export default function ReadingLessonViewer() {
               </CardHeader>
               <CardContent className="relative">
                 {/* Full-screen reading focus overlay positioned outside text area */}
-                {readingFocusMode && textLines.length > 0 && (
+                {readingFocusMode && (
                   <div className="fixed inset-0 pointer-events-none z-40">
+                    {/* Create a "hole" in the overlay by covering everything except the reading area */}
                     {(() => {
-                      // Use percentage-based positioning relative to text lines
-                      const totalLines = textLines.length;
-                      
-                      // Calculate top position (start of current line)
-                      const topPercent = (currentReadingLine / totalLines) * 100;
-                      
-                      // Calculate window height (number of lines to show)
-                      const windowHeightPercent = (readingFocusLines / totalLines) * 100;
+                      // Define the clear reading window area (approximate position of text)
+                      const windowLeft = '15%';
+                      const windowTop = '20%';
+                      const windowWidth = '55%';
+                      const windowHeight = '50%';
                       
                       return (
                         <>
-                          {/* Full screen dark overlay */}
-                          <div className="absolute inset-0 bg-black bg-opacity-85" />
-                          
-                          {/* Clear window positioned over the text area */}
+                          {/* Top overlay - covers everything above the reading window */}
                           <div 
-                            className="absolute bg-transparent transition-all duration-300"
+                            className="absolute top-0 left-0 right-0 bg-black bg-opacity-85"
+                            style={{ height: windowTop }}
+                          />
+                          
+                          {/* Left overlay - covers everything to the left of reading window */}
+                          <div 
+                            className="absolute left-0 bg-black bg-opacity-85"
                             style={{ 
-                              left: '50%',
-                              top: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              width: '60%',
-                              height: '40%',
+                              top: windowTop,
+                              width: windowLeft,
+                              height: windowHeight
+                            }}
+                          />
+                          
+                          {/* Right overlay - covers everything to the right of reading window */}
+                          <div 
+                            className="absolute right-0 bg-black bg-opacity-85"
+                            style={{ 
+                              top: windowTop,
+                              width: `calc(100% - ${windowLeft} - ${windowWidth})`,
+                              height: windowHeight
+                            }}
+                          />
+                          
+                          {/* Bottom overlay - covers everything below the reading window */}
+                          <div 
+                            className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-85"
+                            style={{ 
+                              height: `calc(100% - ${windowTop} - ${windowHeight})`
+                            }}
+                          />
+                          
+                          {/* Focus border around the clear reading area */}
+                          <div 
+                            className="absolute transition-all duration-300"
+                            style={{ 
+                              left: windowLeft,
+                              top: windowTop,
+                              width: windowWidth,
+                              height: windowHeight,
                               border: `3px solid ${accessibilityColors.textColor}`,
-                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`,
-                              mixBlendMode: 'screen'
+                              boxShadow: `0 0 0 4px rgba(0,0,0,0.3)`
                             }}
                           />
                         </>
