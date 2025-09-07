@@ -289,14 +289,29 @@ div.reading-content.accessibility-enhanced.prose h6 {
   z-index: 30;
 }
 
-/* --- Läsfokus: tvinga synlig text i läsytan --- */
-.reading-content, .reading-content * {
+/* --- Läsfokus: tvinga synlig text i läsytan (utan att röra spotlighten) --- */
+.reading-content,
+.reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
   color: var(--accessibility-text-color) !important;
-  -webkit-text-fill-color: var(--accessibility-text-color) !important; /* Safari/WebKit */
-  background: transparent !important;          /* tar bort ev. vita bakgrunder i spans */
-  opacity: 1 !important;                       /* ifall något råkat sätta låg opacity */
-  mix-blend-mode: normal !important;           /* stoppa ev. blend-effekter på barn */
-  text-shadow: none !important;                /* undvik "osynlig" text via skugga */
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+  /* TA BORT background-reset eller begränsa den: */
+  /* background: transparent !important; ← ta bort helt eller lämna kvar rad nedan */
+}
+
+/* Om du vill nolla vita inline-bakgrunder – gör det selektivt (du har redan detta högre upp) */
+.reading-content [style*="background:#fff"],
+.reading-content [style*="background:#ffffff"],
+.reading-content [style*="background:white"] {
+  background: transparent !important;
+}
+
+/* Skydda pseudo-element också */
+.reading-content *:not(.reading-spotlight-el)::before,
+.reading-content *:not(.reading-spotlight-el)::after {
+  /* inget background-reset här */
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
 }
 
 /* SUPER UNIKA FRÅGENAVIGATIONSKNAPPAR - KAN ALDRIG PÅVERKAS */
@@ -623,6 +638,14 @@ button[class*="navigation-button"]:hover,
   background-color: #F0F0F0 !important;
   color: #000000 !important;
   border: 1px solid #000000 !important;
+}
+
+/* Spotlight: måste vinna över allt */
+.reading-spotlight-el {
+  position: absolute;
+  background: rgba(0,0,0,0.85) !important;
+  pointer-events: none !important;
+  z-index: 30; /* du har redan z-klass, detta är extra säkerhet */
 }
 
 /* Card text color inheritance for headings and emphasis */

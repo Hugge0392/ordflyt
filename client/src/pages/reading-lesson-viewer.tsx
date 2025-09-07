@@ -1211,18 +1211,20 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <>
-                      <div className="reading-spotlight-el absolute z-30"
-                           style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px` }} />
-                      <div className="reading-spotlight-el absolute z-30"
-                           style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }} />
-                      <div className="reading-spotlight-el absolute z-30"
-                           style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }} />
-                      <div className="reading-spotlight-el absolute z-30"
-                           style={{ top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }} />
-                      <div className="absolute z-30 pointer-events-none"
-                           style={{ top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px`, border: "2px solid var(--accessibility-text-color)", borderRadius: 4 }} />
-                    </>
+                    <div
+                      className="reading-spotlight-el"
+                      style={{
+                        top: `${focusRect.top}px`,
+                        left: `${focusRect.left}px`,
+                        width: `${focusRect.width}px`,
+                        height: `${focusRect.height}px`,
+                        /* gör allt runt omkring mörkt */
+                        boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",
+                        border: "2px solid var(--accessibility-text-color)",
+                        borderRadius: 4,
+                        background: "transparent"
+                      }}
+                    />
                   )}
                 </div>
 

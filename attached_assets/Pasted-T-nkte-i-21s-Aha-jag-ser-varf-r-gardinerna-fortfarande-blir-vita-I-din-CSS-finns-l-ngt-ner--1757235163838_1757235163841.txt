@@ -1,0 +1,80 @@
+Tänkte i 21s
+
+Aha – jag ser varför “gardinerna” fortfarande blir vita.
+
+I din CSS finns (långt ner) blocket:
+
+/* --- Läsfokus: tvinga synlig text i läsytan --- */
+.reading-content, .reading-content * {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+  background: transparent !important;   /* ← DENNA RAD DÖDAR SPOTLIGHTEN */
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+
+Det här kör background: transparent !important på alla barn inne i .reading-content, inklusive dina .reading-spotlight-el (även om du tidigare sätter bakgrund på dem). Eftersom den kommer senare i filen och också har !important vinner den – därför blir allt vitt.
+
+Gör så här (3 små patchar):
+
+1) Ändra den globala regeln så spotlighten undantas
+
+Byt ut blocket ovan mot:
+
+/* --- Läsfokus: tvinga synlig text i läsytan (utan att röra spotlighten) --- */
+.reading-content,
+.reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+  /* TA BORT background-reset eller begränsa den: */
+  /* background: transparent !important;  ← ta bort helt eller lämna kvar rad nedan */
+}
+
+/* Om du vill nolla vita inline-bakgrunder – gör det selektivt (du har redan detta högre upp) */
+.reading-content [style*="background:#fff"],
+.reading-content [style*="background:#ffffff"],
+.reading-content [style*="background:white"] {
+  background: transparent !important;
+}
+
+/* Skydda pseudo-element också */
+.reading-content *:not(.reading-spotlight-el)::before,
+.reading-content *:not(.reading-spotlight-el)::after {
+  /* inget background-reset här */
+}
+
+
+Kort sagt: ta bort den breda background: transparent !important (eller undanta spotlighten med :not(...)).
+
+2) Flytta spotlight-regeln längst NER i CSS
+
+Lägg detta absolut sist i din CSS (efter alla resets), så vinner den alltid:
+
+/* Spotlight: måste vinna över allt */
+.reading-spotlight-el {
+  position: absolute;
+  background: rgba(0,0,0,0.85) !important;
+  pointer-events: none !important;
+  z-index: 30; /* du har redan z-klass, detta är extra säkerhet */
+}
+
+3) (Valfri “bullet-proof”) använd en enda overlay med jättestor box-shadow
+
+Om du vill vara helt immun mot bakgrunds-resets kan du ersätta de fyra gardinerna med en ruta:
+
+{readingFocusMode && focusRect && (
+  <div
+    className="reading-spotlight-el"
+    style={{
+      top: `${focusRect.top}px`,
+      left: `${focusRect.left}px`,
+      width: `${focusRect.width}px`,
+      height: `${focusRect.height}px`,
+      boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",  // allt runtom mörknar
+      border: "2px solid var(--accessibility-text-color)",
+      borderRadius: 4
+    }}
+  />
+)}
