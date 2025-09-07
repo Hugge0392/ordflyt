@@ -644,7 +644,12 @@ export default function ReadingLessonViewer() {
         {/* Pre-reading Questions */}
         {lesson.preReadingQuestions &&
           lesson.preReadingQuestions.length > 0 && (
-            <Card className="mb-6">
+            <Card 
+              className="mb-6"
+              style={{
+                backgroundColor: readingFocusMode ? "#242424" : undefined,
+              }}
+            >
               <CardHeader>
                 <CardTitle className="text-lg">Innan du läser</CardTitle>
                 <CardDescription>
