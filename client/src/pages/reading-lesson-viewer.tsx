@@ -878,38 +878,53 @@ export default function ReadingLessonViewer() {
                       style={{ width: '25%' }}
                     />
                     
-                    {/* Top overlay in text area */}
-                    <div 
-                      className="absolute top-0 bg-black bg-opacity-85"
-                      style={{ 
-                        left: '18%',
-                        right: '25%',
-                        height: '35%'
-                      }}
-                    />
-                    
-                    {/* Bottom overlay in text area */}
-                    <div 
-                      className="absolute bottom-0 bg-black bg-opacity-85"
-                      style={{ 
-                        left: '18%',
-                        right: '25%',
-                        height: '35%'
-                      }}
-                    />
-                    
-                    {/* Focus border around the clear text area */}
-                    <div 
-                      className="absolute border-2 transition-all duration-300"
-                      style={{ 
-                        left: '18%',
-                        top: '35%',
-                        right: '25%',
-                        bottom: '35%',
-                        borderColor: accessibilityColors.textColor,
-                        boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
-                      }}
-                    />
+                    {(() => {
+                      // Calculate dynamic position based on current reading line
+                      const lineHeight = 2.5; // Line height in vh
+                      const startPosition = 35; // Where text starts
+                      const windowHeight = readingFocusLines * lineHeight; // Height of focus window
+                      
+                      // Calculate top position of current reading window
+                      const currentWindowTop = startPosition + (currentReadingLine * lineHeight);
+                      const currentWindowBottom = 100 - (currentWindowTop + windowHeight);
+                      
+                      return (
+                        <>
+                          {/* Top overlay in text area - above current reading window */}
+                          <div 
+                            className="absolute top-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              left: '18%',
+                              right: '25%',
+                              height: `${currentWindowTop}%`
+                            }}
+                          />
+                          
+                          {/* Bottom overlay in text area - below current reading window */}
+                          <div 
+                            className="absolute bottom-0 bg-black bg-opacity-85 transition-all duration-300"
+                            style={{ 
+                              left: '18%',
+                              right: '25%',
+                              height: `${Math.max(0, currentWindowBottom)}%`
+                            }}
+                          />
+                          
+                          {/* Focus border around current reading window */}
+                          <div 
+                            className="absolute border-2 transition-all duration-300"
+                            style={{ 
+                              left: '18%',
+                              top: `${currentWindowTop}%`,
+                              right: '25%',
+                              height: `${windowHeight}%`,
+                              borderColor: accessibilityColors.textColor,
+                              boxShadow: `0 0 0 2px rgba(0,0,0,0.3)`
+                            }}
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
                 
