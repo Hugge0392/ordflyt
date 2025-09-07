@@ -1,0 +1,84 @@
+Okej – nu kör vi “nuclear option” så hela sidan mörknar i fokusläge, oavsett stack-context, overflow eller Tailwind-klasser.
+
+Vad du lägger till (2 små steg)
+1) Importera createPortal
+
+Lägg till högst upp:
+
+import { createPortal } from "react-dom";
+
+2) Lägg in en global overlay via portal som mörknar hela viewporten med ett hål (rektangel) över din fokusrektangel
+
+Klistra in blocket nedan strax före </CardContent> (dvs. utanför den scrollande läscontainern), t.ex. direkt efter sektionen “Reading focus UI when active”.
+
+{readingFocusMode && viewportFocusRect && createPortal(
+  <div
+    aria-hidden
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 2147483646, // över allt
+      pointerEvents: "none",
+    }}
+  >
+    {/* En enda SVG med even-odd fillRule som skapar ett "hål" */}
+    <svg
+      width="100%"
+      height="100%"
+      viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}
+      style={{ position: "fixed", inset: 0, display: "block" }}
+    >
+      <path
+        // Yttre rektangel (hela skärmen) + inre rektangel (fönstret) i en path med evenodd => hål
+        d={`
+          M 0 0 H ${window.innerWidth} V ${window.innerHeight} H 0 Z
+          M ${Math.max(0, viewportFocusRect.left)} ${Math.max(0, viewportFocusRect.top)}
+            H ${Math.min(window.innerWidth, viewportFocusRect.left + viewportFocusRect.width)}
+            V ${Math.min(window.innerHeight, viewportFocusRect.top + viewportFocusRect.height)}
+            H ${Math.max(0, viewportFocusRect.left)}
+            Z
+        `}
+        fill="rgba(0,0,0,0.88)"
+        fillRule="evenodd"
+      />
+      {/* (valfritt) tunn ram runt fokusfönstret för tydlighet */}
+      <rect
+        x={viewportFocusRect.left}
+        y={viewportFocusRect.top}
+        width={viewportFocusRect.width}
+        height={viewportFocusRect.height}
+        fill="none"
+        stroke="white"
+        strokeWidth={2}
+        rx={4}
+        ry={4}
+      />
+    </svg>
+  </div>,
+  document.body
+)}
+
+
+Det här gör tre saker som “går hårt”:
+
+Renderar i document.body (portalen) → ingen påverkan av lokala overflow, isolation, transform eller z-index i dina cards.
+
+Använder en enda SVG path med fillRule="evenodd" → mörkt överallt utom precis din fokusruta (det är hålet).
+
+Har jättestort z-index så inget råkar ligga ovanpå.
+
+Varför din tidigare lösning inte syntes
+
+Du hade bara lokala scrims i läscontainern tidigare – de döljs ofta av stacking contexts/overflow, och dina CSS-“killswitchar” neutraliserar bakgrunder inne i containern.
+
+I senaste koden finns ingen overlay alls (bara beräkning av viewportFocusRect). Därför “ingen effekt”.
+
+Snabba sanity-checks
+
+Slå på fokusläge → du ska se hela skärmen mörkna, med ett ljust fönster runt raden/raderna.
+
+Om du ändå inte ser något: sätt tillfälligt stroke="red" och strokeWidth={4} på rect för att bekräfta att koordinaterna kommer fram.
+
+Logga rektangeln: console.log(viewportFocusRect) när readingFocusMode blir true.
+
+Vill du dessutom blockera all interaktion utanför fokus (klick m.m.), sätt pointerEvents: "auto" på yttersta div i portalen och lägg en transparent knapp över hela ytan som stänger fokus – men du bad om “bara mörkt”, så jag höll den klickgenomsläpplig.
