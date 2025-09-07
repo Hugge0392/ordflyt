@@ -253,6 +253,42 @@ div.reading-content.accessibility-enhanced.prose h6 {
   opacity: 0.7;
 }
 
+/* --- Läsfokus: stabil textspalt och margin-collaps fix --- */
+.reading-content.accessibility-enhanced {
+  /* samma element som har ref={contentRef} */
+  position: relative;         /* referens för overlay */
+  overflow: auto;             /* container scroll */
+  max-width: 68ch;            /* trevlig läsbredd */
+  margin-inline: auto;
+  padding-inline: 1rem;
+  display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
+}
+
+/* Tailwinds .prose sätter stora toppmarginaler; ta bort på första elementet */
+.reading-content.accessibility-enhanced > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Säkerställ att .prose inte begränsar bredden (du har oftast redan max-w-none) */
+.reading-content.accessibility-enhanced.prose {
+  max-width: none;
+}
+
+/* Gör så att radmätningen inte påverkas av bilder/block runtom */
+.reading-content.accessibility-enhanced img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Overlayn ska aldrig få klicka igenom-issues i andra lager */
+.reading-content.accessibility-enhanced .reading-focus-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
 /* SUPER UNIKA FRÅGENAVIGATIONSKNAPPAR - KAN ALDRIG PÅVERKAS */
 .unique-prev-question-btn,
 .unique-next-question-btn {

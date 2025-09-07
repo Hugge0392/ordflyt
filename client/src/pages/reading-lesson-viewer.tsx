@@ -53,6 +53,7 @@ export default function ReadingLessonViewer() {
   
   // New DOM-based reading focus states
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
   
   // DOM measurement functions from ChatGPT's solution
@@ -201,12 +202,12 @@ export default function ReadingLessonViewer() {
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!textRef.current) return;
 
     const measure = () => {
-      if (!contentRef.current) return;
+      if (!textRef.current) return;
       try {
-        const rects = measureLineRects(contentRef.current);
+        const rects = measureLineRects(textRef.current);
         setLineRects(rects);
         setCurrentReadingLine(0);
       } catch (error) {
@@ -221,7 +222,7 @@ export default function ReadingLessonViewer() {
 
     // Measure on resize/zoom and when observer detects layout changes
     const ro = new ResizeObserver(measure);
-    ro.observe(contentRef.current);
+    ro.observe(textRef.current);
 
     return () => {
       cancelAnimationFrame(id);
@@ -240,8 +241,8 @@ export default function ReadingLessonViewer() {
       const height = bottom - top;
 
       // Width = text container's content width
-      if (!contentRef.current) return null;
-      const cont = contentRef.current.getBoundingClientRect();
+      if (!textRef.current) return null;
+      const cont = textRef.current.getBoundingClientRect();
       const width = cont.width;
 
       return { top, height, left: 0, width };
@@ -959,6 +960,7 @@ export default function ReadingLessonViewer() {
                       wordWrap: 'break-word',
                       backgroundColor: accessibilityColors.backgroundColor,
                       color: accessibilityColors.textColor,
+                      display: 'flow-root', // 💡 bryt margin-collapsing från första barnet
                       fontFamily:
                         (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
                           ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
@@ -967,7 +969,13 @@ export default function ReadingLessonViewer() {
                     onMouseOver={handleContentMouseOver}
                     onMouseOut={handleContentMouseOut}
                   >
+                    {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
                     <div
+                      ref={textRef}
+                      style={{
+                        position: 'relative',
+                        paddingTop: 1 // extra säkerhet mot margin-collaps
+                      }}
                       dangerouslySetInnerHTML={{
                         __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions)
                       }}

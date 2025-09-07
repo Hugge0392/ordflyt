@@ -1,0 +1,200 @@
+Att “hålet” inte träffar texten beror inte längre på overlayn, utan på fel koordinatsystem när raderna mäts: dina lineRects mäts mot hela contentRef, men själva texten ligger i en inre wrapper (den div du renderar med dangerouslySetInnerHTML) som har typografi-marginaler från prose. Första elementets topp-marginal kollapsar upp i föräldern, vilket gör att radernas top hamnar förskjutet i förhållande till overlayn – därför blir bandet vitt utan text.
+
+Det här är ett klassiskt CSS-gotcha. Fixen är att mäta och positionera overlay mot samma element som texten flödar i, och/eller bryta marginal-kollaps.
+
+Minimal fix (3 små ändringar)
+1) Lägg till en text-wrapper med egen ref och bryt marginal-kollaps
+
+Byt blocket som renderar HTML till:
+
+const textRef = useRef<HTMLDivElement | null>(null);
+
+<div
+  ref={contentRef}
+  className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+  style={{
+    fontSize: `${accessibilitySettings.fontSize}px`,
+    lineHeight: `${accessibilitySettings.lineHeight}`,
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+    backgroundColor: accessibilityColors.backgroundColor,
+    color: accessibilityColors.textColor,
+    // 💡 bryt margin-collapsing på barnen:
+    display: 'flow-root'
+  }}
+  onMouseOver={handleContentMouseOver}
+  onMouseOut={handleContentMouseOut}
+>
+  {/* --- TEXT-WRAPPER --- */}
+  <div
+    ref={textRef}
+    style={{
+      position: 'relative',
+      // extra säkerhet mot margin-collaps (valfritt):
+      paddingTop: 1
+    }}
+    dangerouslySetInnerHTML={{
+      __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions)
+    }}
+  />
+
+  {/* Overlayn ligger kvar i contentRef men ska använda textRef som referens */}
+  {readingFocusMode && focusRect && (
+    <div className="pointer-events-none absolute inset-0 z-30">
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: `${focusRect.top}px`,
+          height: 0,
+        }}
+      />
+      {/* mask ovanför */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: `${focusRect.top}px`, background: 'rgba(0,0,0,0.85)' }} />
+      {/* mask under */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: `${focusRect.top + focusRect.height}px`, bottom: 0, background: 'rgba(0,0,0,0.85)' }} />
+      {/* kant */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          width: '100%',
+          top: `${focusRect.top}px`,
+          height: `${focusRect.height}px`,
+          border: `2px solid ${accessibilityColors.textColor}`,
+          boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
+        }}
+      />
+    </div>
+  )}
+</div>
+
+2) Mät rader mot textRef, inte contentRef
+
+Byt alla ställen där du anropar measureLineRects(contentRef.current) och där du normaliserar mot contentRef till att använda textRef.current:
+
+// i useEffect som mäter:
+const rects = textRef.current ? measureLineRects(textRef.current) : [];
+setLineRects(rects);
+
+// i focusRect:
+if (!textRef.current) return null;
+const cont = textRef.current.getBoundingClientRect();
+const width = cont.width;
+return { top, height, left: 0, width };
+
+3) Normalisera mot textRef utan scrollTop
+
+Det har du redan:
+
+new DOMRect(r.left - cont.left, r.top - cont.top, r.width, r.height)
+
+
+(Bra! Låt det vara – inget +scrollTop.)
+
+Varför detta löser problemet
+
+Samma referensyta: Vi mäter radernas top mot samma element (textRef) som overlayn sen positioneras relativt (via absolut-positioner inne i contentRef men med topvärden som räknats från textRef’s bounding-box).
+
+Ingen margin-kollaps: display: flow-root (eller padding-top: 1px) på föräldern stoppar att första paragrafens/headingens margin-top “svämmar upp” och förskjuter alla mått.
+
+Stabil bredd: Vi sätter overlayns bredd till 100% av text-wrappen, så rutan täcker exakt kolumnen.
+
+Två snabba felsökningsknep (om du vill dubbelkolla)
+
+Lägg till temporärt:
+
+.reading-content [data-debug-line] { outline: 1px dashed red; }
+
+
+och i mätningen, för varje rect, skapa en tunn overlay-div där top/height sätts – då ser du exakt var raderna registreras.
+
+Logga första rektangeln:
+
+console.log('first rect', lineRects[0]);
+
+
+Om top ~ 0 men din första synliga rad ligger nedanför – då har du margin-kollaps (fixen ovan).
+
+Sammanfattning
+
+Koden du skickade är i stort rätt, men raderna mättes mot fel box p.g.a. typografi-marginaler (prose) och margin-collapsing. Genom att
+
+mäta mot en egen text-wrapper (textRef),
+
+positionera overlay enligt de måtten,
+
+och bryta margin-kollaps med flow-root (eller liten padding-top),
+
+hamnar fokusfönstret mitt på texten igen.
+
+Du sade:
+skulle det hjälpa ifall du fick ccs:en
+ChatGPT sade:
+Tänkte i 13s
+
+Ja, gärna – CSS:en kan absolut vara orsaken. Men du behöver inte vänta: prova först den här lilla CSS-patchen (den hanterar margin-collapse från .prose, sätter korrekt referensyta och gör textspalten stabil för mätning). Klistra in den rakt av:
+
+/* --- Läsfokus: stabil textspalt --- */
+.reading-content.accessibility-enhanced {
+  /* samma element som har ref={contentRef} */
+  position: relative;         /* referens för overlay */
+  overflow: auto;             /* container scroll */
+  max-width: 68ch;            /* trevlig läsbredd */
+  margin-inline: auto;
+  padding-inline: 1rem;
+  display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
+  background: var(--accessibility-bg-color, #fff);
+  color: var(--accessibility-text-color, #000);
+}
+
+/* Om du hellre vill: liten padding upptill bryter också margin-collaps */
+.reading-content.accessibility-enhanced { padding-top: 1px; }
+
+/* Tailwinds .prose sätter stora toppmarginaler; ta bort på första elementet */
+.reading-content.accessibility-enhanced > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Säkerställ att .prose inte begränsar bredden (du har oftast redan max-w-none) */
+.reading-content.accessibility-enhanced.prose {
+  max-width: none;
+}
+
+/* Gör så att radmätningen inte påverkas av bilder/block runtom */
+.reading-content.accessibility-enhanced img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Overlayn ska aldrig få klicka igenom-issues i andra lager */
+.reading-content.accessibility-enhanced .reading-focus-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+
+Och uppdatera overlay-diven till att använda klassen ovan (valfritt men snyggt):
+
+{readingFocusMode && focusRect && (
+  <div className="reading-focus-overlay">
+    {/* mask ovanför */}
+    <div style={{position:'absolute',left:0,right:0,top:0,height:`${focusRect.top}px`,background:'rgba(0,0,0,0.85)'}} />
+    {/* mask under */}
+    <div style={{position:'absolute',left:0,right:0,top:`${focusRect.top + focusRect.height}px`,bottom:0,background:'rgba(0,0,0,0.85)'}} />
+    {/* kant */}
+    <div style={{position:'absolute',left:0,width:'100%',top:`${focusRect.top}px`,height:`${focusRect.height}px`,border:`2px solid ${accessibilityColors.textColor}`,boxShadow:'0 0 0 2px rgba(0,0,0,0.3)'}} />
+  </div>
+)}
+
+Varför det här hjälper
+
+.prose ger toppmarginaler på första heading/paragraph. De kollapsar med föräldern och förskjuter alla top-värden → ditt “hål” hamnar fel. display: flow-root eller padding-top: 1px + “ta bort första top-margin” fixar detta.
+
+En tydlig, scrollande, relativ container gör att overlayns (absoluta) position och dina uppmätta linjerektanglar ligger i samma koordinatsystem.
+
+Om det fortfarande inte sitter 100%: ja, skicka gärna din nuvarande CSS (särskilt regler som rör .prose, kortet runt texten och eventuella globala resets). Då pekar jag exakt på den rad som bråkar.
