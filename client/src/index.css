@@ -289,10 +289,14 @@ div.reading-content.accessibility-enhanced.prose h6 {
   z-index: 30;
 }
 
-/* Tvinga färgarv på allt innehåll - eliminerar prose och RTE-konflikter */
+/* --- Läsfokus: tvinga synlig text i läsytan --- */
 .reading-content, .reading-content * {
   color: var(--accessibility-text-color) !important;
-  background: transparent !important; /* motverkar ev. inline-bakgrunder från RTE */
+  -webkit-text-fill-color: var(--accessibility-text-color) !important; /* Safari/WebKit */
+  background: transparent !important;          /* tar bort ev. vita bakgrunder i spans */
+  opacity: 1 !important;                       /* ifall något råkat sätta låg opacity */
+  mix-blend-mode: normal !important;           /* stoppa ev. blend-effekter på barn */
+  text-shadow: none !important;                /* undvik "osynlig" text via skugga */
 }
 
 /* SUPER UNIKA FRÅGENAVIGATIONSKNAPPAR - KAN ALDRIG PÅVERKAS */
