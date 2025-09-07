@@ -912,7 +912,12 @@ export default function ReadingLessonViewer() {
               } as React.CSSProperties
             }
           >
-            <CardHeader className="relative">
+            <CardHeader 
+              className="relative"
+              style={{
+                backgroundColor: readingFocusMode ? "#242424" : undefined,
+              }}
+            >
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
                   <span>Läs texten</span>
