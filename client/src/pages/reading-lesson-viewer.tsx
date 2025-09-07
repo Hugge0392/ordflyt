@@ -268,7 +268,7 @@ export default function ReadingLessonViewer() {
 
       const top = lineRects[start]?.top || 0;
       const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
-      const height = bottom - top;
+      const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
 
       if (!contentRef.current) return null;
       const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
