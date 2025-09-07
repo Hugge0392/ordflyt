@@ -860,7 +860,7 @@ export default function ReadingLessonViewer() {
                     disabled={isFirstQuestion}
                     className="unique-prev-question-btn"
                     style={{
-                      background: "#ffffff !important",
+                      background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
                       color: "#000000 !important",
                       border: "1px solid #000000 !important",
                       padding: "10px 16px !important",
@@ -893,7 +893,7 @@ export default function ReadingLessonViewer() {
                     }
                     className="unique-next-question-btn"
                     style={{
-                      background: "#ffffff !important",
+                      background: readingFocusMode ? "#242424 !important" : "#ffffff !important",
                       color: "#000000 !important",
                       border: "1px solid #000000 !important",
                       padding: "10px 16px !important",
