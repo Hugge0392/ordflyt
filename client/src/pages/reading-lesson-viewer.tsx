@@ -1148,6 +1148,7 @@ export default function ReadingLessonViewer() {
                     backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
                     display: "flow-root", // 💡 bryt margin-collapsing från första barnet
+                    zIndex: readingFocusMode ? 100 : "auto", // högre än fullskärms overlay
                     fontFamily:
                       (accessibilitySettings.fontFamily as string) ===
                       "dyslexia-friendly"
@@ -1245,12 +1246,24 @@ export default function ReadingLessonViewer() {
                   )}
                 </div>
 
+                {/* Fullskärms overlay när fokusläge är aktivt */}
+                {readingFocusMode && (
+                  <div
+                    className="fixed inset-0 z-50"
+                    style={{
+                      backgroundColor: "rgba(36, 36, 36, 0.86)", // #242424 med samma opacity som rf-scrim
+                      pointerEvents: "none",
+                    }}
+                    aria-hidden
+                  />
+                )}
+
                 {/* Reading focus UI when active */}
                 {readingFocusMode && (
                   <>
                     {/* Progress indicator at bottom */}
                     <div
-                      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 px-4 py-2 rounded-lg"
+                      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-110 px-4 py-2 rounded-lg"
                       style={{
                         backgroundColor: "rgba(0, 0, 0, 0.8)",
                         color: "white",
@@ -1271,7 +1284,7 @@ export default function ReadingLessonViewer() {
 
                     <button
                       onClick={() => setReadingFocusMode(false)}
-                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                      className="fixed top-4 right-4 z-110 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
                       title="Avsluta läsfokus (Esc)"
                     >
                       <svg
