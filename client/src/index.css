@@ -652,20 +652,23 @@ button[class*="navigation-button"]:hover,
   box-shadow: none !important;
 }
 
-/* Scrims måste vara SVARTA – hög specificitet inne i containern */
-.reading-content.accessibility-enhanced .rf-scrim {
+/* Scrims måste vara SVARTA – fungerar både lokalt och globalt */
+.rf-scrim {
   background: rgba(0,0,0,0.86) !important;
   pointer-events: none !important;
-  z-index: 2147483646 !important;
 }
 
 /* Ramen runt fönstret */
-.reading-content.accessibility-enhanced .rf-frame {
+.rf-frame {
   border: 2px solid var(--accessibility-text-color) !important;
   border-radius: 4px !important;
   background: transparent !important;
   pointer-events: none !important;
-  z-index: 2147483647 !important;
+}
+
+/* Se till att close-knappen har högre z-index än scrimsen */
+.focus-close-btn {
+  z-index: 2147483648 !important;
 }
 
 .reading-content.accessibility-enhanced { isolation: isolate !important; }

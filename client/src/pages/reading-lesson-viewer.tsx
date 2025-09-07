@@ -280,6 +280,27 @@ export default function ReadingLessonViewer() {
     }
   }, [lineRects, currentReadingLine, readingFocusLines]);
 
+  // Fokusrektangel i viewport-koordinater (för global overlay)
+  const viewportFocusRect = useMemo(() => {
+    if (!focusRect || !contentRef.current) return null;
+    const cont = contentRef.current.getBoundingClientRect();
+    return {
+      top: cont.top + focusRect.top,
+      left: cont.left + focusRect.left,
+      width: focusRect.width,
+      height: focusRect.height,
+    };
+  }, [focusRect, readingFocusMode, contentRef.current]);
+
+  // Lås sidscroll i fokusläge
+  useEffect(() => {
+    if (readingFocusMode) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [readingFocusMode]);
+
   // Create interactive content with word definitions
   const processContentWithDefinitions = (
     content: string,
@@ -1209,40 +1230,7 @@ export default function ReadingLessonViewer() {
                     }}
                   />
 
-                  {readingFocusMode && focusRect && (
-                    <>
-                      {/* TOP */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
-                      />
-                      {/* BOTTOM */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
-                      />
-                      {/* LEFT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
-                      />
-                      {/* RIGHT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
-                      />
-                      {/* FRAME */}
-                      <div
-                        className="rf-frame"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
-                      />
-                    </>
-                  )}
+                  {/* Lokala scrims ersätts av global overlay nedan */}
                 </div>
 
                 {/* Reading focus UI when active */}
@@ -1271,8 +1259,9 @@ export default function ReadingLessonViewer() {
 
                     <button
                       onClick={() => setReadingFocusMode(false)}
-                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                      className="fixed top-4 right-4 focus-close-btn bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
                       title="Avsluta läsfokus (Esc)"
+                      style={{ zIndex: 2147483648 }}
                     >
                       <svg
                         className="w-6 h-6"
