@@ -83,6 +83,10 @@ export default function ReadingLessonViewer() {
   const textRef = useRef<HTMLDivElement | null>(null);
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
 
+  // Focus mode questions popup states
+  const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
+  const [showFocusQuestionsButton, setShowFocusQuestionsButton] = useState(true);
+
   // DOM measurement functions from ChatGPT's solution
 
   function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
@@ -558,6 +562,26 @@ export default function ReadingLessonViewer() {
       });
     }
   }, [currentReadingLine, readingFocusMode, focusRect]);
+
+  // Count total questions available for current page
+  const getTotalQuestionsCount = () => {
+    if (!lesson) return 0;
+    
+    let count = 0;
+    
+    // General questions (alla sidor)
+    if (lesson.questions && lesson.questions.length > 0) {
+      count += lesson.questions.length;
+    }
+    
+    // Page-specific questions
+    const currentPageQuestions = lesson.pages?.[currentPage]?.questions;
+    if (currentPageQuestions && currentPageQuestions.length > 0) {
+      count += currentPageQuestions.length;
+    }
+    
+    return count;
+  };
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
@@ -1304,25 +1328,52 @@ export default function ReadingLessonViewer() {
 
                 {/* Reading focus UI when active */}
                 {readingFocusMode && (
-                  <button
-                    onClick={() => setReadingFocusMode(false)}
-                    className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
-                    title="Avsluta läsfokus (Esc)"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  <>
+                    {/* Exit focus button */}
+                    <button
+                      onClick={() => setReadingFocusMode(false)}
+                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                      title="Avsluta läsfokus (Esc)"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Floating questions button */}
+                    {showFocusQuestionsButton && getTotalQuestionsCount() > 0 && (
+                      <button
+                        onClick={() => setShowFocusQuestionsPopup(true)}
+                        className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-4 py-3 rounded-full hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+                        title="Visa frågor"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {/* Bilder under texten för denna sida */}
