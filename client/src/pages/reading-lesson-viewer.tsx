@@ -586,20 +586,10 @@ export default function ReadingLessonViewer() {
   }
 
   return (
-    <div 
-      className="min-h-screen bg-background relative"
-      style={{
-        backgroundColor: readingFocusMode ? "#242424" : undefined,
-      }}
-    >
+    <div className="min-h-screen bg-background relative">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <Card 
-          className="mb-6"
-          style={{
-            backgroundColor: readingFocusMode ? "#242424" : undefined,
-          }}
-        >
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -644,12 +634,7 @@ export default function ReadingLessonViewer() {
         {/* Pre-reading Questions */}
         {lesson.preReadingQuestions &&
           lesson.preReadingQuestions.length > 0 && (
-            <Card 
-              className="mb-6"
-              style={{
-                backgroundColor: readingFocusMode ? "#242424" : undefined,
-              }}
-            >
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="text-lg">Innan du läser</CardTitle>
                 <CardDescription>
@@ -659,13 +644,7 @@ export default function ReadingLessonViewer() {
               <CardContent>
                 <div className="space-y-3">
                   {lesson.preReadingQuestions.map((question, index) => (
-                    <div 
-                      key={index} 
-                      className="p-3 bg-muted rounded-lg"
-                      style={{
-                        backgroundColor: readingFocusMode ? "#242424" : undefined,
-                      }}
-                    >
+                    <div key={index} className="p-3 bg-muted rounded-lg">
                       <p className="font-medium mb-1">{question.question}</p>
                     </div>
                   ))}
@@ -683,7 +662,7 @@ export default function ReadingLessonViewer() {
                 className="border rounded-lg p-6"
                 style={
                   {
-                    backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
+                    backgroundColor: "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
                     borderColor: "var(--accessibility-text-color)",
                     borderWidth: "0.5px",
@@ -829,7 +808,7 @@ export default function ReadingLessonViewer() {
                           placeholder="Skriv ditt svar här..."
                           className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                           style={{
-                            backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
+                            backgroundColor: "var(--accessibility-bg-color)",
                             color: "var(--accessibility-text-color)",
                             borderColor: "var(--accessibility-text-color)",
                             fontSize: "16px",
@@ -847,78 +826,76 @@ export default function ReadingLessonViewer() {
                   </div>
                 )}
 
-                {/* Navigation buttons - Hidden in focus mode */}
-                {!readingFocusMode && (
-                  <div
-                    className="flex items-center justify-between mt-8 pt-4 border-t"
+                {/* Navigation buttons */}
+                <div
+                  className="flex items-center justify-between mt-8 pt-4 border-t"
+                  style={{
+                    borderColor: "var(--accessibility-text-color)",
+                    borderTopWidth: "0.5px",
+                  }}
+                >
+                  <button
+                    onClick={goToPreviousQuestion}
+                    disabled={isFirstQuestion}
+                    className="unique-prev-question-btn"
                     style={{
-                      borderColor: "var(--accessibility-text-color)",
-                      borderTopWidth: "0.5px",
+                      background: "#ffffff !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      padding: "10px 16px !important",
+                      borderRadius: "8px !important",
+                      cursor: isFirstQuestion ? "not-allowed" : "pointer",
+                      fontSize: "14px !important",
+                      fontWeight: "500 !important",
+                      display: "flex !important",
+                      alignItems: "center !important",
+                      gap: "8px !important",
+                      fontFamily: "system-ui, sans-serif !important",
+                      opacity: "1 !important",
+                      filter: "none !important",
+                      boxShadow: "none !important",
+                      outline: "none !important",
+                      position: "relative",
+                      zIndex: 999,
                     }}
                   >
-                    <button
-                      onClick={goToPreviousQuestion}
-                      disabled={isFirstQuestion}
-                      className="unique-prev-question-btn"
-                      style={{
-                        background: "#ffffff !important",
-                        color: "#000000 !important",
-                        border: "1px solid #000000 !important",
-                        padding: "10px 16px !important",
-                        borderRadius: "8px !important",
-                        cursor: isFirstQuestion ? "not-allowed" : "pointer",
-                        fontSize: "14px !important",
-                        fontWeight: "500 !important",
-                        display: "flex !important",
-                        alignItems: "center !important",
-                        gap: "8px !important",
-                        fontFamily: "system-ui, sans-serif !important",
-                        opacity: "1 !important",
-                        filter: "none !important",
-                        boxShadow: "none !important",
-                        outline: "none !important",
-                        position: "relative",
-                        zIndex: 999,
-                      }}
-                    >
-                      <ChevronLeft style={{ width: "16px", height: "16px" }} />
-                      Tillbaka
-                    </button>
+                    <ChevronLeft style={{ width: "16px", height: "16px" }} />
+                    Tillbaka
+                  </button>
 
-                    <button
-                      onClick={
-                        isLastQuestion
-                          ? () =>
-                              alert("Bra jobbat! Du har svarat på alla frågor.")
-                          : goToNextQuestion
-                      }
-                      className="unique-next-question-btn"
-                      style={{
-                        background: "#ffffff !important",
-                        color: "#000000 !important",
-                        border: "1px solid #000000 !important",
-                        padding: "10px 16px !important",
-                        borderRadius: "8px !important",
-                        cursor: "pointer",
-                        fontSize: "14px !important",
-                        fontWeight: "500 !important",
-                        display: "flex !important",
-                        alignItems: "center !important",
-                        gap: "8px !important",
-                        fontFamily: "system-ui, sans-serif !important",
-                        opacity: "1 !important",
-                        filter: "none !important",
-                        boxShadow: "none !important",
-                        outline: "none !important",
-                        position: "relative",
-                        zIndex: 999,
-                      }}
-                    >
-                      {isLastQuestion ? "Skicka in" : "Nästa"}
-                      <ChevronRight style={{ width: "16px", height: "16px" }} />
-                    </button>
-                  </div>
-                )}
+                  <button
+                    onClick={
+                      isLastQuestion
+                        ? () =>
+                            alert("Bra jobbat! Du har svarat på alla frågor.")
+                        : goToNextQuestion
+                    }
+                    className="unique-next-question-btn"
+                    style={{
+                      background: "#ffffff !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      padding: "10px 16px !important",
+                      borderRadius: "8px !important",
+                      cursor: "pointer",
+                      fontSize: "14px !important",
+                      fontWeight: "500 !important",
+                      display: "flex !important",
+                      alignItems: "center !important",
+                      gap: "8px !important",
+                      fontFamily: "system-ui, sans-serif !important",
+                      opacity: "1 !important",
+                      filter: "none !important",
+                      boxShadow: "none !important",
+                      outline: "none !important",
+                      position: "relative",
+                      zIndex: 999,
+                    }}
+                  >
+                    {isLastQuestion ? "Skicka in" : "Nästa"}
+                    <ChevronRight style={{ width: "16px", height: "16px" }} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -935,12 +912,7 @@ export default function ReadingLessonViewer() {
               } as React.CSSProperties
             }
           >
-            <CardHeader 
-              className="relative"
-              style={{
-                backgroundColor: readingFocusMode ? "#242424" : undefined,
-              }}
-            >
+            <CardHeader className="relative">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
                   <span>Läs texten</span>
