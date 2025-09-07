@@ -382,7 +382,7 @@ div.reading-content.accessibility-enhanced.prose h6 {
 .reading-content.accessibility-enhanced b,
 .reading-content.accessibility-enhanced em,
 .reading-content.accessibility-enhanced i,
-.reading-content.accessibility-enhanced *:not(.prose):not(.prose *) {
+.reading-content.accessibility-enhanced *:not(.prose):not(.prose *):not(.rf-scrim):not(.rf-frame) {
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
   background-color: var(--accessibility-bg-color) !important;
@@ -650,15 +650,15 @@ button[class*="navigation-button"]:hover,
   box-shadow: none !important;
 }
 
-/* Fokusmask – täckrutorna */
-.rf-scrim {
+/* Scrims måste vara SVARTA – hög specificitet inne i containern */
+.reading-content.accessibility-enhanced .rf-scrim {
   background: rgba(0,0,0,0.86) !important;
   pointer-events: none !important;
   z-index: 2147483646 !important;
 }
 
-/* Tunn ram runt fönstret */
-.rf-frame {
+/* Ramen runt fönstret */
+.reading-content.accessibility-enhanced .rf-frame {
   border: 2px solid var(--accessibility-text-color) !important;
   border-radius: 4px !important;
   background: transparent !important;
@@ -777,13 +777,7 @@ button[class*="navigation-button"]:hover,
   box-shadow: none !important;
 }
 
-/* Den vi använder nu: ett fönster med box-shadow runtom */
-.reading-spotlight-window {
-  position: absolute;
-  pointer-events: none !important;
-  z-index: 30;
-  background: transparent !important;        /* viktigt */
-}
+/* OLD SPOTLIGHT REMOVED - using 4-scrim system now */
 
 /* Card text color inheritance for headings and emphasis */
 [style*="--card-text-color"] h1,

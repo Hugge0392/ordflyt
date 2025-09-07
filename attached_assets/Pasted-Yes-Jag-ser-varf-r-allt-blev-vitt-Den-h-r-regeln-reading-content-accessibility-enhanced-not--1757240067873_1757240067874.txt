@@ -1,0 +1,65 @@
+Yes! Jag ser varför allt blev vitt. Den här regeln:
+
+.reading-content.accessibility-enhanced *:not(.prose):not(.prose *) {
+  /* ... */
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+
+ger vit bakgrund på ALLT i läsytan (med högre specifititet än .rf-scrim), så dina svarta scrims blir vita.
+Vi kör en brutal patch som garanterar att scrimsen alltid vinner.
+
+Gör exakt dessa ändringar
+1) Undanta scrim + ram från “måla allt vitt”-regeln
+
+Byt ovan regel till:
+
+.reading-content.accessibility-enhanced *:not(.prose):not(.prose *):not(.rf-scrim):not(.rf-frame) {
+  font-family: var(--accessibility-font-family) !important;
+  color: var(--accessibility-text-color) !important;
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+2) Ge scrim/ram högre specifititet (vinner alltid)
+
+Lägg till (eller ersätt om de redan finns):
+
+/* Scrims måste vara SVARTA – hög specificitet inne i containern */
+.reading-content.accessibility-enhanced .rf-scrim {
+  background: rgba(0,0,0,0.86) !important;
+  pointer-events: none !important;
+  z-index: 2147483646 !important;
+}
+
+/* Ramen runt fönstret */
+.reading-content.accessibility-enhanced .rf-frame {
+  border: 2px solid var(--accessibility-text-color) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
+3) Undanta scrim/ram även i alla “banhammer”-regler
+
+Du har flera block som nollar bakgrund/skuggor. Säkerställ att samtliga har undantag för .rf-scrim och .rf-frame. Exempel (du har redan gjort detta på några, gör det på alla liknande):
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame)
+:not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+Gör samma :not(.rf-scrim):not(.rf-frame) i:
+
+blocken med [class*="bg-"], [class*="shadow"], [class*="backdrop-"], [class*="mix-blend"]
+
+blocken med *::before / *::after
+
+4) (valfritt men säkert) Döda ev. gammal spotlight
+
+Ta bort alla regler och JSX som rör .reading-spotlight-window om något finns kvar.
