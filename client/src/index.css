@@ -792,16 +792,6 @@ button[class*="navigation-button"]:hover,
 
 /* ===== FOCUS MODE STYLES - COMPLETELY SEPARATE FROM ACCESSIBILITY ===== */
 
-/* Debug: Visual indicator that focus mode is active */
-.reading-content.reading-focus-mode {
-  border: 3px solid red !important;
-}
-
-.reading-content.reading-focus-mode [data-reading-text] {
-  background-color: yellow !important;
-  padding: 10px !important;
-}
-
 /* Focus mode styles - uses its own CSS variables and class */
 .reading-content.reading-focus-mode [data-reading-text],
 .reading-content.reading-focus-mode [data-reading-text] .prose,

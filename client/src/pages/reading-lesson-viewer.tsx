@@ -36,6 +36,7 @@ import {
   Settings,
 } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
+import { FocusModeControls } from "@/components/ui/focus-mode-controls";
 
 interface HoveredWord {
   word: string;
@@ -128,16 +129,12 @@ export default function ReadingLessonViewer() {
 
   const applyFocusSettings = (settings: any) => {
     console.log('Applying focus settings:', settings);
-    const root = document.documentElement;
-    root.style.setProperty('--focus-font-size', `${settings.fontSize}px`);
-    root.style.setProperty('--focus-line-height', settings.lineHeight.toString());
     
     // Add reading-focus-mode class to reading content that contains the text
     const readingContents = document.querySelectorAll('.reading-content');
     readingContents.forEach(element => {
       element.classList.add('reading-focus-mode');
     });
-    console.log('Focus settings applied - font size:', settings.fontSize, 'line height:', settings.lineHeight);
     console.log('Added reading-focus-mode class to reading content');
   };
 
@@ -773,6 +770,9 @@ export default function ReadingLessonViewer() {
         backgroundColor: readingFocusMode ? "#242424" : undefined,
       }}
     >
+      {/* Focus Mode Controls - only visible in focus mode */}
+      {readingFocusMode && <FocusModeControls />}
+      
       <div className={`max-w-7xl mx-auto ${readingFocusMode ? 'p-2 pt-6' : 'p-6'}`}>
         {/* Header */}
         {!readingFocusMode && (
