@@ -119,11 +119,6 @@
   --accessibility-bg-color: #ffffff;
   --accessibility-text-color: inherit;
   --accessibility-border-color: inherit;
-  
-  /* Focus mode variables - completely separate from accessibility settings */
-  --focus-font-size: 40px;
-  --focus-line-height: 1.5;
-  --focus-font-family: system-ui, -apple-system, sans-serif;
 }
 
 /* Word button styles for multiple choice sentences */
@@ -169,22 +164,21 @@
 /* BORTTAGEN: Force Card component background - orsakade vita plattor */
 
 /* Full text formatting for main reading content - body text elements - only target inner text */
-/* Normal mode (accessibility-enhanced but NOT focus mode) */
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text],
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose p,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose div,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose span,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose strong,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose b,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose em,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose i,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose ul,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose ol,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose li,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose blockquote,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose a,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose code {
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] .prose,
+.reading-content.accessibility-enhanced [data-reading-text] .prose p,
+.reading-content.accessibility-enhanced [data-reading-text] .prose div,
+.reading-content.accessibility-enhanced [data-reading-text] .prose span,
+.reading-content.accessibility-enhanced [data-reading-text] .prose strong,
+.reading-content.accessibility-enhanced [data-reading-text] .prose b,
+.reading-content.accessibility-enhanced [data-reading-text] .prose em,
+.reading-content.accessibility-enhanced [data-reading-text] .prose i,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ul,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ol,
+.reading-content.accessibility-enhanced [data-reading-text] .prose li,
+.reading-content.accessibility-enhanced [data-reading-text] .prose blockquote,
+.reading-content.accessibility-enhanced [data-reading-text] .prose a,
+.reading-content.accessibility-enhanced [data-reading-text] .prose code {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
   font-family: var(--accessibility-font-family) !important;
@@ -192,19 +186,13 @@
   /* ❌ ingen background-color här */
 }
 
-/* Also apply to reading content WITHOUT accessibility-enhanced class (default styling) */
-.reading-content:not(.accessibility-enhanced):not(.reading-focus-mode) [data-reading-text] {
-  font-size: 16px;
-  line-height: 1.5;
-}
-
 /* Headings - only font size and colors, not line-height - only target inner text */
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h1,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h2,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h3,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h4,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h5,
-.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text] .prose h6 {
+.reading-content.accessibility-enhanced [data-reading-text] .prose h1,
+.reading-content.accessibility-enhanced [data-reading-text] .prose h2,
+.reading-content.accessibility-enhanced [data-reading-text] .prose h3,
+.reading-content.accessibility-enhanced [data-reading-text] .prose h4,
+.reading-content.accessibility-enhanced [data-reading-text] .prose h5,
+.reading-content.accessibility-enhanced [data-reading-text] .prose h6 {
   font-size: var(--accessibility-font-size) !important;
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
@@ -213,18 +201,18 @@
 }
 
 /* Extra specific override to force font size on body text elements - only target inner text */
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+div.reading-content.accessibility-enhanced [data-reading-text].prose *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
   font-size: var(--accessibility-font-size) !important;
   line-height: var(--accessibility-line-height) !important;
 }
 
 /* Extra specific override for headings - only font size - only target inner text */
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h1,
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h2,
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h3,
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h4,
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h5,
-div.reading-content.accessibility-enhanced:not(.reading-focus-mode) [data-reading-text].prose h6 {
+div.reading-content.accessibility-enhanced [data-reading-text].prose h1,
+div.reading-content.accessibility-enhanced [data-reading-text].prose h2,
+div.reading-content.accessibility-enhanced [data-reading-text].prose h3,
+div.reading-content.accessibility-enhanced [data-reading-text].prose h4,
+div.reading-content.accessibility-enhanced [data-reading-text].prose h5,
+div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   font-size: var(--accessibility-font-size) !important;
   line-height: 1.2 !important;
 }
@@ -788,58 +776,6 @@ button[class*="navigation-button"]:hover,
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
-}
-
-/* ===== FOCUS MODE STYLES - COMPLETELY SEPARATE FROM ACCESSIBILITY ===== */
-
-/* Focus mode styles - uses its own CSS variables and class */
-.reading-content.reading-focus-mode [data-reading-text],
-.reading-content.reading-focus-mode [data-reading-text] .prose,
-.reading-content.reading-focus-mode [data-reading-text] .prose p,
-.reading-content.reading-focus-mode [data-reading-text] .prose div,
-.reading-content.reading-focus-mode [data-reading-text] .prose span,
-.reading-content.reading-focus-mode [data-reading-text] .prose strong,
-.reading-content.reading-focus-mode [data-reading-text] .prose b,
-.reading-content.reading-focus-mode [data-reading-text] .prose em,
-.reading-content.reading-focus-mode [data-reading-text] .prose i,
-.reading-content.reading-focus-mode [data-reading-text] .prose ul,
-.reading-content.reading-focus-mode [data-reading-text] .prose ol,
-.reading-content.reading-focus-mode [data-reading-text] .prose li,
-.reading-content.reading-focus-mode [data-reading-text] .prose blockquote,
-.reading-content.reading-focus-mode [data-reading-text] .prose a,
-.reading-content.reading-focus-mode [data-reading-text] .prose code {
-  font-size: var(--focus-font-size) !important;
-  line-height: var(--focus-line-height) !important;
-  font-family: var(--focus-font-family) !important;
-}
-
-/* Focus mode headings */
-.reading-content.reading-focus-mode [data-reading-text] .prose h1,
-.reading-content.reading-focus-mode [data-reading-text] .prose h2,
-.reading-content.reading-focus-mode [data-reading-text] .prose h3,
-.reading-content.reading-focus-mode [data-reading-text] .prose h4,
-.reading-content.reading-focus-mode [data-reading-text] .prose h5,
-.reading-content.reading-focus-mode [data-reading-text] .prose h6 {
-  font-size: var(--focus-font-size) !important;
-  font-family: var(--focus-font-family) !important;
-  line-height: 1.2 !important; /* Fixed line height for headings */
-}
-
-/* Extra specific override for focus mode body text */
-div.reading-content.reading-focus-mode [data-reading-text].prose *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
-  font-size: var(--focus-font-size) !important;
-  line-height: var(--focus-line-height) !important;
-}
-
-/* Extra specific override for focus mode headings */
-div.reading-content.reading-focus-mode [data-reading-text].prose h1,
-div.reading-content.reading-focus-mode [data-reading-text].prose h2,
-div.reading-content.reading-focus-mode [data-reading-text].prose h3,
-div.reading-content.reading-focus-mode [data-reading-text].prose h4,
-div.reading-content.reading-focus-mode [data-reading-text].prose h5,
-div.reading-content.reading-focus-mode [data-reading-text].prose h6 {
-  font-size: var(--focus-font-size) !important;
-  line-height: 1.2 !important;
 }
 
 /* OLD SPOTLIGHT REMOVED - using 4-scrim system now */

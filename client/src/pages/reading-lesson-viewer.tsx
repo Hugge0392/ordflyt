@@ -36,7 +36,6 @@ import {
   Settings,
 } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
-import { FocusModeControls } from "@/components/ui/focus-mode-controls";
 
 interface HoveredWord {
   word: string;
@@ -87,8 +86,6 @@ export default function ReadingLessonViewer() {
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
-  // Focus mode settings management
-  
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
     try {
@@ -120,72 +117,6 @@ export default function ReadingLessonViewer() {
     setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
     setCurrentReadingLine(0); // Reset to first line of new page
   };
-
-  // Focus mode settings management
-  const defaultFocusSettings = {
-    fontSize: 40,
-    lineHeight: 1.5
-  };
-
-  const applyFocusSettings = (settings: any) => {
-    console.log('Applying focus settings:', settings);
-    
-    // Add reading-focus-mode class to reading content that contains the text
-    const readingContents = document.querySelectorAll('.reading-content');
-    readingContents.forEach(element => {
-      element.classList.add('reading-focus-mode');
-    });
-    console.log('Added reading-focus-mode class to reading content');
-  };
-
-  const getCurrentAccessibilitySettings = () => {
-    try {
-      const saved = localStorage.getItem('accessibility-settings');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Failed to read accessibility settings:', error);
-    }
-    return null;
-  };
-
-  const getFocusSettings = () => {
-    try {
-      const saved = localStorage.getItem('focus-mode-settings');
-      console.log('Saved focus settings from localStorage:', saved);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const merged = { ...defaultFocusSettings, ...parsed };
-        console.log('Merged focus settings:', merged);
-        return merged;
-      }
-    } catch (error) {
-      console.error('Failed to read focus mode settings:', error);
-    }
-    console.log('Using default focus settings:', defaultFocusSettings);
-    return defaultFocusSettings;
-  };
-
-  const saveFocusSettings = (settings: any) => {
-    try {
-      console.log('Saving focus settings:', settings);
-      localStorage.setItem('focus-mode-settings', JSON.stringify(settings));
-    } catch (error) {
-      console.error('Failed to save focus mode settings:', error);
-    }
-  };
-
-  // Reset focus settings to defaults (for debugging)
-  const resetFocusSettings = () => {
-    console.log('Resetting focus settings to defaults');
-    localStorage.removeItem('focus-mode-settings');
-  };
-
-  // Reset focus settings on component mount to ensure we start fresh
-  useEffect(() => {
-    resetFocusSettings();
-  }, []);
 
   // DOM measurement functions from ChatGPT's solution
 
@@ -295,25 +226,22 @@ export default function ReadingLessonViewer() {
     }
 
     // Update font size, line height, and font family CSS variables
-    // But only if we're not in focus mode (focus mode has its own settings)
-    if (!readingFocusMode) {
-      root.style.setProperty(
-        "--accessibility-font-size",
-        `${accessibilitySettings.fontSize}px`,
-      );
-      root.style.setProperty(
-        "--accessibility-line-height",
-        accessibilitySettings.lineHeight.toString(),
-      );
-      root.style.setProperty(
-        "--reading-font-size",
-        `${accessibilitySettings.fontSize}px`,
-      );
-      root.style.setProperty(
-        "--reading-line-height",
-        accessibilitySettings.lineHeight.toString(),
-      );
-    }
+    root.style.setProperty(
+      "--accessibility-font-size",
+      `${accessibilitySettings.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--accessibility-line-height",
+      accessibilitySettings.lineHeight.toString(),
+    );
+    root.style.setProperty(
+      "--reading-font-size",
+      `${accessibilitySettings.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--reading-line-height",
+      accessibilitySettings.lineHeight.toString(),
+    );
 
     // Update font family
     const fontFamily =
@@ -321,7 +249,7 @@ export default function ReadingLessonViewer() {
         ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
         : "system-ui, -apple-system, sans-serif";
     root.style.setProperty("--accessibility-font-family", fontFamily);
-  }, [accessibilitySettings, readingFocusMode]);
+  }, [accessibilitySettings]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
@@ -587,29 +515,6 @@ export default function ReadingLessonViewer() {
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
 
-  // Handle focus mode settings switching
-  useEffect(() => {
-    console.log('Focus mode useEffect triggered, readingFocusMode:', readingFocusMode);
-    if (readingFocusMode) {
-      // Entering focus mode - apply focus settings
-      const focusSettings = getFocusSettings();
-      console.log('About to apply focus settings:', focusSettings);
-      applyFocusSettings(focusSettings);
-    } else {
-      // Exiting focus mode - remove focus mode class
-      console.log('Exiting focus mode');
-      
-      // Remove reading-focus-mode class from all reading content elements
-      const readingContents = document.querySelectorAll('.reading-content');
-      readingContents.forEach(element => {
-        element.classList.remove('reading-focus-mode');
-      });
-      
-      console.log('Removed reading-focus-mode class from reading content');
-    }
-  }, [readingFocusMode]);
-
-
   // Keyboard navigation for reading focus mode
   useEffect(() => {
     if (!readingFocusMode) return;
@@ -770,9 +675,6 @@ export default function ReadingLessonViewer() {
         backgroundColor: readingFocusMode ? "#242424" : undefined,
       }}
     >
-      {/* Focus Mode Controls - only visible in focus mode */}
-      {readingFocusMode && <FocusModeControls />}
-      
       <div className={`max-w-7xl mx-auto ${readingFocusMode ? 'p-2 pt-6' : 'p-6'}`}>
         {/* Header */}
         {!readingFocusMode && (
@@ -1402,7 +1304,8 @@ export default function ReadingLessonViewer() {
                     ref={textRef}
                     data-reading-text=""     // märkning för killswitch-regeln
                     style={{
-                      // fontSize and lineHeight now handled by CSS rules
+                      fontSize: readingFocusMode ? `${accessibilitySettings.fontSize + 4}px` : `${accessibilitySettings.fontSize}px`, // större font i fokusläge
+                      lineHeight: `${accessibilitySettings.lineHeight}`, // flyttat hit från container
                       position: "relative",
                       zIndex: 10, // lägre än spotlight
                       mixBlendMode: "normal",
