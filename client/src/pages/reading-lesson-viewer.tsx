@@ -296,22 +296,25 @@ export default function ReadingLessonViewer() {
     }
 
     // Update font size, line height, and font family CSS variables
-    root.style.setProperty(
-      "--accessibility-font-size",
-      `${accessibilitySettings.fontSize}px`,
-    );
-    root.style.setProperty(
-      "--accessibility-line-height",
-      accessibilitySettings.lineHeight.toString(),
-    );
-    root.style.setProperty(
-      "--reading-font-size",
-      `${accessibilitySettings.fontSize}px`,
-    );
-    root.style.setProperty(
-      "--reading-line-height",
-      accessibilitySettings.lineHeight.toString(),
-    );
+    // But only if we're not in focus mode (focus mode has its own settings)
+    if (!readingFocusMode) {
+      root.style.setProperty(
+        "--accessibility-font-size",
+        `${accessibilitySettings.fontSize}px`,
+      );
+      root.style.setProperty(
+        "--accessibility-line-height",
+        accessibilitySettings.lineHeight.toString(),
+      );
+      root.style.setProperty(
+        "--reading-font-size",
+        `${accessibilitySettings.fontSize}px`,
+      );
+      root.style.setProperty(
+        "--reading-line-height",
+        accessibilitySettings.lineHeight.toString(),
+      );
+    }
 
     // Update font family
     const fontFamily =
@@ -319,7 +322,7 @@ export default function ReadingLessonViewer() {
         ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
         : "system-ui, -apple-system, sans-serif";
     root.style.setProperty("--accessibility-font-family", fontFamily);
-  }, [accessibilitySettings]);
+  }, [accessibilitySettings, readingFocusMode]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
