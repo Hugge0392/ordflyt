@@ -537,20 +537,23 @@ export default function ReadingLessonViewer() {
     const focusTopInViewport = contRect.top + focusRect.top;
     const focusBottomInViewport = focusTopInViewport + focusRect.height;
     
-    // Check if focus rect is outside viewport
+    // Check if focus rect is in the outer thirds of viewport
     const viewportHeight = window.innerHeight;
-    const buffer = 100; // Extra space from edges
+    const upperThird = viewportHeight / 3;
+    const lowerThird = viewportHeight * 2 / 3;
     
-    if (focusTopInViewport < buffer) {
-      // Focus is above viewport, scroll up
+    if (focusTopInViewport < upperThird) {
+      // Focus is in upper third, scroll up to center it
+      const targetY = window.scrollY + focusTopInViewport - (viewportHeight / 2) + (focusRect.height / 2);
       window.scrollTo({
-        top: window.scrollY + focusTopInViewport - buffer,
+        top: Math.max(0, targetY),
         behavior: "smooth"
       });
-    } else if (focusBottomInViewport > viewportHeight - buffer) {
-      // Focus is below viewport, scroll down
+    } else if (focusBottomInViewport > lowerThird) {
+      // Focus is in lower third, scroll down to center it
+      const targetY = window.scrollY + focusBottomInViewport - (viewportHeight / 2) - (focusRect.height / 2);
       window.scrollTo({
-        top: window.scrollY + (focusBottomInViewport - viewportHeight + buffer),
+        top: targetY,
         behavior: "smooth"
       });
     }
