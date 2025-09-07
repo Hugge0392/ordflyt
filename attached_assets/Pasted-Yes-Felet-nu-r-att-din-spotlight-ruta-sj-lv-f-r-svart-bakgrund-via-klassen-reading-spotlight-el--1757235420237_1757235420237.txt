@@ -1,0 +1,73 @@
+Yes! Felet nu är att din spotlight-ruta själv får svart bakgrund via klassen .reading-spotlight-el (med !important). Du försöker sätta background: "transparent" inline – men den förlorar mot CSS-regeln med !important. Resultat: en svart rektangel ligger ovanpå texten ⇒ texten syns inte.
+
+Gör så här (liten, säker fix):
+
+1) Ta bort/byt regeln som sätter bakgrund på .reading-spotlight-el
+
+Du sätter den både i globala CSS och inne i komponenten via <style>:
+
+/* TA BORT eller byt klassnamn – den här täcker texten */
+.reading-spotlight-el {
+  position: absolute;
+  background: rgba(0,0,0,0.85) !important;  /* ← denna gör rutan svart */
+  pointer-events: none !important;
+  z-index: 30;
+}
+
+
+och i komponenten:
+
+<style>{`
+  .reading-spotlight-el {
+    background: rgba(0,0,0,0.85) !important;
+    pointer-events: none !important;
+  }
+`}</style>
+
+
+Ta bort båda, eller byt till en ny klass (se nedan).
+
+2) Använd två separata klasser
+
+En för “gardiner” (om du någon gång vill tillbaka till 4-divs-modellen), och en för “fönster”-varianten du kör nu:
+
+/* Om du någon gång vill använda 4-delad mask */
+.reading-spotlight-mask {
+  position: absolute;
+  background: rgba(0,0,0,0.85) !important;
+  pointer-events: none !important;
+  z-index: 30;
+}
+
+/* Den vi använder nu: ett fönster med box-shadow runtom */
+.reading-spotlight-window {
+  position: absolute;
+  pointer-events: none !important;
+  z-index: 30;
+  background: transparent !important;        /* viktigt */
+}
+
+3) Uppdatera JSX för overlayn
+
+Byt klassnamn till reading-spotlight-window och lägg skuggan där:
+
+{readingFocusMode && focusRect && (
+  <div
+    className="reading-spotlight-window"
+    style={{
+      top: `${focusRect.top}px`,
+      left: `${focusRect.left}px`,
+      width: `${focusRect.width}px`,
+      height: `${focusRect.height}px`,
+      boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",
+      border: "2px solid var(--accessibility-text-color)",
+      borderRadius: 4
+    }}
+  />
+)}
+
+4) (Behåll)
+
+position: relative; isolation: isolate; på .reading-content.accessibility-enhanced (du har redan position: relative; lägg gärna till isolation: isolate; om du vill garantera eget stacking-context).
+
+Efter dessa tre ändringar kommer “fönstret” vara transparent och bara området utanför mörknas — texten syns skarpt igen.

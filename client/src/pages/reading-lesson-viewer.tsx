@@ -1159,11 +1159,6 @@ export default function ReadingLessonViewer() {
                   onMouseOut={handleContentMouseOut}
                 >
                   <style>{`
-                    /* Spotlight måste få behålla sin bakgrund oavsett andra resets */
-                    .reading-spotlight-el {
-                      background: rgba(0,0,0,0.85) !important;
-                      pointer-events: none !important;
-                    }
 
                     /* Dölj bara divider/HR */
                     .reading-content hr,
@@ -1212,17 +1207,15 @@ export default function ReadingLessonViewer() {
 
                   {readingFocusMode && focusRect && (
                     <div
-                      className="reading-spotlight-el"
+                      className="reading-spotlight-window"
                       style={{
                         top: `${focusRect.top}px`,
                         left: `${focusRect.left}px`,
                         width: `${focusRect.width}px`,
                         height: `${focusRect.height}px`,
-                        /* gör allt runt omkring mörkt */
                         boxShadow: "0 0 0 100vmax rgba(0,0,0,0.85)",
                         border: "2px solid var(--accessibility-text-color)",
-                        borderRadius: 4,
-                        background: "transparent"
+                        borderRadius: 4
                       }}
                     />
                   )}

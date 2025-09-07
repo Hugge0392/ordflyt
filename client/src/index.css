@@ -257,6 +257,7 @@ div.reading-content.accessibility-enhanced.prose h6 {
 .reading-content.accessibility-enhanced {
   /* samma element som har ref={contentRef} */
   position: relative;         /* referens för overlay */
+  isolation: isolate;         /* garantera eget stacking-context */
   overflow: auto;             /* container scroll */
   max-width: 68ch;            /* trevlig läsbredd */
   margin-inline: auto;
@@ -640,12 +641,20 @@ button[class*="navigation-button"]:hover,
   border: 1px solid #000000 !important;
 }
 
-/* Spotlight: måste vinna över allt */
-.reading-spotlight-el {
+/* Om du någon gång vill använda 4-delad mask */
+.reading-spotlight-mask {
   position: absolute;
   background: rgba(0,0,0,0.85) !important;
   pointer-events: none !important;
-  z-index: 30; /* du har redan z-klass, detta är extra säkerhet */
+  z-index: 30;
+}
+
+/* Den vi använder nu: ett fönster med box-shadow runtom */
+.reading-spotlight-window {
+  position: absolute;
+  pointer-events: none !important;
+  z-index: 30;
+  background: transparent !important;        /* viktigt */
 }
 
 /* Card text color inheritance for headings and emphasis */
