@@ -837,7 +837,7 @@ export default function ReadingLessonViewer() {
                             (option: string, optionIndex: number) => {
                               const optionValue = String.fromCharCode(
                                 65 + optionIndex,
-                              };
+                              );
                               const isSelected = currentAnswer === optionValue;
 
                               return (
@@ -854,7 +854,7 @@ export default function ReadingLessonViewer() {
                                       handleQuestionsPanel12Change(
                                         currentQuestionIndex,
                                         optionValue,
-                                      }
+                                      )
                                     }
                                     className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                                     style={{
@@ -866,7 +866,7 @@ export default function ReadingLessonViewer() {
                                     {option}
                                   </span>
                                 </label>
-                              };
+                              );
                             },
                           )}
                         </div>
@@ -893,7 +893,7 @@ export default function ReadingLessonViewer() {
                                   handleQuestionsPanel12Change(
                                     currentQuestionIndex,
                                     option,
-                                  }
+                                  )
                                 }
                                 className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
                                 style={{
@@ -919,7 +919,7 @@ export default function ReadingLessonViewer() {
                             handleQuestionsPanel12Change(
                               currentQuestionIndex,
                               e.target.value,
-                            }
+                            )
                           }
                           placeholder="Skriv ditt svar här..."
                           className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
@@ -1231,7 +1231,7 @@ export default function ReadingLessonViewer() {
                                   navigera
                                 </div>
                               </div>
-                            }}
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1498,9 +1498,9 @@ export default function ReadingLessonViewer() {
                                                 />
                                                 <span className="text-gray-700">{option}</span>
                                               </label>
-                                            })}
+                                            ))}
                                           </div>
-                                        } : (
+                                        ) : (
                                           <textarea
                                             value={generalAnswers[index] || ''}
                                             onChange={(e) => setGeneralAnswers(prev => ({ ...prev, [index]: e.target.value }))}
@@ -1508,12 +1508,12 @@ export default function ReadingLessonViewer() {
                                             rows={3}
                                             placeholder="Skriv ditt svar här..."
                                           />
-                                        }}
+                                        )}
                                       </div>
-                                    })}
+                                    ))}
                                   </div>
                                 </div>
-                              }}
+                              )}
                               
                               {/* Page-specific questions */}
                               {lesson.pages?.[currentPage]?.questions && lesson.pages[currentPage].questions!.length > 0 && (
@@ -1542,9 +1542,9 @@ export default function ReadingLessonViewer() {
                                                   />
                                                   <span className="text-gray-700">{option}</span>
                                                 </label>
-                                              })}
+                                              ))}
                                             </div>
-                                          } : (
+                                          ) : (
                                             <textarea
                                               value={questionsPanel12Answers[questionIndex] || ''}
                                               onChange={(e) => setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: e.target.value }))}
@@ -1552,13 +1552,13 @@ export default function ReadingLessonViewer() {
                                               rows={3}
                                               placeholder="Skriv ditt svar här..."
                                             />
-                                          }}
+                                          )}
                                         </div>
-                                      };
+                                      );
                                     })}
                                   </div>
                                 </div>
-                              }}
+                              )}
                             </div>
                             
                             <div className="mt-6 flex justify-end gap-3">
