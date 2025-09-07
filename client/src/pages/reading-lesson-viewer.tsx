@@ -132,11 +132,11 @@ export default function ReadingLessonViewer() {
     root.style.setProperty('--focus-font-size', `${settings.fontSize}px`);
     root.style.setProperty('--focus-line-height', settings.lineHeight.toString());
     
-    // Add reading-focus-mode class to reading content (not body)
-    const readingContent = document.querySelector('.reading-content');
-    if (readingContent) {
-      readingContent.classList.add('reading-focus-mode');
-    }
+    // Add reading-focus-mode class to reading content that contains the text
+    const readingContents = document.querySelectorAll('.reading-content');
+    readingContents.forEach(element => {
+      element.classList.add('reading-focus-mode');
+    });
     console.log('Focus settings applied - font size:', settings.fontSize, 'line height:', settings.lineHeight);
     console.log('Added reading-focus-mode class to reading content');
   };
@@ -602,11 +602,11 @@ export default function ReadingLessonViewer() {
       // Exiting focus mode - remove focus mode class
       console.log('Exiting focus mode');
       
-      // Remove reading-focus-mode class from reading content
-      const readingContent = document.querySelector('.reading-content');
-      if (readingContent) {
-        readingContent.classList.remove('reading-focus-mode');
-      }
+      // Remove reading-focus-mode class from all reading content elements
+      const readingContents = document.querySelectorAll('.reading-content');
+      readingContents.forEach(element => {
+        element.classList.remove('reading-focus-mode');
+      });
       
       console.log('Removed reading-focus-mode class from reading content');
     }
