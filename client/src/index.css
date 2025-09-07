@@ -252,8 +252,7 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   overflow: auto;             /* container scroll */
   width: 100%;                /* fyller hela kortet */
   max-width: none;            /* ingen begränsning */
-  padding: 0;                 /* ingen padding alls */
-  margin: 0;                  /* ingen margin */
+  padding-inline: 1rem;
   display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
 }
 
@@ -652,23 +651,20 @@ button[class*="navigation-button"]:hover,
   box-shadow: none !important;
 }
 
-/* Scrims måste vara SVARTA – fungerar både lokalt och globalt */
-.rf-scrim {
+/* Scrims måste vara SVARTA – hög specificitet inne i containern */
+.reading-content.accessibility-enhanced .rf-scrim {
   background: rgba(0,0,0,0.86) !important;
   pointer-events: none !important;
+  z-index: 2147483646 !important;
 }
 
 /* Ramen runt fönstret */
-.rf-frame {
+.reading-content.accessibility-enhanced .rf-frame {
   border: 2px solid var(--accessibility-text-color) !important;
   border-radius: 4px !important;
   background: transparent !important;
   pointer-events: none !important;
-}
-
-/* Se till att close-knappen har högre z-index än scrimsen */
-.focus-close-btn {
-  z-index: 2147483648 !important;
+  z-index: 2147483647 !important;
 }
 
 .reading-content.accessibility-enhanced { isolation: isolate !important; }

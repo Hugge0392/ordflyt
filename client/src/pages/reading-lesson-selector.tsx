@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target, Globe, EyeOff, Trash2, Eye } from "lucide-react";
+import { BookOpen, Plus, Edit, Clock, ArrowLeft, User, Target, Globe, EyeOff, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -327,31 +327,7 @@ export default function ReadingLessonSelector() {
                         <Badge variant={lesson.isPublished === 1 ? "default" : "secondary"}>
                           {lesson.isPublished === 1 ? "Publicerad" : "Utkast"}
                         </Badge>
-                        <div className="flex gap-1 flex-wrap">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/lasforstaelse/lektion/${lesson.id}`);
-                            }}
-                            data-testid={`button-preview-lesson-${lesson.id}`}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Förhandsgranska
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/lasforstaelse/skapa/${lesson.id}`);
-                            }}
-                            data-testid={`button-edit-lesson-${lesson.id}`}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Redigera
-                          </Button>
+                        <div className="flex gap-2">
                           <Button 
                             size="sm" 
                             variant={lesson.isPublished === 1 ? "destructive" : "default"}
@@ -376,6 +352,18 @@ export default function ReadingLessonSelector() {
                                 Publicera
                               </>
                             )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/lasforstaelse/skapa/${lesson.id}`);
+                            }}
+                            data-testid={`button-edit-lesson-${lesson.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Redigera
                           </Button>
                           <Button 
                             size="sm" 
