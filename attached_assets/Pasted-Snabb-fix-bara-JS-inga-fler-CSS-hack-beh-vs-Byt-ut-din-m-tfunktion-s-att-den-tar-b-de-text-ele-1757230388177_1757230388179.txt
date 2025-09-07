@@ -1,0 +1,113 @@
+Snabb fix (bara JS – inga fler CSS-hack behövs)
+
+Byt ut din mätfunktion så att den tar både text-elementet och container-elementet, och addera scrollTop/scrollLeft när du normaliserar:
+
+// 1) ändra signaturen
+function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
+  if (!textEl || !containerEl) return [];
+
+  const rects: DOMRect[] = [];
+  const textNodes = getAllTextNodes(textEl);
+  if (!textNodes.length) return [];
+
+  const range = document.createRange();
+
+  for (const tn of textNodes) {
+    const len = tn.length;
+    let lastTop: number | null = null;
+
+    for (let i = 0; i < len; i++) {
+      range.setStart(tn, i);
+      range.setEnd(tn, i + 1);
+      const clientRects = range.getClientRects();
+      if (!clientRects?.length) continue;
+
+      const r = clientRects[0];
+      if (r.width === 0 || r.height === 0) continue;
+
+      if (lastTop === null || Math.abs(r.top - lastTop) > 0.5) {
+        rects.push(r);
+        lastTop = r.top;
+      } else {
+        const prev = rects[rects.length - 1];
+        const left = Math.min(prev.left, r.left);
+        const right = Math.max(prev.right, r.right);
+        rects[rects.length - 1] = new DOMRect(
+          left,
+          prev.top,
+          right - left,
+          Math.max(prev.height, r.height)
+        );
+      }
+    }
+  }
+
+  // normalisera till container-koordinater (scroll-stabila)
+  const cont = containerEl.getBoundingClientRect();
+  const normalized = rects
+    .filter(r => r.width > 0 && r.height > 0)
+    .sort((a, b) => a.top - b.top)
+    .map(r => new DOMRect(
+      r.left - cont.left + containerEl.scrollLeft,   // <-- lägg till scroll
+      r.top  - cont.top  + containerEl.scrollTop,    // <-- lägg till scroll
+      r.width,
+      r.height
+    ));
+
+  // slå ihop splittrade linjer
+  const merged: DOMRect[] = [];
+  for (const r of normalized) {
+    const last = merged[merged.length - 1];
+    if (last && Math.abs(last.top - r.top) < 0.5) {
+      const left = Math.min(last.left, r.left);
+      const right = Math.max(last.left + last.width, r.left + r.width);
+      merged[merged.length - 1] = new DOMRect(left, last.top, right - left, Math.max(last.height, r.height));
+    } else {
+      merged.push(r);
+    }
+  }
+  return merged;
+}
+
+
+Anropa den så här i din effect:
+
+useEffect(() => {
+  if (!textRef.current || !contentRef.current) return;
+
+  const measure = () => {
+    if (!textRef.current || !contentRef.current) return;
+    try {
+      const rects = measureLineRects(textRef.current, contentRef.current);
+      setLineRects(rects);
+      setCurrentReadingLine(0);
+    } catch (e) {
+      console.warn('Error measuring line rects:', e);
+      setLineRects([]);
+      setCurrentReadingLine(0);
+    }
+  };
+
+  const id = requestAnimationFrame(measure);
+  const roText = new ResizeObserver(measure);
+  const roCont = new ResizeObserver(measure);
+  roText.observe(textRef.current);
+  roCont.observe(contentRef.current);
+
+  return () => {
+    cancelAnimationFrame(id);
+    roText.disconnect();
+    roCont.disconnect();
+  };
+}, [lesson, currentPage, accessibilitySettings.fontSize, accessibilitySettings.lineHeight, accessibilitySettings.fontFamily]);
+
+
+focusRect-beräkningen kan vara kvar som du har den.
+
+Bonus – två små saker till
+
+I din CSS har du --accessibility-text-color: inherit; i :root. Det är okej, men eftersom du också läser variabeln via document.documentElement.style.getPropertyValue(...) (som bara ser inline-stil) får du tom sträng tills JS sätter den. Det är helt fine eftersom du sätter ett fallback i koden – men om du någon gång undrar över konstiga startfärger, är det därför.
+
+Du har väldigt aggressiva !important-regler. De är inte orsaken till den svarta masken, men kan göra felsökning svårare. När detta funkar, fundera på att ta bort några av de globala “force overrides”.
+
+Testa patchen ovan – den brukar lösa “allt blir svart”-problemet direkt. Om något fortfarande strular, säg till vilken del (masken, färgerna eller mätningen) så tittar jag på nästa detalj.

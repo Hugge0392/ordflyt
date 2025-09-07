@@ -1,16 +1,41 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BookOpen, Clock, ArrowLeft, User, Target, ChevronLeft, ChevronRight, Eye, Settings } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  ArrowLeft,
+  User,
+  Target,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Settings,
+} from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
-
 
 interface HoveredWord {
   word: string;
@@ -22,61 +47,69 @@ interface HoveredWord {
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(0);
-  const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
-  const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
+  const [readingAnswers, setReadingAnswers] = useState<
+    Record<number, Record<number, string>>
+  >({});
+  const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>(
+    {},
+  );
   const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
   const [showQuestions, setShowQuestions] = useState(true);
-  
+
   // New questions panel state with unique names
-  const [questionsPanel12Answers, setQuestionsPanel12Answers] = useState<Record<number, string>>({});
+  const [questionsPanel12Answers, setQuestionsPanel12Answers] = useState<
+    Record<number, string>
+  >({});
   const [showQuestionsPanel12, setShowQuestionsPanel12] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  
+
   // Accessibility settings state
   const [accessibilitySettings, setAccessibilitySettings] = useState({
     fontSize: 30,
     lineHeight: 1.5,
-    backgroundColor: 'black-on-white' as const,
-    fontFamily: 'standard' as const
+    backgroundColor: "black-on-white" as const,
+    fontFamily: "standard" as const,
   });
-  
+
   // State for accessibility colors
   const [accessibilityColors, setAccessibilityColors] = useState({
-    backgroundColor: '#ffffff',
-    textColor: '#000000'
+    backgroundColor: "#ffffff",
+    textColor: "#000000",
   });
-  
+
   // Reading Focus Mode states - using "readingFocus" prefix to avoid conflicts
   const [readingFocusMode, setReadingFocusMode] = useState(false);
   const [readingFocusLines, setReadingFocusLines] = useState(1); // 1, 3, or 5 lines
   const [currentReadingLine, setCurrentReadingLine] = useState(0);
-  
+
   // New DOM-based reading focus states
   const contentRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
-  
+
   // DOM measurement functions from ChatGPT's solution
   function getAllTextNodes(root: Node): Text[] {
     const out: Text[] = [];
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: (n) => {
         // Skip empty text nodes (only whitespace)
-        return /\S/.test(n.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-      }
+        return /\S/.test(n.nodeValue || "")
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
     });
     let n: Node | null;
     while ((n = walker.nextNode())) out.push(n as Text);
     return out;
   }
 
-  function measureLineRects(container: HTMLElement): DOMRect[] {
-    if (!container) return [];
-    
+  function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
+    if (!textEl || !containerEl) return [];
+
     const rects: DOMRect[] = [];
-    const textNodes = getAllTextNodes(container);
-    if (textNodes.length === 0) return [];
-    
+    const textNodes = getAllTextNodes(textEl);
+    if (!textNodes.length) return [];
+
     const range = document.createRange();
 
     for (const tn of textNodes) {
@@ -86,19 +119,17 @@ export default function ReadingLessonViewer() {
       for (let i = 0; i < len; i++) {
         range.setStart(tn, i);
         range.setEnd(tn, i + 1);
-        const clientRects = range.getClientRects();
-        if (!clientRects || clientRects.length === 0) continue;
 
-        // A single glyph can have multiple rects (ligatures/wrapping); take first
+        const clientRects = range.getClientRects();
+        if (!clientRects?.length) continue;
+
         const r = clientRects[0];
         if (r.width === 0 || r.height === 0) continue;
 
         if (lastTop === null || Math.abs(r.top - lastTop) > 0.5) {
-          // New line box
           rects.push(r);
           lastTop = r.top;
         } else {
-          // Same line – extend width if we want (optional)
           const prev = rects[rects.length - 1];
           const left = Math.min(prev.left, r.left);
           const right = Math.max(prev.right, r.right);
@@ -112,26 +143,31 @@ export default function ReadingLessonViewer() {
       }
     }
 
-    // Sort and normalize to container coordinates
-    const cont = container.getBoundingClientRect();
+    // Normalisera till containerEl (där overlayn är absolut-positionerad)
+    const cont = containerEl.getBoundingClientRect();
     const normalized = rects
-      .filter(r => r.height > 0 && r.width > 0)
+      .filter(r => r.width > 0 && r.height > 0)
       .sort((a, b) => a.top - b.top)
       .map(r => new DOMRect(
-        r.left - cont.left,
-        r.top - cont.top, // ❗️remove + container.scrollTop
+        r.left - cont.left + containerEl.scrollLeft,
+        r.top  - cont.top  + containerEl.scrollTop,
         r.width,
         r.height
       ));
 
-    // Merge any split lines (e.g. at inline-block) if top is ~same
+    // Slå ihop splittrade delar av samma rad
     const merged: DOMRect[] = [];
     for (const r of normalized) {
       const last = merged[merged.length - 1];
       if (last && Math.abs(last.top - r.top) < 0.5) {
         const left = Math.min(last.left, r.left);
         const right = Math.max(last.left + last.width, r.left + r.width);
-        merged[merged.length - 1] = new DOMRect(left, last.top, right - left, Math.max(last.height, r.height));
+        merged[merged.length - 1] = new DOMRect(
+          left,
+          last.top,
+          right - left,
+          Math.max(last.height, r.height)
+        );
       } else {
         merged.push(r);
       }
@@ -139,7 +175,11 @@ export default function ReadingLessonViewer() {
     return merged;
   }
 
-  const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
+  const {
+    data: lesson,
+    isLoading,
+    error,
+  } = useQuery<ReadingLesson>({
     queryKey: [`/api/reading-lessons/${id}`],
     enabled: !!id,
   });
@@ -148,22 +188,24 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     const updateColors = () => {
       const root = document.documentElement;
-      const bgColor = root.style.getPropertyValue('--accessibility-bg-color') || '#ffffff';
-      const textColor = root.style.getPropertyValue('--accessibility-text-color') || '#000000';
+      const bgColor =
+        root.style.getPropertyValue("--accessibility-bg-color") || "#ffffff";
+      const textColor =
+        root.style.getPropertyValue("--accessibility-text-color") || "#000000";
       setAccessibilityColors({
         backgroundColor: bgColor,
-        textColor: textColor
+        textColor: textColor,
       });
     };
 
     // Update on mount
     updateColors();
-    
+
     // Listen for changes to CSS variables
     const observer = new MutationObserver(updateColors);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['style']
+      attributeFilter: ["style"],
     });
 
     return () => observer.disconnect();
@@ -172,107 +214,137 @@ export default function ReadingLessonViewer() {
   // Update accessibility settings in CSS variables
   useEffect(() => {
     const bgColorMap = {
-      'black-on-white': { bg: '#FFFFFF', text: '#000000' },
-      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
-      'white-on-black': { bg: '#000000', text: '#FFFFFF' },
-      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
-      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
-      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
-      'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
+      "black-on-white": { bg: "#FFFFFF", text: "#000000" },
+      "light-gray-on-gray": { bg: "#595959", text: "#D9D9D9" },
+      "white-on-black": { bg: "#000000", text: "#FFFFFF" },
+      "black-on-light-yellow": { bg: "#FFFFCC", text: "#000000" },
+      "black-on-light-blue": { bg: "#CCFFFF", text: "#000000" },
+      "light-yellow-on-blue": { bg: "#003399", text: "#FFFFCC" },
+      "black-on-light-red": { bg: "#FFCCCC", text: "#000000" },
     };
-    
+
     const colors = bgColorMap[accessibilitySettings.backgroundColor];
-    
+
     const root = document.documentElement;
-    root.style.setProperty('--accessibility-bg-color', colors.bg);
-    root.style.setProperty('--accessibility-text-color', colors.text);
-    
+    root.style.setProperty("--accessibility-bg-color", colors.bg);
+    root.style.setProperty("--accessibility-text-color", colors.text);
+
     // Update font size, line height, and font family CSS variables
-    root.style.setProperty('--accessibility-font-size', `${accessibilitySettings.fontSize}px`);
-    root.style.setProperty('--accessibility-line-height', accessibilitySettings.lineHeight.toString());
-    root.style.setProperty('--reading-font-size', `${accessibilitySettings.fontSize}px`);
-    root.style.setProperty('--reading-line-height', accessibilitySettings.lineHeight.toString());
-    
+    root.style.setProperty(
+      "--accessibility-font-size",
+      `${accessibilitySettings.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--accessibility-line-height",
+      accessibilitySettings.lineHeight.toString(),
+    );
+    root.style.setProperty(
+      "--reading-font-size",
+      `${accessibilitySettings.fontSize}px`,
+    );
+    root.style.setProperty(
+      "--reading-line-height",
+      accessibilitySettings.lineHeight.toString(),
+    );
+
     // Update font family
-    const fontFamily = (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly' 
-      ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-      : 'system-ui, -apple-system, sans-serif';
-    root.style.setProperty('--accessibility-font-family', fontFamily);
+    const fontFamily =
+      (accessibilitySettings.fontFamily as string) === "dyslexia-friendly"
+        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+        : "system-ui, -apple-system, sans-serif";
+    root.style.setProperty("--accessibility-font-family", fontFamily);
   }, [accessibilitySettings]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
-    if (!textRef.current) return;
+    if (!textRef.current || !contentRef.current) return;
 
     const measure = () => {
-      if (!textRef.current) return;
+      if (!textRef.current || !contentRef.current) return;
       try {
-        const rects = measureLineRects(textRef.current);
+        const rects = measureLineRects(textRef.current, contentRef.current);
         setLineRects(rects);
         setCurrentReadingLine(0);
       } catch (error) {
-        console.warn('Error measuring line rects:', error);
+        console.warn("Error measuring line rects:", error);
         setLineRects([]);
         setCurrentReadingLine(0);
       }
     };
 
-    // Measure on next tick when HTML is set
     const id = requestAnimationFrame(measure);
 
-    // Measure on resize/zoom and when observer detects layout changes
-    const ro = new ResizeObserver(measure);
-    ro.observe(textRef.current);
+    const roText = new ResizeObserver(measure);
+    const roCont = new ResizeObserver(measure);
+    roText.observe(textRef.current);
+    roCont.observe(contentRef.current);
 
     return () => {
       cancelAnimationFrame(id);
-      ro.disconnect();
+      roText.disconnect();
+      roCont.disconnect();
     };
-  }, [lesson, currentPage, accessibilitySettings.fontSize, accessibilitySettings.lineHeight, accessibilitySettings.fontFamily]);
+  }, [
+    lesson,
+    currentPage,
+    accessibilitySettings.fontSize,
+    accessibilitySettings.lineHeight,
+    accessibilitySettings.fontFamily,
+  ]);
 
   // Calculate focus rectangle (covers N lines)
   const focusRect = useMemo(() => {
     try {
       if (!lineRects.length) return null;
-      const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
+      const start = Math.min(
+        currentReadingLine,
+        Math.max(0, lineRects.length - 1),
+      );
       const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
       const top = lineRects[start]?.top || 0;
       const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
       const height = bottom - top;
 
-      // Width = text container's content width
-      if (!textRef.current) return null;
-      const cont = textRef.current.getBoundingClientRect();
-      const width = cont.width;
+      if (!contentRef.current) return null;           // <-- container
+      const width = contentRef.current.clientWidth;   // <-- container
 
       return { top, height, left: 0, width };
     } catch (error) {
-      console.warn('Error calculating focus rect:', error);
+      console.warn("Error calculating focus rect:", error);
       return null;
     }
   }, [lineRects, currentReadingLine, readingFocusLines]);
 
   // Create interactive content with word definitions
-  const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
+  const processContentWithDefinitions = (
+    content: string,
+    definitions: WordDefinition[] = [],
+  ) => {
     // Content is already HTML from RichTextEditor, don't convert markdown
     let processedContent = content;
-    
+
     if (!definitions.length) return processedContent;
 
     // Create a map of words to definitions for quick lookup
-    const defMap = new Map(definitions.map(def => [def.word.toLowerCase(), def.definition]));
-    
+    const defMap = new Map(
+      definitions.map((def) => [def.word.toLowerCase(), def.definition]),
+    );
+
     // Process the HTML content to add tooltips to defined words
     definitions.forEach(({ word, definition }) => {
       // Create a regex that matches the word as a whole word (case insensitive)
-      const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
-      
+      const regex = new RegExp(
+        `\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`,
+        "gi",
+      );
+
       // Replace with tooltip-wrapped version
-      processedContent = processedContent.replace(regex, 
-        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
+      processedContent = processedContent.replace(
+        regex,
+        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`,
       );
     });
-    
+
     return processedContent;
   };
 
@@ -280,73 +352,82 @@ export default function ReadingLessonViewer() {
   const pages = useMemo(() => {
     // If lesson has pages data, use that (this supports per-page questions and images)
     if (lesson?.pages && lesson.pages.length > 0) {
-      return lesson.pages.map(page => page.content);
+      return lesson.pages.map((page) => page.content);
     }
-    
+
     // Fallback: split content by page break markers
     if (!lesson?.content) return [];
-    
-    const pageBreakMarker = '--- SIDBRYTNING ---';
+
+    const pageBreakMarker = "--- SIDBRYTNING ---";
     const contentParts = lesson.content.split(pageBreakMarker);
-    
+
     if (contentParts.length === 1) {
       // No page breaks, return single page
       return [contentParts[0]];
     }
-    
-    return contentParts.filter(part => part.trim().length > 0);
+
+    return contentParts.filter((part) => part.trim().length > 0);
   }, [lesson?.content, lesson?.pages]);
 
   // Handle mouse events for word definitions
   const handleContentMouseOver = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.classList.contains('defined-word')) {
-      const word = target.getAttribute('data-word') || '';
-      const definition = target.getAttribute('data-definition') || '';
+    if (target.classList.contains("defined-word")) {
+      const word = target.getAttribute("data-word") || "";
+      const definition = target.getAttribute("data-definition") || "";
       const rect = target.getBoundingClientRect();
       setHoveredWord({
         word,
         definition,
         x: rect.left + rect.width / 2,
-        y: rect.top
+        y: rect.top,
       });
     }
   };
 
   const handleContentMouseOut = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.classList.contains('defined-word')) {
+    if (target.classList.contains("defined-word")) {
       setHoveredWord(null);
     }
   };
 
-
   // Handle answer changes for reading questions
-  const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
-    setReadingAnswers(prev => ({
+  const handleAnswerChange = (
+    pageIndex: number,
+    questionIndex: number,
+    answer: string,
+  ) => {
+    setReadingAnswers((prev) => ({
       ...prev,
       [pageIndex]: {
         ...prev[pageIndex],
-        [questionIndex]: answer
-      }
+        [questionIndex]: answer,
+      },
     }));
   };
 
   // Handle answer changes for general questions
   const handleGeneralAnswerChange = (questionIndex: number, answer: string) => {
-    setGeneralAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+    setGeneralAnswers((prev) => ({ ...prev, [questionIndex]: answer }));
   };
 
   // Handle answer changes for questions panel 12
-  const handleQuestionsPanel12Change = (questionIndex: number, answer: string) => {
-    setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: answer }));
+  const handleQuestionsPanel12Change = (
+    questionIndex: number,
+    answer: string,
+  ) => {
+    setQuestionsPanel12Answers((prev) => ({
+      ...prev,
+      [questionIndex]: answer,
+    }));
   };
 
   // Get all questions from lesson (both general and page-specific)
   const getAllQuestions = () => {
     const allQuestions: Array<{
       question: any;
-      type: 'general' | 'page';
+      type: "general" | "page";
       pageIndex?: number;
       originalIndex: number;
       globalIndex: number;
@@ -357,9 +438,9 @@ export default function ReadingLessonViewer() {
       lesson.questions.forEach((question, index) => {
         allQuestions.push({
           question,
-          type: 'general',
+          type: "general",
           originalIndex: index,
-          globalIndex: allQuestions.length
+          globalIndex: allQuestions.length,
         });
       });
     }
@@ -371,10 +452,10 @@ export default function ReadingLessonViewer() {
           page.questions.forEach((question, questionIndex) => {
             allQuestions.push({
               question,
-              type: 'page',
+              type: "page",
               pageIndex,
               originalIndex: questionIndex,
-              globalIndex: allQuestions.length
+              globalIndex: allQuestions.length,
             });
           });
         }
@@ -389,11 +470,11 @@ export default function ReadingLessonViewer() {
 
   // Navigation functions for questions
   const goToPreviousQuestion = () => {
-    setCurrentQuestionIndex(prev => Math.max(0, prev - 1));
+    setCurrentQuestionIndex((prev) => Math.max(0, prev - 1));
   };
 
   const goToNextQuestion = () => {
-    setCurrentQuestionIndex(prev => Math.min(totalQuestions - 1, prev + 1));
+    setCurrentQuestionIndex((prev) => Math.min(totalQuestions - 1, prev + 1));
   };
 
   const isFirstQuestion = currentQuestionIndex === 0;
@@ -401,7 +482,7 @@ export default function ReadingLessonViewer() {
 
   // Get current question data
   const currentQuestionData = allQuestions[currentQuestionIndex];
-  const currentAnswer = questionsPanel12Answers[currentQuestionIndex] || '';
+  const currentAnswer = questionsPanel12Answers[currentQuestionIndex] || "";
 
   // Check if current question is answered (update reactively)
   const isCurrentQuestionAnswered = useMemo(() => {
@@ -410,27 +491,26 @@ export default function ReadingLessonViewer() {
 
   // Calculate progress percentage
   const progressPercentage = useMemo(() => {
-    const answeredQuestions = Object.keys(questionsPanel12Answers).filter(key => 
-      questionsPanel12Answers[parseInt(key)]?.trim().length > 0
+    const answeredQuestions = Object.keys(questionsPanel12Answers).filter(
+      (key) => questionsPanel12Answers[parseInt(key)]?.trim().length > 0,
     ).length;
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
-
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
     if (!readingFocusMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'ArrowRight') {
+      if (e.code === "Space" || e.code === "ArrowRight") {
         e.preventDefault();
-        setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines))
+        setCurrentReadingLine((prev) =>
+          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines)),
         );
-      } else if (e.code === 'ArrowLeft') {
+      } else if (e.code === "ArrowLeft") {
         e.preventDefault();
-        setCurrentReadingLine(prev => Math.max(0, prev - 1));
-      } else if (e.code === 'Escape') {
+        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
+      } else if (e.code === "Escape") {
         setReadingFocusMode(false);
       }
     };
@@ -439,21 +519,21 @@ export default function ReadingLessonViewer() {
       e.preventDefault();
       if (e.deltaY > 0) {
         // Scroll down
-        setCurrentReadingLine(prev => 
-          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines))
+        setCurrentReadingLine((prev) =>
+          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines)),
         );
       } else {
         // Scroll up
-        setCurrentReadingLine(prev => Math.max(0, prev - 1));
+        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('wheel', handleScroll, { passive: false });
-    
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("wheel", handleScroll, { passive: false });
+
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('wheel', handleScroll);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("wheel", handleScroll);
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
@@ -461,22 +541,29 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     if (!readingFocusMode || !focusRect || !contentRef.current) return;
     const cont = contentRef.current;
-    const targetScrollTop = Math.max(0, focusRect.top + focusRect.height / 2 - cont.clientHeight / 2);
-    cont.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+    const targetScrollTop = Math.max(
+      0,
+      focusRect.top + focusRect.height / 2 - cont.clientHeight / 2,
+    );
+    cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
   }, [currentReadingLine, readingFocusMode, focusRect]);
 
   // Check if all questions for the current page are answered
   const areAllCurrentPageQuestionsAnswered = () => {
     const currentPageQuestions = lesson?.pages?.[currentPage]?.questions;
     if (!currentPageQuestions || currentPageQuestions.length === 0) return true;
-    
+
     // Check page-specific questions in questionsPanel12Answers
     // Calculate unique index for each page question across all pages
     const generalQuestionsCount = lesson?.questions?.length || 0;
-    const previousPagesQuestionsCount = lesson?.pages?.slice(0, currentPage).reduce((sum, page) => sum + (page.questions?.length || 0), 0) || 0;
-    
+    const previousPagesQuestionsCount =
+      lesson?.pages
+        ?.slice(0, currentPage)
+        .reduce((sum, page) => sum + (page.questions?.length || 0), 0) || 0;
+
     return currentPageQuestions.every((_, index) => {
-      const questionIndex = generalQuestionsCount + previousPagesQuestionsCount + index;
+      const questionIndex =
+        generalQuestionsCount + previousPagesQuestionsCount + index;
       const answer = questionsPanel12Answers[questionIndex];
       return answer && answer.trim().length > 0;
     });
@@ -498,7 +585,9 @@ export default function ReadingLessonViewer() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center py-12">
           <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">Läsförståelseövning hittades inte</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            Läsförståelseövning hittades inte
+          </h2>
           <p className="text-muted-foreground mb-4">
             Den begärda övningen kunde inte laddas eller existerar inte.
           </p>
@@ -514,56 +603,54 @@ export default function ReadingLessonViewer() {
   }
 
   return (
-      <div className="min-h-screen bg-background relative">
-        
-        
-        <div className="max-w-7xl mx-auto p-6">
-          {/* Header */}
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Link href="/lasforstaelse">
-                    <Button variant="ghost" size="sm">
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Tillbaka till läsförståelse
-                    </Button>
-                  </Link>
-                </div>
-                <div>
-                </div>
+    <div className="min-h-screen bg-background relative">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <Link href="/lasforstaelse">
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Tillbaka till läsförståelse
+                  </Button>
+                </Link>
               </div>
-              <div className="mt-4">
-                <CardTitle className="text-2xl">{lesson.title}</CardTitle>
-                {lesson.description && (
-                  <CardDescription className="mt-2 text-base">
-                    {lesson.description}
-                  </CardDescription>
-                )}
+              <div></div>
+            </div>
+            <div className="mt-4">
+              <CardTitle className="text-2xl">{lesson.title}</CardTitle>
+              {lesson.description && (
+                <CardDescription className="mt-2 text-base">
+                  {lesson.description}
+                </CardDescription>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {lesson.readingTime || 15} min läsning
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <User className="w-4 h-4" />
+                Årskurs {lesson.gradeLevel}
+              </div>
+              {lesson.subject && (
                 <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {lesson.readingTime || 15} min läsning
+                  <Target className="w-4 h-4" />
+                  {lesson.subject}
                 </div>
-                <div className="flex items-center gap-1">
-                  <User className="w-4 h-4" />
-                  Årskurs {lesson.gradeLevel}
-                </div>
-                {lesson.subject && (
-                  <div className="flex items-center gap-1">
-                    <Target className="w-4 h-4" />
-                    {lesson.subject}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Pre-reading Questions */}
-          {lesson.preReadingQuestions && lesson.preReadingQuestions.length > 0 && (
+        {/* Pre-reading Questions */}
+        {lesson.preReadingQuestions &&
+          lesson.preReadingQuestions.length > 0 && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="text-lg">Innan du läser</CardTitle>
@@ -583,616 +670,764 @@ export default function ReadingLessonViewer() {
             </Card>
           )}
 
-
-          {/* Main Content */}
-          <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
-            
-            {/* New Questions Panel - One Question at a Time */}
-            {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-              <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
-                <div 
-                  className="border rounded-lg p-6"
-                  style={{
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
+          {/* New Questions Panel - One Question at a Time */}
+          {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
+            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+              <div
+                className="border rounded-lg p-6"
+                style={
+                  {
                     backgroundColor: accessibilityColors.backgroundColor,
                     color: accessibilityColors.textColor,
-                    borderColor: 'var(--accessibility-text-color)',
-                    borderWidth: '0.5px',
-                    maxWidth: '720px'
-                  } as React.CSSProperties}
-                >
-                  <h3 className="text-lg font-semibold mb-4">
-                    Frågor
-                  </h3>
+                    borderColor: "var(--accessibility-text-color)",
+                    borderWidth: "0.5px",
+                    maxWidth: "720px",
+                  } as React.CSSProperties
+                }
+              >
+                <h3 className="text-lg font-semibold mb-4">Frågor</h3>
 
-                  {/* Progress indicator */}
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium">
-                        Fråga {currentQuestionIndex + 1} av {totalQuestions}
-                      </p>
-                      {isCurrentQuestionAnswered && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✓ Besvarad
-                        </span>
-                      )}
-                    </div>
-                    <div 
-                      className="w-full bg-gray-200 rounded-full h-2"
-                      style={{ backgroundColor: 'var(--accessibility-text-color)', opacity: 0.2 }}
-                    >
-                      <div 
-                        className="h-2 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${progressPercentage}%`,
-                          backgroundColor: 'var(--accessibility-text-color)',
-                          opacity: 0.8
-                        }}
-                      />
-                    </div>
+                {/* Progress indicator */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">
+                      Fråga {currentQuestionIndex + 1} av {totalQuestions}
+                    </p>
+                    {isCurrentQuestionAnswered && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        ✓ Besvarad
+                      </span>
+                    )}
                   </div>
+                  <div
+                    className="w-full bg-gray-200 rounded-full h-2"
+                    style={{
+                      backgroundColor: "var(--accessibility-text-color)",
+                      opacity: 0.2,
+                    }}
+                  >
+                    <div
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${progressPercentage}%`,
+                        backgroundColor: "var(--accessibility-text-color)",
+                        opacity: 0.8,
+                      }}
+                    />
+                  </div>
+                </div>
 
-                  {/* Current question */}
-                  {currentQuestionData && (
-                    <div className="space-y-4">
-                      <label className="block text-lg font-medium leading-relaxed">
-                        {currentQuestionData.question.question}
-                      </label>
+                {/* Current question */}
+                {currentQuestionData && (
+                  <div className="space-y-4">
+                    <label className="block text-lg font-medium leading-relaxed">
+                      {currentQuestionData.question.question}
+                    </label>
 
-                      {/* Multiple choice questions */}
-                      {(currentQuestionData.question.type === 'multiple_choice' || currentQuestionData.question.type === 'multiple-choice') && 
-                       (currentQuestionData.question.alternatives || currentQuestionData.question.options) && (
+                    {/* Multiple choice questions */}
+                    {(currentQuestionData.question.type === "multiple_choice" ||
+                      currentQuestionData.question.type ===
+                        "multiple-choice") &&
+                      (currentQuestionData.question.alternatives ||
+                        currentQuestionData.question.options) && (
                         <div className="space-y-3">
-                          {(currentQuestionData.question.alternatives || currentQuestionData.question.options)!.map((option: string, optionIndex: number) => {
-                            const optionValue = String.fromCharCode(65 + optionIndex);
-                            const isSelected = currentAnswer === optionValue;
-                            
-                            return (
-                              <label key={optionIndex} className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name={`question-${currentQuestionIndex}`}
-                                  value={optionValue}
-                                  checked={isSelected}
-                                  onChange={() => handleQuestionsPanel12Change(currentQuestionIndex, optionValue)}
-                                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                                  style={{
-                                    accentColor: 'var(--accessibility-text-color)'
-                                  }}
-                                />
-                                <span className="flex-1 text-base">{option}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
+                          {(currentQuestionData.question.alternatives ||
+                            currentQuestionData.question.options)!.map(
+                            (option: string, optionIndex: number) => {
+                              const optionValue = String.fromCharCode(
+                                65 + optionIndex,
+                              );
+                              const isSelected = currentAnswer === optionValue;
 
-                      {/* True/False questions */}
-                      {(currentQuestionData.question.type === 'true_false' || currentQuestionData.question.type === 'true-false') && (
-                        <div className="space-y-3">
-                          {['Sant', 'Falskt'].map((option) => {
-                            const isSelected = currentAnswer === option;
-                            
-                            return (
-                              <label key={option} className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name={`question-${currentQuestionIndex}`}
-                                  value={option}
-                                  checked={isSelected}
-                                  onChange={() => handleQuestionsPanel12Change(currentQuestionIndex, option)}
-                                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                                  style={{
-                                    accentColor: 'var(--accessibility-text-color)'
-                                  }}
-                                />
-                                <span className="flex-1 text-base">{option}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Open-ended questions */}
-                      {(currentQuestionData.question.type === 'open_ended' || currentQuestionData.question.type === 'open') && (
-                        <div className="space-y-2">
-                          <textarea
-                            id={`question-${currentQuestionIndex}`}
-                            value={currentAnswer}
-                            onChange={(e) => handleQuestionsPanel12Change(currentQuestionIndex, e.target.value)}
-                            placeholder="Skriv ditt svar här..."
-                            className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                            style={{
-                              backgroundColor: accessibilityColors.backgroundColor,
-                              color: accessibilityColors.textColor,
-                              borderColor: 'var(--accessibility-text-color)',
-                              fontSize: '16px',
-                              lineHeight: '1.5'
-                            }}
-                            rows={4}
-                          />
-                          {currentAnswer && (
-                            <p className="text-sm text-gray-600">
-                              {currentAnswer.length} tecken
-                            </p>
+                              return (
+                                <label
+                                  key={optionIndex}
+                                  className="flex items-center gap-3 cursor-pointer"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`question-${currentQuestionIndex}`}
+                                    value={optionValue}
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      handleQuestionsPanel12Change(
+                                        currentQuestionIndex,
+                                        optionValue,
+                                      )
+                                    }
+                                    className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    style={{
+                                      accentColor:
+                                        "var(--accessibility-text-color)",
+                                    }}
+                                  />
+                                  <span className="flex-1 text-base">
+                                    {option}
+                                  </span>
+                                </label>
+                              );
+                            },
                           )}
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* Navigation buttons */}
-                  <div className="flex items-center justify-between mt-8 pt-4 border-t" style={{ borderColor: 'var(--accessibility-text-color)', borderTopWidth: '0.5px' }}>
-                    <button
-                      onClick={goToPreviousQuestion}
-                      disabled={isFirstQuestion}
-                      className="unique-prev-question-btn"
-                      style={{
-                        background: '#ffffff !important',
-                        color: '#000000 !important',
-                        border: '1px solid #000000 !important',
-                        padding: '10px 16px !important',
-                        borderRadius: '8px !important',
-                        cursor: isFirstQuestion ? 'not-allowed' : 'pointer',
-                        fontSize: '14px !important',
-                        fontWeight: '500 !important',
-                        display: 'flex !important',
-                        alignItems: 'center !important',
-                        gap: '8px !important',
-                        fontFamily: 'system-ui, sans-serif !important',
-                        opacity: '1 !important',
-                        filter: 'none !important',
-                        boxShadow: 'none !important',
-                        outline: 'none !important',
-                        position: 'relative',
-                        zIndex: 999
-                      }}
-                    >
-                      <ChevronLeft style={{ width: '16px', height: '16px' }} />
-                      Tillbaka
-                    </button>
+                    {/* True/False questions */}
+                    {(currentQuestionData.question.type === "true_false" ||
+                      currentQuestionData.question.type === "true-false") && (
+                      <div className="space-y-3">
+                        {["Sant", "Falskt"].map((option) => {
+                          const isSelected = currentAnswer === option;
 
-                    <button
-                      onClick={isLastQuestion ? () => alert("Bra jobbat! Du har svarat på alla frågor.") : goToNextQuestion}
-                      className="unique-next-question-btn"
-                      style={{
-                        background: '#ffffff !important',
-                        color: '#000000 !important',
-                        border: '1px solid #000000 !important',
-                        padding: '10px 16px !important',
-                        borderRadius: '8px !important',
-                        cursor: 'pointer',
-                        fontSize: '14px !important',
-                        fontWeight: '500 !important',
-                        display: 'flex !important',
-                        alignItems: 'center !important',
-                        gap: '8px !important',
-                        fontFamily: 'system-ui, sans-serif !important',
-                        opacity: '1 !important',
-                        filter: 'none !important',
-                        boxShadow: 'none !important',
-                        outline: 'none !important',
-                        position: 'relative',
-                        zIndex: 999
-                      }}
-                    >
-                      {isLastQuestion ? 'Skicka in' : 'Nästa'}
-                      <ChevronRight style={{ width: '16px', height: '16px' }} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
-            <Card 
-              className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
-              style={{
-                backgroundColor: accessibilityColors.backgroundColor,
-                color: accessibilityColors.textColor,
-                borderColor: 'var(--accessibility-text-color)',
-                borderWidth: '0.5px',
-                '--card-text-color': accessibilityColors.textColor
-              } as React.CSSProperties}
-            >
-              <CardHeader className="relative">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">
-                    <span>Läs texten</span>
-                  </CardTitle>
-                  <div className="flex gap-2">
-                      {/* Focus Mode Toggle Button */}
-                      <Button
-                        variant={readingFocusMode ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setReadingFocusMode(!readingFocusMode)}
-                        className={readingFocusMode ? "bg-blue-600 hover:bg-blue-700" : ""}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        {readingFocusMode ? "Avsluta fokus" : "Fokusläge"}
-                      </Button>
-                      
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Settings className="w-4 h-4 mr-1" />
-                            Inställningar
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-4" align="end">
-                          <div className="space-y-4">
-                            <div>
-                              <Label className="text-sm font-medium">Textstorlek</Label>
-                              <Slider
-                                value={[accessibilitySettings.fontSize]}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontSize: value[0] }))}
-                                min={16}
-                                max={60}
-                                step={2}
-                                className="mt-2"
+                          return (
+                            <label
+                              key={option}
+                              className="flex items-center gap-3 cursor-pointer"
+                            >
+                              <input
+                                type="radio"
+                                name={`question-${currentQuestionIndex}`}
+                                value={option}
+                                checked={isSelected}
+                                onChange={() =>
+                                  handleQuestionsPanel12Change(
+                                    currentQuestionIndex,
+                                    option,
+                                  )
+                                }
+                                className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                style={{
+                                  accentColor:
+                                    "var(--accessibility-text-color)",
+                                }}
                               />
-                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.fontSize}px</div>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Radavstånd</Label>
-                              <Slider
-                                value={[accessibilitySettings.lineHeight]}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, lineHeight: value[0] }))}
-                                min={1.0}
-                                max={3.0}
-                                step={0.1}
-                                className="mt-2"
-                              />
-                              <div className="text-xs text-muted-foreground mt-1">{accessibilitySettings.lineHeight.toFixed(1)}</div>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Bakgrundsfärg</Label>
-                              <Select
-                                value={accessibilitySettings.backgroundColor}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, backgroundColor: value as any }))}
-                              >
-                                <SelectTrigger className="mt-2">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="black-on-white">Svart på vitt</SelectItem>
-                                  <SelectItem value="light-gray-on-gray">Ljusgrå på grå</SelectItem>
-                                  <SelectItem value="white-on-black">Vit på svart</SelectItem>
-                                  <SelectItem value="black-on-light-yellow">Svart på ljusgul</SelectItem>
-                                  <SelectItem value="black-on-light-blue">Svart på ljusblå</SelectItem>
-                                  <SelectItem value="light-yellow-on-blue">Ljusgul på blå</SelectItem>
-                                  <SelectItem value="black-on-light-red">Svart på ljusröd</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium">Teckensnitt</Label>
-                              <Select
-                                value={accessibilitySettings.fontFamily}
-                                onValueChange={(value) => setAccessibilitySettings(prev => ({ ...prev, fontFamily: value as any }))}
-                              >
-                                <SelectTrigger className="mt-2">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="standard">Standard</SelectItem>
-                                  <SelectItem value="dyslexia-friendly">Dyslexi-vänligt</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div className="border-t pt-4">
-                              <Label className="text-sm font-medium">Läsfokus</Label>
-                              <div className="space-y-3 mt-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm">Aktivera läsfokus</span>
-                                  <button
-                                    onClick={() => setReadingFocusMode(!readingFocusMode)}
-                                    className={`w-12 h-6 rounded-full transition-colors ${
-                                      readingFocusMode ? 'bg-blue-600' : 'bg-gray-300'
-                                    }`}
-                                  >
-                                    <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                                      readingFocusMode ? 'translate-x-6' : 'translate-x-0.5'
-                                    }`} />
-                                  </button>
-                                </div>
-                                
-                                {readingFocusMode && (
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">Antal rader samtidigt</Label>
-                                    <Select
-                                      value={readingFocusLines.toString()}
-                                      onValueChange={(value) => setReadingFocusLines(parseInt(value))}
-                                    >
-                                      <SelectTrigger className="mt-1">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="1">1 rad</SelectItem>
-                                        <SelectItem value="3">3 rader</SelectItem>
-                                        <SelectItem value="5">5 rader</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <div className="text-xs text-muted-foreground mt-2">
-                                      💡 Använd Space/pilar eller scrolla för att navigera
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                </div>
-                {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-                  <CardDescription>
-                    💡 Ord med prickad understrykning har förklaringar - håll musen över dem
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="relative">
-                
-                <div className="space-y-6">
-                  {/* Bilder ovanför texten för denna sida */}
-                  {lesson.pages && lesson.pages[currentPage]?.imagesAbove && lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
-                    <div className="space-y-4">
-                      {lesson.pages[currentPage]?.imagesAbove!.map((imageUrl, index) => (
-                        <img 
-                          key={index}
-                          src={imageUrl} 
-                          alt={`Bild ovanför texten ${index + 1}`}
-                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                        />
-                      ))}
-                    </div>
-                  )}
+                              <span className="flex-1 text-base">{option}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                  <div
-                    ref={contentRef}
-                    className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
-                    style={{
-                      fontSize: `${accessibilitySettings.fontSize}px`,
-                      lineHeight: `${accessibilitySettings.lineHeight}`,
-                      whiteSpace: 'pre-wrap',
-                      wordWrap: 'break-word',
-                      backgroundColor: accessibilityColors.backgroundColor,
-                      color: accessibilityColors.textColor,
-                      display: 'flow-root', // 💡 bryt margin-collapsing från första barnet
-                      fontFamily:
-                        (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
-                          ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
-                          : 'inherit'
-                    }}
-                    onMouseOver={handleContentMouseOver}
-                    onMouseOut={handleContentMouseOut}
-                  >
-                    {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
-                    <div
-                      ref={textRef}
-                      style={{
-                        position: 'relative',
-                        paddingTop: 1 // extra säkerhet mot margin-collaps
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions)
-                      }}
-                    />
-
-                    {readingFocusMode && focusRect && (
-                      <div className="pointer-events-none absolute inset-0 z-30">
-                        {/* mask ovanför */}
-                        <div
+                    {/* Open-ended questions */}
+                    {(currentQuestionData.question.type === "open_ended" ||
+                      currentQuestionData.question.type === "open") && (
+                      <div className="space-y-2">
+                        <textarea
+                          id={`question-${currentQuestionIndex}`}
+                          value={currentAnswer}
+                          onChange={(e) =>
+                            handleQuestionsPanel12Change(
+                              currentQuestionIndex,
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Skriv ditt svar här..."
+                          className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                           style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            height: `${focusRect.top}px`,
-                            background: 'rgba(0,0,0,0.85)'
+                            backgroundColor:
+                              accessibilityColors.backgroundColor,
+                            color: accessibilityColors.textColor,
+                            borderColor: "var(--accessibility-text-color)",
+                            fontSize: "16px",
+                            lineHeight: "1.5",
                           }}
+                          rows={4}
                         />
-                        {/* mask under */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            top: `${focusRect.top + focusRect.height}px`,
-                            bottom: 0,
-                            background: 'rgba(0,0,0,0.85)'
-                          }}
-                        />
-                        {/* kant runt fokus */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: `${focusRect.left}px`,
-                            width: `${focusRect.width}px`,
-                            top: `${focusRect.top}px`,
-                            height: `${focusRect.height}px`,
-                            border: `2px solid ${accessibilityColors.textColor}`,
-                            boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
-                          }}
-                        />
+                        {currentAnswer && (
+                          <p className="text-sm text-gray-600">
+                            {currentAnswer.length} tecken
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
+                )}
 
-                  {/* Reading focus UI when active */}
-                  {readingFocusMode && (
-                    <>
-                      {/* Progress indicator at bottom */}
-                      <div 
-                        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 px-4 py-2 rounded-lg"
-                        style={{ 
-                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                          color: 'white'
-                        }}
-                      >
-                        <div className="text-sm text-center">
-                          Rad {currentReadingLine + 1} av {lineRects.length}
-                        </div>
-                        <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
-                          <div 
-                            className="h-1 bg-white rounded-full transition-all duration-300"
-                            style={{ 
-                              width: `${lineRects.length > 0 ? ((currentReadingLine + 1) / lineRects.length) * 100 : 0}%`
-                            }}
+                {/* Navigation buttons */}
+                <div
+                  className="flex items-center justify-between mt-8 pt-4 border-t"
+                  style={{
+                    borderColor: "var(--accessibility-text-color)",
+                    borderTopWidth: "0.5px",
+                  }}
+                >
+                  <button
+                    onClick={goToPreviousQuestion}
+                    disabled={isFirstQuestion}
+                    className="unique-prev-question-btn"
+                    style={{
+                      background: "#ffffff !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      padding: "10px 16px !important",
+                      borderRadius: "8px !important",
+                      cursor: isFirstQuestion ? "not-allowed" : "pointer",
+                      fontSize: "14px !important",
+                      fontWeight: "500 !important",
+                      display: "flex !important",
+                      alignItems: "center !important",
+                      gap: "8px !important",
+                      fontFamily: "system-ui, sans-serif !important",
+                      opacity: "1 !important",
+                      filter: "none !important",
+                      boxShadow: "none !important",
+                      outline: "none !important",
+                      position: "relative",
+                      zIndex: 999,
+                    }}
+                  >
+                    <ChevronLeft style={{ width: "16px", height: "16px" }} />
+                    Tillbaka
+                  </button>
+
+                  <button
+                    onClick={
+                      isLastQuestion
+                        ? () =>
+                            alert("Bra jobbat! Du har svarat på alla frågor.")
+                        : goToNextQuestion
+                    }
+                    className="unique-next-question-btn"
+                    style={{
+                      background: "#ffffff !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      padding: "10px 16px !important",
+                      borderRadius: "8px !important",
+                      cursor: "pointer",
+                      fontSize: "14px !important",
+                      fontWeight: "500 !important",
+                      display: "flex !important",
+                      alignItems: "center !important",
+                      gap: "8px !important",
+                      fontFamily: "system-ui, sans-serif !important",
+                      opacity: "1 !important",
+                      filter: "none !important",
+                      boxShadow: "none !important",
+                      outline: "none !important",
+                      position: "relative",
+                      zIndex: 999,
+                    }}
+                  >
+                    {isLastQuestion ? "Skicka in" : "Nästa"}
+                    <ChevronRight style={{ width: "16px", height: "16px" }} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
+          <Card
+            className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
+            style={
+              {
+                backgroundColor: accessibilityColors.backgroundColor,
+                color: accessibilityColors.textColor,
+                borderColor: "var(--accessibility-text-color)",
+                borderWidth: "0.5px",
+                "--card-text-color": accessibilityColors.textColor,
+              } as React.CSSProperties
+            }
+          >
+            <CardHeader className="relative">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">
+                  <span>Läs texten</span>
+                </CardTitle>
+                <div className="flex gap-2">
+                  {/* Focus Mode Toggle Button */}
+                  <Button
+                    variant={readingFocusMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReadingFocusMode(!readingFocusMode)}
+                    className={
+                      readingFocusMode ? "bg-blue-600 hover:bg-blue-700" : ""
+                    }
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    {readingFocusMode ? "Avsluta fokus" : "Fokusläge"}
+                  </Button>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4 mr-1" />
+                        Inställningar
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4" align="end">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Textstorlek
+                          </Label>
+                          <Slider
+                            value={[accessibilitySettings.fontSize]}
+                            onValueChange={(value) =>
+                              setAccessibilitySettings((prev) => ({
+                                ...prev,
+                                fontSize: value[0],
+                              }))
+                            }
+                            min={16}
+                            max={60}
+                            step={2}
+                            className="mt-2"
                           />
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {accessibilitySettings.fontSize}px
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Radavstånd
+                          </Label>
+                          <Slider
+                            value={[accessibilitySettings.lineHeight]}
+                            onValueChange={(value) =>
+                              setAccessibilitySettings((prev) => ({
+                                ...prev,
+                                lineHeight: value[0],
+                              }))
+                            }
+                            min={1.0}
+                            max={3.0}
+                            step={0.1}
+                            className="mt-2"
+                          />
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {accessibilitySettings.lineHeight.toFixed(1)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Bakgrundsfärg
+                          </Label>
+                          <Select
+                            value={accessibilitySettings.backgroundColor}
+                            onValueChange={(value) =>
+                              setAccessibilitySettings((prev) => ({
+                                ...prev,
+                                backgroundColor: value as any,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="black-on-white">
+                                Svart på vitt
+                              </SelectItem>
+                              <SelectItem value="light-gray-on-gray">
+                                Ljusgrå på grå
+                              </SelectItem>
+                              <SelectItem value="white-on-black">
+                                Vit på svart
+                              </SelectItem>
+                              <SelectItem value="black-on-light-yellow">
+                                Svart på ljusgul
+                              </SelectItem>
+                              <SelectItem value="black-on-light-blue">
+                                Svart på ljusblå
+                              </SelectItem>
+                              <SelectItem value="light-yellow-on-blue">
+                                Ljusgul på blå
+                              </SelectItem>
+                              <SelectItem value="black-on-light-red">
+                                Svart på ljusröd
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Teckensnitt
+                          </Label>
+                          <Select
+                            value={accessibilitySettings.fontFamily}
+                            onValueChange={(value) =>
+                              setAccessibilitySettings((prev) => ({
+                                ...prev,
+                                fontFamily: value as any,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="dyslexia-friendly">
+                                Dyslexi-vänligt
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <Label className="text-sm font-medium">
+                            Läsfokus
+                          </Label>
+                          <div className="space-y-3 mt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Aktivera läsfokus</span>
+                              <button
+                                onClick={() =>
+                                  setReadingFocusMode(!readingFocusMode)
+                                }
+                                className={`w-12 h-6 rounded-full transition-colors ${
+                                  readingFocusMode
+                                    ? "bg-blue-600"
+                                    : "bg-gray-300"
+                                }`}
+                              >
+                                <div
+                                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                                    readingFocusMode
+                                      ? "translate-x-6"
+                                      : "translate-x-0.5"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            {readingFocusMode && (
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Antal rader samtidigt
+                                </Label>
+                                <Select
+                                  value={readingFocusLines.toString()}
+                                  onValueChange={(value) =>
+                                    setReadingFocusLines(parseInt(value))
+                                  }
+                                >
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1">1 rad</SelectItem>
+                                    <SelectItem value="3">3 rader</SelectItem>
+                                    <SelectItem value="5">5 rader</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  💡 Använd Space/pilar eller scrolla för att
+                                  navigera
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                      <button
-                        onClick={() => setReadingFocusMode(false)}
-                        className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
-                        title="Avsluta läsfokus (Esc)"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+                <CardDescription>
+                  💡 Ord med prickad understrykning har förklaringar - håll
+                  musen över dem
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="relative">
+              <div className="space-y-6">
+                {/* Bilder ovanför texten för denna sida */}
+                {lesson.pages &&
+                  lesson.pages[currentPage]?.imagesAbove &&
+                  lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
+                    <div className="space-y-4">
+                      {lesson.pages[currentPage]?.imagesAbove!.map(
+                        (imageUrl, index) => (
+                          <img
+                            key={index}
+                            src={imageUrl}
+                            alt={`Bild ovanför texten ${index + 1}`}
+                            className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                          />
+                        ),
+                      )}
+                    </div>
                   )}
 
-                  {/* Bilder under texten för denna sida */}
-                  {lesson.pages && lesson.pages[currentPage]?.imagesBelow && lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
-                    <div className="space-y-4">
-                      {lesson.pages[currentPage]?.imagesBelow!.map((imageUrl, index) => (
-                        <img 
-                          key={index}
-                          src={imageUrl} 
-                          alt={`Bild under texten ${index + 1}`}
-                          className="w-full max-w-3xl h-auto rounded-lg mx-auto"
-                        />
-                      ))}
+                <div
+                  ref={contentRef}
+                  className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                  style={{
+                    fontSize: `${accessibilitySettings.fontSize}px`,
+                    lineHeight: `${accessibilitySettings.lineHeight}`,
+                    whiteSpace: "pre-wrap",
+                    wordWrap: "break-word",
+                    backgroundColor: accessibilityColors.backgroundColor,
+                    color: accessibilityColors.textColor,
+                    display: "flow-root", // 💡 bryt margin-collapsing från första barnet
+                    fontFamily:
+                      (accessibilitySettings.fontFamily as string) ===
+                      "dyslexia-friendly"
+                        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+                        : "inherit",
+                  }}
+                  onMouseOver={handleContentMouseOver}
+                  onMouseOut={handleContentMouseOut}
+                >
+                  {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
+                  <div
+                    ref={textRef}
+                    style={{
+                      position: "relative",
+                      paddingTop: 1, // extra säkerhet mot margin-collaps
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: processContentWithDefinitions(
+                        pages[currentPage] || "",
+                        lesson.wordDefinitions,
+                      ),
+                    }}
+                  />
+
+                  {readingFocusMode && focusRect && (
+                    <div className="pointer-events-none absolute inset-0 z-30">
+                      {/* mask ovanför */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: `${focusRect.top}px`,
+                          background: "rgba(0,0,0,0.85)",
+                        }}
+                      />
+                      {/* mask under */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          right: 0,
+                          top: `${focusRect.top + focusRect.height}px`,
+                          bottom: 0,
+                          background: "rgba(0,0,0,0.85)",
+                        }}
+                      />
+                      {/* kant runt fokus */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: `${focusRect.left}px`,
+                          width: `${focusRect.width}px`,
+                          top: `${focusRect.top}px`,
+                          height: `${focusRect.height}px`,
+                          border: `2px solid ${accessibilityColors.textColor}`,
+                          boxShadow: "0 0 0 2px rgba(0,0,0,0.3)",
+                        }}
+                      />
                     </div>
                   )}
                 </div>
-                
-                {/* Page Navigation - Only buttons inside Card */}
-                {pages.length > 1 && (
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                    {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
-                    {currentPage > 0 ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                        className="flex items-center gap-2 navigation-button
+
+                {/* Reading focus UI when active */}
+                {readingFocusMode && (
+                  <>
+                    {/* Progress indicator at bottom */}
+                    <div
+                      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 px-4 py-2 rounded-lg"
+                      style={{
+                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                        color: "white",
+                      }}
+                    >
+                      <div className="text-sm text-center">
+                        Rad {currentReadingLine + 1} av {lineRects.length}
+                      </div>
+                      <div className="w-32 bg-gray-600 rounded-full h-1 mt-2">
+                        <div
+                          className="h-1 bg-white rounded-full transition-all duration-300"
+                          style={{
+                            width: `${lineRects.length > 0 ? ((currentReadingLine + 1) / lineRects.length) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setReadingFocusMode(false)}
+                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                      title="Avsluta läsfokus (Esc)"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
+
+                {/* Bilder under texten för denna sida */}
+                {lesson.pages &&
+                  lesson.pages[currentPage]?.imagesBelow &&
+                  lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
+                    <div className="space-y-4">
+                      {lesson.pages[currentPage]?.imagesBelow!.map(
+                        (imageUrl, index) => (
+                          <img
+                            key={index}
+                            src={imageUrl}
+                            alt={`Bild under texten ${index + 1}`}
+                            className="w-full max-w-3xl h-auto rounded-lg mx-auto"
+                          />
+                        ),
+                      )}
+                    </div>
+                  )}
+              </div>
+
+              {/* Page Navigation - Only buttons inside Card */}
+              {pages.length > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
+                  {currentPage > 0 ? (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setCurrentPage(Math.max(0, currentPage - 1))
+                      }
+                      className="flex items-center gap-2 navigation-button
                                    bg-white text-black border-black
                                    hover:bg-white hover:text-black hover:border-black
                                    focus-visible:ring-0 focus-visible:outline-none
                                    shadow-none hover:shadow-none active:shadow-none"
-                        style={{
-                          backgroundColor: '#FFFFFF',
-                          color: '#000000',
-                          borderColor: '#000000'
-                        }}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Föregående sida
-                      </Button>
-                    ) : (
-                      <div className="w-32"></div>
-                    )}
-                    
-                    {/* Page counter - centered between buttons */}
-                    <div 
-                      className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded-md text-xs font-medium"
                       style={{
-                        backgroundColor: '#FFFFFF !important',
-                        color: '#000000 !important',
-                        border: '1px solid #000000 !important',
-                        fontFamily: 'system-ui, -apple-system, sans-serif !important',
-                        textAlign: 'center',
-                        width: 'auto',
-                        minWidth: '60px',
-                        maxWidth: '80px'
+                        backgroundColor: "#FFFFFF",
+                        color: "#000000",
+                        borderColor: "#000000",
                       }}
                     >
-                      Sida {currentPage + 1} av {pages.length}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        if (currentPage === pages.length - 1) {
-                          // På sista sidan - lämna in 
-                          alert("Bra jobbat! Du har läst hela texten och svarat på frågorna.");
-                        } else {
-                          // Inte sista sidan - gå till nästa sida
-                          setCurrentPage(Math.min(pages.length - 1, currentPage + 1));
-                        }
-                      }}
-                      disabled={!areAllCurrentPageQuestionsAnswered()}
-                      className="flex items-center gap-2 navigation-button
+                      <ChevronLeft className="h-4 w-4" />
+                      Föregående sida
+                    </Button>
+                  ) : (
+                    <div className="w-32"></div>
+                  )}
+
+                  {/* Page counter - centered between buttons */}
+                  <div
+                    className="navigation-page-counter flex items-center justify-center h-10 px-2 py-1 rounded-md text-xs font-medium"
+                    style={{
+                      backgroundColor: "#FFFFFF !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      fontFamily:
+                        "system-ui, -apple-system, sans-serif !important",
+                      textAlign: "center",
+                      width: "auto",
+                      minWidth: "60px",
+                      maxWidth: "80px",
+                    }}
+                  >
+                    Sida {currentPage + 1} av {pages.length}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (currentPage === pages.length - 1) {
+                        // På sista sidan - lämna in
+                        alert(
+                          "Bra jobbat! Du har läst hela texten och svarat på frågorna.",
+                        );
+                      } else {
+                        // Inte sista sidan - gå till nästa sida
+                        setCurrentPage(
+                          Math.min(pages.length - 1, currentPage + 1),
+                        );
+                      }
+                    }}
+                    disabled={!areAllCurrentPageQuestionsAnswered()}
+                    className="flex items-center gap-2 navigation-button
                                  bg-white text-black border-black
                                  hover:bg-white hover:text-black hover:border-black
                                  focus-visible:ring-0 focus-visible:outline-none
                                  shadow-none hover:shadow-none active:shadow-none"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000',
-                        borderColor: '#000000'
-                      }}
-                      title={!areAllCurrentPageQuestionsAnswered() ? "Svara på alla frågor innan du går vidare" : ""}
-                    >
-                      {currentPage === pages.length - 1 ? "Lämna in" : "Nästa sida"}
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                
-                {/* Custom tooltip */}
-                {hoveredWord && (
-                  <div
-                    className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
                     style={{
-                      left: `${hoveredWord.x}px`,
-                      top: `${hoveredWord.y}px`,
-                      transform: 'translate(-50%, -100%)'
+                      backgroundColor: "#FFFFFF",
+                      color: "#000000",
+                      borderColor: "#000000",
                     }}
+                    title={
+                      !areAllCurrentPageQuestionsAnswered()
+                        ? "Svara på alla frågor innan du går vidare"
+                        : ""
+                    }
                   >
-                    <div className="font-semibold">{hoveredWord.word}</div>
-                    <div className="text-gray-200">{hoveredWord.definition}</div>
-                    {/* Arrow pointing down */}
-                    <div 
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            
-
-          </div>
-
-
-          {/* Word Definitions */}
-          {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ordförklaringar</CardTitle>
-                <CardDescription>
-                  Svåra ord från texten förklarade
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {lesson.wordDefinitions.map((definition, index) => (
-                    <div key={index} className="p-3 bg-muted rounded-lg">
-                      <p className="font-medium text-primary">{definition.word}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{definition.definition}</p>
-                    </div>
-                  ))}
+                    {currentPage === pages.length - 1
+                      ? "Lämna in"
+                      : "Nästa sida"}
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+
+              {/* Custom tooltip */}
+              {hoveredWord && (
+                <div
+                  className="fixed z-50 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg max-w-xs pointer-events-none"
+                  style={{
+                    left: `${hoveredWord.x}px`,
+                    top: `${hoveredWord.y}px`,
+                    transform: "translate(-50%, -100%)",
+                  }}
+                >
+                  <div className="font-semibold">{hoveredWord.word}</div>
+                  <div className="text-gray-200">{hoveredWord.definition}</div>
+                  {/* Arrow pointing down */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Word Definitions */}
+        {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Ordförklaringar</CardTitle>
+              <CardDescription>
+                Svåra ord från texten förklarade
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {lesson.wordDefinitions.map((definition, index) => (
+                  <div key={index} className="p-3 bg-muted rounded-lg">
+                    <p className="font-medium text-primary">
+                      {definition.word}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {definition.definition}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    );
+    </div>
+  );
 }
