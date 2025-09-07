@@ -941,10 +941,11 @@ export default function ReadingLessonViewer() {
               {
                 backgroundColor: "var(--accessibility-bg-color)",
                 color: "var(--accessibility-text-color)",
-                borderColor: "var(--accessibility-text-color)",
-                borderWidth: "0.5px",
+                borderColor: readingFocusMode ? "transparent" : "var(--accessibility-text-color)",
+                borderWidth: readingFocusMode ? "0" : "0.5px",
                 "--card-text-color": "var(--accessibility-text-color)",
                 overflow: readingFocusMode ? "hidden" : undefined,
+                boxShadow: readingFocusMode ? "none" : undefined,
               } as React.CSSProperties
             }
           >
