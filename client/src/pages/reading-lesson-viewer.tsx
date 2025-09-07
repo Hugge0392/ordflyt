@@ -677,7 +677,7 @@ export default function ReadingLessonViewer() {
                 className="border rounded-lg p-6"
                 style={
                   {
-                    backgroundColor: "var(--accessibility-bg-color)",
+                    backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
                     borderColor: "var(--accessibility-text-color)",
                     borderWidth: "0.5px",
