@@ -1,0 +1,96 @@
+Du har räknat ut viewportFocusRect och låst scroll – men själva overlayn renderas aldrig. I koden du skickade finns inget block som faktiskt ritar de fyra “scrims” i viewporten. Därför: ingen mörkläggning (bara den lilla förskjutningen när radfönstret centras).
+
+Gör så här:
+
+Importera portal:
+
+import { createPortal } from "react-dom";
+
+
+Lägg in den globala overlayn med createPortal strax innan </CardContent> (dvs. utanför den scrollande läscontainern), t.ex. direkt efter “Reading focus UI when active”-sektionen:
+
+{readingFocusMode && viewportFocusRect &&
+  createPortal(
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 2147483646, // överst på sidan
+      }}
+    >
+      {/* TOP */}
+      <div
+        className="rf-scrim"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: `${viewportFocusRect.top}px`,
+        }}
+      />
+      {/* BOTTOM */}
+      <div
+        className="rf-scrim"
+        style={{
+          position: "fixed",
+          top: `${viewportFocusRect.top + viewportFocusRect.height}px`,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
+      {/* LEFT */}
+      <div
+        className="rf-scrim"
+        style={{
+          position: "fixed",
+          top: `${viewportFocusRect.top}px`,
+          left: 0,
+          width: `${viewportFocusRect.left}px`,
+          height: `${viewportFocusRect.height}px`,
+        }}
+      />
+      {/* RIGHT */}
+      <div
+        className="rf-scrim"
+        style={{
+          position: "fixed",
+          top: `${viewportFocusRect.top}px`,
+          left: `${viewportFocusRect.left + viewportFocusRect.width}px`,
+          right: 0,
+          height: `${viewportFocusRect.height}px`,
+        }}
+      />
+      {/* FRAME (valfritt) */}
+      <div
+        className="rf-frame"
+        style={{
+          position: "fixed",
+          top: `${viewportFocusRect.top}px`,
+          left: `${viewportFocusRect.left}px`,
+          width: `${viewportFocusRect.width}px`,
+          height: `${viewportFocusRect.height}px`,
+          pointerEvents: "none",
+          zIndex: 2147483647,
+        }}
+      />
+    </div>,
+    document.body
+  )
+}
+
+
+Det här renderar mörkläggningen i <body>, så den inte påverkas av stacking-contexts/isolation/overflow i kortet.
+
+Du har redan CSS för .rf-scrim/.rf-frame – den funkar även globalt. Se bara till att din stäng-knapp har högre z-index (du satte focus-close-btn korrekt).
+
+Snabb felsökning om du vill verifiera:
+
+Lägg temporärt style={{ outline: '2px solid red' }} på .rf-frame – om du ser ramen men inte mörkret, är det .rf-scrim som inte renderas; om du inte ser ramen alls, är portalen inte inlagd.
+
+Skriv ut console.log('rect', viewportFocusRect) när fokus aktiveras, så du vet att rektangeln räknas.
+
+Testa detta – då ska hela skärmen mörkna i fokusläget (inte bara kortet).
