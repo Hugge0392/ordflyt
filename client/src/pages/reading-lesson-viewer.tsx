@@ -93,6 +93,7 @@ export default function ReadingLessonViewer() {
 
   // Reading Focus Mode states - using "readingFocus" prefix to avoid conflicts
   const [readingFocusMode, setReadingFocusMode] = useState(false);
+  const [focusAnimationState, setFocusAnimationState] = useState<'inactive' | 'entering' | 'active' | 'exiting'>('inactive');
 
   // Active settings based on current mode (after readingFocusMode is declared)
   const activeSettings = readingFocusMode ? focusSettings : normalSettings;
@@ -577,7 +578,11 @@ export default function ReadingLessonViewer() {
         e.preventDefault();
         setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       } else if (e.code === "Escape") {
-        setReadingFocusMode(false);
+        setFocusAnimationState('exiting');
+        setTimeout(() => {
+          setReadingFocusMode(false);
+          setFocusAnimationState('inactive');
+        }, 300);
       }
     };
 
@@ -1210,9 +1215,19 @@ export default function ReadingLessonViewer() {
                             <div className="flex items-center justify-between">
                               <span className="text-sm">Aktivera läsfokus</span>
                               <button
-                                onClick={() =>
-                                  setReadingFocusMode(!readingFocusMode)
-                                }
+                                onClick={() => {
+                                  if (!readingFocusMode) {
+                                    setFocusAnimationState('entering');
+                                    setReadingFocusMode(true);
+                                    setTimeout(() => setFocusAnimationState('active'), 50);
+                                  } else {
+                                    setFocusAnimationState('exiting');
+                                    setTimeout(() => {
+                                      setReadingFocusMode(false);
+                                      setFocusAnimationState('inactive');
+                                    }, 300);
+                                  }
+                                }}
                                 className={`w-12 h-6 rounded-full transition-colors ${
                                   readingFocusMode
                                     ? "bg-blue-600"
@@ -1411,8 +1426,8 @@ export default function ReadingLessonViewer() {
                     }}
                   />
 
-                  {readingFocusMode && focusRect && (
-                    <>
+                  {(readingFocusMode || focusAnimationState === 'exiting') && focusRect && (
+                    <div className={`focus-overlay-container focus-${focusAnimationState}`}>
                       {/* TOP */}
                       <div
                         className="rf-scrim"
@@ -1443,17 +1458,23 @@ export default function ReadingLessonViewer() {
                         aria-hidden
                         style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
                       />
-                    </>
+                    </div>
                   )}
                 </div>
 
                 {/* Reading focus UI when active */}
-                {readingFocusMode && (
+                {(readingFocusMode || focusAnimationState === 'exiting') && (
                   <>
                     {/* Exit focus button */}
                     <button
-                      onClick={() => setReadingFocusMode(false)}
-                      className="fixed top-4 right-4 z-40 bg-gray-900 text-white p-3 rounded-full hover:bg-black transition-all shadow-lg border-2 border-white"
+                      onClick={() => {
+                        setFocusAnimationState('exiting');
+                        setTimeout(() => {
+                          setReadingFocusMode(false);
+                          setFocusAnimationState('inactive');
+                        }, 300);
+                      }}
+                      className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-4 z-40 bg-gray-900 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white`}
                       title="Avsluta läsfokus (Esc)"
                     >
                       <svg
@@ -1475,7 +1496,7 @@ export default function ReadingLessonViewer() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
-                          className="fixed top-4 right-[120px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground p-3 rounded-md"
+                          className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-[120px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl text-foreground p-3 rounded-md`}
                           title="Anpassa textstorlek"
                         >
                           <svg
@@ -1773,7 +1794,7 @@ export default function ReadingLessonViewer() {
 
               {/* Page Navigation - Only buttons inside Card */}
               {!readingFocusMode && pages.length > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className={`fade-on-focus ${readingFocusMode ? 'focus-hidden' : ''} flex items-center justify-between mt-6 pt-4 border-t`}>
                   {/* Föregående sida-knapp - visas bara om det inte är första sidan */}
                   {currentPage > 0 ? (
                     <Button
@@ -1879,7 +1900,7 @@ export default function ReadingLessonViewer() {
 
         {/* Word Definitions */}
         {!readingFocusMode && lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-          <Card>
+          <Card className={`fade-on-focus ${readingFocusMode ? 'focus-hidden' : ''}`}>
             <CardHeader>
               <CardTitle className="text-lg">Ordförklaringar</CardTitle>
               <CardDescription>

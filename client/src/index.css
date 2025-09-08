@@ -650,6 +650,71 @@ html, body {
   max-width: 100vw !important;
 }
 
+/* === SMOOTH FOCUS MODE ANIMATIONS === */
+
+/* Focus overlay container - fade in/out */
+.focus-overlay-container {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.focus-overlay-container.focus-entering {
+  opacity: 0;
+}
+
+.focus-overlay-container.focus-active {
+  opacity: 1;
+}
+
+.focus-overlay-container.focus-exiting {
+  opacity: 0;
+}
+
+/* Focus scrim elements */
+.rf-scrim {
+  background: rgba(0, 0, 0, 0.8) !important;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Focus frame */
+.rf-frame {
+  border: 3px solid #4ade80 !important;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Focus UI buttons - slide in from right */
+.focus-ui-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(0);
+}
+
+.focus-ui-button.focus-entering {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.focus-ui-button.focus-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.focus-ui-button.focus-exiting {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+/* Non-focus elements fade out */
+.fade-on-focus {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.fade-on-focus.focus-dimmed {
+  opacity: 0.3;
+}
+
+.fade-on-focus.focus-hidden {
+  opacity: 0;
+}
+
 /* === KILLSWITCH mot "vita band" i läsytan === */
 /* Endast containern får bakgrund. Inga barn får lägga plattor. */
 .reading-content.accessibility-enhanced {
