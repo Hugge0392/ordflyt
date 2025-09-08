@@ -1548,20 +1548,22 @@ export default function ReadingLessonViewer() {
 
           {/* New Questions Panel - One Question at a Time - ON THE RIGHT */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="lg:w-1/3 lg:sticky lg:top-4 lg:self-start lg:h-fit">
-              <div
-                className="border rounded-lg p-6"
-                style={
-                  {
-                    backgroundColor: "var(--accessibility-bg-color)",
-                    color: "var(--accessibility-text-color)",
-                    borderColor: "var(--accessibility-text-color)",
-                    borderWidth: "0.5px",
-                    maxWidth: "720px",
-                    fontFamily: "var(--normal-font-family)",
-                  } as React.CSSProperties
-                }
-              >
+            <div className="w-full lg:w-1/3 self-start">
+              {/* Sticky wrapper */}
+              <div className="sticky top-4">
+                <div
+                  className="border rounded-lg p-6"
+                  style={
+                    {
+                      backgroundColor: "var(--accessibility-bg-color)",
+                      color: "var(--accessibility-text-color)",
+                      borderColor: "var(--accessibility-text-color)",
+                      borderWidth: "0.5px",
+                      maxWidth: "720px",
+                      fontFamily: "var(--normal-font-family)",
+                    } as React.CSSProperties
+                  }
+                >
                 <h3 className="text-lg font-semibold mb-4">Frågor</h3>
 
                 {/* Progress indicator */}
@@ -1800,6 +1802,7 @@ export default function ReadingLessonViewer() {
                     {isLastQuestion ? "Skicka in" : "Nästa"}
                     <ChevronRight style={{ width: "16px", height: "16px" }} />
                   </button>
+                </div>
                 </div>
               </div>
             </div>
