@@ -1548,9 +1548,8 @@ export default function ReadingLessonViewer() {
 
           {/* New Questions Panel - One Question at a Time - ON THE RIGHT */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="w-full lg:w-1/3 self-start">
-              {/* Sticky wrapper */}
-              <div className="sticky top-4">
+            <div className="w-full lg:w-1/3">
+              <aside className="sticky top-4">
                 <div
                   className="border rounded-lg p-6"
                   style={
@@ -1804,7 +1803,7 @@ export default function ReadingLessonViewer() {
                   </button>
                 </div>
                 </div>
-              </div>
+              </aside>
             </div>
           )}
         </div>
