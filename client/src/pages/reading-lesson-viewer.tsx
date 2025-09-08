@@ -109,6 +109,11 @@ export default function ReadingLessonViewer() {
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
+  // State for sticky questions panel
+  const [isQuestionsPanelFixed, setIsQuestionsPanelFixed] = useState(false);
+  const questionsPanelRef = useRef<HTMLDivElement>(null);
+  const questionsPanelObserverRef = useRef<HTMLDivElement>(null);
+  
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
     try {
@@ -288,6 +293,28 @@ export default function ReadingLessonViewer() {
     root.style.setProperty("--accessibility-line-height", activeSettings.lineHeight.toString());
     root.style.setProperty("--accessibility-font-family", activeSettings.fontFamily === "dyslexia-friendly" ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif' : "system-ui, -apple-system, sans-serif");
   }, [normalSettings, focusSettings, readingFocusMode, activeSettings]);
+
+  // Set up IntersectionObserver for sticky questions panel
+  useEffect(() => {
+    if (!questionsPanelObserverRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the observer element goes out of view at the top, make panel fixed
+        setIsQuestionsPanelFixed(!entry.isIntersecting);
+      },
+      {
+        rootMargin: '-20px 0px 0px 0px', // Trigger 20px before reaching the top
+        threshold: 0
+      }
+    );
+
+    observer.observe(questionsPanelObserverRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [showQuestionsPanel12]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
@@ -795,12 +822,24 @@ export default function ReadingLessonViewer() {
             </Card>
           )}
 
+        {/* Observer element for IntersectionObserver - positioned above the questions panel */}
+        {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
+          <div ref={questionsPanelObserverRef} className="h-1 w-full" />
+        )}
+
         {/* Main Content */}
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
             <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
-              <div className="sticky top-4">
+              <div 
+                ref={questionsPanelRef}
+                className={`transition-all duration-300 ${
+                  isQuestionsPanelFixed 
+                    ? 'fixed top-4 z-30 w-[calc(33.333%-1rem)] max-w-[400px]' 
+                    : 'relative'
+                }`}
+              >
               <div
                 className="border rounded-lg p-6"
                 style={
@@ -1056,6 +1095,11 @@ export default function ReadingLessonViewer() {
               </div>
               </div>
             </div>
+          )}
+          
+          {/* Spacer when questions panel is fixed */}
+          {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && isQuestionsPanelFixed && (
+            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2" />
           )}
           {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
           <Card
