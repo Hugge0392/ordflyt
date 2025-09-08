@@ -296,15 +296,19 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     const measure = () => {
       if (!textRef.current || !contentRef.current) return;
-      try {
-        const rects = measureLineRects(textRef.current, contentRef.current);
-        setLineRects(rects);
-        setCurrentReadingLine(0);
-      } catch (err) {
-        console.warn("Error measuring line rects:", err);
-        setLineRects([]);
-        setCurrentReadingLine(0);
-      }
+      // vänta en tick till så font-size/line-height och ev. bilder hinner påverka layout
+      requestAnimationFrame(() => {
+        if (!textRef.current || !contentRef.current) return;
+        try {
+          const rects = measureLineRects(textRef.current, contentRef.current);
+          setLineRects(rects);
+          setCurrentReadingLine(0);
+        } catch (err) {
+          console.warn("Error measuring line rects:", err);
+          setLineRects([]);
+          setCurrentReadingLine(0);
+        }
+      });
     };
 
     // mät på nästa tick
@@ -342,14 +346,16 @@ export default function ReadingLessonViewer() {
       const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
       const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
 
-      const top = lineRects[start]?.top || 0;
-      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
-      const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
+      const slice = lineRects.slice(start, end + 1);
+      const top = slice[0].top;
+      const bottom = slice[slice.length - 1].top + slice[slice.length - 1].height;
+      const height = bottom - top + 3;
 
-      if (!contentRef.current) return null;
-      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
+      const left = Math.min(...slice.map(r => r.left)) - 8;
+      const right = Math.max(...slice.map(r => r.right)) + 8;
+      const width = Math.max(0, right - left);
 
-      return { top, height, left: 0, width };
+      return { top, height, left, width };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;

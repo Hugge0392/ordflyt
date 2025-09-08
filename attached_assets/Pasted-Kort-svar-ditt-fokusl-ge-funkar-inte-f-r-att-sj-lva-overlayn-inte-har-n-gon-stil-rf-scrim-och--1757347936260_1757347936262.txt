@@ -1,0 +1,97 @@
+Kort svar: ditt fokusläge “funkar inte” för att själva overlayn inte har någon stil – .rf-scrim och .rf-frame saknar CSS, så användaren ser inget trots att du räknar ut focusRect korrekt. Det finns också två små saker som kan göra att mätningen blir knepig.
+
+Gör så här (3 snabba fixar):
+
+1) Lägg till CSS för overlayn (synlighet)
+
+Stoppa detta i samma <style>-block där du redan stylar .reading-content (eller i global CSS):
+
+/* --- Fokusläge overlay --- */
+.focus-overlay-container { pointer-events: none; z-index: 50; }
+.rf-scrim {
+  background: rgba(0,0,0,0.6);   /* mörkläggning runt fokus */
+}
+.rf-frame {
+  box-shadow: 0 0 0 2px #ffffff; /* vit ram runt fokusfönstret */
+  border-radius: 8px;
+}
+
+
+Utan det här är överlägget osynligt.
+
+2) Räkna fokusfönstrets vänster/höger från verkliga textlinjer
+
+Just nu sätter du left: 0 och width: contentRef.clientWidth. Det funkar, men ser ofta “för brett” ut. Plocka min/max från lineRects för de rader som ska vara synliga (precis som i din äldre version):
+
+const focusRect = useMemo(() => {
+  try {
+    if (!lineRects.length) return null;
+
+    const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
+    const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+
+    const slice = lineRects.slice(start, end + 1);
+    const top = slice[0].top;
+    const bottom = slice[slice.length - 1].top + slice[slice.length - 1].height;
+    const height = bottom - top + 3;
+
+    const left = Math.min(...slice.map(r => r.left)) - 8;
+    const right = Math.max(...slice.map(r => r.right)) + 8;
+    const width = Math.max(0, right - left);
+
+    return { top, height, left, width };
+  } catch {
+    return null;
+  }
+}, [lineRects, currentReadingLine, readingFocusLines]);
+
+
+…och använd focusRect.left/focusRect.width i overlayn (du gör detta redan i din senare variant – bra, behåll).
+
+3) Mätning: låt layouten “sätta sig”
+
+Du mäter om på scroll, ResizeObserver och requestAnimationFrame. Lägg till en extra requestAnimationFrame inuti mätningen för att vara extra säker efter DOM/typsnitt/omflödning:
+
+useEffect(() => {
+  const measure = () => {
+    if (!textRef.current || !contentRef.current) return;
+    // vänta en tick till så font-size/line-height och ev. bilder hinner påverka layout
+    requestAnimationFrame(() => {
+      if (!textRef.current || !contentRef.current) return;
+      try {
+        const rects = measureLineRects(textRef.current, contentRef.current);
+        setLineRects(rects);
+        setCurrentReadingLine(0);
+      } catch {
+        setLineRects([]);
+        setCurrentReadingLine(0);
+      }
+    });
+  };
+
+  const raf = requestAnimationFrame(measure);
+  const roText = new ResizeObserver(measure);
+  const roCont = new ResizeObserver(measure);
+  if (textRef.current) roText.observe(textRef.current);
+  if (contentRef.current) roCont.observe(contentRef.current);
+
+  const onScroll = () => measure();
+  contentRef.current?.addEventListener("scroll", onScroll, { passive: true });
+
+  return () => {
+    cancelAnimationFrame(raf);
+    roText.disconnect();
+    roCont.disconnect();
+    contentRef.current?.removeEventListener("scroll", onScroll);
+  };
+}, [lesson, currentPage, activeSettings.fontSize, activeSettings.lineHeight, activeSettings.fontFamily]);
+
+Snabba sanity-checks
+
+Overlayn ligger inne i contentRef (som har position: relative) – bra.
+
+readingFocusMode använder overflow-auto i contentRef och sticky-panelen är utanför fokusläge – bra.
+
+Tooltips: du använder position: fixed och getBoundingClientRect() – funkar.
+
+Vill du att jag klipper in de här bitarna direkt i din fil (som en minimal diff), säg till vilken variant du kör (den med sticky via position: sticky eller den med JS-beräknad fixed).
