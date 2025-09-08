@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import {
@@ -338,24 +339,36 @@ export default function ReadingLessonViewer() {
     activeSettings.fontFamily,
   ]);
 
-  // Calculate focus rectangle (covers N lines)
+  // Calculate focus rectangle (covers N lines) - viewport coordinates for portal
   const focusRect = useMemo(() => {
     try {
-      if (!lineRects.length) return null;
+      if (!lineRects.length || !contentRef.current) return null;
 
       const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
       const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
 
       const slice = lineRects.slice(start, end + 1);
-      const top = slice[0].top;
-      const bottom = slice[slice.length - 1].top + slice[slice.length - 1].height;
-      const height = bottom - top + 3;
+      const relativeTop = slice[0].top;
+      const relativeBottom = slice[slice.length - 1].top + slice[slice.length - 1].height;
+      const height = relativeBottom - relativeTop + 3;
 
-      const left = Math.min(...slice.map(r => r.left)) - 8;
-      const right = Math.max(...slice.map(r => r.right)) + 8;
-      const width = Math.max(0, right - left);
+      const relativeLeft = Math.min(...slice.map(r => r.left)) - 8;
+      const relativeRight = Math.max(...slice.map(r => r.right)) + 8;
+      const width = Math.max(0, relativeRight - relativeLeft);
 
-      return { top, height, left, width };
+      // Convert to viewport coordinates for portal rendering
+      const containerRect = contentRef.current.getBoundingClientRect();
+      const viewportTop = containerRect.top + relativeTop;
+      const viewportLeft = containerRect.left + relativeLeft;
+
+      return { 
+        top: viewportTop, 
+        height, 
+        left: viewportLeft, 
+        width,
+        // Keep relative coords for debugging
+        _relative: { top: relativeTop, left: relativeLeft }
+      };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;
@@ -1444,40 +1457,7 @@ export default function ReadingLessonViewer() {
                     }}
                   />
 
-                  {readingFocusMode && focusRect && (
-                    <div className={`focus-overlay-container focus-${focusAnimationState}`}>
-                      {/* TOP */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
-                      />
-                      {/* BOTTOM */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
-                      />
-                      {/* LEFT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
-                      />
-                      {/* RIGHT */}
-                      <div
-                        className="rf-scrim"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
-                      />
-                      {/* FRAME */}
-                      <div
-                        className="rf-frame"
-                        aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
-                      />
-                    </div>
-                  )}
+                  {/* Overlay nu renderas via portal */}
                 </div>
 
                 {/* Reading focus UI when active */}
@@ -1953,6 +1933,78 @@ export default function ReadingLessonViewer() {
           </Card>
         )}
       </div>
+
+      {/* Portal-based focus overlay - renders directly on document.body */}
+      {readingFocusMode && focusRect && createPortal(
+        <div className={`focus-global-overlay focus-overlay-container focus-${focusAnimationState}`}>
+          {/* TOP */}
+          <div
+            className="rf-scrim"
+            aria-hidden
+            style={{ 
+              position: "fixed", 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              height: `${focusRect.top}px`,
+              zIndex: 9998
+            }}
+          />
+          {/* BOTTOM */}
+          <div
+            className="rf-scrim"
+            aria-hidden
+            style={{ 
+              position: "fixed", 
+              top: `${focusRect.top + focusRect.height}px`, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              zIndex: 9998
+            }}
+          />
+          {/* LEFT */}
+          <div
+            className="rf-scrim"
+            aria-hidden
+            style={{ 
+              position: "fixed", 
+              top: `${focusRect.top}px`, 
+              left: 0, 
+              width: `${focusRect.left}px`, 
+              height: `${focusRect.height}px`,
+              zIndex: 9998
+            }}
+          />
+          {/* RIGHT */}
+          <div
+            className="rf-scrim"
+            aria-hidden
+            style={{ 
+              position: "fixed", 
+              top: `${focusRect.top}px`, 
+              left: `${focusRect.left + focusRect.width}px`, 
+              right: 0, 
+              height: `${focusRect.height}px`,
+              zIndex: 9998
+            }}
+          />
+          {/* FRAME */}
+          <div
+            className="rf-frame"
+            aria-hidden
+            style={{ 
+              position: "fixed", 
+              top: `${focusRect.top}px`, 
+              left: `${focusRect.left}px`, 
+              width: `${focusRect.width}px`, 
+              height: `${focusRect.height}px`,
+              zIndex: 9999
+            }}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

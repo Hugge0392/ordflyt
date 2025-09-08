@@ -659,6 +659,14 @@ html, body {
   z-index: 50;
 }
 
+/* Portal-based global overlay */
+.focus-global-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+}
+
 .focus-overlay-container.focus-entering {
   opacity: 0;
 }
