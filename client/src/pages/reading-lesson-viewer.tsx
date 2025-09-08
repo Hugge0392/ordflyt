@@ -727,6 +727,7 @@ export default function ReadingLessonViewer() {
       className="min-h-screen bg-background relative"
       style={{
         backgroundColor: readingFocusMode ? "#242424" : undefined,
+        overflow: 'visible', // Allow sticky positioning
       }}
     >
       <div className={`max-w-7xl mx-auto ${readingFocusMode ? 'p-2 pt-6' : 'p-6'}`}>
@@ -801,8 +802,15 @@ export default function ReadingLessonViewer() {
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'flex flex-col lg:flex-row gap-6'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="lg:w-1/3 lg:order-1">
-              <div className="sticky top-4">
+            <div className="lg:w-1/3 lg:order-1" style={{ position: 'static' }}>
+              <div 
+                className="sticky top-4"
+                style={{ 
+                  position: 'sticky',
+                  top: '1rem',
+                  zIndex: 10
+                }}
+              >
               <div
                 className="border rounded-lg p-6"
                 style={
