@@ -1460,40 +1460,42 @@ export default function ReadingLessonViewer() {
                 {/* Reading focus UI when active */}
                 {readingFocusMode && (
                   <>
-                    {/* Exit focus button */}
-                    <button
-                      onClick={() => {
-                        setReadingFocusMode(false);
-                        setFocusAnimationState('inactive');
-                      }}
-                      className="focus-ui-button focus-inactive fixed top-4 right-4 z-40 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white bg-[#ffffff]"
-                      title="Avsluta läsfokus (Esc)"
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-
-                    {/* Focus mode accessibility controls */}
-                    <Popover>
-                      <PopoverTrigger asChild>
+                    {/* Focus mode controls container */}
+                    <div className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-4 z-40 flex gap-2`}>
+                      {/* Questions button */}
+                      {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                         <button
-                          className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-[120px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl text-foreground p-3 rounded-md`}
-                          title="Anpassa textstorlek"
+                          onClick={() => setShowFocusQuestionsPopup(true)}
+                          className="bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                          title="Visa frågor"
                         >
-                          <Settings className="w-5 h-5" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
                         </button>
-                      </PopoverTrigger>
+                      )}
+
+                      {/* Focus mode accessibility controls */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            className="bg-background border-2 shadow-lg hover:shadow-xl text-foreground p-3 rounded-md"
+                            title="Anpassa textstorlek"
+                          >
+                            <Settings className="w-5 h-5" />
+                          </button>
+                        </PopoverTrigger>
                       <PopoverContent className="w-80" align="end">
                         <div className="space-y-4">
                           <div className="space-y-2">
@@ -1554,17 +1556,19 @@ export default function ReadingLessonViewer() {
                           </div>
                         </div>
                       </PopoverContent>
-                    </Popover>
+                      </Popover>
 
-                    {/* Questions button next to accessibility controls */}
-                    {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
+                      {/* Exit focus button */}
                       <button
-                        onClick={() => setShowFocusQuestionsPopup(true)}
-                        className="fixed top-4 right-[230px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
-                        title="Visa frågor"
+                        onClick={() => {
+                          setReadingFocusMode(false);
+                          setFocusAnimationState('inactive');
+                        }}
+                        className="bg-gray-900 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white"
+                        title="Avsluta läsfokus (Esc)"
                       >
                         <svg
-                          className="w-5 h-5"
+                          className="w-6 h-6"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1573,12 +1577,11 @@ export default function ReadingLessonViewer() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            d="M6 18L18 6M6 6l12 12"
                           />
                         </svg>
-                        <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
                       </button>
-                    )}
+                    </div>
 
                     {/* Next page button when on last line */}
                     {isOnLastLine() && hasNextPage() && (
