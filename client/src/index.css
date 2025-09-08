@@ -643,14 +643,7 @@ html, body {
   box-sizing: border-box;
 }
 
-/* Allow sticky elements in reading lesson viewer */
-.reading-lesson-viewer {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-  /* overflow-y: visible for sticky to work */
-  overflow-y: visible !important;
-}
-
+.reading-lesson-viewer,
 .reading-content,
 .reading-content.accessibility-enhanced {
   overflow-x: hidden !important;
