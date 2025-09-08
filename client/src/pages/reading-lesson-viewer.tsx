@@ -1072,27 +1072,25 @@ export default function ReadingLessonViewer() {
                   <span>Läs texten</span>
                 </CardTitle>
                 )}
-                <div className={`flex gap-2 ${readingFocusMode ? 'ml-auto' : ''}`}>
-                  {/* Focus Mode Toggle Button */}
-                  <Button
-                    variant={readingFocusMode ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setReadingFocusMode(!readingFocusMode)}
-                    className={
-                      readingFocusMode ? "bg-blue-600 hover:bg-blue-700" : ""
-                    }
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    {readingFocusMode ? "Avsluta fokus" : "Fokusläge"}
-                  </Button>
+                {!readingFocusMode && (
+                  <div className="flex gap-2">
+                    {/* Focus Mode Toggle Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReadingFocusMode(!readingFocusMode)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Fokusläge
+                    </Button>
 
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Settings className="w-4 h-4 mr-1" />
-                        Inställningar
-                      </Button>
-                    </PopoverTrigger>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Settings className="w-4 h-4 mr-1" />
+                          Inställningar
+                        </Button>
+                      </PopoverTrigger>
                     <PopoverContent className="w-80 p-4" align="end">
                       <div className="space-y-4">
                         <div>
@@ -1270,8 +1268,9 @@ export default function ReadingLessonViewer() {
                         </div>
                       </div>
                     </PopoverContent>
-                  </Popover>
-                </div>
+                    </Popover>
+                  </div>
+                )}
               </div>
               {!readingFocusMode && lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
                 <CardDescription>
