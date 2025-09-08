@@ -1,0 +1,74 @@
+ack! Nu ser jag exakt varför reglagen inte biter.
+
+I din CSS finns två olika variabler för typografin:
+
+--accessibility-font-size / --accessibility-line-height (uppdateras av din React-kod)
+
+--reading-font-size / --reading-line-height (statisk default i :root)
+
+Längre ner har du en tung regel som tvingar alla p/div/h1… i läsytan att använda just --reading-*:
+
+/* Accessibility font size and line height overrides - only for text content, not UI components */
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2,
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced span:not([class*="ui-"]):not([class*="button"]):not([role]):not([data-testid]),
+.reading-content.accessibility-enhanced div:not([class*="ui-"]):not([class*="button"]):not([class*="card"]):not([role]):not([data-testid]) {
+  font-size: var(--reading-font-size) !important;
+  line-height: var(--reading-line-height) !important;
+}
+
+
+Den här regeln (med !important + hög specificitet) överkör allt du sätter via React och/eller --accessibility-*. Därför händer inget när du drar i reglagen.
+
+Du kan fixa detta på två sätt. Välj EN av dem:
+
+Snabbaste fixen (aliasera variablerna i :root)
+
+Byt ut definitionerna i :root så att --reading-* pekar på dina dynamiska:
+
+:root {
+-  --reading-font-size: 34px;
+-  --reading-line-height: 1.8;
++  --reading-font-size: var(--accessibility-font-size);
++  --reading-line-height: var(--accessibility-line-height);
+}
+
+
+Klart. Då följer alla regler som idag använder --reading-* automatiskt dina sliders.
+
+Alternativ fix (byt variabler i regeln)
+
+Låt override-regeln använda --accessibility-* direkt:
+
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2,
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced span:not([class*="ui-"]):not([class*="button"]):not([role]):not([data-testid]),
+.reading-content.accessibility-enhanced div:not([class*="ui-"]):not([class*="button"]):not([class*="card"]):not([role]):not([data-testid]) {
+-  font-size: var(--reading-font-size) !important;
+-  line-height: var(--reading-line-height) !important;
++  font-size: var(--accessibility-font-size) !important;
++  line-height: var(--accessibility-line-height) !important;
++  font-family: var(--accessibility-font-family) !important; /* (frivilligt men bra) */
+}
+
+Rekommendation
+
+Jag skulle ta snabbfixen i :root – minst intrång och allt börjar funka direkt.
+
+Liten sanity check
+
+Efter ändringen: öppna DevTools → välj en <p> inne i läsytan → Computed → font-size ska visa något i stil med var(--reading-font-size) ⇢ var(--accessibility-font-size) ⇢ XXpx som ändras när du drar i reglaget.
+
+Bonus – fontimport
+
+OpenDyslexic finns inte på Google Fonts. Din @import-rad för den kommer sannolikt inte ladda något. Det påverkar inte storleken, men om du vill använda typsnittet på riktigt behöver du hosta det själv eller länka från projektets assets/CDN. (Du har bra fallbacks redan.)
+
+Testa ändringen ovan – din textstorlek och radavstånd ska reagera direkt. Om något fortfarande trilskas, kolla vilken regel med !important som “vinner” i Computed-panelen; då vet vi precis vad som behöver justeras.

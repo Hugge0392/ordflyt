@@ -75,8 +75,8 @@
   --muted: hsl(240 1.9608% 90%);
   
   /* Accessibility variables */
-  --reading-font-size: 34px;
-  --reading-line-height: 1.8;
+  --reading-font-size: var(--accessibility-font-size);
+  --reading-line-height: var(--accessibility-line-height);
   --muted-foreground: hsl(210 25% 7.8431%);
   --accent: hsl(43.2432 96.0526% 56.2745%);
   --accent-foreground: hsl(0 0% 100%);
