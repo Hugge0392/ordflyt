@@ -568,39 +568,16 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     if (!readingFocusMode) return;
 
-    const smoothScrollToLine = (newLine: number) => {
-      if (!contentRef.current || !lineRects.length) return;
-      
-      // Calculate new focus rect for the target line
-      const start = Math.min(newLine, Math.max(0, lineRects.length - 1));
-      const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
-      const top = lineRects[start]?.top || 0;
-      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
-      const height = bottom - top + 3;
-      const newFocusRect = { top, height, left: 0, width: contentRef.current.getBoundingClientRect().width };
-
-      // Smooth scroll to keep focus rect centered
-      const cont = contentRef.current;
-      const targetScrollTop = Math.max(0, newFocusRect.top + newFocusRect.height / 2 - cont.clientHeight / 2);
-      cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
-    };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowRight" || e.code === "ArrowDown" || e.code === "Enter") {
         e.preventDefault();
         setCurrentReadingLine((prev) => {
           const maxLine = Math.max(0, lineRects.length - readingFocusLines);
-          const newLine = Math.min(prev + 1, maxLine);
-          smoothScrollToLine(newLine);
-          return newLine;
+          return Math.min(prev + 1, maxLine);
         });
       } else if (e.code === "ArrowLeft" || e.code === "ArrowUp") {
         e.preventDefault();
-        setCurrentReadingLine((prev) => {
-          const newLine = Math.max(0, prev - 1);
-          smoothScrollToLine(newLine);
-          return newLine;
-        });
+        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       } else if (e.code === "Escape") {
         setReadingFocusMode(false);
         setFocusAnimationState('inactive');
@@ -613,17 +590,11 @@ export default function ReadingLessonViewer() {
         // Scroll down
         setCurrentReadingLine((prev) => {
           const maxLine = Math.max(0, lineRects.length - readingFocusLines);
-          const newLine = Math.min(prev + 1, maxLine);
-          smoothScrollToLine(newLine);
-          return newLine;
+          return Math.min(prev + 1, maxLine);
         });
       } else {
         // Scroll up
-        setCurrentReadingLine((prev) => {
-          const newLine = Math.max(0, prev - 1);
-          smoothScrollToLine(newLine);
-          return newLine;
-        });
+        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       }
     };
 
@@ -636,17 +607,44 @@ export default function ReadingLessonViewer() {
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
-  // Initial focus centering when focus mode is first activated
+  // Center focus window in container and page (smooth scroll)
   useEffect(() => {
     if (!readingFocusMode || !focusRect || !contentRef.current) return;
+    const cont = contentRef.current;
     
-    // Only center on initial focus mode activation, not on every line change
-    if (currentReadingLine === 0) {
-      const cont = contentRef.current;
-      const targetScrollTop = Math.max(0, focusRect.top + focusRect.height / 2 - cont.clientHeight / 2);
-      cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    // Scroll within container
+    const targetScrollTop = Math.max(
+      0,
+      focusRect.top + focusRect.height / 2 - cont.clientHeight / 2,
+    );
+    cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    
+    // Also scroll the entire page to keep focus rect visible in viewport
+    const contRect = cont.getBoundingClientRect();
+    const focusTopInViewport = contRect.top + focusRect.top;
+    const focusBottomInViewport = focusTopInViewport + focusRect.height;
+    
+    // Check if focus rect is in the outer thirds of viewport
+    const viewportHeight = window.innerHeight;
+    const upperThird = viewportHeight / 3;
+    const lowerThird = viewportHeight * 2 / 3;
+    
+    if (focusTopInViewport < upperThird) {
+      // Focus is in upper third, scroll up to center it
+      const targetY = window.scrollY + focusTopInViewport - (viewportHeight / 2) + (focusRect.height / 2);
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: "smooth"
+      });
+    } else if (focusBottomInViewport > lowerThird) {
+      // Focus is in lower third, scroll down to center it
+      const targetY = window.scrollY + focusBottomInViewport - (viewportHeight / 2) - (focusRect.height / 2);
+      window.scrollTo({
+        top: targetY,
+        behavior: "smooth"
+      });
     }
-  }, [readingFocusMode, focusRect]); // Removed currentReadingLine dependency
+  }, [currentReadingLine, readingFocusMode, focusRect]);
 
   // Count total questions available for current page
   const getTotalQuestionsCount = () => {
