@@ -109,10 +109,6 @@ export default function ReadingLessonViewer() {
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
-  // State for sticky questions panel
-  const [isQuestionsPanelFixed, setIsQuestionsPanelFixed] = useState(false);
-  const questionsPanelRef = useRef<HTMLDivElement>(null);
-  const questionsPanelObserverRef = useRef<HTMLDivElement>(null);
   
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
@@ -294,27 +290,6 @@ export default function ReadingLessonViewer() {
     root.style.setProperty("--accessibility-font-family", activeSettings.fontFamily === "dyslexia-friendly" ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif' : "system-ui, -apple-system, sans-serif");
   }, [normalSettings, focusSettings, readingFocusMode, activeSettings]);
 
-  // Scroll-based sticky questions panel
-  useEffect(() => {
-    if (!showQuestionsPanel12 || !questionsPanelObserverRef.current) return;
-
-    const handleScroll = () => {
-      if (!questionsPanelObserverRef.current) return;
-      
-      const rect = questionsPanelObserverRef.current.getBoundingClientRect();
-      const shouldBeFixed = rect.top <= 20; // When observer element is 20px from top
-      
-      setIsQuestionsPanelFixed(shouldBeFixed);
-      console.log('Scroll event:', { top: rect.top, shouldBeFixed });
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // Check initial state
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [showQuestionsPanel12]);
 
   // DOM measurement effect - measure lines after render and when settings change
   useEffect(() => {
@@ -822,28 +797,12 @@ export default function ReadingLessonViewer() {
             </Card>
           )}
 
-        {/* Observer element for IntersectionObserver - positioned above the questions panel */}
-        {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-          <div ref={questionsPanelObserverRef} className="h-1 w-full" />
-        )}
-
         {/* Main Content */}
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
             <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
-              <div 
-                ref={questionsPanelRef}
-                className={`transition-all duration-300 ${
-                  isQuestionsPanelFixed 
-                    ? 'fixed top-4 left-4 z-30 w-80 max-w-[400px]' 
-                    : 'relative'
-                }`}
-                style={{
-                  left: isQuestionsPanelFixed ? '1rem' : undefined,
-                  width: isQuestionsPanelFixed ? '20rem' : undefined,
-                }}
-              >
+              <div className="sticky top-4">
               <div
                 className="border rounded-lg p-6"
                 style={
@@ -1099,11 +1058,6 @@ export default function ReadingLessonViewer() {
               </div>
               </div>
             </div>
-          )}
-          
-          {/* Spacer when questions panel is fixed */}
-          {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && isQuestionsPanelFixed && (
-            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2" />
           )}
           {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
           <Card
