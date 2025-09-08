@@ -109,7 +109,11 @@ export default function ReadingLessonViewer() {
   // JS-based sticky panel refs and state
   const rightColRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [isPanelFixed, setIsPanelFixed] = useState(false);
+  const spacerRef = useRef<HTMLDivElement | null>(null);
+
+  type PinState = 'static' | 'fixed' | 'bottom';
+  const [pinState, setPinState] = useState<PinState>('static');
+  const [panelStyles, setPanelStyles] = useState<React.CSSProperties>({});
 
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
@@ -569,42 +573,91 @@ export default function ReadingLessonViewer() {
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
 
-  // JS-based sticky panel functionality
+  // Robust sticky panel functionality
   useEffect(() => {
-    if (readingFocusMode) return; // Only in normal mode
+    if (readingFocusMode) return; // endast i normalt läge
 
-    const update = () => {
-      const col = rightColRef.current;
-      const panel = panelRef.current;
-      if (!col || !panel) return;
+    let raf = 0;
+    const col = rightColRef.current;
+    const panel = panelRef.current;
+    const spacer = spacerRef.current;
+    if (!col || !panel || !spacer) return;
 
-      const rect = col.getBoundingClientRect();
+    const measure = () => {
+      const colRect = col.getBoundingClientRect();
       const panelH = panel.offsetHeight;
+      const vwLeft = Math.max(0, colRect.left);
+      const vwRight = Math.min(window.innerWidth, colRect.right);
+      const width = Math.max(0, vwRight - vwLeft);
 
-      // Panelen blir "fixed" när kolumnens topp nått top-marginalen (16px),
-      // och så länge panelen får plats inom kolumnens höjd.
-      const shouldFix = rect.top <= 16 && rect.bottom - 16 >= panelH;
+      // Lägen:
+      // 1) STATIC: kolumnens topp är nere i viewport (över 16px), då följer panelen med normalt.
+      // 2) FIXED: kolumnens topp passerat 16px och botten ej passerad.
+      // 3) BOTTOM: vi har passerat kolumnens botten; panelen låses i kolumnens botten.
+      const topMargin = 16; // px
+      const colTopPast = colRect.top <= topMargin;
+      const colBottomPast = colRect.bottom - topMargin <= panelH;
 
-      setIsPanelFixed(shouldFix);
+      let next: PinState = 'static';
+      if (colTopPast && !colBottomPast) next = 'fixed';
+      if (colTopPast && colBottomPast) next = 'bottom';
 
-      // Håll panelen exakt över kolumnen (vänster & bredd)
-      if (shouldFix) {
-        panel.style.width = `${rect.width}px`;
-        panel.style.left = `${rect.left}px`;
+      setPinState(next);
+
+      if (next === 'fixed') {
+        setPanelStyles({
+          position: 'fixed',
+          top: topMargin,
+          left: vwLeft,
+          width,
+          zIndex: 30,
+        });
+      } else if (next === 'bottom') {
+        // Lägg panelen ABSOLUT i kolumnens botten
+        const colTopDoc = window.scrollY + colRect.top;
+        const absTop = (colTopDoc + col.clientHeight) - panelH; // topp = botten - höjd
+        setPanelStyles({
+          position: 'absolute',
+          top: absTop - col.offsetTop, // inuti kolumnens egna koordinater
+          left: 0,
+          right: 0,
+          width: '100%',
+        });
       } else {
-        panel.style.width = '';
-        panel.style.left = '';
+        setPanelStyles({ position: 'static' });
       }
+
+      // Spacer för att förhindra layout-hopp när panelen blir fixed
+      spacer.style.height = panelH + 'px';
     };
 
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
+    const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measure); };
+
+    // Lyssna på allt som kan ändra layout
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    // MutationObserver: om innehållet i panelen ändras (t.ex. när frågor byts)
+    const mo = new MutationObserver(schedule);
+    mo.observe(panel, { childList: true, subtree: true, attributes: true, characterData: true });
+
+    // ResizeObserver: om panelen ändrar storlek
+    const roPanel = new ResizeObserver(schedule);
+    roPanel.observe(panel);
+    const roCol = new ResizeObserver(schedule);
+    roCol.observe(rightColRef.current!);
+
+    // initial
+    schedule();
+
     return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      mo.disconnect();
+      roPanel.disconnect();
+      roCol.disconnect();
     };
-  }, [readingFocusMode]);
+  }, [readingFocusMode, totalQuestions, currentQuestionIndex]);
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
@@ -841,11 +894,16 @@ export default function ReadingLessonViewer() {
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div ref={rightColRef} className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
-              <div
-                ref={panelRef}
-                style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
-              >
+            <div
+              ref={rightColRef}
+              className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2 relative"
+              style={{ contain: 'layout paint' }}
+            >
+              {/* Spacer som tar panelens höjd när den blir fixed */}
+              <div ref={spacerRef} aria-hidden="true" />
+
+              {/* Panel */}
+              <div ref={panelRef} style={panelStyles}>
                 <div
                   className="border rounded-lg p-6"
                 style={
@@ -855,6 +913,8 @@ export default function ReadingLessonViewer() {
                     borderColor: "var(--accessibility-text-color)",
                     borderWidth: "0.5px",
                     maxWidth: "720px",
+                    marginLeft: pinState === 'fixed' ? 0 : undefined, // undvik konstig offset
+                    width: pinState === 'fixed' ? '100%' : undefined,
                     fontFamily: "var(--normal-font-family)",
                   } as React.CSSProperties
                 }
