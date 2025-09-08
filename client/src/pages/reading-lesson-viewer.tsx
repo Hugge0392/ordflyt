@@ -1564,7 +1564,7 @@ export default function ReadingLessonViewer() {
                           setReadingFocusMode(false);
                           setFocusAnimationState('inactive');
                         }}
-                        className="text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white bg-[#ffffff]"
+                        className="text-white p-3 rounded-full shadow-lg border-2 border-white bg-[#ffffff]"
                         title="Avsluta läsfokus (Esc)"
                       >
                         <svg
