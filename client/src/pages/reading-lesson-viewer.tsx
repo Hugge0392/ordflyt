@@ -578,11 +578,8 @@ export default function ReadingLessonViewer() {
         e.preventDefault();
         setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       } else if (e.code === "Escape") {
-        setFocusAnimationState('exiting');
-        setTimeout(() => {
-          setReadingFocusMode(false);
-          setFocusAnimationState('inactive');
-        }, 300);
+        setReadingFocusMode(false);
+        setFocusAnimationState('inactive');
       }
     };
 
@@ -1221,11 +1218,8 @@ export default function ReadingLessonViewer() {
                                     setReadingFocusMode(true);
                                     setTimeout(() => setFocusAnimationState('active'), 50);
                                   } else {
-                                    setFocusAnimationState('exiting');
-                                    setTimeout(() => {
-                                      setReadingFocusMode(false);
-                                      setFocusAnimationState('inactive');
-                                    }, 300);
+                                    setReadingFocusMode(false);
+                                    setFocusAnimationState('inactive');
                                   }
                                 }}
                                 className={`w-12 h-6 rounded-full transition-colors ${
@@ -1426,7 +1420,7 @@ export default function ReadingLessonViewer() {
                     }}
                   />
 
-                  {(readingFocusMode || focusAnimationState === 'exiting') && focusRect && (
+                  {readingFocusMode && focusRect && (
                     <div className={`focus-overlay-container focus-${focusAnimationState}`}>
                       {/* TOP */}
                       <div
@@ -1463,16 +1457,13 @@ export default function ReadingLessonViewer() {
                 </div>
 
                 {/* Reading focus UI when active */}
-                {(readingFocusMode || focusAnimationState === 'exiting') && (
+                {readingFocusMode && (
                   <>
                     {/* Exit focus button */}
                     <button
                       onClick={() => {
-                        setFocusAnimationState('exiting');
-                        setTimeout(() => {
-                          setReadingFocusMode(false);
-                          setFocusAnimationState('inactive');
-                        }, 300);
+                        setReadingFocusMode(false);
+                        setFocusAnimationState('inactive');
                       }}
                       className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-4 z-40 bg-gray-900 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white`}
                       title="Avsluta läsfokus (Esc)"
