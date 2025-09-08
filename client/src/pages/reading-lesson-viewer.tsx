@@ -1068,7 +1068,7 @@ export default function ReadingLessonViewer() {
             >
               <div className="flex items-center justify-between">
                 {!readingFocusMode && (
-                <CardTitle className="text-lg">
+                <CardTitle className="text-lg mt-2">
                   <span>Läs texten</span>
                 </CardTitle>
                 )}
