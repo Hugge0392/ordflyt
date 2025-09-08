@@ -1,0 +1,108 @@
+Tack för koden – jag ser varför det fortfarande “inte funkar”.
+
+Grundproblemet: din text-wrapper (textRef) har zIndex: 10 och transform: "translateZ(0)" (skapar ny stacking context), medan overlayn (focus-overlay-container + .rf-scrim/.rf-frame) inte har varken position eller z-index. Då hamnar overlayn under texten → ser ut som att inget händer.
+
+Här är en minimal, konkret patch (2 små ändringar) som gör overlayn synlig direkt:
+
+1) Ge overlayn position + z-index (Tailwind-variant, enklast)
+
+Byt ut overlay-blocket till det här (samma plats som idag):
+
+{readingFocusMode && focusRect && (
+  <div className={`absolute inset-0 pointer-events-none z-[100] focus-${focusAnimationState}`}>
+    {/* TOP */}
+    <div
+      className="absolute bg-black/60"
+      aria-hidden
+      style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
+    />
+    {/* BOTTOM */}
+    <div
+      className="absolute bg-black/60"
+      aria-hidden
+      style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
+    />
+    {/* LEFT */}
+    <div
+      className="absolute bg-black/60"
+      aria-hidden
+      style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
+    />
+    {/* RIGHT */}
+    <div
+      className="absolute bg-black/60"
+      aria-hidden
+      style={{ top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
+    />
+    {/* FRAME */}
+    <div
+      className="absolute rounded-md ring-2 ring-white"
+      aria-hidden
+      style={{ top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
+    />
+  </div>
+)}
+
+
+Viktigt: contentRef har redan className="... relative ...", så overlayns absolute inset-0 förankras rätt.
+
+2) Sänk textlagrets “försprång” (så overlayn kan ligga över)
+
+I din text-wrapper (diven med ref={textRef}) – ta bort transform och/eller sänk z-index. Ändra denna bit:
+
+<div
+  ref={textRef}
+  key={readingFocusMode ? "focus" : "normal"}
+  data-reading-text=""
+  style={{
+    fontSize: `${activeSettings.fontSize}px`,
+    lineHeight: `${activeSettings.lineHeight}`,
+    position: "relative",
+    zIndex: 10,
+    mixBlendMode: "normal",
+    paddingTop: 1,
+    pointerEvents: "auto",
+    transform: "translateZ(0)", // ⬅️ TA BORT DENNA
+  }}
+  ...
+/>
+
+
+till:
+
+<div
+  ref={textRef}
+  key={readingFocusMode ? "focus" : "normal"}
+  data-reading-text=""
+  style={{
+    fontSize: `${activeSettings.fontSize}px`,
+    lineHeight: `${activeSettings.lineHeight}`,
+    position: "relative",
+    zIndex: 1,              // ⬅️ räcker gott
+    mixBlendMode: "normal",
+    paddingTop: 1,
+    pointerEvents: "auto",
+    // ingen transform här
+  }}
+  ...
+/>
+
+
+Det är allt. 🔧
+Med absolute inset-0 z-[100] på overlayn + ingen “topp-stacking” på texten syns skuggan och ramen direkt.
+
+Om du hellre vill köra ren CSS istället för Tailwind-klasser, lägg detta i ditt <style>-block och behåll dina klassnamn:
+
+.focus-overlay-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100; /* högre än textRef:s zIndex */
+}
+.rf-scrim { background: rgba(0,0,0,.6); }
+.rf-frame { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(0,0,0,.2); border-radius: 8px; }
+
+
+…och låt overlayn använda dessa klasser (som du redan gör).
+
+Behöver du att jag skickar en komplett “före/efter”-diff på hela komponenten, säg till så klipper jag den direkt.

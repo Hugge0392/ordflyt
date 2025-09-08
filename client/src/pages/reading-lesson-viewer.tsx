@@ -1430,11 +1430,11 @@ export default function ReadingLessonViewer() {
                       fontSize: `${activeSettings.fontSize}px`,
                       lineHeight: `${activeSettings.lineHeight}`, // unitless är OK i CSS
                       position: "relative",
-                      zIndex: 10,
+                      zIndex: 1,              // ⬅️ räcker gott
                       mixBlendMode: "normal",
                       paddingTop: 1,
                       pointerEvents: "auto",
-                      transform: "translateZ(0)",
+                      // ingen transform här
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(
@@ -1445,36 +1445,36 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <div className={`focus-overlay-container focus-${focusAnimationState}`}>
+                    <div className={`absolute inset-0 pointer-events-none z-[100] focus-${focusAnimationState}`}>
                       {/* TOP */}
                       <div
-                        className="rf-scrim"
+                        className="absolute bg-black/60"
                         aria-hidden
-                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
+                        style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
                       />
                       {/* BOTTOM */}
                       <div
-                        className="rf-scrim"
+                        className="absolute bg-black/60"
                         aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
+                        style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
                       />
                       {/* LEFT */}
                       <div
-                        className="rf-scrim"
+                        className="absolute bg-black/60"
                         aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
+                        style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
                       />
                       {/* RIGHT */}
                       <div
-                        className="rf-scrim"
+                        className="absolute bg-black/60"
                         aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
+                        style={{ top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
                       />
                       {/* FRAME */}
                       <div
-                        className="rf-frame"
+                        className="absolute rounded-md ring-2 ring-white"
                         aria-hidden
-                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
+                        style={{ top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
                       />
                     </div>
                   )}
