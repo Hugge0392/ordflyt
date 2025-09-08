@@ -1424,11 +1424,95 @@ export default function ReadingLessonViewer() {
                       </svg>
                     </button>
 
+                    {/* Focus mode accessibility controls */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="fixed top-4 right-[120px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground p-3 rounded-md"
+                          title="Anpassa textstorlek"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                            />
+                          </svg>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80" align="end">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">Fokusläge - Textinställningar</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Anpassa texten för fokusläget
+                            </p>
+                          </div>
+                          
+                          {/* Font Size Slider */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">Textstorlek</Label>
+                              <span className="text-sm text-muted-foreground">{focusSettings.fontSize}px</span>
+                            </div>
+                            <Slider
+                              value={[focusSettings.fontSize]}
+                              onValueChange={(value) => setFocusSettings(prev => ({ ...prev, fontSize: value[0] }))}
+                              max={60}
+                              min={12}
+                              step={2}
+                              className="w-full"
+                            />
+                          </div>
+
+                          {/* Line Height Slider */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">Radavstånd</Label>
+                              <span className="text-sm text-muted-foreground">{focusSettings.lineHeight}</span>
+                            </div>
+                            <Slider
+                              value={[focusSettings.lineHeight]}
+                              onValueChange={(value) => setFocusSettings(prev => ({ ...prev, lineHeight: value[0] }))}
+                              max={3}
+                              min={1}
+                              step={0.1}
+                              className="w-full"
+                            />
+                          </div>
+
+                          {/* Number of lines control */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Antal rader samtidigt</Label>
+                            <Select
+                              value={readingFocusLines.toString()}
+                              onValueChange={(value) => setReadingFocusLines(parseInt(value))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 rad</SelectItem>
+                                <SelectItem value="3">3 rader</SelectItem>
+                                <SelectItem value="5">5 rader</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
                     {/* Questions button next to accessibility controls */}
                     {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                       <button
                         onClick={() => setShowFocusQuestionsPopup(true)}
-                        className="fixed top-4 right-[170px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                        className="fixed top-4 right-[230px] z-[9999] bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
                         title="Visa frågor"
                       >
                         <svg
