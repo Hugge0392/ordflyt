@@ -944,11 +944,12 @@ export default function ReadingLessonViewer() {
                             )
                           }
                           placeholder="Skriv ditt svar här..."
-                          className="w-full min-h-[100px] p-4 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                          className="w-full min-h-[100px] p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                           style={{
                             backgroundColor: "var(--accessibility-bg-color)",
                             color: "var(--accessibility-text-color)",
                             borderColor: "var(--accessibility-text-color)",
+                            borderWidth: "0.5px",
                             fontSize: "16px",
                             lineHeight: "1.5",
                           }}
