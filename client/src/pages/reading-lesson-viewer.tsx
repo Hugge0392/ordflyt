@@ -1302,7 +1302,7 @@ export default function ReadingLessonViewer() {
                   className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
                   style={{
                     fontSize: "16px", // stable measuring font for ch units
-                    whiteSpace: "normal",
+                    whiteSpace: "pre-wrap",
                     wordWrap: "break-word",
                     backgroundColor: readingFocusMode ? "#242424" : "var(--accessibility-bg-color)",
                     color: "var(--accessibility-text-color)",
