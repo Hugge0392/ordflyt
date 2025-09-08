@@ -1466,7 +1466,7 @@ export default function ReadingLessonViewer() {
                         setReadingFocusMode(false);
                         setFocusAnimationState('inactive');
                       }}
-                      className={`focus-ui-button focus-${focusAnimationState} fixed top-4 right-4 z-40 bg-gray-900 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white`}
+                      className="focus-ui-button focus-inactive fixed top-4 right-4 z-40 text-white p-3 rounded-full hover:bg-black shadow-lg border-2 border-white bg-[#ffffff]"
                       title="Avsluta läsfokus (Esc)"
                     >
                       <svg
