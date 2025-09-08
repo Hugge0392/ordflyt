@@ -108,6 +108,11 @@ export default function ReadingLessonViewer() {
 
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
+
+  // JS-based sticky refs and state
+  const rightColRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [isPanelFixed, setIsPanelFixed] = useState(false);
   
   // Get show questions button setting from accessibility settings
   const getShowFocusQuestionsButton = () => {
@@ -460,6 +465,41 @@ export default function ReadingLessonViewer() {
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [readingFocusMode, lineRects, currentReadingLine, readingFocusLines, currentPage]);
+
+  // JS-based sticky logic
+  useEffect(() => {
+    const update = () => {
+      const col = rightColRef.current;
+      const panel = panelRef.current;
+      if (!col || !panel) return;
+
+      const rect = col.getBoundingClientRect();
+      const panelH = panel.offsetHeight;
+
+      // Panelen blir "fixed" när kolumnens topp nått top-marginalen (16px),
+      // och så länge panelen får plats inom kolumnens höjd.
+      const shouldFix = rect.top <= 16 && rect.bottom - 16 >= panelH;
+
+      setIsPanelFixed(shouldFix);
+
+      // Håll panelen exakt över kolumnen (vänster & bredd)
+      if (shouldFix) {
+        panel.style.width = `${rect.width}px`;
+        panel.style.left = `${rect.left}px`;
+      } else {
+        panel.style.width = '';
+        panel.style.left = '';
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   // Calculate all questions for panel navigation
   const allQuestions = useMemo(() => {
@@ -927,7 +967,7 @@ export default function ReadingLessonViewer() {
 
                 <div
                   ref={contentRef}
-                  className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                  className={`max-w-none min-h-[400px] reading-content accessibility-enhanced relative ${readingFocusMode ? 'overflow-auto' : 'overflow-visible'}`}
                   style={{
                     fontSize: "16px", // stable measuring font for ch units
                     whiteSpace: "pre-wrap",
@@ -1548,8 +1588,11 @@ export default function ReadingLessonViewer() {
 
           {/* New Questions Panel - One Question at a Time - ON THE RIGHT */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="w-full lg:w-1/3">
-              <aside className="sticky top-4">
+            <div ref={rightColRef} className="w-full lg:w-1/3">
+              <div
+                ref={panelRef}
+                style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
+              >
                 <div
                   className="border rounded-lg p-6"
                   style={
@@ -1803,7 +1846,7 @@ export default function ReadingLessonViewer() {
                   </button>
                 </div>
                 </div>
-              </aside>
+              </div>
             </div>
           )}
         </div>
