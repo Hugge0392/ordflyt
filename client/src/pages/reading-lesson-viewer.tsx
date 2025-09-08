@@ -140,6 +140,17 @@ export default function ReadingLessonViewer() {
     setCurrentReadingLine(0); // Reset to first line of new page
   };
 
+  // Check if there's a previous page available
+  const hasPreviousPage = () => {
+    return currentPage > 0;
+  };
+
+  // Navigate to previous page from focus mode
+  const goToPreviousPageFromFocus = () => {
+    setCurrentPage(Math.max(0, currentPage - 1));
+    setCurrentReadingLine(0); // Reset to first line of new page
+  };
+
   // DOM measurement functions from ChatGPT's solution
 
   function measureLineRects(textEl: HTMLElement, containerEl: HTMLElement): DOMRect[] {
@@ -1555,6 +1566,30 @@ export default function ReadingLessonViewer() {
                             d="M9 5l7 7-7 7"
                           />
                         </svg>
+                      </button>
+                    )}
+
+                    {/* Previous page button when on last line and not first page */}
+                    {isOnLastLine() && hasPreviousPage() && (
+                      <button
+                        onClick={goToPreviousPageFromFocus}
+                        className="fixed bottom-6 left-6 z-40 bg-gray-600 bg-opacity-90 text-white px-6 py-3 rounded-lg hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+                        title="Gå till föregående sida"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium">Föregående sida</span>
                       </button>
                     )}
 
