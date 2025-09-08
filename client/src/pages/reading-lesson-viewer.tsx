@@ -568,16 +568,39 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     if (!readingFocusMode) return;
 
+    const smoothScrollToLine = (newLine: number) => {
+      if (!contentRef.current || !lineRects.length) return;
+      
+      // Calculate new focus rect for the target line
+      const start = Math.min(newLine, Math.max(0, lineRects.length - 1));
+      const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+      const top = lineRects[start]?.top || 0;
+      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
+      const height = bottom - top + 3;
+      const newFocusRect = { top, height, left: 0, width: contentRef.current.getBoundingClientRect().width };
+
+      // Smooth scroll to keep focus rect centered
+      const cont = contentRef.current;
+      const targetScrollTop = Math.max(0, newFocusRect.top + newFocusRect.height / 2 - cont.clientHeight / 2);
+      cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowRight" || e.code === "ArrowDown" || e.code === "Enter") {
         e.preventDefault();
         setCurrentReadingLine((prev) => {
           const maxLine = Math.max(0, lineRects.length - readingFocusLines);
-          return Math.min(prev + 1, maxLine);
+          const newLine = Math.min(prev + 1, maxLine);
+          smoothScrollToLine(newLine);
+          return newLine;
         });
       } else if (e.code === "ArrowLeft" || e.code === "ArrowUp") {
         e.preventDefault();
-        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
+        setCurrentReadingLine((prev) => {
+          const newLine = Math.max(0, prev - 1);
+          smoothScrollToLine(newLine);
+          return newLine;
+        });
       } else if (e.code === "Escape") {
         setReadingFocusMode(false);
         setFocusAnimationState('inactive');
@@ -590,11 +613,17 @@ export default function ReadingLessonViewer() {
         // Scroll down
         setCurrentReadingLine((prev) => {
           const maxLine = Math.max(0, lineRects.length - readingFocusLines);
-          return Math.min(prev + 1, maxLine);
+          const newLine = Math.min(prev + 1, maxLine);
+          smoothScrollToLine(newLine);
+          return newLine;
         });
       } else {
         // Scroll up
-        setCurrentReadingLine((prev) => Math.max(0, prev - 1));
+        setCurrentReadingLine((prev) => {
+          const newLine = Math.max(0, prev - 1);
+          smoothScrollToLine(newLine);
+          return newLine;
+        });
       }
     };
 
@@ -607,44 +636,17 @@ export default function ReadingLessonViewer() {
     };
   }, [readingFocusMode, lineRects.length, readingFocusLines]);
 
-  // Center focus window in container and page (smooth scroll)
+  // Initial focus centering when focus mode is first activated
   useEffect(() => {
     if (!readingFocusMode || !focusRect || !contentRef.current) return;
-    const cont = contentRef.current;
     
-    // Scroll within container
-    const targetScrollTop = Math.max(
-      0,
-      focusRect.top + focusRect.height / 2 - cont.clientHeight / 2,
-    );
-    cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
-    
-    // Also scroll the entire page to keep focus rect visible in viewport
-    const contRect = cont.getBoundingClientRect();
-    const focusTopInViewport = contRect.top + focusRect.top;
-    const focusBottomInViewport = focusTopInViewport + focusRect.height;
-    
-    // Check if focus rect is in the outer thirds of viewport
-    const viewportHeight = window.innerHeight;
-    const upperThird = viewportHeight / 3;
-    const lowerThird = viewportHeight * 2 / 3;
-    
-    if (focusTopInViewport < upperThird) {
-      // Focus is in upper third, scroll up to center it
-      const targetY = window.scrollY + focusTopInViewport - (viewportHeight / 2) + (focusRect.height / 2);
-      window.scrollTo({
-        top: Math.max(0, targetY),
-        behavior: "smooth"
-      });
-    } else if (focusBottomInViewport > lowerThird) {
-      // Focus is in lower third, scroll down to center it
-      const targetY = window.scrollY + focusBottomInViewport - (viewportHeight / 2) - (focusRect.height / 2);
-      window.scrollTo({
-        top: targetY,
-        behavior: "smooth"
-      });
+    // Only center on initial focus mode activation, not on every line change
+    if (currentReadingLine === 0) {
+      const cont = contentRef.current;
+      const targetScrollTop = Math.max(0, focusRect.top + focusRect.height / 2 - cont.clientHeight / 2);
+      cont.scrollTo({ top: targetScrollTop, behavior: "smooth" });
     }
-  }, [currentReadingLine, readingFocusMode, focusRect]);
+  }, [readingFocusMode, focusRect]); // Removed currentReadingLine dependency
 
   // Count total questions available for current page
   const getTotalQuestionsCount = () => {
@@ -1072,6 +1074,206 @@ export default function ReadingLessonViewer() {
                   <span>Läs texten</span>
                 </CardTitle>
                 )}
+                <div className={`flex gap-2 ${readingFocusMode ? 'ml-auto' : ''}`}>
+                  {/* Focus Mode Toggle Button */}
+                  <Button
+                    variant={readingFocusMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReadingFocusMode(!readingFocusMode)}
+                    className={
+                      readingFocusMode ? "bg-blue-600 hover:bg-blue-700" : ""
+                    }
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    {readingFocusMode ? "Avsluta fokus" : "Fokusläge"}
+                  </Button>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4 mr-1" />
+                        Inställningar
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4" align="end">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Textstorlek
+                          </Label>
+                          <Slider
+                            value={[activeSettings.fontSize]}
+                            onValueChange={(value) =>
+                              setActiveSettings((prev) => ({
+                                ...prev,
+                                fontSize: value[0],
+                              }))
+                            }
+                            min={16}
+                            max={60}
+                            step={2}
+                            className="mt-2"
+                          />
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {activeSettings.fontSize}px
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Radavstånd
+                          </Label>
+                          <Slider
+                            value={[activeSettings.lineHeight]}
+                            onValueChange={(value) =>
+                              setActiveSettings((prev) => ({
+                                ...prev,
+                                lineHeight: value[0],
+                              }))
+                            }
+                            min={1.0}
+                            max={3.0}
+                            step={0.1}
+                            className="mt-2"
+                          />
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {activeSettings.lineHeight.toFixed(1)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Bakgrundsfärg
+                          </Label>
+                          <Select
+                            value={activeSettings.backgroundColor}
+                            onValueChange={(value) =>
+                              setActiveSettings((prev) => ({
+                                ...prev,
+                                backgroundColor: value as ReaderSettings["backgroundColor"],
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="black-on-white">
+                                Svart på vitt
+                              </SelectItem>
+                              <SelectItem value="light-gray-on-gray">
+                                Ljusgrå på grå
+                              </SelectItem>
+                              <SelectItem value="white-on-black">
+                                Vit på svart
+                              </SelectItem>
+                              <SelectItem value="black-on-light-yellow">
+                                Svart på ljusgul
+                              </SelectItem>
+                              <SelectItem value="black-on-light-blue">
+                                Svart på ljusblå
+                              </SelectItem>
+                              <SelectItem value="light-yellow-on-blue">
+                                Ljusgul på blå
+                              </SelectItem>
+                              <SelectItem value="black-on-light-red">
+                                Svart på ljusröd
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium">
+                            Teckensnitt
+                          </Label>
+                          <Select
+                            value={activeSettings.fontFamily}
+                            onValueChange={(value) =>
+                              setActiveSettings((prev) => ({
+                                ...prev,
+                                fontFamily: value as ReaderSettings["fontFamily"],
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="dyslexia-friendly">
+                                Dyslexi-vänligt
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <Label className="text-sm font-medium">
+                            Läsfokus
+                          </Label>
+                          <div className="space-y-3 mt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Aktivera läsfokus</span>
+                              <button
+                                onClick={() => {
+                                  if (!readingFocusMode) {
+                                    setFocusAnimationState('entering');
+                                    setReadingFocusMode(true);
+                                    setTimeout(() => setFocusAnimationState('active'), 50);
+                                  } else {
+                                    setReadingFocusMode(false);
+                                    setFocusAnimationState('inactive');
+                                  }
+                                }}
+                                className={`w-12 h-6 rounded-full transition-colors ${
+                                  readingFocusMode
+                                    ? "bg-blue-600"
+                                    : "bg-gray-300"
+                                }`}
+                              >
+                                <div
+                                  className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                                    readingFocusMode
+                                      ? "translate-x-6"
+                                      : "translate-x-0.5"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+
+                            {readingFocusMode && (
+                              <div>
+                                <Label className="text-xs text-muted-foreground">
+                                  Antal rader samtidigt
+                                </Label>
+                                <Select
+                                  value={readingFocusLines.toString()}
+                                  onValueChange={(value) =>
+                                    setReadingFocusLines(parseInt(value))
+                                  }
+                                >
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1">1 rad</SelectItem>
+                                    <SelectItem value="3">3 rader</SelectItem>
+                                    <SelectItem value="5">5 rader</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  💡 Använd Space/Enter/pilar eller scrolla för att
+                                  navigera rad för rad
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
               {!readingFocusMode && lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
                 <CardDescription>
