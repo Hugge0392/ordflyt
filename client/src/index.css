@@ -617,6 +617,22 @@ button[class*="navigation-button"]:hover,
   transition: none !important;
 }
 
+/* Remove outlines and focus rings from icons/SVG in navigation buttons */
+.navigation-button svg,
+.navigation-button svg:hover,
+.navigation-button svg:focus,
+.navigation-button svg:active,
+button.navigation-button svg,
+button.navigation-button svg:hover,
+button.navigation-button svg:focus,
+button.navigation-button svg:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  focus-visible: none !important;
+}
+
 /* === KILLSWITCH mot "vita band" i läsytan === */
 /* Endast containern får bakgrund. Inga barn får lägga plattor. */
 .reading-content.accessibility-enhanced {
