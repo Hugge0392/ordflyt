@@ -374,6 +374,9 @@ export default function ReadingLessonViewer() {
     }
   }, [lineRects, currentReadingLine, readingFocusLines]);
 
+  // Mark first task as in progress
+  const [currentTaskInProgress] = useState(true);
+
   // Create interactive content with word definitions
   const processContentWithDefinitions = (
     content: string,
