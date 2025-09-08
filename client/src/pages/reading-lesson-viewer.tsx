@@ -1461,7 +1461,7 @@ export default function ReadingLessonViewer() {
                 {readingFocusMode && (
                   <>
                     {/* Focus mode controls container */}
-                    <div className={`focus-ui-button focus-${focusAnimationState} fixed top-2 right-4 z-40 flex gap-2`}>
+                    <div className={`focus-ui-button focus-${focusAnimationState} fixed top-1 right-4 z-40 flex gap-2`}>
                       {/* Questions button */}
                       {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
                         <button
