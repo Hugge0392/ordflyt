@@ -106,6 +106,11 @@ export default function ReadingLessonViewer() {
   const textRef = useRef<HTMLDivElement | null>(null);
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
 
+  // JS-based sticky panel refs and state
+  const rightColRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [isPanelFixed, setIsPanelFixed] = useState(false);
+
   // Focus mode questions popup states
   const [showFocusQuestionsPopup, setShowFocusQuestionsPopup] = useState(false);
   
@@ -564,6 +569,43 @@ export default function ReadingLessonViewer() {
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
 
+  // JS-based sticky panel functionality
+  useEffect(() => {
+    if (readingFocusMode) return; // Only in normal mode
+
+    const update = () => {
+      const col = rightColRef.current;
+      const panel = panelRef.current;
+      if (!col || !panel) return;
+
+      const rect = col.getBoundingClientRect();
+      const panelH = panel.offsetHeight;
+
+      // Panelen blir "fixed" när kolumnens topp nått top-marginalen (16px),
+      // och så länge panelen får plats inom kolumnens höjd.
+      const shouldFix = rect.top <= 16 && rect.bottom - 16 >= panelH;
+
+      setIsPanelFixed(shouldFix);
+
+      // Håll panelen exakt över kolumnen (vänster & bredd)
+      if (shouldFix) {
+        panel.style.width = `${rect.width}px`;
+        panel.style.left = `${rect.left}px`;
+      } else {
+        panel.style.width = '';
+        panel.style.left = '';
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [readingFocusMode]);
+
   // Keyboard navigation for reading focus mode
   useEffect(() => {
     if (!readingFocusMode) return;
@@ -799,9 +841,13 @@ export default function ReadingLessonViewer() {
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2 sticky top-4 self-start">
+            <div ref={rightColRef} className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
               <div
-                className="border rounded-lg p-6"
+                ref={panelRef}
+                style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
+              >
+                <div
+                  className="border rounded-lg p-6"
                 style={
                   {
                     backgroundColor: "var(--accessibility-bg-color)",
@@ -1051,6 +1097,7 @@ export default function ReadingLessonViewer() {
                     {isLastQuestion ? "Skicka in" : "Nästa"}
                     <ChevronRight style={{ width: "16px", height: "16px" }} />
                   </button>
+                </div>
                 </div>
               </div>
             </div>
@@ -1322,7 +1369,7 @@ export default function ReadingLessonViewer() {
 
                 <div
                   ref={contentRef}
-                  className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+                  className={`max-w-none min-h-[400px] reading-content accessibility-enhanced relative ${readingFocusMode ? 'overflow-auto' : 'overflow-visible'}`}
                   style={{
                     fontSize: "16px", // stable measuring font for ch units
                     whiteSpace: "pre-wrap",
