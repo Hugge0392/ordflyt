@@ -1322,11 +1322,12 @@ export default function ReadingLessonViewer() {
                       /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
                     }
 
-                    /* Force font-size and line-height inheritance to override inline styles */
+                    /* Bas: låt wrappen definiera typografi */
                     .reading-content [data-reading-text] {
-                      font-size: ${readingFocusMode ? "var(--focus-font-size)" : "var(--normal-font-size)"} !important;
-                      line-height: ${readingFocusMode ? "var(--focus-line-height)" : "var(--normal-line-height)"} !important;
+                      font-size: ${activeSettings.fontSize}px !important;
+                      line-height: ${activeSettings.lineHeight} !important;
                     }
+                    /* Alla barn ärver => slår inline font-size/line-height från editorn */
                     .reading-content [data-reading-text] * {
                       font-size: inherit !important;
                       line-height: inherit !important;
@@ -1345,16 +1346,17 @@ export default function ReadingLessonViewer() {
                   {/* TEXT-WRAPPER med textRef för exakt DOM-mätning */}
                   <div
                     ref={textRef}
-                    data-reading-text=""     // märkning för killswitch-regeln
+                    key={readingFocusMode ? "focus" : "normal"} // force remount vid lägesbyte
+                    data-reading-text=""
                     style={{
-                      fontSize: readingFocusMode ? "var(--focus-font-size)" : "var(--normal-font-size)",
-                      lineHeight: readingFocusMode ? "var(--focus-line-height)" : "var(--normal-line-height)",
+                      fontSize: `${activeSettings.fontSize}px`,
+                      lineHeight: `${activeSettings.lineHeight}`, // unitless är OK i CSS
                       position: "relative",
-                      zIndex: 10, // lägre än spotlight
+                      zIndex: 10,
                       mixBlendMode: "normal",
                       paddingTop: 1,
                       pointerEvents: "auto",
-                      transform: "translateZ(0)" // eget compositing-lager
+                      transform: "translateZ(0)",
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(

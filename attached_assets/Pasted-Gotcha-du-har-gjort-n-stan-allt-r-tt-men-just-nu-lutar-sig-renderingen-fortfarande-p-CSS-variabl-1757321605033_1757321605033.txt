@@ -1,0 +1,72 @@
+Gotcha — du har gjort nästan allt rätt, men just nu lutar sig renderingen fortfarande på CSS-variablerna (var(--focus-font-size) / var(--normal-font-size)). Om de, av någon anledning, inte “bubblar” ner korrekt (t.ex. pga en annan style-order eller cache), ser du ingen visuell effekt när du drar i reglagen.
+
+Den snabbaste och mest robusta fixen är att mata storlek & radavstånd direkt från React-state (activeSettings) in i själva text-wrappen (där ref={textRef}) — och samtidigt tvinga alla barn att ärva det. Då slipper vi bero på CSS-variablerna för själva typografin.
+
+Nedan är en minimal patch (2 ställen att ändra). Klistra in som det är:
+
+1) Sätt fontSize och lineHeight direkt från activeSettings på text-wrappen
+
+Byt ut din style={...} på div med ref={textRef} till detta (lägg gärna även key för en säker remount när du växlar läge):
+
+<div
+  ref={textRef}
+  key={readingFocusMode ? "focus" : "normal"} // force remount vid lägesbyte
+  data-reading-text=""
+  style={{
+    fontSize: `${activeSettings.fontSize}px`,
+    lineHeight: `${activeSettings.lineHeight}`, // unitless är OK i CSS
+    position: "relative",
+    zIndex: 10,
+    mixBlendMode: "normal",
+    paddingTop: 1,
+    pointerEvents: "auto",
+    transform: "translateZ(0)",
+  }}
+  dangerouslySetInnerHTML={{
+    __html: processContentWithDefinitions(
+      pages[currentPage] || "",
+      lesson.wordDefinitions,
+    ),
+  }}
+/>
+
+
+Viktigt: Vi använder inte var(--focus-*/--normal-*) här, utan direkt activeSettings.
+
+2) Låt alla barn ärva (krävs för att slå ut editor-stilar)
+
+I <style>{...}</style>-blocket inne i reading-content, lägg/tweaka dessa regler (du kan ersätta dina befintliga motsvarande rader):
+
+<style>{`
+  /* ... dina befintliga regler för färg ... */
+
+  /* Bas: låt wrappen definiera typografi */
+  .reading-content [data-reading-text] {
+    font-size: ${activeSettings.fontSize}px !important;
+    line-height: ${activeSettings.lineHeight} !important;
+  }
+  /* Alla barn ärver => slår inline font-size/line-height från editorn */
+  .reading-content [data-reading-text] * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+
+  /* (Behåll dina färg-regler och bakgrundsrensning) */
+`}</style>
+
+
+Du har redan sanering i processContentWithDefinitions som plockar bort font-size/line-height ur inline style – toppen. Regeln ovan gör det vattentätt mot ev. rubriker/element som annars sätter egen storlek.
+
+Varför det här funkar direkt
+
+Reglagen uppdaterar activeSettings → React sätter inline style på text-wrappen → webbläsaren repainter utan att behöva vänta på att CSS-variabler propagaterar.
+
+inherit !important på alla barn garanterar att inga editor-stilar “vinner”.
+
+(Valfritt) Städa lite
+
+Du kan låta CSS-variablerna ligga kvar för färg/tema. För typografins skull är inline-style + inherit-regeln ovan det som gör jobbet nu.
+
+Mätningen av rader är redan beroende av activeSettings – bra. Om du någon gång ser konstigt beteende vid lägesbyte, keep key={readingFocusMode ? "focus" : "normal"} på text-wrappen (som i patchen) så forceras en ren DOM-mätning.
+
+Testa nu: dra i Textstorlek / Radavstånd i valfritt läge. Du ska se direkt visuellt resultat. Om något fortfarande inte rör sig, ping mig med ett kort screenshot på DOM-trädet kring data-reading-text så kikar jag på specifikiteten just där.
