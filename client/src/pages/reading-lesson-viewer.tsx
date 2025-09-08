@@ -1350,19 +1350,19 @@ export default function ReadingLessonViewer() {
                       font-size: calc(${activeSettings.fontSize}px * 1.8) !important;
                       line-height: 1.2 !important;
                       font-weight: bold !important;
-                      margin: 0.3em 0 0.2em 0 !important;
+                      margin: 0.1em 0 0.2em 0 !important;
                     }
                     .reading-content [data-reading-text] h2 {
                       font-size: calc(${activeSettings.fontSize}px * 1.5) !important;
                       line-height: 1.3 !important;
                       font-weight: bold !important;
-                      margin: 0.3em 0 0.15em 0 !important;
+                      margin: 0.15em 0 0.15em 0 !important;
                     }
                     .reading-content [data-reading-text] h3 {
                       font-size: calc(${activeSettings.fontSize}px * 1.3) !important;
                       line-height: 1.4 !important;
                       font-weight: bold !important;
-                      margin: 0.25em 0 0.1em 0 !important;
+                      margin: 0.1em 0 0.1em 0 !important;
                     }
                     .reading-content [data-reading-text] h4 {
                       font-size: calc(${activeSettings.fontSize}px * 1.1) !important;
