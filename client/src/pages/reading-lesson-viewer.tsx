@@ -348,10 +348,26 @@ export default function ReadingLessonViewer() {
       const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
       const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
 
-      if (!contentRef.current) return null;
-      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
+      // Beräkna bredden baserat på den längsta raden i fokus-området
+      let maxWidth = 0;
+      let minLeft = Infinity;
+      for (let i = start; i <= end; i++) {
+        if (lineRects[i]) {
+          const rect = lineRects[i];
+          const lineRight = rect.left + rect.width;
+          if (lineRight > maxWidth) {
+            maxWidth = lineRight;
+          }
+          if (rect.left < minLeft) {
+            minLeft = rect.left;
+          }
+        }
+      }
+      
+      const width = maxWidth - minLeft + 20; // +20px padding för snyggare utseende
+      const left = Math.max(0, minLeft - 10); // -10px för lite padding till vänster
 
-      return { top, height, left: 0, width };
+      return { top, height, left, width };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;
