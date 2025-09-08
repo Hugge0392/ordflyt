@@ -1817,8 +1817,7 @@ export default function ReadingLessonViewer() {
                     Sida {currentPage + 1} av {pages.length}
                   </div>
 
-                  <Button
-                    variant="outline"
+                  <button
                     onClick={() => {
                       if (currentPage === pages.length - 1) {
                         // På sista sidan - lämna in
@@ -1833,15 +1832,26 @@ export default function ReadingLessonViewer() {
                       }
                     }}
                     disabled={!areAllCurrentPageQuestionsAnswered()}
-                    className="flex items-center gap-2 navigation-button
-                                 bg-white text-black border-black
-                                 hover:bg-white hover:text-black hover:border-black
-                                 focus-visible:ring-0 focus-visible:outline-none
-                                 shadow-none hover:shadow-none active:shadow-none"
+                    className="unique-next-page-btn"
                     style={{
-                      backgroundColor: "#FFFFFF",
-                      color: "#000000",
-                      borderColor: "#000000",
+                      background: "#ffffff !important",
+                      color: "#000000 !important",
+                      border: "1px solid #000000 !important",
+                      padding: "10px 16px !important",
+                      borderRadius: "8px !important",
+                      cursor: !areAllCurrentPageQuestionsAnswered() ? "not-allowed" : "pointer",
+                      fontSize: "14px !important",
+                      fontWeight: "500 !important",
+                      display: "flex !important",
+                      alignItems: "center !important",
+                      gap: "8px !important",
+                      fontFamily: "system-ui, sans-serif !important",
+                      opacity: "1 !important",
+                      filter: "none !important",
+                      boxShadow: "none !important",
+                      outline: "none !important",
+                      position: "relative",
+                      zIndex: 999,
                     }}
                     title={
                       !areAllCurrentPageQuestionsAnswered()
@@ -1852,8 +1862,8 @@ export default function ReadingLessonViewer() {
                     {currentPage === pages.length - 1
                       ? "Lämna in"
                       : "Nästa sida"}
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                    <ChevronRight style={{ width: "16px", height: "16px" }} />
+                  </button>
                 </div>
               )}
 
