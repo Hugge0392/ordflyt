@@ -294,25 +294,25 @@ export default function ReadingLessonViewer() {
     root.style.setProperty("--accessibility-font-family", activeSettings.fontFamily === "dyslexia-friendly" ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif' : "system-ui, -apple-system, sans-serif");
   }, [normalSettings, focusSettings, readingFocusMode, activeSettings]);
 
-  // Set up IntersectionObserver for sticky questions panel
+  // Scroll-based sticky questions panel
   useEffect(() => {
-    if (!questionsPanelObserverRef.current) return;
+    if (!showQuestionsPanel12 || !questionsPanelObserverRef.current) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // When the observer element goes out of view at the top, make panel fixed
-        setIsQuestionsPanelFixed(!entry.isIntersecting);
-      },
-      {
-        rootMargin: '-20px 0px 0px 0px', // Trigger 20px before reaching the top
-        threshold: 0
-      }
-    );
+    const handleScroll = () => {
+      if (!questionsPanelObserverRef.current) return;
+      
+      const rect = questionsPanelObserverRef.current.getBoundingClientRect();
+      const shouldBeFixed = rect.top <= 20; // When observer element is 20px from top
+      
+      setIsQuestionsPanelFixed(shouldBeFixed);
+      console.log('Scroll event:', { top: rect.top, shouldBeFixed });
+    };
 
-    observer.observe(questionsPanelObserverRef.current);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Check initial state
 
     return () => {
-      observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [showQuestionsPanel12]);
 
@@ -836,9 +836,13 @@ export default function ReadingLessonViewer() {
                 ref={questionsPanelRef}
                 className={`transition-all duration-300 ${
                   isQuestionsPanelFixed 
-                    ? 'fixed top-4 z-30 w-[calc(33.333%-1rem)] max-w-[400px]' 
+                    ? 'fixed top-4 left-4 z-30 w-80 max-w-[400px]' 
                     : 'relative'
                 }`}
+                style={{
+                  left: isQuestionsPanelFixed ? '1rem' : undefined,
+                  width: isQuestionsPanelFixed ? '20rem' : undefined,
+                }}
               >
               <div
                 className="border rounded-lg p-6"
