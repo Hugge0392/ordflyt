@@ -75,9 +75,9 @@ export default function ReadingLessonViewer() {
   const [normalSettings, setNormalSettings] = useState<ReaderSettings>(() => {
     try {
       const saved = localStorage.getItem("reading-normal-settings");
-      return saved ? JSON.parse(saved) : { fontSize: 30, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
+      return saved ? JSON.parse(saved) : { fontSize: 22, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
     } catch {
-      return { fontSize: 30, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
+      return { fontSize: 22, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
     }
   });
 
@@ -85,9 +85,9 @@ export default function ReadingLessonViewer() {
   const [focusSettings, setFocusSettings] = useState<ReaderSettings>(() => {
     try {
       const saved = localStorage.getItem("reading-focus-settings");
-      return saved ? JSON.parse(saved) : { fontSize: 34, lineHeight: 1.6, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+      return saved ? JSON.parse(saved) : { fontSize: 32, lineHeight: 1.5, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
     } catch {
-      return { fontSize: 34, lineHeight: 1.6, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+      return { fontSize: 32, lineHeight: 1.5, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
     }
   });
 
