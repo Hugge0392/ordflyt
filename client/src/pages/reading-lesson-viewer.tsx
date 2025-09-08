@@ -85,9 +85,9 @@ export default function ReadingLessonViewer() {
   const [focusSettings, setFocusSettings] = useState<ReaderSettings>(() => {
     try {
       const saved = localStorage.getItem("reading-focus-settings");
-      return saved ? JSON.parse(saved) : { fontSize: 32, lineHeight: 1.5, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+      return saved ? JSON.parse(saved) : { fontSize: 32, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
     } catch {
-      return { fontSize: 32, lineHeight: 1.5, backgroundColor: "white-on-black", fontFamily: "dyslexia-friendly" };
+      return { fontSize: 32, lineHeight: 1.5, backgroundColor: "black-on-white", fontFamily: "standard" };
     }
   });
 
