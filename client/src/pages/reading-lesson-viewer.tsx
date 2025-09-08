@@ -809,6 +809,7 @@ export default function ReadingLessonViewer() {
                     borderColor: "var(--accessibility-text-color)",
                     borderWidth: "0.5px",
                     maxWidth: "720px",
+                    fontFamily: "var(--normal-font-family)",
                   } as React.CSSProperties
                 }
               >
@@ -847,7 +848,10 @@ export default function ReadingLessonViewer() {
                 {/* Current question */}
                 {currentQuestionData && (
                   <div className="space-y-4">
-                    <label className="block text-lg font-medium leading-relaxed">
+                    <label 
+                      className="block text-lg font-medium leading-relaxed"
+                      style={{ fontFamily: "var(--normal-font-family)" }}
+                    >
                       {currentQuestionData.question.question}
                     </label>
 
@@ -888,7 +892,10 @@ export default function ReadingLessonViewer() {
                                         "var(--accessibility-text-color)",
                                     }}
                                   />
-                                  <span className="flex-1 text-base">
+                                  <span 
+                                    className="flex-1 text-base"
+                                    style={{ fontFamily: "var(--normal-font-family)" }}
+                                  >
                                     {option}
                                   </span>
                                 </label>
@@ -927,7 +934,12 @@ export default function ReadingLessonViewer() {
                                     "var(--accessibility-text-color)",
                                 }}
                               />
-                              <span className="flex-1 text-base">{option}</span>
+                              <span 
+                                className="flex-1 text-base"
+                                style={{ fontFamily: "var(--normal-font-family)" }}
+                              >
+                                {option}
+                              </span>
                             </label>
                           );
                         })}
@@ -956,6 +968,7 @@ export default function ReadingLessonViewer() {
                             borderWidth: "0.5px",
                             fontSize: "16px",
                             lineHeight: "1.5",
+                            fontFamily: "var(--normal-font-family)",
                           }}
                           rows={4}
                         />
@@ -1640,6 +1653,7 @@ export default function ReadingLessonViewer() {
                         <div 
                           className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
                           onClick={(e) => e.stopPropagation()}
+                          style={{ fontFamily: "var(--focus-font-family)" }}
                         >
                           <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
@@ -1663,7 +1677,12 @@ export default function ReadingLessonViewer() {
                                   <div className="space-y-4">
                                     {lesson.questions.map((question, index) => (
                                       <div key={index} className="border rounded-lg p-4">
-                                        <p className="text-gray-800 mb-3">{question.question}</p>
+                                        <p 
+                                          className="text-gray-800 mb-3"
+                                          style={{ fontFamily: "var(--focus-font-family)" }}
+                                        >
+                                          {question.question}
+                                        </p>
                                         {question.type === 'multiple_choice' && question.options ? (
                                           <div className="space-y-2">
                                             {question.options.map((option, optionIndex) => (
@@ -1676,7 +1695,12 @@ export default function ReadingLessonViewer() {
                                                   onChange={(e) => setGeneralAnswers(prev => ({ ...prev, [index]: e.target.value }))}
                                                   className="mr-2"
                                                 />
-                                                <span className="text-gray-700">{option}</span>
+                                                <span 
+                                                  className="text-gray-700"
+                                                  style={{ fontFamily: "var(--focus-font-family)" }}
+                                                >
+                                                  {option}
+                                                </span>
                                               </label>
                                             ))}
                                           </div>
@@ -1687,6 +1711,7 @@ export default function ReadingLessonViewer() {
                                             className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             rows={3}
                                             placeholder="Skriv ditt svar här..."
+                                            style={{ fontFamily: "var(--focus-font-family)" }}
                                           />
                                         )}
                                       </div>
@@ -1707,7 +1732,12 @@ export default function ReadingLessonViewer() {
                                       
                                       return (
                                         <div key={index} className="border rounded-lg p-4">
-                                          <p className="text-gray-800 mb-3">{question.question}</p>
+                                          <p 
+                                            className="text-gray-800 mb-3"
+                                            style={{ fontFamily: "var(--focus-font-family)" }}
+                                          >
+                                            {question.question}
+                                          </p>
                                           {question.type === 'multiple_choice' && question.options ? (
                                             <div className="space-y-2">
                                               {question.options.map((option, optionIndex) => (
@@ -1720,7 +1750,12 @@ export default function ReadingLessonViewer() {
                                                     onChange={(e) => setQuestionsPanel12Answers(prev => ({ ...prev, [questionIndex]: e.target.value }))}
                                                     className="mr-2"
                                                   />
-                                                  <span className="text-gray-700">{option}</span>
+                                                  <span 
+                                                    className="text-gray-700"
+                                                    style={{ fontFamily: "var(--focus-font-family)" }}
+                                                  >
+                                                    {option}
+                                                  </span>
                                                 </label>
                                               ))}
                                             </div>
@@ -1731,6 +1766,7 @@ export default function ReadingLessonViewer() {
                                               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                               rows={3}
                                               placeholder="Skriv ditt svar här..."
+                                              style={{ fontFamily: "var(--focus-font-family)" }}
                                             />
                                           )}
                                         </div>
