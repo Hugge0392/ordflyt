@@ -569,12 +569,13 @@ export default function ReadingLessonViewer() {
     if (!readingFocusMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" || e.code === "ArrowRight") {
+      if (e.code === "Space" || e.code === "ArrowRight" || e.code === "ArrowDown" || e.code === "Enter") {
         e.preventDefault();
-        setCurrentReadingLine((prev) =>
-          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines)),
-        );
-      } else if (e.code === "ArrowLeft") {
+        setCurrentReadingLine((prev) => {
+          const maxLine = Math.max(0, lineRects.length - readingFocusLines);
+          return Math.min(prev + 1, maxLine);
+        });
+      } else if (e.code === "ArrowLeft" || e.code === "ArrowUp") {
         e.preventDefault();
         setCurrentReadingLine((prev) => Math.max(0, prev - 1));
       } else if (e.code === "Escape") {
@@ -587,9 +588,10 @@ export default function ReadingLessonViewer() {
       e.preventDefault();
       if (e.deltaY > 0) {
         // Scroll down
-        setCurrentReadingLine((prev) =>
-          Math.min(prev + 1, Math.max(0, lineRects.length - readingFocusLines)),
-        );
+        setCurrentReadingLine((prev) => {
+          const maxLine = Math.max(0, lineRects.length - readingFocusLines);
+          return Math.min(prev + 1, maxLine);
+        });
       } else {
         // Scroll up
         setCurrentReadingLine((prev) => Math.max(0, prev - 1));
@@ -1259,8 +1261,8 @@ export default function ReadingLessonViewer() {
                                   </SelectContent>
                                 </Select>
                                 <div className="text-xs text-muted-foreground mt-2">
-                                  💡 Använd Space/pilar eller scrolla för att
-                                  navigera
+                                  💡 Använd Space/Enter/pilar eller scrolla för att
+                                  navigera rad för rad
                                 </div>
                               </div>
                             )}
