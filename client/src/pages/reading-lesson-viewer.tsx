@@ -106,7 +106,9 @@ export default function ReadingLessonViewer() {
   const textRef = useRef<HTMLDivElement | null>(null);
   const [lineRects, setLineRects] = useState<DOMRect[]>([]);
 
-  // Enkel sticky panel state
+  // JS-based sticky panel refs and state
+  const rightColRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [isPanelFixed, setIsPanelFixed] = useState(false);
 
   // Focus mode questions popup states
@@ -296,19 +298,15 @@ export default function ReadingLessonViewer() {
   useEffect(() => {
     const measure = () => {
       if (!textRef.current || !contentRef.current) return;
-      // vänta en tick till så font-size/line-height och ev. bilder hinner påverka layout
-      requestAnimationFrame(() => {
-        if (!textRef.current || !contentRef.current) return;
-        try {
-          const rects = measureLineRects(textRef.current, contentRef.current);
-          setLineRects(rects);
-          setCurrentReadingLine(0);
-        } catch (err) {
-          console.warn("Error measuring line rects:", err);
-          setLineRects([]);
-          setCurrentReadingLine(0);
-        }
-      });
+      try {
+        const rects = measureLineRects(textRef.current, contentRef.current);
+        setLineRects(rects);
+        setCurrentReadingLine(0);
+      } catch (err) {
+        console.warn("Error measuring line rects:", err);
+        setLineRects([]);
+        setCurrentReadingLine(0);
+      }
     };
 
     // mät på nästa tick
@@ -346,16 +344,14 @@ export default function ReadingLessonViewer() {
       const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
       const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
 
-      const slice = lineRects.slice(start, end + 1);
-      const top = slice[0].top;
-      const bottom = slice[slice.length - 1].top + slice[slice.length - 1].height;
-      const height = bottom - top + 3;
+      const top = lineRects[start]?.top || 0;
+      const bottom = (lineRects[end]?.top || 0) + (lineRects[end]?.height || 0);
+      const height = bottom - top + 3; // +3px för descenders (j, g, y, p)
 
-      const left = Math.min(...slice.map(r => r.left)) - 8;
-      const right = Math.max(...slice.map(r => r.right)) + 8;
-      const width = Math.max(0, right - left);
+      if (!contentRef.current) return null;
+      const width = contentRef.current.clientWidth; // bredden på fönstret där overlayn ligger
 
-      return { top, height, left, width };
+      return { top, height, left: 0, width };
     } catch (e) {
       console.warn("Error calculating focus rect:", e);
       return null;
@@ -573,6 +569,42 @@ export default function ReadingLessonViewer() {
     return (answeredQuestions / totalQuestions) * 100;
   }, [questionsPanel12Answers, totalQuestions]);
 
+  // JS-based sticky panel functionality
+  useEffect(() => {
+    if (readingFocusMode) return; // Only in normal mode
+
+    const update = () => {
+      const col = rightColRef.current;
+      const panel = panelRef.current;
+      if (!col || !panel) return;
+
+      const rect = col.getBoundingClientRect();
+      const panelH = panel.offsetHeight;
+
+      // Panelen blir "fixed" när kolumnens topp nått top-marginalen (16px),
+      // och så länge panelen får plats inom kolumnens höjd.
+      const shouldFix = rect.top <= 16 && rect.bottom - 16 >= panelH;
+
+      setIsPanelFixed(shouldFix);
+
+      // Håll panelen exakt över kolumnen (vänster & bredd)
+      if (shouldFix) {
+        panel.style.width = `${rect.width}px`;
+        panel.style.left = `${rect.left}px`;
+      } else {
+        panel.style.width = '';
+        panel.style.left = '';
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [readingFocusMode]);
 
   // Keyboard navigation for reading focus mode
   useEffect(() => {
@@ -809,9 +841,13 @@ export default function ReadingLessonViewer() {
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2 sticky top-4 self-start">
+            <div ref={rightColRef} className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
               <div
-                className="border rounded-lg p-6"
+                ref={panelRef}
+                style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
+              >
+                <div
+                  className="border rounded-lg p-6"
                 style={
                   {
                     backgroundColor: "var(--accessibility-bg-color)",
@@ -1061,6 +1097,7 @@ export default function ReadingLessonViewer() {
                     {isLastQuestion ? "Skicka in" : "Nästa"}
                     <ChevronRight style={{ width: "16px", height: "16px" }} />
                   </button>
+                </div>
                 </div>
               </div>
             </div>
@@ -1430,11 +1467,11 @@ export default function ReadingLessonViewer() {
                       fontSize: `${activeSettings.fontSize}px`,
                       lineHeight: `${activeSettings.lineHeight}`, // unitless är OK i CSS
                       position: "relative",
-                      zIndex: 1,              // ⬅️ räcker gott
+                      zIndex: 10,
                       mixBlendMode: "normal",
                       paddingTop: 1,
                       pointerEvents: "auto",
-                      // ingen transform här
+                      transform: "translateZ(0)",
                     }}
                     dangerouslySetInnerHTML={{
                       __html: processContentWithDefinitions(
@@ -1445,36 +1482,36 @@ export default function ReadingLessonViewer() {
                   />
 
                   {readingFocusMode && focusRect && (
-                    <div className={`absolute inset-0 pointer-events-none z-[100] focus-${focusAnimationState}`}>
+                    <div className={`focus-overlay-container focus-${focusAnimationState}`}>
                       {/* TOP */}
                       <div
-                        className="absolute bg-black/60"
+                        className="rf-scrim"
                         aria-hidden
-                        style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
                       />
                       {/* BOTTOM */}
                       <div
-                        className="absolute bg-black/60"
+                        className="rf-scrim"
                         aria-hidden
-                        style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
+                        style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
                       />
                       {/* LEFT */}
                       <div
-                        className="absolute bg-black/60"
+                        className="rf-scrim"
                         aria-hidden
-                        style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
                       />
                       {/* RIGHT */}
                       <div
-                        className="absolute bg-black/60"
+                        className="rf-scrim"
                         aria-hidden
-                        style={{ top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
                       />
                       {/* FRAME */}
                       <div
-                        className="absolute rounded-md ring-2 ring-white"
+                        className="rf-frame"
                         aria-hidden
-                        style={{ top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
+                        style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
                       />
                     </div>
                   )}

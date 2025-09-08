@@ -655,8 +655,6 @@ html, body {
 /* Focus overlay container - only fade in */
 .focus-overlay-container {
   transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
-  z-index: 50;
 }
 
 .focus-overlay-container.focus-entering {
@@ -669,13 +667,12 @@ html, body {
 
 /* Focus scrim elements */
 .rf-scrim {
-  background: rgba(0,0,0,0.6) !important;   /* mörkläggning runt fokus */
+  background: rgba(0, 0, 0, 0.8) !important;
 }
 
 /* Focus frame */
 .rf-frame {
-  box-shadow: 0 0 0 2px #ffffff !important; /* vit ram runt fokusfönstret */
-  border-radius: 8px !important;
+  border: 3px solid #4ade80 !important;
 }
 
 /* Focus UI buttons - only slide in, no exit animation */
