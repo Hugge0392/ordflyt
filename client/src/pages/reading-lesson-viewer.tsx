@@ -799,7 +799,8 @@ export default function ReadingLessonViewer() {
         <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2 sticky top-4 self-start">
+            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+              <div className="sticky top-4">
               <div
                 className="border rounded-lg p-6"
                 style={
@@ -1052,6 +1053,7 @@ export default function ReadingLessonViewer() {
                     <ChevronRight style={{ width: "16px", height: "16px" }} />
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           )}
