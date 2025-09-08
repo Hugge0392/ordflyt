@@ -798,10 +798,10 @@ export default function ReadingLessonViewer() {
           )}
 
         {/* Main Content */}
-        <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start'} mb-6`}>
+        <div className={`${readingFocusMode ? 'flex justify-center items-start' : 'flex flex-col lg:flex-row gap-6'} mb-6`}>
           {/* New Questions Panel - One Question at a Time */}
           {!readingFocusMode && showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-            <div className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+            <div className="lg:w-1/3 lg:order-1">
               <div className="sticky top-4">
               <div
                 className="border rounded-lg p-6"
@@ -1061,7 +1061,7 @@ export default function ReadingLessonViewer() {
           )}
           {/* Main Content - Left Column (takes 2/3 of space in normal mode, centered in focus mode) */}
           <Card
-            className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
+            className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 lg:w-2/3 lg:order-2"
             style={
               {
                 backgroundColor: "var(--accessibility-bg-color)",
