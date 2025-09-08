@@ -26,12 +26,12 @@ interface FocusModeProps {
     backgroundColor: string;
     fontFamily: string;
   };
-  setFocusSettings: (settings: any) => void;
+  setFocusSettings: (settings: any | ((prev: any) => any)) => void;
   processContentWithDefinitions: (content: string, definitions: any[]) => string;
   readingFocusLines: number;
   setReadingFocusLines: (lines: number) => void;
   currentReadingLine: number;
-  setCurrentReadingLine: (line: number) => void;
+  setCurrentReadingLine: (line: number | ((prev: number) => number)) => void;
   focusAnimationState: string;
   setFocusAnimationState: (state: string) => void;
   onExitFocusMode: () => void;
@@ -40,9 +40,9 @@ interface FocusModeProps {
   getTotalQuestionsCount: () => number;
   getShowFocusQuestionsButton: () => boolean;
   generalAnswers: Record<number, string>;
-  setGeneralAnswers: (answers: any) => void;
+  setGeneralAnswers: (answers: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
   questionsPanel12Answers: Record<number, string>;
-  setQuestionsPanel12Answers: (answers: any) => void;
+  setQuestionsPanel12Answers: (answers: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
   hasNextPage: () => boolean;
   hasPreviousPage: () => boolean;
   goToNextPageFromFocus: () => void;
@@ -508,7 +508,7 @@ export default function FocusMode({
                     </div>
                     <Slider
                       value={[focusSettings.fontSize]}
-                      onValueChange={(value) => setFocusSettings(prev => ({ ...prev, fontSize: value[0] }))}
+                      onValueChange={(value) => setFocusSettings((prev: any) => ({ ...prev, fontSize: value[0] }))}
                       max={60}
                       min={12}
                       step={2}
@@ -524,7 +524,7 @@ export default function FocusMode({
                     </div>
                     <Slider
                       value={[focusSettings.lineHeight]}
-                      onValueChange={(value) => setFocusSettings(prev => ({ ...prev, lineHeight: value[0] }))}
+                      onValueChange={(value) => setFocusSettings((prev: any) => ({ ...prev, lineHeight: value[0] }))}
                       max={3}
                       min={1}
                       step={0.1}
