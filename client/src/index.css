@@ -633,6 +633,23 @@ button.navigation-button svg:active {
   focus-visible: none !important;
 }
 
+/* Remove horizontal scrollbar completely */
+html, body {
+  overflow-x: hidden !important;
+}
+
+/* Prevent horizontal overflow for all containers */
+* {
+  box-sizing: border-box;
+}
+
+.reading-lesson-viewer,
+.reading-content,
+.reading-content.accessibility-enhanced {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+}
+
 /* === KILLSWITCH mot "vita band" i läsytan === */
 /* Endast containern får bakgrund. Inga barn får lägga plattor. */
 .reading-content.accessibility-enhanced {
