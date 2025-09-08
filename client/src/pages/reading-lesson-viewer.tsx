@@ -1453,7 +1453,7 @@ export default function ReadingLessonViewer() {
                     {/* Exit focus button */}
                     <button
                       onClick={() => setReadingFocusMode(false)}
-                      className="fixed top-4 right-4 z-40 bg-black bg-opacity-60 text-white p-3 rounded-full hover:bg-opacity-80 transition-all"
+                      className="fixed top-4 right-4 z-40 bg-gray-900 text-white p-3 rounded-full hover:bg-black transition-all shadow-lg border-2 border-white"
                       title="Avsluta läsfokus (Esc)"
                     >
                       <svg
