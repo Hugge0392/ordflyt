@@ -1,0 +1,51 @@
+Jag kollade dina nya filer (index (1).css och NormalMode (1).tsx). Du gör rätt sak – men något över dig sätter overflow som sabbar sticky. Här är en brutal patch som vinner över allt. Klistra in det sist i index.css (efter allt annat).
+
+/* ===== STICKY-FORCER – lägg ALLRA sist i index.css ===== */
+
+/* 1) Se till att ingen förälder dödar sticky genom overflow på Y-led */
+.reading-main-grid,
+.reading-main-grid > * {
+  overflow-y: visible !important;
+}
+
+/* 2) Desktop: gör själva kolumnen sticky (med webkit-prefix) */
+@media (min-width: 1024px) {
+  .reading-questions-column {
+    position: -webkit-sticky !important; /* Safari */
+    position: sticky !important;
+    top: 24px !important;                 /* justera efter ev. header */
+    align-self: start !important;
+    height: fit-content !important;
+    z-index: 5 !important;
+  }
+
+  /* 3) Panelen får egen scroll om den är högre än viewporten */
+  .questions-panel-container {
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* 4) Mobil/platta: låt den vara statisk (om du vill) */
+@media (max-width: 1023.98px) {
+  .reading-questions-column { position: static !important; }
+  .questions-panel-container { max-height: none !important; overflow: visible !important; }
+}
+
+
+Din JSX är redan nästan helt rätt. Du har sticky på kolumnen och en max-height + overflow på själva panelen, bra. Lämna det så här (ur din nuvarande fil):
+<div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 self-start"> och panelen med max-h-[calc(100vh-2rem)] overflow-y-auto. 
+
+NormalMode (1)
+
+Varför detta funkar:
+
+Vi tvingar alla föräldrar till kolumnen att ha overflow-y: visible, annars slutar position: sticky att fungera. (Just nu har du flera globala regler som rör overflow; denna patch neutraliserar dem för just grid + kolumnen.) 
+
+index (1)
+
+Vi sätter position: -webkit-sticky för Safari (ibland krävs prefix).
+
+Vi låter panelen själv skrolla när den är längre än fönstret.
+
+Om du fortfarande inte ser den fastna: inspektera .reading-questions-column i DevTools och kolla Computed → position och top. Den ska säga sticky och top: 24px. Om något annat vinner, är det en ännu starkare regel – men då kommer blocket ovan (med !important) att slå ut den när det ligger sist i filen.

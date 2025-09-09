@@ -1171,17 +1171,34 @@ html, body {
   }
 }
 
-/* STICKY SIDOPANEL – desktop och uppåt */
+/* ===== STICKY-FORCER – lägg ALLRA sist i index.css ===== */
+
+/* 1) Se till att ingen förälder dödar sticky genom overflow på Y-led */
+.reading-main-grid,
+.reading-main-grid > * {
+  overflow-y: visible !important;
+}
+
+/* 2) Desktop: gör själva kolumnen sticky (med webkit-prefix) */
 @media (min-width: 1024px) {
   .reading-questions-column {
+    position: -webkit-sticky !important; /* Safari */
     position: sticky !important;
-    top: 1.5rem !important;   /* matchar lg:top-6 */
+    top: 24px !important;                 /* justera efter ev. header */
     align-self: start !important;
     height: fit-content !important;
+    z-index: 5 !important;
   }
 
+  /* 3) Panelen får egen scroll om den är högre än viewporten */
   .questions-panel-container {
-    max-height: calc(100vh - 2rem) !important;
+    max-height: calc(100vh - 32px) !important;
     overflow-y: auto !important;
   }
+}
+
+/* 4) Mobil/platta: låt den vara statisk (om du vill) */
+@media (max-width: 1023.98px) {
+  .reading-questions-column { position: static !important; }
+  .questions-panel-container { max-height: none !important; overflow: visible !important; }
 }
