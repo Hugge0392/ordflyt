@@ -13,9 +13,6 @@ export default function useStickyPanel(
 
   // wrapper = panelens förälder (<div class="questions-panel-wrapper"> ...)
   const wrapperRef = useRef<MaybeEl>(null);
-  
-  // Anti-flicker: debounce tillståndsbyten
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useLayoutEffect(() => {
     const p = panelRef.current as MaybeEl;
@@ -63,9 +60,9 @@ export default function useStickyPanel(
         return;
       }
 
-      // Förstärkt hysteresis: större buffertzon och debounce
+      // Enkel hysteresis: små buffertzon
       const enterStickyThreshold = topPx;
-      const exitStickyThreshold = topPx + 20; // större buffert
+      const exitStickyThreshold = topPx + 5; // minimal buffert
       
       let shouldStick = isSticky; // behåll nuvarande tillstånd som default
       
@@ -75,14 +72,8 @@ export default function useStickyPanel(
         shouldStick = false; // gå ur sticky-mode
       }
       
-      // Debounce tillståndsbyten för extra stabilitet
       if (shouldStick !== isSticky) {
-        if (debounceTimeoutRef.current) {
-          clearTimeout(debounceTimeoutRef.current);
-        }
-        debounceTimeoutRef.current = setTimeout(() => {
-          setIsSticky(shouldStick);
-        }, 16); // ~1 frame delay
+        setIsSticky(shouldStick);
       }
       if (shouldStick) {
         // Lås bredd + vänsterkant från wrappern varje gång (robust vid resize)
@@ -134,7 +125,6 @@ export default function useStickyPanel(
       ro.disconnect();
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
-      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
   }, [panelRef, scrollContainerRef, topPx, minWidth, isSticky]);
 
