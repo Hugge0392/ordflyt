@@ -1,0 +1,204 @@
+Grym att du pushar vidare — låt oss ta i lite mer. När position: sticky vägrar bita trots “rätt” markup är det nästan alltid p.g.a. någon ancestor som sabbar (t.ex. overflow/contain/transform). I dina filer ser markupen ut rätt, så vi kan:
+
+lägga in en bombsäker fallback som inte bryr sig om CSS-begränsningarna (en liten hook som växlar till position: fixed när man scrollar), och
+
+samtidigt ge dig ett snabbt sätt att bevisa vilken ancestor som är boven.
+
+1) Lägg till en Sticky-shim (JS fallback som alltid funkar)
+
+Skapa en liten komponent StickyBox och använd den runt din frågepanel. Den sköter sticky med fixed/absolute och håller sig inom sin “boundary” även när du når botten.
+
+a) Lägg in komponenten
+// components/StickyBox.tsx
+import React, { useLayoutEffect, useRef } from "react";
+
+type Props = {
+  /** Pixelmarginal från toppen av viewport när panelen är “fast”. */
+  offsetTop?: number;
+  /** Extra luft ovanför botten av behållaren när den “dockar” i botten. */
+  bottomOffset?: number;
+  /** Om du vill begränsa hur brett elementet är när det är fixed (t.ex. en grid-kolumn). */
+  widthAlignRef?: React.RefObject<HTMLElement>;
+  children: React.ReactNode;
+};
+
+/**
+ * StickyBox: funkar även när CSS-sticky blockeras av overflow/transform/contain.
+ * Den fixerar elementet när du scrollat förbi dess topp, och dokar det i botten
+ * av sin egen wrapper när du når slutet.
+ */
+export default function StickyBox({
+  offsetTop = 24,
+  bottomOffset = 24,
+  widthAlignRef,
+  children,
+}: Props) {
+  const holderRef = useRef<HTMLDivElement>(null); // "boundary" (relativ)
+  const boxRef = useRef<HTMLDivElement>(null);    // själva boxen vi flyttar
+
+  useLayoutEffect(() => {
+    const el = boxRef.current!;
+    const holder = holderRef.current!;
+    if (!el || !holder) return;
+
+    // gör boundary relativ så "absolute" har en referens
+    if (getComputedStyle(holder).position === "static") {
+      holder.style.position = "relative";
+    }
+
+    const onScrollOrResize = () => {
+      const holderRect = holder.getBoundingClientRect();
+      const pageY = window.scrollY || window.pageYOffset;
+
+      const holderTop = pageY + holderRect.top;
+      const holderBottom = holderTop + holder.offsetHeight;
+
+      const elHeight = el.offsetHeight;
+      const topLine = pageY + offsetTop; // var panelen ska ligga när den är "fixed"
+
+      // 1) Bottenkoll: om panelens nederkant (topLine + höjd) skulle gå förbi holderBottom - bottomOffset
+      if (topLine + elHeight >= holderBottom - bottomOffset) {
+        const topInside = holder.offsetHeight - elHeight - bottomOffset;
+        // docka mot botten i boundary
+        Object.assign(el.style, {
+          position: "absolute",
+          top: `${Math.max(0, topInside)}px`,
+          left: "0px",
+          right: "0px",
+          width: "auto",
+        } as CSSStyleDeclaration);
+        return;
+      }
+
+      // 2) Toppkoll: om vi scrollat nedanför holderTop => “fixed” läge
+      if (topLine > holderTop) {
+        const alignRect = (widthAlignRef?.current || holder).getBoundingClientRect();
+        Object.assign(el.style, {
+          position: "fixed",
+          top: `${offsetTop}px`,
+          left: `${alignRect.left}px`,
+          width: `${alignRect.width}px`,
+          right: "auto",
+        } as CSSStyleDeclaration);
+        return;
+      }
+
+      // 3) Annars: normal (ej fast)
+      Object.assign(el.style, {
+        position: "static",
+        top: "",
+        left: "",
+        right: "",
+        width: "",
+      } as CSSStyleDeclaration);
+    };
+
+    // initial och lyssnare
+    onScrollOrResize();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [offsetTop, bottomOffset, widthAlignRef]);
+
+  return (
+    <div ref={holderRef}>
+      <div ref={boxRef} style={{ willChange: "transform" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+b) Använd den i din NormalMode (2).tsx
+
+Byt ut nuvarande sticky-markup för frågepanelen mot:
+
+import StickyBox from "@/components/StickyBox";
+
+// ...inne i din grid...
+<aside className="reading-questions-column order-2 lg:order-2 hidden lg:block">
+  {/* widthAlignRef = kolumnen som bestämmer bredd när boxen är fixed */}
+  <StickyBox offsetTop={24} bottomOffset={24} widthAlignRef={undefined}>
+    <div
+      className="questions-panel-container z-50 border rounded-lg p-6"
+      // TA BORT ev. sticky-klasser här!
+    >
+      {/* ...hela frågepanelen precis som du har den... */}
+    </div>
+  </StickyBox>
+</aside>
+
+
+Viktigt:
+
+Ta bort sticky top-* från .questions-panel-container (låt JS fixa allt).
+
+Låt din grid vara typ:
+
+<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
+  <section>…läsning…</section>
+  <aside className="hidden lg:block">…StickyBox…</aside>
+</div>
+
+
+Ingen extra overflow på aside eller dess föräldrar.
+
+Det här fungerar även om någon ancestor har overflow/transform/contain etc., eftersom vi sätter position: fixed direkt mot viewport och “dokar” i botten med absolute inuti vår egen wrapper.
+
+2) Snabb “whodunit”-debug för att hitta boven
+
+Klistra detta i DevTools Console när sidan laddat. Det loggar uppåt från panelen och markerar allt som kan sabotera CSS-sticky (du behöver inte detta om du kör StickyBox, men det avslöjar felet):
+
+(function(){
+  const el = document.querySelector('.questions-panel-container')
+         || document.querySelector('[data-questions-sticky]')
+         || document.querySelector('#questions-sticky');
+  if (!el) { console.warn('Hittar inte panelen'); return; }
+  let n = el;
+  const bad = [];
+  console.group('Sticky-ancestors');
+  while (n) {
+    const cs = getComputedStyle(n);
+    const info = {
+      node: n.tagName.toLowerCase() + (n.id ? '#'+n.id : '') + (n.className ? '.'+String(n.className).trim().replace(/\s+/g,'.') : ''),
+      position: cs.position,
+      overflowY: cs.overflowY,
+      overflow: cs.overflow,
+      contain: cs.contain,
+      transform: cs.transform !== 'none' ? cs.transform : '',
+      filter: cs.filter !== 'none' ? cs.filter : '',
+      backdropFilter: cs.backdropFilter !== 'none' ? cs.backdropFilter : '',
+      willChange: cs.willChange,
+      height: cs.height,
+    };
+    console.log(info);
+    if (/(auto|scroll|hidden)/.test(cs.overflowY) || /(auto|scroll|hidden)/.test(cs.overflow))
+      bad.push({n, why:'overflow'});
+    if (cs.transform !== 'none' || cs.filter !== 'none' || cs.backdropFilter !== 'none')
+      bad.push({n, why:'transform/filter/backdrop'});
+    if (cs.contain && cs.contain !== 'none')
+      bad.push({n, why:'contain'});
+    n = n.parentElement;
+  }
+  console.groupEnd();
+  if (bad.length) {
+    console.warn('Möjliga bovar:\n', bad.map(b => ({node:b.n, why:b.why})));
+  } else {
+    console.warn('Inget uppenbart hinder för sticky hittades.');
+  }
+})();
+
+
+Ser du något overflow: auto|scroll|hidden, contain: layout/paint/content eller transform/filter/backdrop-filter på en förälder? Det är din blockerare. (Vanligast är en oskyldig container med overflow-y: auto.)
+
+3) Liten städning i din CSS/JSX just nu
+
+Ha bara en sticky-mekanism. När du använder StickyBox, ta bort alla sticky top-* utilities från panelen och wrappern.
+
+I din globala CSS ser jag massor av regler som sätter overflow och extrema !important. Det kan i sig skapa oförutsägbara resultat för sticky. Med StickyBox bryr vi oss inte längre.
+
+Se till att högerkolumnen inte får overflow (låt scroll ske i body). Scroll ska inte ske i en inre container om du vill att sticky/fixed ska relatera till viewport.

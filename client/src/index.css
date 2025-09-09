@@ -1613,23 +1613,22 @@ body {
   outline-offset: 2px;
 }
 
-/* Questions panel sticky behavior */
+/* Questions panel - nu hanterat av StickyBox JavaScript */
 .questions-panel-container {
-  position: sticky;
-  top: 2rem; /* ger ~32px margin till toppen */
-  z-index: 50; /* se till att den inte göms under annat */
-  max-height: calc(100vh - 4rem); /* se till att panelen får plats på skärmen */
-  overflow-y: auto; /* intern scroll om innehållet blir för högt */
+  /* Grundstyling utan position-relaterade regler */
+  z-index: 50;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
 }
 
+/* Grid och kolumn styling - nu för StickyBox JavaScript */
 .reading-questions-column {
-  position: relative; /* krävs ibland för sticky-barn */
-  overflow: visible !important; /* se till att det inte blockar sticky */
+  position: relative;
+  overflow: visible;
 }
 
-/* Se till att main grid inte blockerar sticky heller */
 .reading-main-grid {
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* Questions panel responsive behavior */
