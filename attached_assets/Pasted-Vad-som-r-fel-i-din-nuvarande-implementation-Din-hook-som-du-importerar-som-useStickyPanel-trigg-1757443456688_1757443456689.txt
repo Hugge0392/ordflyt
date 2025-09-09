@@ -1,3 +1,28 @@
+Vad som är fel i din nuvarande implementation
+
+Din hook (som du importerar som useStickyPanel) triggas på scroll i vänsterspalten via readingContainerRef – men den spalten har visserligen overflow: auto !important, utan höjd → den skapar oftast ingen egen scroll, så hooken får inga scroll-events och inget händer. Det ser jag här: .reading-content.accessibility-enhanced { overflow: auto !important; } men ingen höjdbegränsning. 
+
+index (5)
+
+I komponenten sätter du ref:en på vänster text-container (ref={readingContainerRef}) som är syskon till panelen – inte förälder. Din nuvarande hook (den versionen du kör) jämför sannolikt container.scrollTop med panel.offsetTop, men offsetTop är i ett annat koordinatsystem (offsetParent för panelen) → den logiken är opålitlig när container och panel inte delar scroll. Se hur ref:en sätts på vänsterkolumnen: ref={readingContainerRef} i <div className="reading-text-container … reading-content accessibility-enhanced …">. 
+
+NormalMode (5)
+
+Du har ingen “hard” sticky i CSS på rätt element längre (vilket är bra), men du förlitar dig helt på hooken – och den lyssnar bara på en container. Om sidan istället skrollar i window, missar hooken det.
+
+Lösning som fungerar oavsett var skrollen sker (window eller intern container)
+
+Byt ut din hook helt med denna. Den:
+
+lyssnar på window och (om den finns) din vänstercontainers scroll,
+
+räknar sticky-tröskeln med getBoundingClientRect() (viewport-baserat, funkar även med interna scrollare),
+
+teleporterar inte panelen (ingen portal) – men sätter position: fixed + låser left och width från panelens wrapper,
+
+lägger en spacer (som du redan har) för att förhindra hopp.
+
+1) Ersätt ../hooks/useStickyPanel.ts med detta
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type MaybeEl = HTMLElement | null;
@@ -118,3 +143,50 @@ export default function useStickyPanel(
 
   return { isSticky, panelHeight };
 }
+
+
+Varför detta funkar hos dig:
+
+Vi mäter wrapperns position mot viewporten (getBoundingClientRect), inte offsetTop → korrekt även när vänsterkolumnen skrollar i egen container.
+
+Vi lyssnar på window + din vänstercontainers scroll → vi missar aldrig scrollhändelser, oavsett var skrollen faktiskt sker.
+
+Vi låser left + width varje gång i sticky-läget → inget “glid” vid resize eller när grid/breakpoints ändras.
+
+wrapper.minHeight = panelHeight → inget “hoppa över krönet” när panelen tas ur flödet.
+
+2) Din komponent är nästan rätt – behåll markupen
+
+I din nuvarande NormalMode (5).tsx:
+
+Du använder redan useStickyPanel(readingContainerRef, panelRef) ✔️
+
+Du har panel-spacer direkt över panelen ✔️
+
+readingContainerRef sitter på .reading-text-container … reading-content accessibility-enhanced ✔️ (den har overflow: auto !important i din CSS). 
+
+NormalMode (5)
+
+ 
+
+index (5)
+
+Lämna JSX:en som du har den nu – hooken ovan tar hand om resten.
+
+Enda finliret: om du har en fast top-navbar, byt topPx till dess höjd. Exempel:
+const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef, 64 /* top px */);
+
+3) Liten CSS-städning (valfritt)
+
+Du kan låta de gamla .pin-fixed/.pin-abs-reglerna ligga kvar – hooken använder inte de klasserna längre. Men se till att den här regeln finns (den har du redan), så panelen är skrollbar i fixed-läget:
+
+/* Panelens egen scroll i fixed-läge – hooken sätter även inline max-height */
+.questions-panel-container {
+  /* din befintliga utility: max-h-[calc(100vh-2rem)] overflow-y-auto */
+}
+
+
+Och behåll spacern:
+
+.panel-spacer { height: 0; visibility: hidden; }
+.panel-spacer.sticky-space { visibility: hidden; }
