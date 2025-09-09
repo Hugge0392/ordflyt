@@ -583,6 +583,35 @@ export default function NormalMode({
                   line-height: inherit !important;
                 }
                 
+                /* FÖRSTÄRKT: Tvinga brödtext att följa inställningarna */
+                .reading-content [data-reading-text] p,
+                .reading-content [data-reading-text] div,
+                .reading-content [data-reading-text] span,
+                .reading-content [data-reading-text] li,
+                .reading-content [data-reading-text] td,
+                .reading-content [data-reading-text] th {
+                  font-size: ${activeSettings.fontSize}px !important;
+                  line-height: ${activeSettings.lineHeight} !important;
+                  font-family: ${activeSettings.fontFamily} !important;
+                }
+                
+                /* Övertrumfa eventuella inline-styles från editorn */
+                .reading-content [data-reading-text] *[style*="font-size"] {
+                  font-size: ${activeSettings.fontSize}px !important;
+                }
+                .reading-content [data-reading-text] *[style*="line-height"] {
+                  line-height: ${activeSettings.lineHeight} !important;
+                }
+                
+                /* NUKLEÄR OPTION: Tvinga ALL text (utom rubriker) */
+                .reading-content [data-reading-text] * {
+                  font-size: ${activeSettings.fontSize}px !important;
+                  line-height: ${activeSettings.lineHeight} !important;
+                  font-family: ${activeSettings.fontFamily} !important;
+                }
+                
+                /* Sedan återställ rubriker att vara proportionella */
+                
                 /* Specifik styling för rubriker - proportionell mot bastextstorlek */
                 .reading-content [data-reading-text] h1 {
                   font-size: calc(${activeSettings.fontSize}px * 1.8) !important;
