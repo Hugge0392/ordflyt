@@ -541,18 +541,17 @@ export default function NormalMode({
               ref={readingContainerRef}
               className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
               style={{
-                fontSize: `${activeSettings.fontSize}px`, // använd aktiva inställningar istället för hårdkodad 16px
-                lineHeight: activeSettings.lineHeight,
+                "--accessibility-font-size": `${activeSettings.fontSize}px`,
+                "--accessibility-line-height": activeSettings.lineHeight,
+                "--accessibility-font-family": activeSettings.fontFamily,
+                "--reading-font-size": `${activeSettings.fontSize}px`,
+                "--reading-line-height": activeSettings.lineHeight,
                 whiteSpace: "pre-wrap",
                 wordWrap: "break-word",
                 backgroundColor: "var(--accessibility-bg-color)",
                 color: "var(--accessibility-text-color)",
-                display: "flow-root", // 💡 bryt margin-collapsing från första barnet
+                display: "flow-root",
                 fontFamily: activeSettings.fontFamily,
-                // CSS-variabler för djupare penetration
-                "--forced-font-size": `${activeSettings.fontSize}px`,
-                "--forced-line-height": activeSettings.lineHeight,
-                "--forced-font-family": activeSettings.fontFamily,
               } as React.CSSProperties}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
@@ -573,104 +572,23 @@ export default function NormalMode({
                 }
                 .reading-content * {
                   color: var(--accessibility-text-color) !important;
-                  /* Ta bort -webkit-text-fill-color – kan göra att text inte ritas korrekt över/under halvtransparenta lager */
                 }
-
-                /* Bas: låt wrappen definiera typografi */
-                .reading-content [data-reading-text] {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                }
-                /* Alla barn ärver => slår inline font-size/line-height från editorn (utom rubriker) */
-                .reading-content [data-reading-text] *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
-                  font-size: inherit !important;
-                  line-height: inherit !important;
-                }
-                
-                /* FÖRSTÄRKT: Tvinga brödtext att följa inställningarna */
-                .reading-content [data-reading-text] p,
-                .reading-content [data-reading-text] div,
-                .reading-content [data-reading-text] span,
-                .reading-content [data-reading-text] li,
-                .reading-content [data-reading-text] td,
-                .reading-content [data-reading-text] th {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                  font-family: ${activeSettings.fontFamily} !important;
-                }
-                
-                /* Övertrumfa eventuella inline-styles från editorn */
-                .reading-content [data-reading-text] *[style*="font-size"] {
-                  font-size: ${activeSettings.fontSize}px !important;
-                }
-                .reading-content [data-reading-text] *[style*="line-height"] {
-                  line-height: ${activeSettings.lineHeight} !important;
-                }
-                
-                /* NUKLEÄR OPTION: Tvinga ALL text med maximalt specifika selektorer */
-                div.reading-content.accessibility-enhanced [data-reading-text] *,
-                .reading-content.accessibility-enhanced [data-reading-text] *,
-                .reading-text-container.reading-content.accessibility-enhanced [data-reading-text] *,
-                .reading-text-container [data-reading-text] * {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                  font-family: ${activeSettings.fontFamily} !important;
-                }
-                
-                /* MEGA-SPECIFIK: Träffa även .prose element */
-                .reading-content.accessibility-enhanced .prose *,
-                .reading-content.accessibility-enhanced [data-reading-text].prose *,
-                .reading-content [data-reading-text] .prose * {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                  font-family: ${activeSettings.fontFamily} !important;
-                }
-                
-                /* CSS-VARIABEL APPROACH: Använd variablerna från style-attributet */
-                .reading-content * {
-                  font-size: var(--forced-font-size) !important;
-                  line-height: var(--forced-line-height) !important;
-                  font-family: var(--forced-font-family) !important;
-                }
-                
-                /* SISTA UTPOSTEN: Universal med maximal specificitet */
-                body .reading-content.accessibility-enhanced [data-reading-text] * {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                  font-family: ${activeSettings.fontFamily} !important;
-                }
-                
-                /* DEBUG: Färga bakgrund för att se vilka element som träffas */
-                .reading-content [data-reading-text] p {
-                  background-color: rgba(255, 0, 0, 0.1) !important;
-                  font-size: ${activeSettings.fontSize}px !important;
-                }
-                
-                /* ABSOLUT MAXIMAL ATTACK */
-                html body .reading-content.accessibility-enhanced [data-reading-text] *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
-                  font-size: ${activeSettings.fontSize}px !important;
-                  line-height: ${activeSettings.lineHeight} !important;
-                  font-family: ${activeSettings.fontFamily} !important;
-                  background-color: rgba(0, 255, 0, 0.05) !important;
-                }
-                
-                /* Sedan återställ rubriker att vara proportionella */
                 
                 /* Specifik styling för rubriker - proportionell mot bastextstorlek */
                 .reading-content [data-reading-text] h1 {
-                  font-size: calc(${activeSettings.fontSize}px * 1.8) !important;
+                  font-size: calc(var(--accessibility-font-size) * 1.8) !important;
                   line-height: 1.2 !important;
                   font-weight: bold !important;
                   margin: 0 0 0.2em 0 !important;
                 }
                 .reading-content [data-reading-text] h2 {
-                  font-size: calc(${activeSettings.fontSize}px * 1.5) !important;
+                  font-size: calc(var(--accessibility-font-size) * 1.5) !important;
                   line-height: 1.3 !important;
                   font-weight: bold !important;
                   margin: 0 0 0.15em 0 !important;
                 }
                 .reading-content [data-reading-text] h3 {
-                  font-size: calc(${activeSettings.fontSize}px * 1.3) !important;
+                  font-size: calc(var(--accessibility-font-size) * 1.3) !important;
                   line-height: 1.3 !important;
                   font-weight: bold !important;
                   margin: 0 0 0.15em 0 !important;

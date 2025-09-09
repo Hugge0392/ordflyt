@@ -1,0 +1,65 @@
+Jag ser varför bara rubrikerna (h1, h2, h3 …) ändrar storlek men inte brödtexten.
+Problemet är att du har två olika system som styr fontstorleken i din kod:
+
+1. Inline-style i NormalMode.tsx
+
+Där genereras en <style> inuti .reading-content, som använder:
+
+.reading-content [data-reading-text] {
+  font-size: ${activeSettings.fontSize}px !important;
+  line-height: ${activeSettings.lineHeight} !important;
+}
+
+
+→ Detta gör att texten borde följa reglaget för textstorlek.
+
+2. CSS i index.css
+
+Här ser vi något annat:
+
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] .prose,
+...
+{
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+}
+
+
+Och senare:
+
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li,
+.reading-content.accessibility-enhanced h1,
+...
+{
+  font-size: var(--reading-font-size) !important;
+  line-height: var(--reading-line-height) !important;
+}
+
+
+→ Här tvingas texten till --accessibility-font-size (default 34px) oavsett vad du skickar in från React.
+
+Varför fungerar rubriker men inte vanlig text?
+
+Rubriker (h1, h2, osv.) får i NormalMode.tsx en egen kalkyl med calc(${activeSettings.fontSize}px * 1.8) osv.
+
+Men brödtext (p, span, div …) överskrivs i index.css med !important → därför lyder de endast CSS-variablerna, inte React-inställningen.
+
+✅ Lösning
+
+Du måste koppla activeSettings.fontSize och activeSettings.lineHeight till dina CSS-variabler.
+I NormalMode.tsx, på containern .reading-text-container, lägg till:
+
+<div
+  ref={readingContainerRef}
+  className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
+  style={{
+    "--accessibility-font-size": `${activeSettings.fontSize}px`,
+    "--accessibility-line-height": activeSettings.lineHeight,
+    "--accessibility-font-family": activeSettings.fontFamily,
+    fontFamily: "var(--normal-font-family)",
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
+  } as React.CSSProperties}
+>
