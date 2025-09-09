@@ -22,12 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  Eye,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Eye, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReadingLesson } from "@shared/schema";
 
 interface NormalModeProps {
@@ -41,7 +36,10 @@ interface NormalModeProps {
     fontFamily: string;
   };
   setActiveSettings: (settings: any) => void;
-  processContentWithDefinitions: (content: string, definitions: any[]) => string;
+  processContentWithDefinitions: (
+    content: string,
+    definitions: any[],
+  ) => string;
   handleContentMouseOver: (e: React.MouseEvent) => void;
   handleContentMouseOut: (e: React.MouseEvent) => void;
   onToggleFocusMode: () => void;
@@ -90,258 +88,257 @@ export default function NormalMode({
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
         <div className="reading-questions-column order-2 lg:order-2">
           <div
-            className="questions-panel-container sticky top-4 border rounded-lg p-6"
-              style={
-                {
-                  backgroundColor: "var(--accessibility-bg-color)",
-                  color: "var(--accessibility-text-color)",
-                  borderColor: "var(--accessibility-text-color)",
-                  borderWidth: "0.5px",
-                  maxWidth: "720px",
-                  fontFamily: "var(--normal-font-family)",
-                } as React.CSSProperties
-              }
-            >
-              <h3 className="text-lg font-semibold mb-4">Frågor</h3>
+            className="questions-panel-container sticky top-8 z-50 border rounded-lg p-6"
+            style={
+              {
+                backgroundColor: "var(--accessibility-bg-color)",
+                color: "var(--accessibility-text-color)",
+                borderColor: "var(--accessibility-text-color)",
+                borderWidth: "0.5px",
+                maxWidth: "720px",
+                fontFamily: "var(--normal-font-family)",
+              } as React.CSSProperties
+            }
+          >
+            <h3 className="text-lg font-semibold mb-4">Frågor</h3>
 
-              {/* Progress indicator */}
-              <div className="questions-progress-section mb-6">
-                <div className="questions-progress-header flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">
-                    Fråga {currentQuestionIndex + 1} av {totalQuestions}
-                  </p>
-                  {isCurrentQuestionAnswered && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      ✓ Besvarad
-                    </span>
-                  )}
-                </div>
-                <div
-                  className="questions-progress-bar-track w-full bg-gray-200 rounded-full h-2"
-                  style={{
-                    backgroundColor: "var(--accessibility-text-color)",
-                    opacity: 0.2,
-                  }}
-                >
-                  <div
-                    className="questions-progress-bar-fill h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${progressPercentage}%`,
-                      backgroundColor: "var(--accessibility-text-color)",
-                      opacity: 0.8,
-                    }}
-                  />
-                </div>
+            {/* Progress indicator */}
+            <div className="questions-progress-section mb-6">
+              <div className="questions-progress-header flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">
+                  Fråga {currentQuestionIndex + 1} av {totalQuestions}
+                </p>
+                {isCurrentQuestionAnswered && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✓ Besvarad
+                  </span>
+                )}
               </div>
+              <div
+                className="questions-progress-bar-track w-full bg-gray-200 rounded-full h-2"
+                style={{
+                  backgroundColor: "var(--accessibility-text-color)",
+                  opacity: 0.2,
+                }}
+              >
+                <div
+                  className="questions-progress-bar-fill h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${progressPercentage}%`,
+                    backgroundColor: "var(--accessibility-text-color)",
+                    opacity: 0.8,
+                  }}
+                />
+              </div>
+            </div>
 
-              {/* Current question */}
-              {currentQuestionData && (
-                <div className="questions-content-wrapper space-y-4">
-                  <label 
-                    className="block text-lg font-medium leading-relaxed"
-                    style={{ fontFamily: "var(--normal-font-family)" }}
-                  >
-                    {currentQuestionData.question.question}
-                  </label>
+            {/* Current question */}
+            {currentQuestionData && (
+              <div className="questions-content-wrapper space-y-4">
+                <label
+                  className="block text-lg font-medium leading-relaxed"
+                  style={{ fontFamily: "var(--normal-font-family)" }}
+                >
+                  {currentQuestionData.question.question}
+                </label>
 
-                  {/* Multiple choice questions */}
-                  {(currentQuestionData.question.type === "multiple_choice" ||
-                    currentQuestionData.question.type ===
-                      "multiple-choice") &&
-                    (currentQuestionData.question.alternatives ||
-                      currentQuestionData.question.options) && (
-                      <div className="questions-multiple-choice-options space-y-3">
-                        {(currentQuestionData.question.alternatives ||
-                          currentQuestionData.question.options)!.map(
-                          (option: string, optionIndex: number) => {
-                            const optionValue = String.fromCharCode(
-                              65 + optionIndex,
-                            );
-                            const isSelected = currentAnswer === optionValue;
+                {/* Multiple choice questions */}
+                {(currentQuestionData.question.type === "multiple_choice" ||
+                  currentQuestionData.question.type === "multiple-choice") &&
+                  (currentQuestionData.question.alternatives ||
+                    currentQuestionData.question.options) && (
+                    <div className="questions-multiple-choice-options space-y-3">
+                      {(currentQuestionData.question.alternatives ||
+                        currentQuestionData.question.options)!.map(
+                        (option: string, optionIndex: number) => {
+                          const optionValue = String.fromCharCode(
+                            65 + optionIndex,
+                          );
+                          const isSelected = currentAnswer === optionValue;
 
-                            return (
-                              <label
-                                key={optionIndex}
-                                className="flex items-center gap-3 cursor-pointer"
-                              >
-                                <input
-                                  type="radio"
-                                  name={`question-${currentQuestionIndex}`}
-                                  value={optionValue}
-                                  checked={isSelected}
-                                  onChange={() =>
-                                    handleQuestionsPanel12Change(
-                                      currentQuestionIndex,
-                                      optionValue,
-                                    )
-                                  }
-                                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                                  style={{
-                                    accentColor:
-                                      "var(--accessibility-text-color)",
-                                  }}
-                                />
-                                <span 
-                                  className="flex-1 text-base"
-                                  style={{ fontFamily: "var(--normal-font-family)" }}
-                                >
-                                  {option}
-                                </span>
-                              </label>
-                            );
-                          },
-                        )}
-                      </div>
-                    )}
-
-                  {/* True/False questions */}
-                  {(currentQuestionData.question.type === "true_false" ||
-                    currentQuestionData.question.type === "true-false") && (
-                    <div className="questions-true-false-options space-y-3">
-                      {["Sant", "Falskt"].map((option) => {
-                        const isSelected = currentAnswer === option;
-
-                        return (
-                          <label
-                            key={option}
-                            className="flex items-center gap-3 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name={`question-${currentQuestionIndex}`}
-                              value={option}
-                              checked={isSelected}
-                              onChange={() =>
-                                handleQuestionsPanel12Change(
-                                  currentQuestionIndex,
-                                  option,
-                                )
-                              }
-                              className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                              style={{
-                                accentColor:
-                                  "var(--accessibility-text-color)",
-                              }}
-                            />
-                            <span 
-                              className="flex-1 text-base"
-                              style={{ fontFamily: "var(--normal-font-family)" }}
+                          return (
+                            <label
+                              key={optionIndex}
+                              className="flex items-center gap-3 cursor-pointer"
                             >
-                              {option}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Open-ended questions */}
-                  {(currentQuestionData.question.type === "open_ended" ||
-                    currentQuestionData.question.type === "open") && (
-                    <div className="questions-open-ended-wrapper space-y-2">
-                      <textarea
-                        id={`question-${currentQuestionIndex}`}
-                        value={currentAnswer}
-                        onChange={(e) =>
-                          handleQuestionsPanel12Change(
-                            currentQuestionIndex,
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Skriv ditt svar här..."
-                        className="w-full min-h-[100px] p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                        style={{
-                          backgroundColor: "var(--accessibility-bg-color)",
-                          color: "var(--accessibility-text-color)",
-                          borderColor: "var(--accessibility-text-color)",
-                          borderWidth: "0.5px",
-                          fontSize: "16px",
-                          lineHeight: "1.5",
-                          fontFamily: "var(--normal-font-family)",
-                        }}
-                        rows={4}
-                      />
-                      {currentAnswer && (
-                        <p className="text-sm text-gray-600">
-                          {currentAnswer.length} tecken
-                        </p>
+                              <input
+                                type="radio"
+                                name={`question-${currentQuestionIndex}`}
+                                value={optionValue}
+                                checked={isSelected}
+                                onChange={() =>
+                                  handleQuestionsPanel12Change(
+                                    currentQuestionIndex,
+                                    optionValue,
+                                  )
+                                }
+                                className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                style={{
+                                  accentColor:
+                                    "var(--accessibility-text-color)",
+                                }}
+                              />
+                              <span
+                                className="flex-1 text-base"
+                                style={{
+                                  fontFamily: "var(--normal-font-family)",
+                                }}
+                              >
+                                {option}
+                              </span>
+                            </label>
+                          );
+                        },
                       )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Navigation buttons */}
-              <div
-                className="questions-navigation-container flex items-center justify-between mt-8 pt-4 border-t"
+                {/* True/False questions */}
+                {(currentQuestionData.question.type === "true_false" ||
+                  currentQuestionData.question.type === "true-false") && (
+                  <div className="questions-true-false-options space-y-3">
+                    {["Sant", "Falskt"].map((option) => {
+                      const isSelected = currentAnswer === option;
+
+                      return (
+                        <label
+                          key={option}
+                          className="flex items-center gap-3 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${currentQuestionIndex}`}
+                            value={option}
+                            checked={isSelected}
+                            onChange={() =>
+                              handleQuestionsPanel12Change(
+                                currentQuestionIndex,
+                                option,
+                              )
+                            }
+                            className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                            style={{
+                              accentColor: "var(--accessibility-text-color)",
+                            }}
+                          />
+                          <span
+                            className="flex-1 text-base"
+                            style={{ fontFamily: "var(--normal-font-family)" }}
+                          >
+                            {option}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Open-ended questions */}
+                {(currentQuestionData.question.type === "open_ended" ||
+                  currentQuestionData.question.type === "open") && (
+                  <div className="questions-open-ended-wrapper space-y-2">
+                    <textarea
+                      id={`question-${currentQuestionIndex}`}
+                      value={currentAnswer}
+                      onChange={(e) =>
+                        handleQuestionsPanel12Change(
+                          currentQuestionIndex,
+                          e.target.value,
+                        )
+                      }
+                      placeholder="Skriv ditt svar här..."
+                      className="w-full min-h-[100px] p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                      style={{
+                        backgroundColor: "var(--accessibility-bg-color)",
+                        color: "var(--accessibility-text-color)",
+                        borderColor: "var(--accessibility-text-color)",
+                        borderWidth: "0.5px",
+                        fontSize: "16px",
+                        lineHeight: "1.5",
+                        fontFamily: "var(--normal-font-family)",
+                      }}
+                      rows={4}
+                    />
+                    {currentAnswer && (
+                      <p className="text-sm text-gray-600">
+                        {currentAnswer.length} tecken
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Navigation buttons */}
+            <div
+              className="questions-navigation-container flex items-center justify-between mt-8 pt-4 border-t"
+              style={{
+                borderColor: "var(--accessibility-text-color)",
+                borderTopWidth: "0.5px",
+              }}
+            >
+              <button
+                onClick={goToPreviousQuestion}
+                disabled={isFirstQuestion}
+                className="unique-prev-question-btn"
                 style={{
-                  borderColor: "var(--accessibility-text-color)",
-                  borderTopWidth: "0.5px",
+                  background: "#ffffff !important",
+                  color: "#000000 !important",
+                  border: "1px solid #000000 !important",
+                  padding: "10px 16px !important",
+                  borderRadius: "8px !important",
+                  cursor: isFirstQuestion ? "not-allowed" : "pointer",
+                  fontSize: "14px !important",
+                  fontWeight: "500 !important",
+                  display: "flex !important",
+                  alignItems: "center !important",
+                  gap: "8px !important",
+                  fontFamily: "system-ui, sans-serif !important",
+                  opacity: "1 !important",
+                  filter: "none !important",
+                  boxShadow: "none !important",
+                  outline: "none !important",
+                  position: "relative",
+                  zIndex: 999,
                 }}
               >
-                <button
-                  onClick={goToPreviousQuestion}
-                  disabled={isFirstQuestion}
-                  className="unique-prev-question-btn"
-                  style={{
-                    background: "#ffffff !important",
-                    color: "#000000 !important",
-                    border: "1px solid #000000 !important",
-                    padding: "10px 16px !important",
-                    borderRadius: "8px !important",
-                    cursor: isFirstQuestion ? "not-allowed" : "pointer",
-                    fontSize: "14px !important",
-                    fontWeight: "500 !important",
-                    display: "flex !important",
-                    alignItems: "center !important",
-                    gap: "8px !important",
-                    fontFamily: "system-ui, sans-serif !important",
-                    opacity: "1 !important",
-                    filter: "none !important",
-                    boxShadow: "none !important",
-                    outline: "none !important",
-                    position: "relative",
-                    zIndex: 999,
-                  }}
-                >
-                  <ChevronLeft style={{ width: "16px", height: "16px" }} />
-                  Tillbaka
-                </button>
+                <ChevronLeft style={{ width: "16px", height: "16px" }} />
+                Tillbaka
+              </button>
 
-                <button
-                  onClick={
-                    isLastQuestion
-                      ? () =>
-                          alert("Bra jobbat! Du har svarat på alla frågor.")
-                      : goToNextQuestion
-                  }
-                  className="unique-next-question-btn"
-                  style={{
-                    background: "#ffffff !important",
-                    color: "#000000 !important",
-                    border: "1px solid #000000 !important",
-                    padding: "10px 16px !important",
-                    borderRadius: "8px !important",
-                    cursor: "pointer",
-                    fontSize: "14px !important",
-                    fontWeight: "500 !important",
-                    display: "flex !important",
-                    alignItems: "center !important",
-                    gap: "8px !important",
-                    fontFamily: "system-ui, sans-serif !important",
-                    opacity: "1 !important",
-                    filter: "none !important",
-                    boxShadow: "none !important",
-                    outline: "none !important",
-                    position: "relative",
-                    zIndex: 999,
-                  }}
-                >
-                  {isLastQuestion ? "Skicka in" : "Nästa"}
-                  <ChevronRight style={{ width: "16px", height: "16px" }} />
-                </button>
-              </div>
+              <button
+                onClick={
+                  isLastQuestion
+                    ? () => alert("Bra jobbat! Du har svarat på alla frågor.")
+                    : goToNextQuestion
+                }
+                className="unique-next-question-btn"
+                style={{
+                  background: "#ffffff !important",
+                  color: "#000000 !important",
+                  border: "1px solid #000000 !important",
+                  padding: "10px 16px !important",
+                  borderRadius: "8px !important",
+                  cursor: "pointer",
+                  fontSize: "14px !important",
+                  fontWeight: "500 !important",
+                  display: "flex !important",
+                  alignItems: "center !important",
+                  gap: "8px !important",
+                  fontFamily: "system-ui, sans-serif !important",
+                  opacity: "1 !important",
+                  filter: "none !important",
+                  boxShadow: "none !important",
+                  outline: "none !important",
+                  position: "relative",
+                  zIndex: 999,
+                }}
+              >
+                {isLastQuestion ? "Skicka in" : "Nästa"}
+                <ChevronRight style={{ width: "16px", height: "16px" }} />
+              </button>
             </div>
+          </div>
         </div>
       )}
 
@@ -365,11 +362,7 @@ export default function NormalMode({
             </CardTitle>
             <div className="reading-controls-container flex gap-2">
               {/* Focus Mode Toggle Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onToggleFocusMode}
-              >
+              <Button variant="outline" size="sm" onClick={onToggleFocusMode}>
                 <Eye className="w-4 h-4 mr-1" />
                 Fokusläge
               </Button>
@@ -384,9 +377,7 @@ export default function NormalMode({
                 <PopoverContent className="w-80 p-4" align="end">
                   <div className="space-y-4">
                     <div>
-                      <Label className="text-sm font-medium">
-                        Textstorlek
-                      </Label>
+                      <Label className="text-sm font-medium">Textstorlek</Label>
                       <Slider
                         value={[activeSettings.fontSize]}
                         onValueChange={(value) =>
@@ -406,9 +397,7 @@ export default function NormalMode({
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium">
-                        Radavstånd
-                      </Label>
+                      <Label className="text-sm font-medium">Radavstånd</Label>
                       <Slider
                         value={[activeSettings.lineHeight]}
                         onValueChange={(value) =>
@@ -470,9 +459,7 @@ export default function NormalMode({
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium">
-                        Teckensnitt
-                      </Label>
+                      <Label className="text-sm font-medium">Teckensnitt</Label>
                       <Select
                         value={activeSettings.fontFamily}
                         onValueChange={(value) =>
@@ -500,8 +487,8 @@ export default function NormalMode({
           </div>
           {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
             <CardDescription>
-              💡 Ord med prickad understrykning har förklaringar - håll
-              musen över dem
+              💡 Ord med prickad understrykning har förklaringar - håll musen
+              över dem
             </CardDescription>
           )}
         </CardHeader>

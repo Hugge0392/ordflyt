@@ -16,6 +16,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,7 +90,7 @@
   --secondary: hsl(159.7826 100% 36.0784%);
   --secondary-foreground: hsl(0 0% 100%);
   --muted: hsl(240 1.9608% 90%);
-  
+
   /* Accessibility variables */
   --reading-font-size: var(--accessibility-font-size);
   --reading-line-height: var(--accessibility-line-height);
@@ -128,7 +129,7 @@
   --purple-500: hsl(271.4286 81.0345% 55.8824%);
   --pink-500: hsl(329.6970 85.7143% 70.1961%);
   --emerald-400: hsl(159.7826 100% 36.0784%);
-  
+
   /* Accessibility settings variables - will be overridden by JavaScript */
   --accessibility-font-size: 34px;
   --accessibility-line-height: 1.5;
@@ -173,7 +174,8 @@
   background-color: var(--accessibility-bg-color) !important;
   color: var(--accessibility-text-color) !important;
   border-color: var(--accessibility-border-color) !important;
-  font-size: 16px; /* stable measuring font for ch units */
+  font-size: 16px;
+  /* stable measuring font for ch units */
   padding: 1rem;
   border-radius: 0.5rem;
 }
@@ -427,7 +429,8 @@
   font-family: var(--accessibility-font-family) !important;
   color: var(--accessibility-text-color) !important;
   /* ❌ ingen background-color här */
-  line-height: 1.2 !important; /* Fixed line height for headings */
+  line-height: 1.2 !important;
+  /* Fixed line height for headings */
 }
 
 /* Extra specific override to force font size on body text elements - only target inner text */
@@ -477,17 +480,23 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
 /* --- Läsfokus: stabil textspalt och margin-collaps fix --- */
 .reading-content.accessibility-enhanced {
   /* samma element som har ref={contentRef} */
-  position: relative;         /* referens för overlay */
-  isolation: isolate;         /* garantera eget stacking-context */
-  overflow: auto;             /* container scroll */
-  width: 100%;                /* fyller hela kortet */
-  max-width: none;            /* ingen begränsning */
+  position: relative;
+  /* referens för overlay */
+  isolation: isolate;
+  /* garantera eget stacking-context */
+  overflow: auto;
+  /* container scroll */
+  width: 100%;
+  /* fyller hela kortet */
+  max-width: none;
+  /* ingen begränsning */
   padding-inline: 1rem;
-  display: flow-root;         /* ❗️bryt margin-collapsing från första barnet */
+  display: flow-root;
+  /* ❗️bryt margin-collapsing från första barnet */
 }
 
 /* Tailwinds .prose sätter stora toppmarginaler; ta bort på första elementet */
-.reading-content.accessibility-enhanced > *:first-child {
+.reading-content.accessibility-enhanced>*:first-child {
   margin-top: 0 !important;
 }
 
@@ -604,7 +613,7 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
 .reading-content.accessibility-enhanced button,
 .reading-content.accessibility-enhanced textarea,
 .reading-content.accessibility-enhanced h1,
-.reading-content.accessibility-enhanced h2, 
+.reading-content.accessibility-enhanced h2,
 .reading-content.accessibility-enhanced h3,
 .reading-content.accessibility-enhanced h4,
 .reading-content.accessibility-enhanced h5,
@@ -648,11 +657,26 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   margin-bottom: 1.25rem !important;
 }
 
-.prose-lg h1 { font-size: 2rem !important; }
-.prose-lg h2 { font-size: 1.75rem !important; }
-.prose-lg h3 { font-size: 1.5rem !important; }
-.prose-lg h4 { font-size: 1.375rem !important; }
-.prose-lg li { font-size: 1.25rem !important; line-height: 1.8 !important; }
+.prose-lg h1 {
+  font-size: 2rem !important;
+}
+
+.prose-lg h2 {
+  font-size: 1.75rem !important;
+}
+
+.prose-lg h3 {
+  font-size: 1.5rem !important;
+}
+
+.prose-lg h4 {
+  font-size: 1.375rem !important;
+}
+
+.prose-lg li {
+  font-size: 1.25rem !important;
+  line-height: 1.8 !important;
+}
 
 /* Only apply background to reading content container */
 .reading-content.accessibility-enhanced {
@@ -864,7 +888,8 @@ button.navigation-button svg:active {
 }
 
 /* Remove horizontal scrollbar completely */
-html, body {
+html,
+body {
   overflow-x: hidden !important;
 }
 
@@ -929,10 +954,7 @@ html, body {
 }
 
 /* Nolla alla barns bakgrunder och skuggor – utom sådant som *ska* vara rutor/bilder/spotlight */
-.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
-:not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame)
-:not(.navigation-page-counter)
-:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas):not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -957,7 +979,7 @@ html, body {
 
 /* Scrims måste vara SVARTA – hög specificitet inne i containern */
 .reading-content.accessibility-enhanced .rf-scrim {
-  background: rgba(0,0,0,0.86) !important;
+  background: rgba(0, 0, 0, 0.86) !important;
   pointer-events: none !important;
   z-index: 2147483646 !important;
 }
@@ -971,7 +993,9 @@ html, body {
   z-index: 2147483647 !important;
 }
 
-.reading-content.accessibility-enhanced { isolation: isolate !important; }
+.reading-content.accessibility-enhanced {
+  isolation: isolate !important;
+}
 
 /* PROSE-NUKE: gör *alla* textnoder i .prose transparenta */
 .reading-content.accessibility-enhanced .prose p,
@@ -1166,15 +1190,15 @@ html, body {
   .word-button {
     @apply inline-block mx-1 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-primary hover:text-white hover:shadow-lg hover:scale-105;
   }
-  
+
   .word-button:hover {
     transform: scale(1.05);
   }
-  
+
   .word-button.correct {
     @apply bg-green-500 text-white shadow-lg scale-110;
   }
-  
+
   .word-button.incorrect {
     @apply bg-red-500 text-white shadow-lg;
   }
@@ -1372,7 +1396,8 @@ html, body {
   background-color: var(--accessibility-bg-color) !important;
   color: var(--accessibility-text-color) !important;
   border-color: var(--accessibility-border-color) !important;
-  font-size: 16px; /* stable measuring font for ch units */
+  font-size: 16px;
+  /* stable measuring font for ch units */
   padding: 1rem;
   border-radius: 0.5rem;
 }
@@ -1581,6 +1606,17 @@ html, body {
 .reading-text-container:focus-within {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Questions panel sticky behavior */
+.questions-panel-container {
+  position: sticky;
+  top: 2rem; /* ger ~32px margin till toppen */
+  z-index: 50; /* se till att den inte göms under annat */
+}
+
+.reading-questions-column {
+  position: relative; /* nödvändigt för sticky att fungera */
 }
 
 /* Questions panel responsive behavior */
