@@ -83,10 +83,10 @@ export default function NormalMode({
   // Sticky positioning is now handled with CSS
 
   return (
-    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
+    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="reading-questions-column order-2 lg:order-2 self-start">
+        <div className="reading-questions-column order-2 lg:order-2 self-stretch">
           <div
             className="questions-panel-container sticky top-8 z-50 border rounded-lg p-6"
             style={

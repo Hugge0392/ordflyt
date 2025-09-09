@@ -1,0 +1,67 @@
+Tack! Jag ser två konkreta orsaker i dina nuvarande filer:
+
+Föräldern till den “sticky”-rutan är inte tillräckligt hög
+I NormalMode (2).tsx ligger grid-containern med items-start och själva högerspalten har self-start—det gör att grid-itemet (föräldern till din sticky) inte sträcker sig i höjd med vänsterspalten. Då har sticky inget “spelrum” att fästa inom och upplevs som att den inte ”stannar”. Det syns här: items-start på grid och self-start på högerkolumnen. 
+
+NormalMode (2)
+
+En liten syntax-bugg gör att komponenten kan fallera tidigare
+I setActiveSettings har du ({ .prev, fontSize: ... }) i stället för ({ ...prev, fontSize: ... }). Samma sak senare för lineHeight. Det är ett faktiskt kompileringsfel. 
+
+NormalMode (2)
+
+Dina CSS-regler för sticky ser i övrigt bra ut—du sätter redan position: sticky; top: 2rem; på .questions-panel-container. 
+
+index (2)
+
+Snabba fixar (kopiera/klistra)
+A) Låt grid-items sträcka sig i höjd (så sticky får utrymme)
+
+Byt ut grid-raden (ta bort items-start):
+
+- <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
++ <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 mb-6">
+
+
+Rad med items-start finns här: 
+
+NormalMode (2)
+
+Och ta bort self-start på högerkolumnen (eller ersätt med self-stretch):
+
+- <div className="reading-questions-column order-2 lg:order-2 self-start">
++ <div className="reading-questions-column order-2 lg:order-2 self-stretch">
+
+
+Högerkolumnen med self-start finns här: 
+
+NormalMode (2)
+
+Alternativt kan du behålla klassen ren (ingen self-* alls) – default i CSS Grid är att items sträcker sig.
+
+B) Rätta syntax-felet i setActiveSettings
+
+Byt båda förekomsterna av .prev till ...prev:
+
+- setActiveSettings((prev: any) => ({ .prev, fontSize: value[0] }))
++ setActiveSettings((prev: any) => ({ ...prev, fontSize: value[0] }))
+
+- setActiveSettings((prev: any) => ({ .prev, lineHeight: value[0] }))
++ setActiveSettings((prev: any) => ({ ...prev, lineHeight: value[0] }))
+
+
+Felraderna syns i filen här: 
+
+NormalMode (2)
+
+Om du vill vara extra säker
+
+Lämna sticky på själva panelen (du har redan position: sticky; top: 2rem; i CSS). 
+
+index (2)
+
+Se till att ingen förälder uppåt har overflow-y: hidden/auto/scroll. I din uppdaterade CSS för läsytan använder du overflow: visible;, vilket är bra för sticky. 
+
+index (2)
+
+Vill du att jag skickar en minimal patch av hela NormalMode (2).tsx) med ändringarna infällda på rätt ställen?
