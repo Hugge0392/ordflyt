@@ -549,7 +549,11 @@ export default function NormalMode({
                 color: "var(--accessibility-text-color)",
                 display: "flow-root", // 💡 bryt margin-collapsing från första barnet
                 fontFamily: activeSettings.fontFamily,
-              }}
+                // CSS-variabler för djupare penetration
+                "--forced-font-size": `${activeSettings.fontSize}px`,
+                "--forced-line-height": activeSettings.lineHeight,
+                "--forced-font-family": activeSettings.fontFamily,
+              } as React.CSSProperties}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
             >
@@ -603,11 +607,51 @@ export default function NormalMode({
                   line-height: ${activeSettings.lineHeight} !important;
                 }
                 
-                /* NUKLEÄR OPTION: Tvinga ALL text (utom rubriker) */
-                .reading-content [data-reading-text] * {
+                /* NUKLEÄR OPTION: Tvinga ALL text med maximalt specifika selektorer */
+                div.reading-content.accessibility-enhanced [data-reading-text] *,
+                .reading-content.accessibility-enhanced [data-reading-text] *,
+                .reading-text-container.reading-content.accessibility-enhanced [data-reading-text] *,
+                .reading-text-container [data-reading-text] * {
                   font-size: ${activeSettings.fontSize}px !important;
                   line-height: ${activeSettings.lineHeight} !important;
                   font-family: ${activeSettings.fontFamily} !important;
+                }
+                
+                /* MEGA-SPECIFIK: Träffa även .prose element */
+                .reading-content.accessibility-enhanced .prose *,
+                .reading-content.accessibility-enhanced [data-reading-text].prose *,
+                .reading-content [data-reading-text] .prose * {
+                  font-size: ${activeSettings.fontSize}px !important;
+                  line-height: ${activeSettings.lineHeight} !important;
+                  font-family: ${activeSettings.fontFamily} !important;
+                }
+                
+                /* CSS-VARIABEL APPROACH: Använd variablerna från style-attributet */
+                .reading-content * {
+                  font-size: var(--forced-font-size) !important;
+                  line-height: var(--forced-line-height) !important;
+                  font-family: var(--forced-font-family) !important;
+                }
+                
+                /* SISTA UTPOSTEN: Universal med maximal specificitet */
+                body .reading-content.accessibility-enhanced [data-reading-text] * {
+                  font-size: ${activeSettings.fontSize}px !important;
+                  line-height: ${activeSettings.lineHeight} !important;
+                  font-family: ${activeSettings.fontFamily} !important;
+                }
+                
+                /* DEBUG: Färga bakgrund för att se vilka element som träffas */
+                .reading-content [data-reading-text] p {
+                  background-color: rgba(255, 0, 0, 0.1) !important;
+                  font-size: ${activeSettings.fontSize}px !important;
+                }
+                
+                /* ABSOLUT MAXIMAL ATTACK */
+                html body .reading-content.accessibility-enhanced [data-reading-text] *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+                  font-size: ${activeSettings.fontSize}px !important;
+                  line-height: ${activeSettings.lineHeight} !important;
+                  font-family: ${activeSettings.fontFamily} !important;
+                  background-color: rgba(0, 255, 0, 0.05) !important;
                 }
                 
                 /* Sedan återställ rubriker att vara proportionella */
