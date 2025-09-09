@@ -1,0 +1,176 @@
+Alright — nu kör vi absurt hårt och gör oss immuna mot allt som kan sabba sticky: interna scroll-containers, höjd-kollaps, transform/overflow, you name it. ✂️ Klistra in exakt detta.
+
+1) Ersätt hooken i NormalMode (2).tsx (byt ut din usePinPanelOnScroll helt)
+
+(Hela funktionen nedan, den hanterar även interna scroll-containers — inte bara window.) 
+
+NormalMode (2)
+
+// Lägg högst upp i filen (du har redan imports för React)
+function usePinPanelOnScroll(enabled = true, topPx = 24) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
+  const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
+
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const w = wrapperRef.current;
+    const p = panelRef.current;
+    if (!w || !p) return;
+
+    // 1) Hitta NÄRMSTA scrollförälder (många appar scrollar inte window!)
+    const getScrollParent = (el: HTMLElement | null): HTMLElement | Document => {
+      let node: HTMLElement | null = el;
+      while (node && node !== document.body) {
+        const cs = getComputedStyle(node);
+        const oy = cs.overflowY;
+        if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+          return node;
+        }
+        node = node.parentElement;
+      }
+      return document;
+    };
+    const scrollParent = getScrollParent(w);
+
+    // 2) Sätt ankare för absolute-läget
+    if (getComputedStyle(w).position === "static") {
+      w.style.position = "relative";
+    }
+
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
+
+      // Aktuell geometri
+      const wr = w.getBoundingClientRect();
+      const ph = p.offsetHeight;
+
+      // Desktop only (samma gräns som din CSS)
+      const vw = window.innerWidth;
+      if (vw < 1024) {
+        p.classList.remove("pin-fixed", "pin-abs");
+        p.style.removeProperty("--pin-left");
+        p.style.removeProperty("--pin-width");
+        w.style.minHeight = "";
+        return;
+      }
+
+      // Lås bredd och vänsterkant när vi är pinned
+      p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
+      p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
+
+      const pastTop = wr.top <= topPx;
+      const pastBottom = wr.bottom <= topPx + ph;
+
+      if (!pastTop) {
+        // ovanför pin-tröskeln
+        p.classList.remove("pin-fixed", "pin-abs");
+        w.style.minHeight = "";
+      } else if (!pastBottom) {
+        // mitt i scrollen → fixed mot viewportens topp
+        w.style.minHeight = ph + "px"; // reservera plats så inget hoppar
+        p.classList.add("pin-fixed");
+        p.classList.remove("pin-abs");
+      } else {
+        // nått kolumnens botten → parkera i botten av wrappern
+        w.style.minHeight = ph + "px";
+        p.classList.remove("pin-fixed");
+        p.classList.add("pin-abs");
+      }
+    };
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+
+    // 3) Lyssna både på window och ev. intern scroll-container
+    const sp: any = scrollParent === document ? window : scrollParent;
+    sp.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+
+    // Reagera på storleksförändringar i wrapper/panel
+    const ro = new ResizeObserver(schedule);
+    ro.observe(w);
+    ro.observe(p);
+
+    // Och på DOM-ändringar i panelens innehåll
+    const mo = new MutationObserver(schedule);
+    mo.observe(p, { childList: true, subtree: true });
+
+    // Initialt läge
+    schedule();
+
+    return () => {
+      sp.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      ro.disconnect();
+      mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [enabled, topPx]);
+
+  return { wrapperRef, panelRef };
+}
+
+
+Behåll i din JSX att wrappern har ref={wrapperRef} och panelen ref={panelRef} (det har du redan i NormalMode (2).tsx). Inget sticky i JSX. 
+
+NormalMode (2)
+
+2) Lägg till/justera CSS längst ned i index (2).css
+
+Du har redan pin-blocket – vi kompletterar med exakt left-låset (annars kan fixed-läget hamna fel). Klistra in detta sist. 
+
+index (2)
+
+/* ======= PIN-PANEL – MÅSTE LIGGA ABSOLUT SIST ======= */
+@media (min-width: 1024px) {
+  .reading-questions-column {
+    position: relative !important;  /* ankare för absolute-läget */
+    align-self: start !important;
+  }
+
+  .questions-panel-container.pin-fixed {
+    position: fixed !important;
+    top: 24px !important;
+    left: var(--pin-left) !important;     /* ← NYCKELRADEN */
+    width: var(--pin-width) !important;
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+    z-index: 10;
+    will-change: transform;               /* micro-jank fix */
+  }
+
+  .questions-panel-container.pin-abs {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+}
+
+/* Om du har gamla regler som sätter position: static på panelen,
+   låt dessa tre vinna: */
+@media (min-width: 1024px) {
+  .reading-questions-column .questions-panel-container { position: static !important; }
+  .reading-questions-column .questions-panel-container.pin-fixed { position: fixed !important; }
+  .reading-questions-column .questions-panel-container.pin-abs   { position: absolute !important; }
+}
+
+
+Du har redan blocket, men left: var(--pin-left) saknas i din nuvarande pin-fixed → då “händer inget” i vissa layouter. Detta tillägg & hooken ovan fixar det. 
+
+index (2)
+
+3) Snabb sanity-check (ta 10 sek i DevTools)
+
+Inspektera .questions-panel-container när du scrollar.
+Du ska se att klassen växlar mellan pin-fixed och pin-abs. Om inte: din huvudscroll sker i en intern container — hooken ovan lyssnar nu på den också, så efter inklistring ska det ticka.
+
+Under “Computed” ska position: fixed dyka upp när panelen är fast, samt top: 24px och left: [px-värde].
+
+Wrappern (.reading-questions-column) ska få min-height under pin-läget (hindrar “hoppa över krönet”).
+
+Det här är den mest brutala lösningen: vi skiter i position: sticky helt, hanterar interna scrollare, låser X- och bredd med CSS-variabler, och reserverar plats i flödet så inget hoppar. Kör detta nu – panelen kommer att stanna snyggt i toppen och följa tills botten av sin kolumn. 💪
+
+Behöver du att jag pekar ut exakt rad i dina två filer där detta ska in? Säg till, så markerar jag dem mot dina nuvarande versioner.

@@ -83,78 +83,110 @@ export default function NormalMode({
   showQuestionsPanel12,
 }: NormalModeProps) {
   // Custom hook för brutal sticky-hantering
-  function usePinPanelOnScroll(enabled = true, topPx = 24) {
-    const wrapperRef = useRef<HTMLDivElement | null>(null);
-    const panelRef = useRef<HTMLDivElement | null>(null);
+function usePinPanelOnScroll(enabled = true, topPx = 24) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
+  const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
 
-    useLayoutEffect(() => {
-      if (!enabled) return;
-      const w = wrapperRef.current;
-      const p = panelRef.current;
-      if (!w || !p) return;
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const w = wrapperRef.current;
+    const p = panelRef.current;
+    if (!w || !p) return;
 
-      // wrapper som ankare för absolute
-      if (getComputedStyle(w).position === "static") {
-        w.style.position = "relative";
+    // 1) Hitta NÄRMSTA scrollförälder (många appar scrollar inte window!)
+    const getScrollParent = (el: HTMLElement | null): HTMLElement | Document => {
+      let node: HTMLElement | null = el;
+      while (node && node !== document.body) {
+        const cs = getComputedStyle(node);
+        const oy = cs.overflowY;
+        if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+          return node;
+        }
+        node = node.parentElement;
+      }
+      return document;
+    };
+    const scrollParent = getScrollParent(w);
+
+    // 2) Sätt ankare för absolute-läget
+    if (getComputedStyle(w).position === "static") {
+      w.style.position = "relative";
+    }
+
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
+
+      // Aktuell geometri
+      const wr = w.getBoundingClientRect();
+      const ph = p.offsetHeight;
+
+      // Desktop only (samma gräns som din CSS)
+      const vw = window.innerWidth;
+      if (vw < 1024) {
+        p.classList.remove("pin-fixed", "pin-abs");
+        p.style.removeProperty("--pin-left");
+        p.style.removeProperty("--pin-width");
+        w.style.minHeight = "";
+        return;
       }
 
-      const apply = () => {
-        const wr = w.getBoundingClientRect();
-        const ph = p.offsetHeight;
-        const vw = window.innerWidth;
+      // Lås bredd och vänsterkant när vi är pinned
+      p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
+      p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
 
-        if (vw < 1024) {
-          p.classList.remove("pin-fixed", "pin-abs");
-          p.style.width = "";
-          p.style.removeProperty("--pin-left");
-          p.style.removeProperty("--pin-width");
-          w.style.minHeight = "";
-          return;
-        }
+      const pastTop = wr.top <= topPx;
+      const pastBottom = wr.bottom <= topPx + ph;
 
-        const pastTop = wr.top <= topPx;
-        const pastBottom = wr.bottom <= topPx + ph;
+      if (!pastTop) {
+        // ovanför pin-tröskeln
+        p.classList.remove("pin-fixed", "pin-abs");
+        w.style.minHeight = "";
+      } else if (!pastBottom) {
+        // mitt i scrollen → fixed mot viewportens topp
+        w.style.minHeight = ph + "px"; // reservera plats så inget hoppar
+        p.classList.add("pin-fixed");
+        p.classList.remove("pin-abs");
+      } else {
+        // nått kolumnens botten → parkera i botten av wrappern
+        w.style.minHeight = ph + "px";
+        p.classList.remove("pin-fixed");
+        p.classList.add("pin-abs");
+      }
+    };
 
-        // lås bredd + vänsterkant när vi är pinned
-        p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
-        p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
 
-        if (!pastTop) {
-          // inte nått toppen än
-          p.classList.remove("pin-fixed", "pin-abs");
-          w.style.minHeight = "";
-          p.style.width = "";
-        } else if (!pastBottom) {
-          // mitt i scrollen → fixed
-          w.style.minHeight = ph + "px";        // behåll platsen!
-          p.classList.add("pin-fixed");
-          p.classList.remove("pin-abs");
-        } else {
-          // nått kolumnens botten → absolute i botten
-          w.style.minHeight = ph + "px";        // behåll platsen!
-          p.classList.remove("pin-fixed");
-          p.classList.add("pin-abs");
-        }
-      };
+    // 3) Lyssna både på window och ev. intern scroll-container
+    const sp: any = scrollParent === document ? window : scrollParent;
+    sp.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
 
-      apply();
-      const onScroll = () => apply();
-      const onResize = () => apply();
+    // Reagera på storleksförändringar i wrapper/panel
+    const ro = new ResizeObserver(schedule);
+    ro.observe(w);
+    ro.observe(p);
 
-      window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", onResize);
-      const mo = new MutationObserver(apply);
-      mo.observe(p, { childList: true, subtree: true });
+    // Och på DOM-ändringar i panelens innehåll
+    const mo = new MutationObserver(schedule);
+    mo.observe(p, { childList: true, subtree: true });
 
-      return () => {
-        window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", onResize);
-        mo.disconnect();
-      };
-    }, [enabled, topPx]);
+    // Initialt läge
+    schedule();
 
-    return { wrapperRef, panelRef };
-  }
+    return () => {
+      sp.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      ro.disconnect();
+      mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [enabled, topPx]);
+
+  return { wrapperRef, panelRef };
+}
 
   const { wrapperRef, panelRef } = usePinPanelOnScroll(true, 24);
 
