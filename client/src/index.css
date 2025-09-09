@@ -1170,3 +1170,18 @@ html, body {
     max-width: 100% !important;
   }
 }
+
+/* STICKY SIDOPANEL – desktop och uppåt */
+@media (min-width: 1024px) {
+  .reading-questions-column {
+    position: sticky !important;
+    top: 1.5rem !important;   /* matchar lg:top-6 */
+    align-self: start !important;
+    height: fit-content !important;
+  }
+
+  .questions-panel-container {
+    max-height: calc(100vh - 2rem) !important;
+    overflow-y: auto !important;
+  }
+}
