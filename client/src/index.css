@@ -484,8 +484,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   /* referens för overlay */
   isolation: isolate;
   /* garantera eget stacking-context */
-  overflow: auto;
-  /* container scroll */
+  overflow: visible;
+  /* låt sidan scrolla, inte containern - behövs för sticky att fungera */
   width: 100%;
   /* fyller hela kortet */
   max-width: none;
@@ -510,6 +510,11 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   display: block;
   max-width: 100%;
   height: auto;
+}
+
+/* Om fokusläget behöver egen scroll (lägg till .focus-mode på wrapper) */
+.focus-mode .reading-content.accessibility-enhanced {
+  overflow: auto;
 }
 
 /* Overlayn ska aldrig få klicka igenom-issues i andra lager */
@@ -1613,6 +1618,8 @@ body {
   position: sticky;
   top: 2rem; /* ger ~32px margin till toppen */
   z-index: 50; /* se till att den inte göms under annat */
+  max-height: calc(100vh - 4rem); /* se till att panelen får plats på skärmen */
+  overflow-y: auto; /* intern scroll om innehållet blir för högt */
 }
 
 .reading-questions-column {
