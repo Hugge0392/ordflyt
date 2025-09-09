@@ -948,3 +948,222 @@ html, body {
     @apply bg-red-500 text-white shadow-lg;
   }
 }
+
+/* ============================================
+   READING COMPONENTS STRUCTURE STYLES
+   ============================================ */
+
+/* Normal Mode Components */
+.reading-main-grid {
+  /* Main grid container for reading layout */
+}
+
+.reading-questions-column {
+  /* Right column container for questions panel */
+}
+
+.questions-panel-wrapper {
+  /* Sticky wrapper around questions panel */
+}
+
+.questions-panel-container {
+  /* Main questions panel with border and padding */
+  /* Already styled with Tailwind classes */
+}
+
+.questions-progress-section {
+  /* Progress indicator area */
+}
+
+.questions-progress-header {
+  /* Header with current question indicator */
+}
+
+.questions-progress-bar-track {
+  /* Background track for progress bar */
+}
+
+.questions-progress-bar-fill {
+  /* Filled portion of progress bar */
+}
+
+.questions-content-wrapper {
+  /* Wrapper for question content and inputs */
+}
+
+.questions-multiple-choice-options {
+  /* Container for multiple choice options */
+}
+
+.questions-true-false-options {
+  /* Container for true/false options */
+}
+
+.questions-open-ended-wrapper {
+  /* Container for open-ended question textarea */
+}
+
+.questions-navigation-container {
+  /* Bottom navigation with previous/next buttons */
+}
+
+.reading-content-card {
+  /* Main content card (left column) */
+}
+
+.reading-header-container {
+  /* Header with title and controls */
+}
+
+.reading-controls-container {
+  /* Container for focus mode and settings buttons */
+}
+
+.reading-content-wrapper {
+  /* Main content wrapper with spacing */
+}
+
+.reading-images-container {
+  /* Container for images above text */
+}
+
+.reading-images-below-container {
+  /* Container for images below text */
+}
+
+.reading-text-container {
+  /* Main text content container */
+}
+
+.reading-page-navigation {
+  /* Page navigation controls */
+}
+
+.reading-page-indicators {
+  /* Page indicator badges */
+}
+
+/* Focus Mode Components */
+.focus-mode-main-container {
+  /* Main container for focus mode */
+}
+
+.focus-mode-content-wrapper {
+  /* Content wrapper with dark background */
+}
+
+.focus-mode-inner-wrapper {
+  /* Inner wrapper with padding */
+}
+
+.focus-mode-reading-container {
+  /* Reading content container in focus mode */
+}
+
+.focus-scrim-top,
+.focus-scrim-bottom,
+.focus-scrim-left,
+.focus-scrim-right {
+  /* Dark overlay scrims that cover non-focused areas */
+}
+
+.focus-window-frame {
+  /* Frame around the focused reading window */
+}
+
+.focus-mode-controls {
+  /* Container for focus mode control buttons */
+}
+
+.focus-settings-wrapper {
+  /* Settings popup wrapper */
+}
+
+.focus-settings-header {
+  /* Settings popup header */
+}
+
+.focus-font-size-control {
+  /* Font size slider control */
+}
+
+.focus-line-height-control {
+  /* Line height slider control */
+}
+
+.focus-lines-count-control {
+  /* Number of lines selector control */
+}
+
+.focus-questions-popup-overlay {
+  /* Full screen overlay for questions popup */
+}
+
+.focus-questions-popup-container {
+  /* Questions popup content container */
+}
+
+.focus-questions-popup-content {
+  /* Inner content with padding */
+}
+
+.focus-questions-popup-header {
+  /* Popup header with title and close button */
+}
+
+.focus-questions-sections-wrapper {
+  /* Wrapper for different question sections */
+}
+
+.focus-general-questions-wrapper {
+  /* Container for general questions */
+}
+
+.focus-page-questions-wrapper {
+  /* Container for page-specific questions */
+}
+
+.focus-question-card {
+  /* Individual question card styling */
+}
+
+.focus-question-options {
+  /* Options container for multiple choice */
+}
+
+/* ============================================
+   COMPONENT BEHAVIOR STYLES
+   ============================================ */
+
+/* Enhanced hover states for better UX */
+.reading-controls-container button:hover {
+  @apply shadow-md transition-shadow duration-200;
+}
+
+.questions-navigation-container button:hover {
+  @apply shadow-sm transition-shadow duration-200;
+}
+
+/* Focus mode specific animations */
+.focus-overlay-container {
+  transition: opacity 0.3s ease;
+}
+
+.focus-mode-controls {
+  transition: all 0.3s ease;
+}
+
+/* Reading accessibility enhancements */
+.reading-text-container:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Questions panel responsive behavior */
+@media (max-width: 1024px) {
+  .questions-panel-wrapper {
+    position: static !important;
+    width: 100% !important;
+    left: auto !important;
+  }
+}
