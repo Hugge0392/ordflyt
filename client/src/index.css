@@ -142,15 +142,148 @@
   @apply border-red-400 bg-red-100 text-red-700 shadow-lg ring-2 ring-red-300;
 }
 
-/* Accessibility enhanced styles - apply to entire Card and all content within */
+/* ============ GAMLA ACCESSIBILITY-KODEN RENSAD ============ */
+/* Ersatt med förenklad version längre ner i filen */
+
+/* ============================================
+   ACCESSIBILITY ENHANCED READING CONTENT STYLES - SIMPLIFIED
+   ============================================ */
+
+/* 1. Container ansvarar för bakgrund */
 .reading-content.accessibility-enhanced {
   background-color: var(--accessibility-bg-color) !important;
   color: var(--accessibility-text-color) !important;
   border-color: var(--accessibility-border-color) !important;
   font-size: 16px; /* stable measuring font for ch units */
+  padding: 1rem;
+  border-radius: 0.5rem;
 }
 
-/* Questions text size - Responsive */
+/* 2. Nolla alla barns bakgrunder */
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas):not(.unique-prev-question-btn):not(.unique-next-question-btn):not(.navigation-page-counter):not(.navigation-button):not(.page-indicator):not(.page-number-button) {
+  background: transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Blockera pseudo-element också */
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 3. Textfärg och typografi på allt */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced *:not(.unique-prev-question-btn):not(.unique-next-question-btn):not(.navigation-page-counter):not(.navigation-button):not(.page-indicator):not(.page-number-button):not(.reading-spotlight-el):not(.reading-spotlight-el *) {
+  color: var(--accessibility-text-color) !important;
+  font-family: var(--accessibility-font-family) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+}
+
+/* Textstorlek och radavstånd för läsinnehåll */
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] .prose,
+.reading-content.accessibility-enhanced [data-reading-text] .prose p,
+.reading-content.accessibility-enhanced [data-reading-text] .prose div,
+.reading-content.accessibility-enhanced [data-reading-text] .prose span,
+.reading-content.accessibility-enhanced [data-reading-text] .prose strong,
+.reading-content.accessibility-enhanced [data-reading-text] .prose b,
+.reading-content.accessibility-enhanced [data-reading-text] .prose em,
+.reading-content.accessibility-enhanced [data-reading-text] .prose i,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ul,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ol,
+.reading-content.accessibility-enhanced [data-reading-text] .prose li,
+.reading-content.accessibility-enhanced [data-reading-text] .prose blockquote,
+.reading-content.accessibility-enhanced [data-reading-text] .prose a,
+.reading-content.accessibility-enhanced [data-reading-text] .prose code,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2,
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced h5,
+.reading-content.accessibility-enhanced h6,
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+}
+
+/* 4. UI-element isolerade med neutral styling */
+.unique-prev-question-btn,
+.unique-next-question-btn {
+  all: initial !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  font-family: system-ui, sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 9999 !important;
+  transition: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.unique-prev-question-btn:hover,
+.unique-next-question-btn:hover,
+.unique-prev-question-btn:focus,
+.unique-next-question-btn:focus,
+.unique-prev-question-btn:active,
+.unique-next-question-btn:active,
+.unique-prev-question-btn:disabled,
+.unique-next-question-btn:disabled {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  opacity: 1 !important;
+}
+
+.unique-prev-question-btn *,
+.unique-next-question-btn * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.navigation-page-counter,
+.navigation-page-counter *,
+.navigation-button,
+.navigation-button *,
+.page-indicator,
+.page-indicator *,
+.page-number-button,
+.page-number-button * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+.navigation-button:hover,
+.navigation-button:focus,
+.navigation-button:active,
+.page-number-button:hover,
+.page-number-button:focus,
+.page-number-button:active {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Questions card responsiv textstorlek */
 .questions-card .font-medium,
 .questions-card .font-bold {
   font-size: clamp(20px, 2.5vw, 24px) !important;
@@ -160,11 +293,89 @@
   font-size: clamp(16px, 2vw, 20px) !important;
 }
 
+/* Reading Spotlight överrider för fokusläge */
+.reading-spotlight-el,
+.reading-spotlight-el * {
+  color: inherit !important;
+  background-color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
 
-/* BORTTAGEN: Force Card component background - orsakade vita plattor */
+/* Focus overlay */
+.reading-focus-overlay {
+  background: var(--accessibility-bg-color);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+  pointer-events: none;
+}
 
-/* Full text formatting for main reading content - body text elements - only target inner text */
-.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced .reading-focus-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+/* Skydda pseudo-element för spotlight */
+.reading-content *:not(.reading-spotlight-el)::before,
+.reading-content *:not(.reading-spotlight-el)::after {
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+/* Vita inline-bakgrunder reset */
+.reading-content [style*="background:#fff"],
+.reading-content [style*="background:#ffffff"],
+.reading-content [style*="background:white"] {
+  background: transparent !important;
+}
+
+/* Custom minimalistic scrollbar for questions panel */
+.space-y-3.max-h-\[60vh\].overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accessibility-text-color) transparent;
+}
+
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+  margin-left: 2px;
+}
+
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: var(--accessibility-text-color);
+  opacity: 0.4;
+  border-radius: 2px;
+  border: none;
+  margin-left: 2px;
+}
+
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  opacity: 0.7;
+}
+
+/* Focus question classes för senare använd */
+.focus-questions-popup-container,
+.focus-questions-popup-content,
+.focus-questions-popup-header,
+.focus-questions-sections-wrapper,
+.focus-general-questions-wrapper,
+.focus-page-questions-wrapper,
+.focus-question-card,
+.focus-question-options {
+  /* Placeholder för focus mode styling */
+}
+
 .reading-content.accessibility-enhanced [data-reading-text] .prose,
 .reading-content.accessibility-enhanced [data-reading-text] .prose p,
 .reading-content.accessibility-enhanced [data-reading-text] .prose div,
@@ -1130,6 +1341,198 @@ html, body {
 
 .focus-question-options {
   /* Options container for multiple choice */
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCED READING CONTENT STYLES - SIMPLIFIED
+   ============================================ */
+
+/* 1. Container ansvarar för bakgrund */
+.reading-content.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+  color: var(--accessibility-text-color) !important;
+  border-color: var(--accessibility-border-color) !important;
+  font-size: 16px; /* stable measuring font for ch units */
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* 2. Nolla alla barns bakgrunder */
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas):not(.unique-prev-question-btn):not(.unique-next-question-btn):not(.navigation-page-counter):not(.navigation-button):not(.page-indicator):not(.page-number-button) {
+  background: transparent !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Blockera pseudo-element också */
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 3. Textfärg och typografi på allt */
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced *:not(.unique-prev-question-btn):not(.unique-next-question-btn):not(.navigation-page-counter):not(.navigation-button):not(.page-indicator):not(.page-number-button):not(.reading-spotlight-el):not(.reading-spotlight-el *) {
+  color: var(--accessibility-text-color) !important;
+  font-family: var(--accessibility-font-family) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+}
+
+/* Textstorlek och radavstånd för läsinnehåll */
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] .prose,
+.reading-content.accessibility-enhanced [data-reading-text] .prose p,
+.reading-content.accessibility-enhanced [data-reading-text] .prose div,
+.reading-content.accessibility-enhanced [data-reading-text] .prose span,
+.reading-content.accessibility-enhanced [data-reading-text] .prose strong,
+.reading-content.accessibility-enhanced [data-reading-text] .prose b,
+.reading-content.accessibility-enhanced [data-reading-text] .prose em,
+.reading-content.accessibility-enhanced [data-reading-text] .prose i,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ul,
+.reading-content.accessibility-enhanced [data-reading-text] .prose ol,
+.reading-content.accessibility-enhanced [data-reading-text] .prose li,
+.reading-content.accessibility-enhanced [data-reading-text] .prose blockquote,
+.reading-content.accessibility-enhanced [data-reading-text] .prose a,
+.reading-content.accessibility-enhanced [data-reading-text] .prose code,
+.reading-content.accessibility-enhanced h1,
+.reading-content.accessibility-enhanced h2,
+.reading-content.accessibility-enhanced h3,
+.reading-content.accessibility-enhanced h4,
+.reading-content.accessibility-enhanced h5,
+.reading-content.accessibility-enhanced h6,
+.reading-content.accessibility-enhanced p,
+.reading-content.accessibility-enhanced li {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+}
+
+/* 4. UI-element isolerade med neutral styling */
+.unique-prev-question-btn,
+.unique-next-question-btn {
+  all: initial !important;
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  font-family: system-ui, sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 9999 !important;
+  transition: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+.unique-prev-question-btn:hover,
+.unique-next-question-btn:hover,
+.unique-prev-question-btn:focus,
+.unique-next-question-btn:focus,
+.unique-prev-question-btn:active,
+.unique-next-question-btn:active,
+.unique-prev-question-btn:disabled,
+.unique-next-question-btn:disabled {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  opacity: 1 !important;
+}
+
+.unique-prev-question-btn *,
+.unique-next-question-btn * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.navigation-page-counter,
+.navigation-page-counter *,
+.navigation-button,
+.navigation-button *,
+.page-indicator,
+.page-indicator *,
+.page-number-button,
+.page-number-button * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+.navigation-button:hover,
+.navigation-button:focus,
+.navigation-button:active,
+.page-number-button:hover,
+.page-number-button:focus,
+.page-number-button:active {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Questions card responsiv textstorlek */
+.questions-card .font-medium,
+.questions-card .font-bold {
+  font-size: clamp(20px, 2.5vw, 24px) !important;
+}
+
+.questions-card .text-left {
+  font-size: clamp(16px, 2vw, 20px) !important;
+}
+
+/* Reading Spotlight överrider för fokusläge */
+.reading-spotlight-el,
+.reading-spotlight-el * {
+  color: inherit !important;
+  background-color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Focus overlay */
+.reading-focus-overlay {
+  background: var(--accessibility-bg-color);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.reading-content.accessibility-enhanced .reading-focus-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+/* Skydda pseudo-element för spotlight */
+.reading-content *:not(.reading-spotlight-el)::before,
+.reading-content *:not(.reading-spotlight-el)::after {
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+/* Vita inline-bakgrunder reset */
+.reading-content [style*="background:#fff"],
+.reading-content [style*="background:#ffffff"],
+.reading-content [style*="background:white"] {
+  background: transparent !important;
 }
 
 /* ============================================
