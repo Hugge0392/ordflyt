@@ -968,6 +968,7 @@ html, body {
 
 .questions-panel-container {
   /* Main questions panel with border and padding */
+  /* Uses CSS sticky positioning for smooth scrolling behavior */
   /* Already styled with Tailwind classes */
 }
 

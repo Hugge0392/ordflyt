@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React from "react";
 import {
   Card,
   CardContent,
@@ -82,58 +82,15 @@ export default function NormalMode({
   isLastQuestion,
   showQuestionsPanel12,
 }: NormalModeProps) {
-  // JS-based sticky panel refs and state
-  const rightColRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const [isPanelFixed, setIsPanelFixed] = useState(false);
-
-  // JS-based sticky panel functionality
-  useEffect(() => {
-    const update = () => {
-      const col = rightColRef.current;
-      const panel = panelRef.current;
-      if (!col || !panel) return;
-
-      const rect = col.getBoundingClientRect();
-      const panelH = panel.offsetHeight;
-
-      // Panelen blir "fixed" när kolumnens topp nått top-marginalen (16px),
-      // och så länge panelen får plats inom kolumnens höjd.
-      const shouldFix = rect.top <= 16 && rect.bottom - 16 >= panelH;
-
-      setIsPanelFixed(shouldFix);
-
-      // Håll panelen exakt över kolumnen (vänster & bredd)
-      if (shouldFix) {
-        panel.style.width = `${rect.width}px`;
-        panel.style.left = `${rect.left}px`;
-      } else {
-        panel.style.width = '';
-        panel.style.left = '';
-      }
-    };
-
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
+  // Sticky positioning is now handled with CSS
 
   return (
     <div className="reading-main-grid grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div ref={rightColRef} className="reading-questions-column order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+        <div className="reading-questions-column order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
           <div
-            ref={panelRef}
-            className="questions-panel-wrapper"
-            style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
-          >
-            <div
-              className="questions-panel-container border rounded-lg p-6"
+            className="questions-panel-container sticky top-4 border rounded-lg p-6"
               style={
                 {
                   backgroundColor: "var(--accessibility-bg-color)",
@@ -385,7 +342,6 @@ export default function NormalMode({
                 </button>
               </div>
             </div>
-          </div>
         </div>
       )}
 
