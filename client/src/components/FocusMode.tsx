@@ -293,18 +293,18 @@ export default function FocusMode({
   };
 
   return (
-    <div className="flex justify-center items-start mb-6">
+    <div className="focus-mode-main-container flex justify-center items-start mb-6">
       <div
-        className="w-full max-w-4xl mx-auto"
+        className="focus-mode-content-wrapper w-full max-w-4xl mx-auto"
         style={{
           backgroundColor: "#242424",
           borderRadius: "0.5rem",
         }}
       >
-        <div className="space-y-6 p-8">
+        <div className="focus-mode-inner-wrapper space-y-6 p-8">
           <div
             ref={contentRef}
-            className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+            className="focus-mode-reading-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
             style={{
               fontSize: "16px", // stable measuring font for ch units
               whiteSpace: "pre-wrap",
@@ -423,31 +423,31 @@ export default function FocusMode({
               <div className={`focus-overlay-container focus-${focusAnimationState}`}>
                 {/* TOP */}
                 <div
-                  className="rf-scrim"
+                  className="focus-scrim-top rf-scrim"
                   aria-hidden
                   style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
                 />
                 {/* BOTTOM */}
                 <div
-                  className="rf-scrim"
+                  className="focus-scrim-bottom rf-scrim"
                   aria-hidden
                   style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
                 />
                 {/* LEFT */}
                 <div
-                  className="rf-scrim"
+                  className="focus-scrim-left rf-scrim"
                   aria-hidden
                   style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
                 />
                 {/* RIGHT */}
                 <div
-                  className="rf-scrim"
+                  className="focus-scrim-right rf-scrim"
                   aria-hidden
                   style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
                 />
                 {/* FRAME */}
                 <div
-                  className="rf-frame"
+                  className="focus-window-frame rf-frame"
                   aria-hidden
                   style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
                 />
@@ -456,7 +456,7 @@ export default function FocusMode({
           </div>
 
           {/* Focus mode controls container */}
-          <div className={`focus-ui-button focus-${focusAnimationState} fixed top-1 right-8 z-40 flex gap-2`}>
+          <div className={`focus-mode-controls focus-ui-button focus-${focusAnimationState} fixed top-1 right-8 z-40 flex gap-2`}>
             {/* Questions button */}
             {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
               <button
@@ -492,8 +492,8 @@ export default function FocusMode({
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  <div className="space-y-2">
+                <div className="focus-settings-wrapper space-y-4">
+                  <div className="focus-settings-header space-y-2">
                     <h4 className="font-medium leading-none">Fokusläge - Textinställningar</h4>
                     <p className="text-sm text-muted-foreground">
                       Anpassa texten för fokusläget
@@ -501,7 +501,7 @@ export default function FocusMode({
                   </div>
                   
                   {/* Font Size Slider */}
-                  <div className="space-y-2">
+                  <div className="focus-font-size-control space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium">Textstorlek</Label>
                       <span className="text-sm text-muted-foreground">{focusSettings.fontSize}px</span>
@@ -517,7 +517,7 @@ export default function FocusMode({
                   </div>
 
                   {/* Line Height Slider */}
-                  <div className="space-y-2">
+                  <div className="focus-line-height-control space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm font-medium">Radavstånd</Label>
                       <span className="text-sm text-muted-foreground">{focusSettings.lineHeight}</span>
@@ -533,7 +533,7 @@ export default function FocusMode({
                   </div>
 
                   {/* Number of lines control */}
-                  <div className="space-y-2">
+                  <div className="focus-lines-count-control space-y-2">
                     <Label className="text-sm font-medium">Antal rader samtidigt</Label>
                     <Select
                       value={readingFocusLines.toString()}
@@ -626,16 +626,16 @@ export default function FocusMode({
           {/* Questions popup overlay */}
           {showFocusQuestionsPopup && (
             <div 
-              className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
+              className="focus-questions-popup-overlay fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
               onClick={() => setShowFocusQuestionsPopup(false)}
             >
               <div 
-                className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+                className="focus-questions-popup-container bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
                 style={{ fontFamily: "var(--focus-font-family)" }}
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="focus-questions-popup-content p-6">
+                  <div className="focus-questions-popup-header flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold text-gray-900">Frågor</h3>
                     <button
                       onClick={() => setShowFocusQuestionsPopup(false)}
@@ -648,7 +648,7 @@ export default function FocusMode({
                     </button>
                   </div>
                   
-                  <div className="space-y-6">
+                  <div className="focus-questions-sections-wrapper space-y-6">
                     {/* General questions */}
                     {lesson.questions && lesson.questions.length > 0 && (
                       <div>
