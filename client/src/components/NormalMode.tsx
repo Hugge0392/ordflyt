@@ -541,13 +541,14 @@ export default function NormalMode({
               ref={readingContainerRef}
               className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
               style={{
-                fontSize: "16px", // stable measuring font for ch units
+                fontSize: `${activeSettings.fontSize}px`, // använd aktiva inställningar istället för hårdkodad 16px
+                lineHeight: activeSettings.lineHeight,
                 whiteSpace: "pre-wrap",
                 wordWrap: "break-word",
                 backgroundColor: "var(--accessibility-bg-color)",
                 color: "var(--accessibility-text-color)",
                 display: "flow-root", // 💡 bryt margin-collapsing från första barnet
-                fontFamily: "var(--normal-font-family)",
+                fontFamily: activeSettings.fontFamily,
               }}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
