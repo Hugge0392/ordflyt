@@ -60,8 +60,19 @@ export default function useStickyPanel(
         return;
       }
 
-      // Sticky när wrapperns topp når topPx
-      const shouldStick = wr.top <= topPx;
+      // Hysteresis: olika tröskelvärden för att undvika fladdring
+      // Gå IN i sticky-mode när toppen når topPx
+      // Gå UR sticky-mode när toppen är minst 10px högre (för stabilitet)
+      const enterStickyThreshold = topPx;
+      const exitStickyThreshold = topPx + 10;
+      
+      let shouldStick = isSticky; // behåll nuvarande tillstånd som default
+      
+      if (!isSticky && wr.top <= enterStickyThreshold) {
+        shouldStick = true; // gå in i sticky-mode
+      } else if (isSticky && wr.top > exitStickyThreshold) {
+        shouldStick = false; // gå ur sticky-mode
+      }
       if (shouldStick) {
         // Lås bredd + vänsterkant från wrappern varje gång (robust vid resize)
         p.style.position = "fixed";
