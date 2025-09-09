@@ -123,16 +123,17 @@ export default function NormalMode({
   }, []);
 
   return (
-    <div className="grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
+    <div className="reading-main-grid grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div ref={rightColRef} className="order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+        <div ref={rightColRef} className="reading-questions-column order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
           <div
             ref={panelRef}
+            className="questions-panel-wrapper"
             style={isPanelFixed ? { position: 'fixed', top: 16, zIndex: 30 } : { position: 'static' }}
           >
             <div
-              className="border rounded-lg p-6"
+              className="questions-panel-container border rounded-lg p-6"
               style={
                 {
                   backgroundColor: "var(--accessibility-bg-color)",
@@ -147,8 +148,8 @@ export default function NormalMode({
               <h3 className="text-lg font-semibold mb-4">Frågor</h3>
 
               {/* Progress indicator */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
+              <div className="questions-progress-section mb-6">
+                <div className="questions-progress-header flex items-center justify-between mb-2">
                   <p className="text-sm font-medium">
                     Fråga {currentQuestionIndex + 1} av {totalQuestions}
                   </p>
@@ -159,14 +160,14 @@ export default function NormalMode({
                   )}
                 </div>
                 <div
-                  className="w-full bg-gray-200 rounded-full h-2"
+                  className="questions-progress-bar-track w-full bg-gray-200 rounded-full h-2"
                   style={{
                     backgroundColor: "var(--accessibility-text-color)",
                     opacity: 0.2,
                   }}
                 >
                   <div
-                    className="h-2 rounded-full transition-all duration-300"
+                    className="questions-progress-bar-fill h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${progressPercentage}%`,
                       backgroundColor: "var(--accessibility-text-color)",
@@ -178,7 +179,7 @@ export default function NormalMode({
 
               {/* Current question */}
               {currentQuestionData && (
-                <div className="space-y-4">
+                <div className="questions-content-wrapper space-y-4">
                   <label 
                     className="block text-lg font-medium leading-relaxed"
                     style={{ fontFamily: "var(--normal-font-family)" }}
@@ -192,7 +193,7 @@ export default function NormalMode({
                       "multiple-choice") &&
                     (currentQuestionData.question.alternatives ||
                       currentQuestionData.question.options) && (
-                      <div className="space-y-3">
+                      <div className="questions-multiple-choice-options space-y-3">
                         {(currentQuestionData.question.alternatives ||
                           currentQuestionData.question.options)!.map(
                           (option: string, optionIndex: number) => {
@@ -239,7 +240,7 @@ export default function NormalMode({
                   {/* True/False questions */}
                   {(currentQuestionData.question.type === "true_false" ||
                     currentQuestionData.question.type === "true-false") && (
-                    <div className="space-y-3">
+                    <div className="questions-true-false-options space-y-3">
                       {["Sant", "Falskt"].map((option) => {
                         const isSelected = currentAnswer === option;
 
@@ -280,7 +281,7 @@ export default function NormalMode({
                   {/* Open-ended questions */}
                   {(currentQuestionData.question.type === "open_ended" ||
                     currentQuestionData.question.type === "open") && (
-                    <div className="space-y-2">
+                    <div className="questions-open-ended-wrapper space-y-2">
                       <textarea
                         id={`question-${currentQuestionIndex}`}
                         value={currentAnswer}
@@ -315,7 +316,7 @@ export default function NormalMode({
 
               {/* Navigation buttons */}
               <div
-                className="flex items-center justify-between mt-8 pt-4 border-t"
+                className="questions-navigation-container flex items-center justify-between mt-8 pt-4 border-t"
                 style={{
                   borderColor: "var(--accessibility-text-color)",
                   borderTopWidth: "0.5px",
@@ -390,7 +391,7 @@ export default function NormalMode({
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
       <Card
-        className="reading-content mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
+        className="reading-content-card mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
         style={
           {
             backgroundColor: "var(--accessibility-bg-color)",
@@ -402,11 +403,11 @@ export default function NormalMode({
         }
       >
         <CardHeader className="relative">
-          <div className="flex items-center justify-between">
+          <div className="reading-header-container flex items-center justify-between">
             <CardTitle className="text-lg mt-2">
               <span>Läs texten</span>
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="reading-controls-container flex gap-2">
               {/* Focus Mode Toggle Button */}
               <Button
                 variant="outline"
@@ -549,12 +550,12 @@ export default function NormalMode({
           )}
         </CardHeader>
         <CardContent className="relative">
-          <div className="space-y-6">
+          <div className="reading-content-wrapper space-y-6">
             {/* Bilder ovanför texten för denna sida */}
             {lesson.pages &&
               lesson.pages[currentPage]?.imagesAbove &&
               lesson.pages[currentPage]?.imagesAbove!.length > 0 && (
-                <div className="space-y-4">
+                <div className="reading-images-container space-y-4">
                   {lesson.pages[currentPage]?.imagesAbove!.map(
                     (imageUrl, index) => (
                       <img
@@ -569,7 +570,7 @@ export default function NormalMode({
               )}
 
             <div
-              className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-visible"
+              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-visible"
               style={{
                 fontSize: "16px", // stable measuring font for ch units
                 whiteSpace: "pre-wrap",
@@ -655,7 +656,7 @@ export default function NormalMode({
             {lesson.pages &&
               lesson.pages[currentPage]?.imagesBelow &&
               lesson.pages[currentPage]?.imagesBelow!.length > 0 && (
-                <div className="space-y-4">
+                <div className="reading-images-below-container space-y-4">
                   {lesson.pages[currentPage]?.imagesBelow!.map(
                     (imageUrl, index) => (
                       <img
@@ -671,8 +672,8 @@ export default function NormalMode({
 
             {/* Page navigation */}
             {pages.length > 1 && (
-              <div className="flex items-center justify-between pt-6">
-                <div className="flex gap-2">
+              <div className="reading-page-navigation flex items-center justify-between pt-6">
+                <div className="reading-page-indicators flex gap-2">
                   {pages.map((_, index) => (
                     <Badge
                       key={index}
