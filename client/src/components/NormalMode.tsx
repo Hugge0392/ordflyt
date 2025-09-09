@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import useStickyPanel from "../hooks/useStickyPanel";
 import {
   Card,
   CardContent,
@@ -82,15 +83,25 @@ export default function NormalMode({
   isLastQuestion,
   showQuestionsPanel12,
 }: NormalModeProps) {
-  // Custom hook för brutal sticky-hantering
-
+  // Refs för sticky panel
+  const readingContainerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Använd hooken för sticky-funktionalitet
+  const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
 
   return (
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 lg:self-start">
+        <div className="questions-panel-wrapper order-2 lg:order-2">
+          {/* Spacer-element för att undvika layoutskutt när panelen blir fixed */}
+          <div 
+            className={`panel-spacer ${isSticky ? 'sticky-space' : ''}`} 
+            style={{ height: isSticky ? `${panelHeight}px` : 0 }}
+          />
           <div
+            ref={panelRef}
             className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
               style={
                 {
@@ -527,7 +538,8 @@ export default function NormalMode({
               )}
 
             <div
-              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-visible"
+              ref={readingContainerRef}
+              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
               style={{
                 fontSize: "16px", // stable measuring font for ch units
                 whiteSpace: "pre-wrap",

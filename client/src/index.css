@@ -1222,7 +1222,35 @@ html, body {
 }
 
 
-/* KILLSCROLL: låt hela sidan skrolla, inte vänsterspalten */
+/* Sticky Panel CSS - tvåkolumnslayout med intern scroll */
 .reading-content.accessibility-enhanced {
-  overflow: visible !important;  /* tidigare: auto */
+  overflow: auto !important;  /* tillbaka till intern scroll för hooken */
+}
+
+/* Spacer-element som reserverar utrymme när panelen är fixad */
+.panel-spacer {
+  height: 0;
+  visibility: hidden;
+}
+
+/* Desktop: sticky-behavior */
+@media (min-width: 1024px) {
+  .panel-spacer.sticky-space {
+    width: 1px; /* liten bredd för att ta minimalt horisontellt utrymme */
+    visibility: hidden;
+  }
+}
+
+/* Mobil: kolumner staplas, ingen sticky */
+@media (max-width: 1023px) {
+  .questions-panel-container {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    z-index: auto !important;
+  }
+  .panel-spacer {
+    display: none;
+  }
 }
