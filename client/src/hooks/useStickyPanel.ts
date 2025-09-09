@@ -13,6 +13,9 @@ export default function useStickyPanel(
 
   // wrapper = panelens förälder (<div class="questions-panel-wrapper"> ...)
   const wrapperRef = useRef<MaybeEl>(null);
+  
+  // Anti-flicker: debounce tillståndsbyten
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useLayoutEffect(() => {
     const p = panelRef.current as MaybeEl;
@@ -60,11 +63,9 @@ export default function useStickyPanel(
         return;
       }
 
-      // Hysteresis: olika tröskelvärden för att undvika fladdring
-      // Gå IN i sticky-mode när toppen når topPx
-      // Gå UR sticky-mode när toppen är minst 10px högre (för stabilitet)
+      // Förstärkt hysteresis: större buffertzon och debounce
       const enterStickyThreshold = topPx;
-      const exitStickyThreshold = topPx + 10;
+      const exitStickyThreshold = topPx + 20; // större buffert
       
       let shouldStick = isSticky; // behåll nuvarande tillstånd som default
       
@@ -72,6 +73,16 @@ export default function useStickyPanel(
         shouldStick = true; // gå in i sticky-mode
       } else if (isSticky && wr.top > exitStickyThreshold) {
         shouldStick = false; // gå ur sticky-mode
+      }
+      
+      // Debounce tillståndsbyten för extra stabilitet
+      if (shouldStick !== isSticky) {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+        debounceTimeoutRef.current = setTimeout(() => {
+          setIsSticky(shouldStick);
+        }, 16); // ~1 frame delay
       }
       if (shouldStick) {
         // Lås bredd + vänsterkant från wrappern varje gång (robust vid resize)
@@ -95,7 +106,6 @@ export default function useStickyPanel(
         p.style.zIndex = "";
         w.style.minHeight = "";
       }
-      if (shouldStick !== isSticky) setIsSticky(shouldStick);
     };
 
     const schedule = () => {
@@ -124,6 +134,7 @@ export default function useStickyPanel(
       ro.disconnect();
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
   }, [panelRef, scrollContainerRef, topPx, minWidth, isSticky]);
 
