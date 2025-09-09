@@ -484,8 +484,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   /* referens för overlay */
   isolation: isolate;
   /* garantera eget stacking-context */
-  overflow: visible;
-  /* låt sidan scrolla, inte containern - behövs för sticky att fungera */
+  overflow: auto;
+  /* container scroll */
   width: 100%;
   /* fyller hela kortet */
   max-width: none;
@@ -510,11 +510,6 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   display: block;
   max-width: 100%;
   height: auto;
-}
-
-/* Om fokusläget behöver egen scroll (lägg till .focus-mode på wrapper) */
-.focus-mode .reading-content.accessibility-enhanced {
-  overflow: auto;
 }
 
 /* Overlayn ska aldrig få klicka igenom-issues i andra lager */
@@ -1613,22 +1608,21 @@ body {
   outline-offset: 2px;
 }
 
-/* Questions panel - nu hanterat av StickyBox JavaScript */
+/* Questions panel sticky behavior */
 .questions-panel-container {
-  /* Grundstyling utan position-relaterade regler */
-  z-index: 50;
-  max-height: calc(100vh - 4rem);
-  overflow-y: auto;
+  position: sticky;
+  top: 2rem; /* ger ~32px margin till toppen */
+  z-index: 50; /* se till att den inte göms under annat */
 }
 
-/* Grid och kolumn styling - nu för StickyBox JavaScript */
 .reading-questions-column {
-  position: relative;
-  overflow: visible;
+  position: relative; /* krävs ibland för sticky-barn */
+  overflow: visible !important; /* se till att det inte blockar sticky */
 }
 
+/* Se till att main grid inte blockerar sticky heller */
 .reading-main-grid {
-  overflow: visible;
+  overflow: visible !important;
 }
 
 /* Questions panel responsive behavior */

@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import StickyBox from "@/components/StickyBox";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -81,16 +80,15 @@ export default function NormalMode({
   isLastQuestion,
   showQuestionsPanel12,
 }: NormalModeProps) {
-  // Sticky positioning is now handled by StickyBox JavaScript
+  // Sticky positioning is now handled with CSS
 
   return (
-    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start mb-6">
+    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <aside className="reading-questions-column order-2 lg:order-2 hidden lg:block">
-          <StickyBox offsetTop={24} bottomOffset={24}>
-            <div
-              className="questions-panel-container z-50 border rounded-lg p-6"
+        <div className="reading-questions-column order-2 lg:order-2">
+          <div
+            className="questions-panel-container sticky top-8 z-50 border rounded-lg p-6"
             style={
               {
                 backgroundColor: "var(--accessibility-bg-color)",
@@ -341,8 +339,7 @@ export default function NormalMode({
               </button>
             </div>
           </div>
-          </StickyBox>
-        </aside>
+        </div>
       )}
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
