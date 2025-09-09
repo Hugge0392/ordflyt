@@ -1162,9 +1162,9 @@ html, body {
 
 /* Questions panel responsive behavior */
 @media (max-width: 1024px) {
-  .questions-panel-wrapper {
+  .questions-panel-container {
     position: static !important;
     width: 100% !important;
-    left: auto !important;
+    max-width: 100% !important;
   }
 }

@@ -85,10 +85,10 @@ export default function NormalMode({
   // Sticky positioning is now handled with CSS
 
   return (
-    <div className="reading-main-grid grid grid-cols-1 md:landscape:grid-cols-6 lg:grid-cols-6 gap-6 lg:items-start mb-6">
+    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="reading-questions-column order-1 lg:order-1 md:landscape:col-span-2 lg:col-span-2">
+        <div className="reading-questions-column order-2 lg:order-2">
           <div
             className="questions-panel-container sticky top-4 border rounded-lg p-6"
               style={
@@ -347,7 +347,7 @@ export default function NormalMode({
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
       <Card
-        className="reading-content-card mb-6 md:landscape:mb-0 lg:mb-0 md:landscape:col-span-4 lg:col-span-4"
+        className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1"
         style={
           {
             backgroundColor: "var(--accessibility-bg-color)",
