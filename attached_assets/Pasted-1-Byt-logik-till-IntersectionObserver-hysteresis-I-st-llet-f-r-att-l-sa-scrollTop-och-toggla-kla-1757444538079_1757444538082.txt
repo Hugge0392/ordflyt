@@ -1,0 +1,211 @@
+1) Byt logik till IntersectionObserver + hysteresis
+
+I stället för att läsa scrollTop och toggla klasser direkt, låter vi två “sentinels” (osynliga markörer) avgöra läget stabilt, med ett hysteresis-marginal (t.ex. 8px) så att panelen inte flippar fram och tillbaka på gränsen.
+
+Hook (ersätt din useStickyPanel):
+
+// hooks/useStickyPanelIO.ts
+import { useLayoutEffect, useRef } from "react";
+
+type PinState = "static" | "fixed" | "abs";
+
+function findScrollRoot(el: HTMLElement | null): HTMLElement | null {
+  let n: HTMLElement | null = el;
+  while (n && n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (/(auto|scroll)/.test(cs.overflowY)) return n;
+    n = n.parentElement as HTMLElement;
+  }
+  return null; // fall back till viewport
+}
+
+export default function useStickyPanelIO(opts: {
+  columnRef: React.RefObject<HTMLElement>;
+  panelRef: React.RefObject<HTMLElement>;
+  topOffset?: number;   // px: samma som i CSS .pin-fixed { top: … }
+  hysteresis?: number;  // px: tröskel-buffert
+}) {
+  const { columnRef, panelRef, topOffset = 24, hysteresis = 8 } = opts;
+  const stateRef = useRef<PinState>("static");
+  const rafRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const col = columnRef.current!;
+    const panel = panelRef.current!;
+    if (!col || !panel) return;
+
+    // Skapa sentinels
+    const topSent = document.createElement("div");
+    const botSent = document.createElement("div");
+    topSent.className = "pin-sentinel pin-sentinel--top";
+    botSent.className = "pin-sentinel pin-sentinel--bottom";
+    topSent.style.cssText = "position:relative;height:1px;width:100%;";
+    botSent.style.cssText = "position:relative;height:1px;width:100%;";
+
+    // placera dem runt panelen
+    col.insertBefore(topSent, col.firstChild);
+    col.appendChild(botSent);
+
+    // Håll left/width i sync för fixed-läget (relativt viewport)
+    const updateVars = () => {
+      const r = col.getBoundingClientRect();
+      col.style.setProperty("--pin-left", `${Math.round(r.left)}px`);
+      col.style.setProperty("--pin-width", `${Math.round(r.width)}px`);
+    };
+
+    // Mät i nästa frame för att undvika reflow-thrash
+    const scheduleVars = () => {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        updateVars();
+      });
+    };
+
+    updateVars();
+    window.addEventListener("resize", scheduleVars);
+    window.addEventListener("scroll", scheduleVars, { passive: true });
+
+    const rootEl = findScrollRoot(col);
+    const ioOptionsTop: IntersectionObserverInit = {
+      root: rootEl ?? null,
+      rootMargin: `${-(topOffset + hysteresis)}px 0px 0px 0px`,
+      threshold: [0, 1],
+    };
+    const ioOptionsBottom: IntersectionObserverInit = {
+      root: rootEl ?? null,
+      rootMargin: `0px 0px ${-(topOffset + hysteresis)}px 0px`,
+      threshold: [0, 1],
+    };
+
+    let topVisible = true;
+    let bottomVisible = false;
+
+    const apply = () => {
+      // static: topp-sentinel synlig (panelen har inte nått "sticky")
+      // fixed: topp-sentinel passerad, botten ej nådd
+      // abs:   botten-sentinel når vyn → lås panelen i botten
+      const next: PinState = bottomVisible ? "abs" : (topVisible ? "static" : "fixed");
+      if (next === stateRef.current) return;
+      stateRef.current = next;
+
+      panel.classList.remove("pin-fixed", "pin-abs");
+      if (next === "fixed") panel.classList.add("pin-fixed");
+      if (next === "abs") panel.classList.add("pin-abs");
+    };
+
+    const ioTop = new IntersectionObserver((entries) => {
+      topVisible = entries[0].isIntersecting && entries[0].intersectionRatio > 0;
+      apply();
+    }, ioOptionsTop);
+
+    const ioBottom = new IntersectionObserver((entries) => {
+      bottomVisible = entries[0].isIntersecting && entries[0].intersectionRatio > 0;
+      apply();
+    }, ioOptionsBottom);
+
+    ioTop.observe(topSent);
+    ioBottom.observe(botSent);
+
+    // init i nästa frame (så CSS-variabler hinner sättas)
+    requestAnimationFrame(apply);
+
+    return () => {
+      ioTop.disconnect();
+      ioBottom.disconnect();
+      window.removeEventListener("resize", scheduleVars);
+      window.removeEventListener("scroll", scheduleVars);
+      try { col.removeChild(topSent); } catch {}
+      try { col.removeChild(botSent); } catch {}
+    };
+  }, [columnRef, panelRef, topOffset, hysteresis]);
+}
+
+
+Använd i din komponent:
+
+// I NormalMode.tsx (förenklat där panelen renderas)
+import useStickyPanelIO from "../hooks/useStickyPanelIO";
+import { useRef } from "react";
+
+export default function NormalMode() {
+  const columnRef = useRef<HTMLDivElement>(null);
+  const panelRef  = useRef<HTMLDivElement>(null);
+
+  useStickyPanelIO({ columnRef, panelRef, topOffset: 24, hysteresis: 8 });
+
+  return (
+    <div className="reading-layout lg:grid lg:grid-cols-[1fr_420px] lg:gap-6">
+      {/* Vänster kolumn … */}
+
+      <div ref={columnRef} className="reading-questions-column relative">
+        <div ref={panelRef} className="questions-panel-container">
+          {/* … innehållet i panelen … */}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+2) Säkra dina CSS-regler (ordning & anti-flicker)
+
+Lägg det här blocket allra sist i din CSS (så inget senare råkar köra över det):
+
+/* ===== PINNAD FRÅGOR-PANEL (lägg detta SIST) ===== */
+@media (min-width: 1024px) {
+  .reading-questions-column { position: relative !important; }
+
+  .questions-panel-container {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    z-index: auto !important;
+    /* Anti-flicker: egen compositing layer */
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    will-change: transform, top, left;
+  }
+
+  .questions-panel-container.pin-fixed {
+    position: fixed !important;
+    top: 24px !important;
+    left: var(--pin-left) !important;
+    width: var(--pin-width) !important;
+    max-height: calc(100vh - 32px) !important;
+    overflow: auto !important;
+  }
+
+  .questions-panel-container.pin-abs {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+}
+
+/* Inga transitions på properties som vi växlar i JS */
+.questions-panel-container {
+  transition: none !important;
+}
+
+
+Viktigt: om du har andra regler för .questions-panel-container eller .reading-questions-column efter detta block, flytta dem uppåt eller slå ihop – annars kan kaskaden orsaka micro-hopp.
+
+3) Undvik konflikt med scroll-containers
+
+Du har en container som tvingas overflow: auto !important;. Se till att scrollrooten som IO-hooken använder är just den container som faktiskt skrollar (hooken ovan hittar den automatiskt). Lägg inte panelen i ett element som samtidigt skiftar overflow på/av beroende på läge—det kan trigga 1-frame reposition.
+
+4) Finlir om det ändå blinkar (sällsynt)
+
+Öka hysteresis till 12–16 px.
+
+Sätt contain: layout paint; på .questions-panel-container i fixed-läget.
+
+Om du har filter, box-shadow eller backdrop på en förälder: testa att flytta dem—vissa motorer (särskilt Safari) kan repaintra panelen 1 frame när läget ändras.
+
+Sammanfattning
+
+Det här byter ut thresholds som “studsar” mot en sentinel-baserad, hysteresis-säkrad växling + egen GPU-compositing för panelen. Det brukar ta bort just den “hoppa ner till botten i 1 ms”-effekten du ser.
+
+Kör koden ovan rakt av; om du vill kan jag peka exakt var i din TSX du sätter ref och var du tar bort den gamla hooken.

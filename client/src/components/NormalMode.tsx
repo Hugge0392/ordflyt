@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import useStickyPanel from "../hooks/useStickyPanel";
+import useStickyPanelIO from "../hooks/useStickyPanelIO";
 import {
   Card,
   CardContent,
@@ -84,22 +84,17 @@ export default function NormalMode({
   showQuestionsPanel12,
 }: NormalModeProps) {
   // Refs för sticky panel
-  const readingContainerRef = useRef<HTMLDivElement>(null);
+  const columnRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   
   // Använd hooken för sticky-funktionalitet
-  const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
+  useStickyPanelIO({ columnRef, panelRef, topOffset: 24, hysteresis: 8 });
 
   return (
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="questions-panel-wrapper order-2 lg:order-2">
-          {/* Spacer-element för att undvika layoutskutt när panelen blir fixed */}
-          <div 
-            className={`panel-spacer ${isSticky ? 'sticky-space' : ''}`} 
-            style={{ height: isSticky ? `${panelHeight}px` : 0 }}
-          />
+        <div ref={columnRef} className="reading-questions-column order-2 lg:order-2">
           <div
             ref={panelRef}
             className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
@@ -538,7 +533,6 @@ export default function NormalMode({
               )}
 
             <div
-              ref={readingContainerRef}
               className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
               style={{
                 fontSize: "16px", // stable measuring font for ch units
