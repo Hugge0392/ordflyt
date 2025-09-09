@@ -1220,3 +1220,9 @@ html, body {
   .reading-questions-column .questions-panel-container.pin-fixed { position: fixed !important; }
   .reading-questions-column .questions-panel-container.pin-abs   { position: absolute !important; }
 }
+
+
+/* KILLSCROLL: låt hela sidan skrolla, inte vänsterspalten */
+.reading-content.accessibility-enhanced {
+  overflow: visible !important;  /* tidigare: auto */
+}

@@ -1,0 +1,78 @@
+Nu hittar jag roten till eländet – du har gjort vänsterspalten till en egen scroll-container:
+
+.reading-content.accessibility-enhanced {
+  … 
+  overflow: auto;   /* ← skapar intern scroll i vänsterkolumnen */
+}
+
+
+När sidan inte scrollar (bara vänstern gör det), så triggas varken sticky eller vår JS-lösning – wrapperns position ändras aldrig mot viewporten, så panelen “pinnar” aldrig. Det syns rakt av i index (3).css. 
+
+index (3)
+
+ 
+
+index (3)
+
+Dessutom lyssnar din nuvarande portal-hook bara på window:
+window.addEventListener("scroll", …) – vilket inte hjälper när scrollen sker inne i vänsterspalten. 
+
+NormalMode (3)
+
+Gör så här (hårt, rakt, fungerar)
+1) Slå av intern scroll i vänsterspalten (låt BODY skrolla)
+
+Lägg allra sist i index (3).css:
+
+/* KILLSCROLL: låt hela sidan skrolla, inte vänsterspalten */
+.reading-content.accessibility-enhanced {
+  overflow: visible !important;  /* tidigare: auto */
+}
+
+
+(Detta neutraliserar regeln som idag tvingar intern scroll i vänstern. 
+
+index (3)
+
+)
+
+2) Kör enkel, bombsäker sticky på kolumnen
+
+Byt markup i NormalMode (3).tsx så höger kolumn (inte innerdiven) är sticky och panelen får egen skroll:
+
+<div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 lg:self-start">
+  <div className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
+    {/* … panelinnehåll … */}
+  </div>
+</div>
+
+
+Du har exakt denna struktur i en tidigare version – nu funkar den när scrollen sker på body istället för i vänsterkortet. 
+
+NormalMode (1)
+
+3) (Valfritt) Rensa bort portalen/hooken
+
+Portalen behövdes bara p.g.a. intern scroll. Du kan ta bort hela useAffixPortal och relaterad kod i NormalMode (3).tsx – det förenklar och minimerar ytor som kan krocka. (Nuvarande hook lyssnar ändå bara på window, så den hjälper inte mot intern scroll. 
+
+NormalMode (3)
+
+)
+
+Snabb check efter patch
+
+Scrolla sidan: panelen ska sitta fast vid top: 24px (Tailwind top-6) och själv få skroll om den är högre än viewporten.
+
+Om du har en fast toppmeny: öka lg:top-6 (t.ex. lg:top-16).
+
+Se till att inga föräldrar runt högerkolumnen sätter overflow-y: hidden. Du har redan en säkerhetsregel som tvingar overflow-y: visible på de viktiga containrarna, bra där. 
+
+index (3)
+
+Varför det här är “hårdare” och faktiskt löser det
+
+Problemet var inte sticky i sig utan fel scroll-lager. Vi tar bort den interna scrollen i vänsterkolumnen → hela dokumentet scrollar → sticky/top fungerar direkt, utan JS-akrobatik.
+
+Mindre kod, färre specialfall, inget hopp “över krönet”, och panelen stannar snällt i toppen medan man läser.
+
+Kör exakt detta. Om du måste behålla intern scroll i vänstern (pedagogiskt skäl etc.), säg till så ger jag en hook som lyssnar på vänsterspaltens scroll och tvingar panelen “fixed” via portal – men det är mer rörligt/känsligt än lösningen ovan.
