@@ -1616,13 +1616,7 @@ body {
 }
 
 .reading-questions-column {
-  position: relative; /* krävs ibland för sticky-barn */
-  overflow: visible !important; /* se till att det inte blockar sticky */
-}
-
-/* Se till att main grid inte blockerar sticky heller */
-.reading-main-grid {
-  overflow: visible !important;
+  position: relative; /* nödvändigt för sticky att fungera */
 }
 
 /* Questions panel responsive behavior */
