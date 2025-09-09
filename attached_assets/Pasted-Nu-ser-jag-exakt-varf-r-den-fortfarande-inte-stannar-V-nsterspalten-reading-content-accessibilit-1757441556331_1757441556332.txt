@@ -1,0 +1,188 @@
+Nu ser jag exakt varför den fortfarande inte stannar:
+
+Vänsterspalten (.reading-content.accessibility-enhanced) har fortfarande overflow: auto → den skapar en intern scroll. Sticky/fixed-lösningar i högerkolumnen triggas inte när man scrollar i vänstern. Det ligger kvar i din senaste CSS. 
+
+index (3)
+
+Din nuvarande portal/hook lyssnar bara på window och missar scroll-händelser i den interna containern. Därför “händer inget” när du scrollar texten. 
+
+NormalMode (3)
+
+Här är två sätt — välj A (enklast) eller B (behåll intern scroll). Gör exakt som nedan så funkar det.
+
+A) Låt BODY skrolla (enklast & mest robust)
+1) Lägg allra sist i index (3).css
+
+Detta neutraliserar den interna scrollen i vänsterspalten:
+
+/* KILLSCROLL — flytta scrollen till body så sticky kan funka */
+.reading-content.accessibility-enhanced {
+  overflow: visible !important; /* var: overflow: auto; */
+}
+
+
+(Just nu är den satt till overflow: auto i din fil. Den måste bort för sticky att bita på viewport-scroll. ) 
+
+index (3)
+
+2) Gör kolumnen sticky (inte inner-diven)
+
+Byt blocket i NormalMode så kolumnen är sticky och panelen själv scrollar om den blir lång:
+
+<div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 lg:self-start">
+  <div className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
+    {/* ...ditt innehåll... */}
+  </div>
+</div>
+
+
+Det här är exakt den version som fungerade när scroll låg på body i din tidigare fil. 
+
+NormalMode (1)
+
+Klart. Nu stannar panelen på top: 24px och kan läsas/svaras medan texten scrollas.
+
+B) Behåll intern scroll (nukleärt men vattentätt)
+
+Vill du absolut ha kvar overflow: auto i vänstern? Då måste vi lyssna på rätt scroll-container och inte på window.
+
+1) Ersätt din hook i NormalMode (3).tsx med denna
+
+Den hittar närmsta scrollförälder och triggar pinningen på den i stället för window. (Din nuvarande version lyssnar bara på window.) 
+
+NormalMode (3)
+
+// överst i filen: import { useLayoutEffect, useEffect, useRef, useState } from "react";
+// och ev. createPortal om du kör portalvarianten
+
+function useAffixPortal(opts: { top?: number; minViewport?: number } = {}) {
+  const top = opts.top ?? 24;
+  const minViewport = opts.minViewport ?? 1024;
+
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const portalRootRef = useRef<HTMLElement | null>(null);
+
+  const [mode, setMode] = useState<"normal" | "fixed" | "absolute">("normal");
+  const [rect, setRect] = useState({ left: 0, width: 0, height: 0 });
+  const [spacerHeight, setSpacerHeight] = useState(0);
+
+  useEffect(() => {
+    let root = document.getElementById("affix-root") as HTMLElement | null;
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "affix-root";
+      document.body.appendChild(root);
+    }
+    portalRootRef.current = root;
+  }, []);
+
+  const getScrollParent = (el: HTMLElement | null): HTMLElement | Window => {
+    let node: HTMLElement | null = el;
+    while (node && node !== document.body) {
+      const cs = getComputedStyle(node);
+      const oy = cs.overflowY;
+      if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return window; // fallback
+  };
+
+  const update = () => {
+    const w = wrapperRef.current, p = panelRef.current;
+    if (!w || !p) return;
+
+    if (getComputedStyle(w).position === "static") w.style.position = "relative";
+
+    const wr = w.getBoundingClientRect();
+    const ph = p.offsetHeight;
+    const vw = window.innerWidth;
+
+    setRect({ left: Math.round(wr.left), width: Math.round(wr.width), height: ph });
+
+    if (vw < minViewport) { setMode("normal"); setSpacerHeight(0); return; }
+
+    const pastTop = wr.top <= top;
+    const pastBottom = wr.bottom <= top + ph;
+
+    if (!pastTop) { setMode("normal"); setSpacerHeight(0); }
+    else if (!pastBottom) { setMode("fixed"); setSpacerHeight(ph); }
+    else { setMode("absolute"); setSpacerHeight(ph); }
+  };
+
+  useLayoutEffect(() => {
+    let raf = 0;
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); };
+
+    const sp = getScrollParent(wrapperRef.current);
+    const ro = new ResizeObserver(schedule);
+    const mo = new MutationObserver(schedule);
+
+    if (wrapperRef.current) ro.observe(wrapperRef.current);
+    if (panelRef.current) { ro.observe(panelRef.current); mo.observe(panelRef.current, { childList: true, subtree: true }); }
+
+    sp.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    schedule();
+
+    return () => {
+      sp.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      ro.disconnect(); mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const render = (node: React.ReactNode) => {
+    const root = portalRootRef.current;
+    if (mode === "fixed" && root) {
+      return createPortal(
+        <div style={{
+          position: "fixed", top, left: rect.left, width: rect.width,
+          maxHeight: `calc(100vh - ${top + 8}px)`, overflowY: "auto", zIndex: 1000
+        }}>
+          {node}
+        </div>, root
+      );
+    }
+    if (mode === "absolute") return <div style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>{node}</div>;
+    return node;
+  };
+
+  return { wrapperRef, panelRef, render, spacerHeight };
+}
+
+
+Den stora skillnaden: getScrollParent(...) och att vi lyssnar på den med addEventListener("scroll", …) — inte bara på window. Det var det som saknades i din senaste fil. 
+
+NormalMode (3)
+
+2) Minimal CSS sist i index (3).css
+
+Behåll intern scroll; inga fler !important-krig behövs:
+
+@media (min-width: 1024px) {
+  .reading-questions-column { position: relative !important; }
+  .questions-panel-container { position: static !important; }
+  #affix-root { position: relative; z-index: 1000; }
+}
+
+Varför det här löser just ditt symptom
+
+“Objektet flyttar ner lite men stannar inte” = scroll eventet som ska trigga pinning eldas aldrig, eftersom skrollen sker inne i .reading-content.accessibility-enhanced (inte window). Det ser jag i din CSS. 
+
+index (3)
+
+Alternativ A tar bort intern scroll helt → sticky fungerar direkt med bara CSS (din variant i NormalMode (1).tsx). 
+
+NormalMode (1)
+
+Alternativ B behåller intern scroll men lyssnar på rätt scrollförälder (din nuvarande hook gör inte det). 
+
+NormalMode (3)
+
+Kör A om du kan. Om du måste ha intern scroll: byt till hooken i B, så sitter panelen som berg.
+
+Källor

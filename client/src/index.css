@@ -249,7 +249,7 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   /* samma element som har ref={contentRef} */
   position: relative;         /* referens för overlay */
   isolation: isolate;         /* garantera eget stacking-context */
-  overflow: auto;             /* container scroll */
+  overflow: visible;          /* KILLSCROLL: låt body skrolla */
   width: 100%;                /* fyller hela kortet */
   max-width: none;            /* ingen begränsning */
   padding-inline: 1rem;
