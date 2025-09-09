@@ -1,4 +1,5 @@
-import React, { useEffect, useLayoutEffect, useRef } from "react";
+import React, { useLayoutEffect, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Card,
   CardContent,
@@ -83,112 +84,131 @@ export default function NormalMode({
   showQuestionsPanel12,
 }: NormalModeProps) {
   // Custom hook för brutal sticky-hantering
-function usePinPanelOnScroll(enabled = true, topPx = 24) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
-  const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
+/** Affix + Portal: immun mot sticky/fixed-buggar i föräldrar */
+function useAffixPortal(opts: { top?: number; minViewport?: number } = {}) {
+  const top = opts.top ?? 24;            // px från toppen (t.ex. headerhöjd)
+  const minViewport = opts.minViewport ?? 1024; // aktivera affix på ≥ detta
 
-  useLayoutEffect(() => {
-    if (!enabled) return;
+  const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
+  const panelRef = useRef<HTMLDivElement | null>(null);   // panelens root
+  const portalRootRef = useRef<HTMLElement | null>(null);
+
+  const [mode, setMode] = useState<"normal" | "fixed" | "absolute">("normal");
+  const [rect, setRect] = useState({ left: 0, width: 0, height: 0 });
+  const [spacerHeight, setSpacerHeight] = useState(0);
+
+  // skapa (eller återanvänd) en portal-root i <body>
+  useEffect(() => {
+    let root = document.getElementById("affix-root") as HTMLElement | null;
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "affix-root";
+      document.body.appendChild(root);
+    }
+    portalRootRef.current = root;
+  }, []);
+
+  const update = () => {
     const w = wrapperRef.current;
     const p = panelRef.current;
     if (!w || !p) return;
 
-    // 1) Hitta NÄRMSTA scrollförälder (många appar scrollar inte window!)
-    const getScrollParent = (el: HTMLElement | null): HTMLElement | Document => {
-      let node: HTMLElement | null = el;
-      while (node && node !== document.body) {
-        const cs = getComputedStyle(node);
-        const oy = cs.overflowY;
-        if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
-          return node;
-        }
-        node = node.parentElement;
-      }
-      return document;
-    };
-    const scrollParent = getScrollParent(w);
-
-    // 2) Sätt ankare för absolute-läget
+    // se till att wrappern är ankare för absolute-läget
     if (getComputedStyle(w).position === "static") {
       w.style.position = "relative";
     }
 
+    const vw = window.innerWidth;
+    const wr = w.getBoundingClientRect();
+    const ph = p.offsetHeight;
+
+    // uppdatera dimensioner för fixed-läget
+    setRect({
+      left: Math.round(wr.left),
+      width: Math.round(wr.width),
+      height: ph,
+    });
+
+    if (vw < minViewport) {
+      setMode("normal");
+      setSpacerHeight(0);
+      return;
+    }
+
+    const pastTop = wr.top <= top;
+    const pastBottom = wr.bottom <= top + ph;
+
+    if (!pastTop) {
+      setMode("normal");
+      setSpacerHeight(0);
+    } else if (!pastBottom) {
+      setMode("fixed");
+      setSpacerHeight(ph); // reservera plats i kolumnen
+    } else {
+      setMode("absolute"); // parkera i botten av wrappern
+      setSpacerHeight(ph);
+    }
+  };
+
+  useLayoutEffect(() => {
     let raf = 0;
-    const apply = () => {
-      raf = 0;
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); };
 
-      // Aktuell geometri
-      const wr = w.getBoundingClientRect();
-      const ph = p.offsetHeight;
-
-      // Desktop only (samma gräns som din CSS)
-      const vw = window.innerWidth;
-      if (vw < 1024) {
-        p.classList.remove("pin-fixed", "pin-abs");
-        p.style.removeProperty("--pin-left");
-        p.style.removeProperty("--pin-width");
-        w.style.minHeight = "";
-        return;
-      }
-
-      // Lås bredd och vänsterkant när vi är pinned
-      p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
-      p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
-
-      const pastTop = wr.top <= topPx;
-      const pastBottom = wr.bottom <= topPx + ph;
-
-      if (!pastTop) {
-        // ovanför pin-tröskeln
-        p.classList.remove("pin-fixed", "pin-abs");
-        w.style.minHeight = "";
-      } else if (!pastBottom) {
-        // mitt i scrollen → fixed mot viewportens topp
-        w.style.minHeight = ph + "px"; // reservera plats så inget hoppar
-        p.classList.add("pin-fixed");
-        p.classList.remove("pin-abs");
-      } else {
-        // nått kolumnens botten → parkera i botten av wrappern
-        w.style.minHeight = ph + "px";
-        p.classList.remove("pin-fixed");
-        p.classList.add("pin-abs");
-      }
-    };
-
-    const schedule = () => {
-      if (!raf) raf = requestAnimationFrame(apply);
-    };
-
-    // 3) Lyssna både på window och ev. intern scroll-container
-    const sp: any = scrollParent === document ? window : scrollParent;
-    sp.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-
-    // Reagera på storleksförändringar i wrapper/panel
     const ro = new ResizeObserver(schedule);
-    ro.observe(w);
-    ro.observe(p);
+    if (wrapperRef.current) ro.observe(wrapperRef.current);
+    if (panelRef.current) ro.observe(panelRef.current);
 
-    // Och på DOM-ändringar i panelens innehåll
     const mo = new MutationObserver(schedule);
-    mo.observe(p, { childList: true, subtree: true });
+    if (panelRef.current) mo.observe(panelRef.current, { childList: true, subtree: true });
 
-    // Initialt läge
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
     schedule();
 
     return () => {
-      sp.removeEventListener("scroll", schedule);
+      window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       ro.disconnect();
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [enabled, topPx]);
+  }, []);
 
-  return { wrapperRef, panelRef };
+  // render-funktion: portal i fixed-läge, annars inline
+  const render = (node: React.ReactNode) => {
+    const root = portalRootRef.current;
+    if (mode === "fixed" && root) {
+      return createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: `${top}px`,
+            left: rect.left,
+            width: rect.width,
+            maxHeight: `calc(100vh - ${top + 8}px)`,
+            overflowY: "auto",
+            zIndex: 1000,
+          }}
+        >
+          {node}
+        </div>,
+        root
+      );
+    }
+    if (mode === "absolute") {
+      return (
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+          {node}
+        </div>
+      );
+    }
+    return node; // normal-läge
+  };
+
+  return { wrapperRef, panelRef, render, spacerHeight, mode };
 }
 
-  const { wrapperRef, panelRef } = usePinPanelOnScroll(true, 24);
+  const { wrapperRef, panelRef, render, spacerHeight } = useAffixPortal({ top: 24, minViewport: 1024 });
 
   return (
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
@@ -197,10 +217,15 @@ function usePinPanelOnScroll(enabled = true, topPx = 24) {
         <div
           ref={wrapperRef}
           className="reading-questions-column order-2 lg:order-2 lg:self-start"
+          style={{ position: "relative" }}
         >
-          <div
-            ref={panelRef}
-            className="questions-panel-container border rounded-lg p-6"
+          {/* spacer som håller kolumnhöjden när panelen portlas/fixas */}
+          <div aria-hidden style={{ height: spacerHeight }} />
+
+          {render(
+            <div
+              ref={panelRef}
+              className="questions-panel-container border rounded-lg p-6"
               style={
                 {
                   backgroundColor: "var(--accessibility-bg-color)",
@@ -452,6 +477,7 @@ function usePinPanelOnScroll(enabled = true, topPx = 24) {
                 </button>
               </div>
             </div>
+          )}
         </div>
       )}
 
