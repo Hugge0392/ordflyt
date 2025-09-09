@@ -1,0 +1,110 @@
+Jag ser varför du kör fast: du har gjort jättemånga overrides i din CSS (bl.a. för .prose, .reading-content.accessibility-enhanced, .navigation-button, m.m.), och just nu konkurrerar de med varandra. Därför blir det “vita plattor” eller att dina inställningar inte biter.
+
+För att lösa ditt första problem (att bakgrunder dyker upp fast du bara vill ha texten i fokusläget ren och utan vita rutor) kan du börja med en enkel “killswitch”:
+
+1. Lägg allt bakgrundsansvar på containern
+
+Du har redan detta, men förenkla det så här:
+
+.reading-content.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+  color: var(--accessibility-text-color) !important;
+  border-color: var(--accessibility-border-color) !important;
+}
+
+2. Nolla alla barns bakgrunder
+
+I stället för 20 olika selektorer kan du ha en tydlig reset:
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+
+Vill du även blockera pseudo-element:
+
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+3. Sätt textfärg på allt
+
+Du har många duplicerade regler. Det räcker med:
+
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced * {
+  color: var(--accessibility-text-color) !important;
+  font-family: var(--accessibility-font-family) !important;
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+}
+
+4. UI-element (knappar, indikatorer, progressbar)
+
+De verkar du vilja isolera (inte påverkas av accessibility-inställningar). Då är bästa vägen att ge dem en egen klass (vilket du redan gjort med .unique-prev-question-btn, .navigation-page-counter osv.) och sätta dem sist i CSS, med en neutral vit/svart styling.
+
+👉 Kort sagt: lösningen är att rensa bort 80% av duplicerade overrides och ersätta med tre enkla block:
+
+Container → ansvarar för bakgrund.
+
+Reset för alla barn → inga bakgrunder.
+
+Text override → färg, font, line-height.
+
+Vill du att jag ska skriva en slimmad version av din CSS (typ 50 rader i stället för 700) som löser just accessibility-fallet, utan att sabba Tailwind/shadcn?
+
+Jag tror jag ser varför ditt första problem uppstod. Just nu importerar du fonterna såhär:
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
+
+
+👉 Problemet: Google Fonts erbjuder inte OpenDyslexic. Den finns inte i deras katalog, så den raden gör ingenting. Därför faller Tailwind tillbaka till sans-serif.
+
+✅ Så här kan du lösa det
+
+Ladda ner OpenDyslexic som webfont från https://opendyslexic.org
+ eller via ett CDN som https://github.com/antijingoist/opendyslexic
+.
+
+Lägg filerna (.woff2 är bäst) i t.ex. public/fonts/.
+
+Deklarera fonten i din CSS:
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Regular.woff2') format('woff2'),
+       url('/fonts/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Bold.woff2') format('woff2'),
+       url('/fonts/OpenDyslexic-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+}
+
+
+Använd den i :root:
+
+:root {
+  --font-dyslexic: 'OpenDyslexic', system-ui, sans-serif;
+}
+
+
+Sen i din Tailwind / komponenter:
+
+.reading-content.accessibility-enhanced {
+  font-family: var(--font-dyslexic) !important;
+}
+
+
+🔑 Kort sagt: ditt CSS-import för OpenDyslexic fungerar inte eftersom Google Fonts inte har det. Du behöver hosta fonten själv eller ta den via ett CDN.
+
+Vill du att jag visar dig ett färdigt exempel där vi hämtar OpenDyslexic via ett gratis CDN-länk (så du slipper lägga filer i public/fonts/)?

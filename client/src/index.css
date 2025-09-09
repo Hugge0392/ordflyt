@@ -1,5 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
+
+/* OpenDyslexic font från CDN */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic@master/otf/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/gh/antijingoist/opendyslexic@master/otf/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -101,6 +117,7 @@
   --font-sans: 'Inter', 'Open Sans', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
+  --font-dyslexic: 'OpenDyslexic', system-ui, sans-serif;
   --radius: 1.3rem;
   --success: hsl(142.1053 76.2712% 36.2745%);
   --success-foreground: hsl(0 0% 100%);
@@ -116,6 +133,8 @@
   --accessibility-font-size: 34px;
   --accessibility-line-height: 1.5;
   --accessibility-font-family: system-ui, -apple-system, sans-serif;
+  --normal-font-family: var(--font-sans);
+  --dyslexic-font-family: var(--font-dyslexic);
   --accessibility-bg-color: #ffffff;
   --accessibility-text-color: inherit;
   --accessibility-border-color: inherit;
@@ -1120,6 +1139,7 @@ html, body {
   --font-sans: 'Inter', 'Open Sans', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Courier New', 'Consolas', 'Monaco', monospace;
+  --font-dyslexic: 'OpenDyslexic', system-ui, sans-serif;
   --radius: 1.3rem;
   --success: hsl(142.1053 76.2712% 36.2745%);
   --success-foreground: hsl(0 0% 100%);
