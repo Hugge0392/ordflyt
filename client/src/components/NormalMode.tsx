@@ -88,9 +88,9 @@ export default function NormalMode({
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="reading-questions-column order-2 lg:order-2">
+        <div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 self-start">
           <div
-            className="questions-panel-container sticky top-4 border rounded-lg p-6"
+            className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
               style={
                 {
                   backgroundColor: "var(--accessibility-bg-color)",

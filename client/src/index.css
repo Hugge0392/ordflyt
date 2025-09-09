@@ -1161,9 +1161,11 @@ html, body {
 }
 
 /* Questions panel responsive behavior */
-@media (max-width: 1024px) {
-  .questions-panel-container {
+@media (max-width: 1023.98px) {
+  .reading-questions-column {
     position: static !important;
+  }
+  .questions-panel-container {
     width: 100% !important;
     max-width: 100% !important;
   }
