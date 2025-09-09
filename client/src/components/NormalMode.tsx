@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -82,15 +82,85 @@ export default function NormalMode({
   isLastQuestion,
   showQuestionsPanel12,
 }: NormalModeProps) {
-  // Sticky positioning is now handled with CSS
+  // Custom hook för brutal sticky-hantering
+  function usePinPanelOnScroll(enabled = true, topPx = 24) {
+    const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
+    const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
+
+    useLayoutEffect(() => {
+      if (!enabled) return;
+      const w = wrapperRef.current;
+      const p = panelRef.current;
+      if (!w || !p) return;
+
+      // säkerställ att wrappern kan vara ankare för absolute
+      w.style.position = w.style.position || "relative";
+
+      const apply = () => {
+        const wr = w.getBoundingClientRect();
+        const ph = p.offsetHeight;
+        const vw = window.innerWidth;
+
+        // disable under lg (<=1024px)
+        if (vw < 1024) {
+          p.classList.remove("pin-fixed", "pin-abs");
+          p.style.width = "";
+          return;
+        }
+
+        // hur långt vi kan rulla innan botten tar stopp
+        const pastTop = wr.top <= topPx;
+        const pastBottom = wr.bottom <= topPx + ph;
+
+        // sätt bredd när vi är fixed, så den inte hoppar
+        const width = Math.floor(wr.width);
+        p.style.setProperty("--pin-width", width + "px");
+
+        if (!pastTop) {
+          p.classList.remove("pin-fixed", "pin-abs");
+          p.style.width = "";
+        } else if (!pastBottom) {
+          p.classList.add("pin-fixed");
+          p.classList.remove("pin-abs");
+        } else {
+          p.classList.remove("pin-fixed");
+          p.classList.add("pin-abs");
+        }
+      };
+
+      apply();
+      const onScroll = () => apply();
+      const onResize = () => apply();
+
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onResize);
+
+      // om innehållet i panelen förändras i höjd
+      const mo = new MutationObserver(apply);
+      mo.observe(p, { childList: true, subtree: true });
+      return () => {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onResize);
+        mo.disconnect();
+      };
+    }, [enabled, topPx]);
+
+    return { wrapperRef, panelRef };
+  }
+
+  const { wrapperRef, panelRef } = usePinPanelOnScroll(true, 24);
 
   return (
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 self-start">
+        <div
+          ref={wrapperRef}
+          className="reading-questions-column order-2 lg:order-2 lg:self-start"
+        >
           <div
-            className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
+            ref={panelRef}
+            className="questions-panel-container border rounded-lg p-6"
               style={
                 {
                   backgroundColor: "var(--accessibility-bg-color)",
