@@ -1198,6 +1198,7 @@ html, body {
   .questions-panel-container.pin-fixed {
     position: fixed !important;
     top: 24px !important;                  /* samma som hooken (24) */
+    left: var(--pin-left) !important;      /* Lås X-position */
     width: var(--pin-width) !important;    /* bredd låst till wrappern */
     max-height: calc(100vh - 32px) !important;
     overflow-y: auto !important;

@@ -84,8 +84,8 @@ export default function NormalMode({
 }: NormalModeProps) {
   // Custom hook för brutal sticky-hantering
   function usePinPanelOnScroll(enabled = true, topPx = 24) {
-    const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
-    const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
+    const wrapperRef = useRef<HTMLDivElement | null>(null);
+    const panelRef = useRef<HTMLDivElement | null>(null);
 
     useLayoutEffect(() => {
       if (!enabled) return;
@@ -93,36 +93,45 @@ export default function NormalMode({
       const p = panelRef.current;
       if (!w || !p) return;
 
-      // säkerställ att wrappern kan vara ankare för absolute
-      w.style.position = w.style.position || "relative";
+      // wrapper som ankare för absolute
+      if (getComputedStyle(w).position === "static") {
+        w.style.position = "relative";
+      }
 
       const apply = () => {
         const wr = w.getBoundingClientRect();
         const ph = p.offsetHeight;
         const vw = window.innerWidth;
 
-        // disable under lg (<=1024px)
         if (vw < 1024) {
           p.classList.remove("pin-fixed", "pin-abs");
           p.style.width = "";
+          p.style.removeProperty("--pin-left");
+          p.style.removeProperty("--pin-width");
+          w.style.minHeight = "";
           return;
         }
 
-        // hur långt vi kan rulla innan botten tar stopp
         const pastTop = wr.top <= topPx;
         const pastBottom = wr.bottom <= topPx + ph;
 
-        // sätt bredd när vi är fixed, så den inte hoppar
-        const width = Math.floor(wr.width);
-        p.style.setProperty("--pin-width", width + "px");
+        // lås bredd + vänsterkant när vi är pinned
+        p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
+        p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
 
         if (!pastTop) {
+          // inte nått toppen än
           p.classList.remove("pin-fixed", "pin-abs");
+          w.style.minHeight = "";
           p.style.width = "";
         } else if (!pastBottom) {
+          // mitt i scrollen → fixed
+          w.style.minHeight = ph + "px";        // behåll platsen!
           p.classList.add("pin-fixed");
           p.classList.remove("pin-abs");
         } else {
+          // nått kolumnens botten → absolute i botten
+          w.style.minHeight = ph + "px";        // behåll platsen!
           p.classList.remove("pin-fixed");
           p.classList.add("pin-abs");
         }
@@ -134,10 +143,9 @@ export default function NormalMode({
 
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onResize);
-
-      // om innehållet i panelen förändras i höjd
       const mo = new MutationObserver(apply);
       mo.observe(p, { childList: true, subtree: true });
+
       return () => {
         window.removeEventListener("scroll", onScroll);
         window.removeEventListener("resize", onResize);

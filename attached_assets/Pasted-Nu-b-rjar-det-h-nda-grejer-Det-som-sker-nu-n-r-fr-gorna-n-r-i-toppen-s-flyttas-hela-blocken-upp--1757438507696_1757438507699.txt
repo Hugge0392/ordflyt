@@ -1,0 +1,113 @@
+Nu börjar det hända grejer . Det som sker nu när frågorna når i toppen så flyttas hela blocken upp över kanten av skärmen direkt. Så den reagerar när den når toppen, men istället för att stanna flyttar den direkt över krönet
+Tänkte i 1m 22s
+ChatGPT sade:
+
+Yes! Det där hoppet beror på att när panelen blir fixed så försvinner den ur flödet och wrappern (kolumnen) kollapsar i höjd → sidan “dras upp” och panelen far över krönet. Vi ska:
+
+Reservera plats i wrappern när panelen är pinned.
+
+Låsa vänsterpositionen så fixed-läget hamnar exakt ovanför kolumnen.
+
+Gör två små patchar:
+
+1) Byt ut din hook med denna (samma fil som nu – ersätt funktionen)
+
+Det enda nya är att vi sätter wrapper.minHeight = panelHeight när vi går in i pin-fixed/pin-abs och att vi låser --pin-left. 
+
+NormalMode (2)
+
+function usePinPanelOnScroll(enabled = true, topPx = 24) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const w = wrapperRef.current;
+    const p = panelRef.current;
+    if (!w || !p) return;
+
+    // wrapper som ankare för absolute
+    if (getComputedStyle(w).position === "static") {
+      w.style.position = "relative";
+    }
+
+    const apply = () => {
+      const wr = w.getBoundingClientRect();
+      const ph = p.offsetHeight;
+      const vw = window.innerWidth;
+
+      if (vw < 1024) {
+        p.classList.remove("pin-fixed", "pin-abs");
+        p.style.width = "";
+        p.style.removeProperty("--pin-left");
+        p.style.removeProperty("--pin-width");
+        w.style.minHeight = "";
+        return;
+      }
+
+      const pastTop = wr.top <= topPx;
+      const pastBottom = wr.bottom <= topPx + ph;
+
+      // lås bredd + vänsterkant när vi är pinned
+      p.style.setProperty("--pin-width", Math.round(wr.width) + "px");
+      p.style.setProperty("--pin-left", Math.round(wr.left) + "px");
+
+      if (!pastTop) {
+        // inte nått toppen än
+        p.classList.remove("pin-fixed", "pin-abs");
+        w.style.minHeight = "";
+        p.style.width = "";
+      } else if (!pastBottom) {
+        // mitt i scrollen → fixed
+        w.style.minHeight = ph + "px";        // <— behåll platsen!
+        p.classList.add("pin-fixed");
+        p.classList.remove("pin-abs");
+      } else {
+        // nått kolumnens botten → absolute i botten
+        w.style.minHeight = ph + "px";        // <— behåll platsen!
+        p.classList.remove("pin-fixed");
+        p.classList.add("pin-abs");
+      }
+    };
+
+    apply();
+    const onScroll = () => apply();
+    const onResize = () => apply();
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    const mo = new MutationObserver(apply);
+    mo.observe(p, { childList: true, subtree: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      mo.disconnect();
+    };
+  }, [enabled, topPx]);
+
+  return { wrapperRef, panelRef };
+}
+
+2) Lägg till en rad i din CSS för pin-fixed
+
+I din index.css där du redan har blocket för pin-fixed, lägg in left: var(--pin-left) så den inte hoppar horisontellt. 
+
+index (2)
+
+@media (min-width: 1024px) {
+  .questions-panel-container.pin-fixed {
+    position: fixed !important;
+    top: 24px !important;
+    left: var(--pin-left) !important;     /* <— Lås X-position */
+    width: var(--pin-width) !important;   /* redan fanns */
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+    z-index: 10;
+  }
+}
+
+
+Varför detta funkar: när panelen blir fixed behåller wrappern sin min-höjd = panelens höjd, så resten av sidan flyttar sig inte upp. left + width låser panelen exakt ovanför sin kolumn. In/ut ur pinned-lägen blir nu mjukt och utan “över krönet”-effekten.
+
+Kör detta rakt av – nu ska panelen stanna snyggt i toppen och följa med hela vägen tills kolumnens slut.
