@@ -415,7 +415,13 @@ export default function NormalMode({
                 variant="outline"
                 size="sm"
                 onClick={onToggleFocusMode}
-                className="hover:bg-background hover:text-foreground"
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  color: "#000000",
+                  borderColor: "#000000",
+                  borderWidth: "1px"
+                }}
+                className="hover:!bg-white hover:!text-black hover:!border-black"
               >
                 <Eye className="w-4 h-4 mr-1" />
                 Fokusläge
@@ -426,7 +432,13 @@ export default function NormalMode({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="hover:bg-background hover:text-foreground"
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      color: "#000000",
+                      borderColor: "#000000",
+                      borderWidth: "1px"
+                    }}
+                    className="hover:!bg-white hover:!text-black hover:!border-black"
                   >
                     <Settings className="w-4 h-4 mr-1" />
                     Inställningar
