@@ -1,0 +1,122 @@
+Kortversionen: det “går” att ta bort hovers — men i din kod skapas de från flera olika håll (Tailwind utilities, dina egna @layer-regler, shadcn/ui-knappens standardklasser och inline-stilar). Då räcker det inte att “överstyra en grej”; du måste plocka bort källorna till :hover + neutralisera transition/transform där de smyger in.
+
+Här är vad som stoppar dig just nu och hur du fixar det direkt:
+
+Varför hover lever kvar
+
+Tailwind-klasser som sätter hover
+Du lägger till hover-utilities på bl.a. .word-button i @layer components, t.ex. hover:bg-primary, hover:shadow-lg, hover:scale-105 samt en separat .word-button:hover { transform: scale(1.05); }. Det skapar hover-effekter oavsett vad du försöker nolla senare. 
+
+index (8)
+
+shadcn/ui Button har egna hover/transition-regler
+shadcn:s Button-komponent drar med transition-colors m.m. Dessutom har du lagt till Tailwind med “forcerat” hover: className="... hover:!bg-white hover:!text-black ..." – det gör att hover-tillstånd fortfarande triggas (även om färgen inte ändras, så finns t.ex. transition). Se knapparna “Fokusläge”/“Inställningar” i din NormalMode (8).tsx. 
+
+NormalMode (8)
+
+Egna komponentregler som lägger lågmälda hovers
+I slutet av din CSS finns “Enhanced hover states” som lägger skuggor vid hover på kontrollknappar:
+.reading-controls-container button:hover { @apply shadow-md ... } och liknande. De skapar subtil hover (skugga/transition). 
+
+index (8)
+
+Transitions lever kvar även om färgen inte ändras
+Många regler sätter transition – då syns ändå en “känsla” av hover (opacity/box-shadow/transform), fast färgen är densamma. 
+
+index (8)
+
+Snabb åtgärdsplan (minsta möjliga ändringar)
+1) Ta bort hovers från .word-button
+
+I index (8).css — radera/kommentera följande block i @layer components:
+
+@layer components {
+  .word-button {
+    /* ta bort hover:... och transition... */
+    /* @apply ... hover:bg-primary hover:text-white hover:shadow-lg hover:scale-105; */
+    @apply inline-block mx-1 px-3 py-2 rounded-lg cursor-pointer;
+    transition: none; /* lägg till */
+  }
+
+  /* ta bort hela den här regeln: */
+  /* .word-button:hover { transform: scale(1.05); } */
+}
+
+
+Nu skapar inte .word-button egna hover-effekter. 
+
+index (8)
+
+2) Sluta tillföra hover på shadcn-knapparna
+
+I NormalMode (8).tsx, ta bort hover:-klasserna på Buttons och nolla transition:
+
+<Button
+  variant="outline"
+  size="sm"
+  onClick={onToggleFocusMode}
+  className="!bg-white !text-black !border-black transition-none"
+  style={{ backgroundColor:'#FFFFFF', color:'#000000', borderColor:'#000000', borderWidth:'1px' }}
+>
+  ...
+</Button>
+
+
+Gör samma på “Inställningar”-knappen. Poängen: inga hover:*-klasser alls och lägg transition-none. 
+
+NormalMode (8)
+
+3) Ta bort dina “enhanced hover states”
+
+I index (8).css — ta bort/kommentera:
+
+.reading-controls-container button:hover { /* ... skugga ... */ }
+.questions-navigation-container button:hover { /* ... skugga ... */ }
+
+
+Du har redan starka regler för navigationsknapparna längre ned; de är bra. Dessa två extra hover-skuggor gör att “något händer” på hover. 
+
+index (8)
+
+4) Lägg till en scopad “no-hover”-klass (framtidssäkert)
+
+Längst ned i index (8).css, lägg:
+
+@layer utilities {
+  .no-hover *, 
+  .no-hover *:hover, 
+  .no-hover *:focus, 
+  .no-hover *:active {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
+
+
+Och wrappa läsvyn i NormalMode:
+
+<div className="reading-main-grid no-hover ...">
+  ...
+</div>
+
+
+Det här ger dig en stor röd knapp: allt inuti får aldrig animera/hovera, även om någon råkar lägga till en hover:-utility senare.
+
+5) Rensa inline-hover på navigeringsknappar (du är nästan där)
+
+Du har redan en stenhård “banhammer” för .unique-prev-question-btn och .unique-next-question-btn (med all: initial !important; och full reset). Den delen är bra – behåll. 
+
+index (8)
+
+Vanliga fallgropar (som får det att “inte funka i Replit”)
+
+Byggordning/cascade: Tailwinds utilities (@tailwind utilities) kommer sist i sin egen del. Om du lägger dina override-regler före utilities vinner utilities. I din fil ligger mängden egna regler efter Tailwind-direktiven, så du är ok – men undvik att flytta reset-regler ovanför @tailwind utilities. 
+
+index (8)
+
+Hot-reload cache: Replit/Tailwind JIT kan cachea. Om något “inte biter”, gör en hård omladdning i webbvyn (och se så att CSS-filen verkligen sparats).
+
+hover:!… i klasslistan: även om färgen inte ändras så triggas :hover och transition. Lös det med att ta bort hover: och lägga transition-none eller motsv.
