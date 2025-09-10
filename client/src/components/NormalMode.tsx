@@ -415,6 +415,7 @@ export default function NormalMode({
                 variant="outline"
                 size="sm"
                 onClick={onToggleFocusMode}
+                className="hover:bg-background hover:text-foreground"
               >
                 <Eye className="w-4 h-4 mr-1" />
                 Fokusläge
@@ -422,7 +423,11 @@ export default function NormalMode({
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="hover:bg-background hover:text-foreground"
+                  >
                     <Settings className="w-4 h-4 mr-1" />
                     Inställningar
                   </Button>
