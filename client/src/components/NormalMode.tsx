@@ -415,15 +415,15 @@ export default function NormalMode({
                 variant="outline"
                 size="sm"
                 onClick={onToggleFocusMode}
+                className="!bg-white !text-black !border-black transition-none"
                 style={{
-                  backgroundColor: "#FFFFFF !important",
-                  color: "#000000 !important",
-                  borderColor: "#000000 !important",
-                  borderWidth: "1px !important"
+                  backgroundColor: "#FFFFFF",
+                  color: "#000000",
+                  borderColor: "#000000",
+                  borderWidth: "1px"
                 }}
-                className="!bg-white !text-black !border-black hover:!bg-white hover:!text-black hover:!border-black"
               >
-                <Eye className="w-4 h-4 mr-1" style={{ color: "#000000 !important" }} />
+                <Eye className="w-4 h-4 mr-1" style={{ color: "#000000" }} />
                 Fokusläge
               </Button>
 
@@ -432,15 +432,15 @@ export default function NormalMode({
                   <Button 
                     variant="outline" 
                     size="sm"
+                    className="!bg-white !text-black !border-black transition-none"
                     style={{
-                      backgroundColor: "#FFFFFF !important",
-                      color: "#000000 !important",
-                      borderColor: "#000000 !important",
-                      borderWidth: "1px !important"
+                      backgroundColor: "#FFFFFF",
+                      color: "#000000",
+                      borderColor: "#000000",
+                      borderWidth: "1px"
                     }}
-                    className="!bg-white !text-black !border-black hover:!bg-white hover:!text-black hover:!border-black"
                   >
-                    <Settings className="w-4 h-4 mr-1" style={{ color: "#000000 !important" }} />
+                    <Settings className="w-4 h-4 mr-1" style={{ color: "#000000" }} />
                     Inställningar
                   </Button>
                 </PopoverTrigger>
