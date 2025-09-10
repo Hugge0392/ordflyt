@@ -1249,11 +1249,17 @@ html, body {
   .no-hover *, 
   .no-hover *:hover, 
   .no-hover *:focus, 
-  .no-hover *:active {
+  .no-hover *:active,
+  .no-hover a:hover,
+  .no-hover button:hover,
+  .no-hover [role="button"]:hover {
     transition: none !important;
     transform: none !important;
     box-shadow: none !important;
     filter: none !important;
     opacity: 1 !important;
+    background: inherit !important;
+    color: inherit !important;
+    text-decoration: none !important;
   }
 }
