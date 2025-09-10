@@ -123,11 +123,7 @@
 
 /* Word button styles for multiple choice sentences */
 .word-button {
-  @apply inline-block mx-1 my-1 px-3 py-2 rounded-lg border-2 border-gray-200 bg-white cursor-pointer transition-all duration-200 hover:shadow-md;
-}
-
-.word-button:hover {
-  @apply border-blue-300 bg-blue-50 transform scale-105;
+  @apply inline-block mx-1 my-1 px-3 py-2 rounded-lg border-2 border-gray-200 bg-white cursor-pointer;
 }
 
 .word-button.selected {
