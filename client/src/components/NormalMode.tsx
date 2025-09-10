@@ -31,6 +31,21 @@ import {
 } from "lucide-react";
 import type { ReadingLesson } from "@shared/schema";
 
+const COLOR_SCHEMES: Record<string, { bg: string; text: string }> = {
+  "black-on-white":        { bg: "#FFFFFF", text: "#000000" }, // Svart på vitt
+  "light-gray-on-gray":    { bg: "#595959", text: "#D9D9D9" }, // Ljusgrå på grå
+  "white-on-black":        { bg: "#000000", text: "#FFFFFF" }, // Vit på svart
+  "black-on-light-yellow": { bg: "#FFFFCC", text: "#000000" }, // Svart på ljusgul
+  "black-on-light-blue":   { bg: "#CCFFFF", text: "#000000" }, // Svart på ljusblå
+  "light-yellow-on-blue":  { bg: "#003399", text: "#FFFFCC" }, // Ljusgul på blå
+  "black-on-light-red":    { bg: "#FFCCCC", text: "#000000" }, // Svart på ljusröd
+};
+
+const FONT_MAP: Record<string, string> = {
+  standard: "Inter, system-ui, -apple-system, sans-serif",
+  "dyslexia-friendly": "'OpenDyslexic', 'Open Dyslexic', system-ui, sans-serif",
+};
+
 interface NormalModeProps {
   lesson: ReadingLesson;
   currentPage: number;
@@ -87,6 +102,23 @@ export default function NormalMode({
   const readingContainerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   
+  // Beräkna färg- och font-variabler
+  const scheme = COLOR_SCHEMES[activeSettings.backgroundColor] ?? COLOR_SCHEMES["black-on-white"];
+  const fontFamilyResolved = FONT_MAP[activeSettings.fontFamily] ?? FONT_MAP["standard"];
+
+  const styleVars: React.CSSProperties = {
+    // skriv CSS-variablerna som resten av din CSS redan använder
+    ["--accessibility-bg-color" as any]: scheme.bg,
+    ["--accessibility-text-color" as any]: scheme.text,
+    ["--accessibility-border-color" as any]: scheme.text,
+    ["--accessibility-font-family" as any]: fontFamilyResolved,
+    ["--accessibility-font-size" as any]: `${activeSettings.fontSize}px`,
+    ["--accessibility-line-height" as any]: String(activeSettings.lineHeight),
+    ["--reading-font-size" as any]: `${activeSettings.fontSize}px`,
+    ["--reading-line-height" as any]: String(activeSettings.lineHeight),
+    ["--normal-font-family" as any]: fontFamilyResolved,
+  };
+  
   // Använd hooken för sticky-funktionalitet
   const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
 
@@ -105,6 +137,7 @@ export default function NormalMode({
             className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
               style={
                 {
+                  ...styleVars,
                   backgroundColor: "var(--accessibility-bg-color)",
                   color: "var(--accessibility-text-color)",
                   borderColor: "var(--accessibility-text-color)",
@@ -362,6 +395,7 @@ export default function NormalMode({
         className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1"
         style={
           {
+            ...styleVars,
             backgroundColor: "var(--accessibility-bg-color)",
             color: "var(--accessibility-text-color)",
             borderColor: "var(--accessibility-text-color)",
@@ -541,17 +575,13 @@ export default function NormalMode({
               ref={readingContainerRef}
               className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
               style={{
-                "--accessibility-font-size": `${activeSettings.fontSize}px`,
-                "--accessibility-line-height": activeSettings.lineHeight,
-                "--accessibility-font-family": activeSettings.fontFamily,
-                "--reading-font-size": `${activeSettings.fontSize}px`,
-                "--reading-line-height": activeSettings.lineHeight,
+                ...styleVars,
                 whiteSpace: "pre-wrap",
                 wordWrap: "break-word",
                 backgroundColor: "var(--accessibility-bg-color)",
                 color: "var(--accessibility-text-color)",
                 display: "flow-root",
-                fontFamily: activeSettings.fontFamily,
+                fontFamily: "var(--accessibility-font-family)",
               } as React.CSSProperties}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}

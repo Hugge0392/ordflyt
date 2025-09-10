@@ -117,7 +117,7 @@
   --accessibility-line-height: 1.5;
   --accessibility-font-family: system-ui, -apple-system, sans-serif;
   --accessibility-bg-color: #ffffff;
-  --accessibility-text-color: inherit;
+  --accessibility-text-color: #000000;
   --accessibility-border-color: inherit;
 }
 

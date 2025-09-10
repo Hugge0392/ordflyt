@@ -1,0 +1,137 @@
+Hej! Jag kikade i dina filer och ser varför färgerna inte stämmer mot vad du valt i menyn.
+
+Varför det blir fel
+
+I komponenten sätter du bakgrund/textfärg till CSS-variabler (var(--accessibility-bg-color) och var(--accessibility-text-color)), men de variablerna uppdateras aldrig när man byter alternativ – activeSettings.backgroundColor är bara en nyckel som “black-on-white”, inte själva hexvärdena. Resultatet blir att UI:t oftast använder standardvärdena från :root (vit bakgrund + ärvd textfärg), oavsett val. 
+
+NormalMode (7)
+
+ 
+
+index (7)
+
+I index (7).css har :root dessutom --accessibility-text-color: inherit;, så om du inte sätter variabeln uttryckligen hamnar du på ärvd färg (oftast svart). 
+
+index (7)
+
+Snabb fix
+
+Lägg till en mapping från dina val (“Svart på vitt”, “Ljusgrå på grå”, osv.) till de exakta hexkoderna, och skriv dessa som CSS-variabler på de ställen där du redan använder dem.
+
+1) I NormalMode (7).tsx: lägg till en färgkarta + font-karta
+
+Placera överst i filen (innanför filen men utanför komponenten):
+
+const COLOR_SCHEMES: Record<string, { bg: string; text: string }> = {
+  "black-on-white":        { bg: "#FFFFFF", text: "#000000" }, // Svart på vitt
+  "light-gray-on-gray":    { bg: "#595959", text: "#D9D9D9" }, // Ljusgrå på grå
+  "white-on-black":        { bg: "#000000", text: "#FFFFFF" }, // Vit på svart
+  "black-on-light-yellow": { bg: "#FFFFCC", text: "#000000" }, // Svart på ljusgul
+  "black-on-light-blue":   { bg: "#CCFFFF", text: "#000000" }, // Svart på ljusblå
+  "light-yellow-on-blue":  { bg: "#003399", text: "#FFFFCC" }, // Ljusgul på blå
+  "black-on-light-red":    { bg: "#FFCCCC", text: "#000000" }, // Svart på ljusröd
+};
+
+const FONT_MAP: Record<string, string> = {
+  standard: "Inter, system-ui, -apple-system, sans-serif",
+  "dyslexia-friendly": "'OpenDyslexic', 'Open Dyslexic', system-ui, sans-serif",
+};
+
+2) Inuti komponenten: beräkna variablerna
+
+Strax efter propsen:
+
+const scheme = COLOR_SCHEMES[activeSettings.backgroundColor] ?? COLOR_SCHEMES["black-on-white"];
+const fontFamilyResolved = FONT_MAP[activeSettings.fontFamily] ?? FONT_MAP["standard"];
+
+const styleVars: React.CSSProperties = {
+  // skriv CSS-variablerna som resten av din CSS redan använder
+  ["--accessibility-bg-color" as any]: scheme.bg,
+  ["--accessibility-text-color" as any]: scheme.text,
+  ["--accessibility-border-color" as any]: scheme.text,
+  ["--accessibility-font-family" as any]: fontFamilyResolved,
+  ["--accessibility-font-size" as any]: `${activeSettings.fontSize}px`,
+  ["--accessibility-line-height" as any]: String(activeSettings.lineHeight),
+  ["--reading-font-size" as any]: `${activeSettings.fontSize}px`,
+  ["--reading-line-height" as any]: String(activeSettings.lineHeight),
+};
+
+3) Sprid styleVars där du redan använder variablerna
+
+På Card (vänsterspalten), samt på frågepanelen och reading-text-container. Du har redan style={{ backgroundColor: "var(--accessibility-bg-color)", ... }} – komplettera med ...styleVars.
+
+Exempel (kortat) i tre ställen:
+
+<Card
+  className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1"
+  style={{
+    ...styleVars,
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
+    borderColor: "var(--accessibility-text-color)",
+    borderWidth: "0.5px",
+    "--card-text-color": "var(--accessibility-text-color)",
+  } as React.CSSProperties}
+>
+
+<div
+  ref={panelRef}
+  className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
+  style={{
+    ...styleVars,
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
+    borderColor: "var(--accessibility-text-color)",
+    borderWidth: "0.5px",
+    maxWidth: "720px",
+  } as React.CSSProperties}
+>
+
+<div
+  ref={readingContainerRef}
+  className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
+  style={{
+    ...styleVars,
+    whiteSpace: "pre-wrap",
+    wordWrap: "break-word",
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
+    display: "flow-root",
+    fontFamily: "var(--accessibility-font-family)",
+  } as React.CSSProperties}
+  ...
+/>
+
+
+Obs: Du sätter redan fontstorlek/radavstånd i inline-style som CSS-variabler – ovan flyttar vi in dem i samma styleVars för konsekvens. CSS-en i index (7).css lyder dessa variabler med !important. 
+
+index (7)
+
+4) (Valfritt) Justera default i CSS
+
+I :root kan du byta:
+
+--accessibility-text-color: #000000;
+
+
+istället för inherit, så blir standardläget stabilare om variabeln av någon anledning inte sätts. 
+
+index (7)
+
+När detta är på plats kommer varje menyval att skriva in exakta hexvärden i CSS-variablerna, och hela din befintliga CSS (som redan använder var(--accessibility-*) på många ställen) kommer att visa:
+
+Svart på vitt: #000000 på #FFFFFF
+
+Ljusgrå på grå: #D9D9D9 på #595959
+
+Vit på svart: #FFFFFF på #000000
+
+Svart på ljusgul: #000000 på #FFFFCC
+
+Svart på ljusblå: #000000 på #CCFFFF
+
+Ljusgul på blå: #FFFFCC på #003399
+
+Svart på ljusröd: #000000 på #FFCCCC
+
+Vill du att jag klistrar in en färdig patch (diff) åt dig med de här ändringarna?
