@@ -143,6 +143,7 @@ export default function Home() {
         }
 
         .tile:focus{outline:3px solid rgba(255,255,255,.8); outline-offset:-3px}
+        .tile:hover{transform:translateY(-3px) rotate(-0.5deg) scale(1.01); box-shadow:0 14px 30px rgba(22,46,77,.20)}
         .tile:active{transform:translateY(0) scale(.98)}
 
         .icon{

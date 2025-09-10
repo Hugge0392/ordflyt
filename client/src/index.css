@@ -4,24 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global rule to disable ALL hover effects */
-* {
-  pointer-events: auto !important;
-}
-
-*:hover {
-  transform: none !important;
-  background-color: inherit !important;
-  color: inherit !important;
-  border-color: inherit !important;
-  box-shadow: inherit !important;
-  scale: none !important;
-  opacity: inherit !important;
-  text-decoration: inherit !important;
-  filter: inherit !important;
-  backdrop-filter: inherit !important;
-}
-
 /* Rich Text Editor Styles */
 .prose {
   @apply text-gray-900 dark:text-gray-100;

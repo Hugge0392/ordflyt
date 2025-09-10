@@ -155,6 +155,11 @@ export default function Admin() {
           min-height:200px;
         }
 
+        .tile:hover {
+          transform:translateY(-8px) scale(1.02);
+          box-shadow:0 20px 40px rgba(22, 46, 77, .2);
+          border-color:rgba(255,255,255,.8);
+        }
 
         .tile.clicked {
           transform:translateY(-4px) scale(.98);
