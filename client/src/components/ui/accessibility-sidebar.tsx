@@ -95,13 +95,13 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
     
     // Apply background and text colors
     const colorSchemes = {
-      'black-on-white': { bg: '#FFFFFF', text: '#000000' },
-      'light-gray-on-gray': { bg: '#595959', text: '#D9D9D9' },
-      'white-on-black': { bg: '#000000', text: '#FFFFFF' },
-      'black-on-light-yellow': { bg: '#FFFFCC', text: '#000000' },
-      'black-on-light-blue': { bg: '#CCFFFF', text: '#000000' },
-      'light-yellow-on-blue': { bg: '#003399', text: '#FFFFCC' },
-      'black-on-light-red': { bg: '#FFCCCC', text: '#000000' }
+      'black-on-white': { bg: '#F2F2F2', text: '#000000' },
+      'light-gray-on-gray': { bg: '#404040', text: '#FFFFFF' },
+      'white-on-black': { bg: '#333333', text: '#FFFFFF' },
+      'black-on-light-yellow': { bg: '#FFF2B2', text: '#000000' },
+      'black-on-light-blue': { bg: '#B2F0FF', text: '#000000' },
+      'light-yellow-on-blue': { bg: '#0044CC', text: '#FFFFFF' },
+      'black-on-light-red': { bg: '#FFB2B2', text: '#000000' }
     };
     const scheme = colorSchemes[settings.backgroundColor] || colorSchemes['black-on-white'];
     root.style.setProperty('--accessibility-bg-color', scheme.bg);
