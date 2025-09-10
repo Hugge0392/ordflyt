@@ -123,7 +123,7 @@ export default function NormalMode({
   const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
 
   return (
-    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
+    <div className="reading-main-grid no-hover grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
         <div className="questions-panel-wrapper order-2 lg:order-2">

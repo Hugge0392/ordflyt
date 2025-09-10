@@ -1243,3 +1243,17 @@ html, body {
     display: none;
   }
 }
+
+/* Global no-hover utility class to completely disable hover effects */
+@layer utilities {
+  .no-hover *, 
+  .no-hover *:hover, 
+  .no-hover *:focus, 
+  .no-hover *:active {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
