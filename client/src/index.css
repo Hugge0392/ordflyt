@@ -236,8 +236,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   margin-left: 2px;
 }
 
-.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  opacity: 0.7;
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
+  opacity: 0.4;
 }
 
 /* --- Läsfokus: stabil textspalt och margin-collaps fix --- */
@@ -1132,14 +1132,7 @@ html, body {
    COMPONENT BEHAVIOR STYLES
    ============================================ */
 
-/* Enhanced hover states for better UX */
-.reading-controls-container button:hover {
-  @apply shadow-md transition-shadow duration-200;
-}
-
-.questions-navigation-container button:hover {
-  @apply shadow-sm transition-shadow duration-200;
-}
+/* Enhanced hover states removed for better UX */
 
 /* Focus mode specific animations */
 .focus-overlay-container {
