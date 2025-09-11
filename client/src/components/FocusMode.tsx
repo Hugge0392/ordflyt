@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Settings } from "lucide-react";
+import { Settings, Volume2 } from "lucide-react";
+import { TextToSpeechControls } from "./TextToSpeechControls";
 import type { ReadingLesson } from "@shared/schema";
 
 interface FocusModeProps {
@@ -480,6 +481,28 @@ export default function FocusMode({
                 <span className="text-sm font-medium">Frågor ({getTotalQuestionsCount()})</span>
               </button>
             )}
+
+            {/* Text-to-Speech button */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className="bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                  title="Lyssna på texten"
+                >
+                  <Volume2 className="w-5 h-5" />
+                  <span className="text-sm font-medium">Uppläsning</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96" align="end">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Uppläsning av text</h4>
+                  <TextToSpeechControls
+                    text={pages[currentPage] || ""}
+                    variant="default"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Focus mode accessibility controls */}
             <Popover>

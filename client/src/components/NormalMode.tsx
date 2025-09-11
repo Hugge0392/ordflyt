@@ -28,7 +28,9 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Volume2,
 } from "lucide-react";
+import { TextToSpeechControls } from "./TextToSpeechControls";
 import type { ReadingLesson } from "@shared/schema";
 import { COLOR_SCHEMES, FONT_MAPS } from "@/lib/accessibility-constants";
 
@@ -693,11 +695,48 @@ export default function NormalMode({
               </div>
             </div>
             <div className="reading-controls-container flex gap-2">
+              {/* Text-to-Speech Controls */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    style={{
+                      backgroundColor: "var(--accessibility-bg-color)",
+                      borderColor: "color-mix(in srgb, var(--accessibility-text-color) 30%, transparent)",
+                      color: "var(--accessibility-text-color)",
+                    } as React.CSSProperties}
+                  >
+                    <Volume2 className="w-4 h-4 mr-1" />
+                    Uppläsning
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 p-4" align="end">
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm">Uppläsning av text</h4>
+                    <TextToSpeechControls
+                      text={pages[currentPage] || ""}
+                      variant="default"
+                      accessibilityStyles={{
+                        backgroundColor: "var(--accessibility-bg-color)",
+                        color: "var(--accessibility-text-color)",
+                        fontFamily: "var(--normal-font-family)",
+                      } as React.CSSProperties}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {/* Focus Mode Toggle Button */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onToggleFocusMode}
+                style={{
+                  backgroundColor: "var(--accessibility-bg-color)",
+                  borderColor: "color-mix(in srgb, var(--accessibility-text-color) 30%, transparent)",
+                  color: "var(--accessibility-text-color)",
+                } as React.CSSProperties}
               >
                 <Eye className="w-4 h-4 mr-1" />
                 Fokusläge

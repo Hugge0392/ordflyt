@@ -23,6 +23,7 @@ import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema } from "@shared/schema";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
+import { ttsService } from "./ttsService";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -897,6 +898,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching KlassKamp game:', error);
       res.status(500).json({ message: "Failed to fetch game" });
+    }
+  });
+
+  // Text-to-Speech API endpoints
+  app.post("/api/tts/synthesize", async (req, res) => {
+    try {
+      const { text, voice, rate, pitch } = req.body;
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: "Text is required and must be a string" });
+      }
+
+      if (text.length > 5000) {
+        return res.status(400).json({ error: "Text is too long (max 5000 characters)" });
+      }
+
+      const audioBuffer = await ttsService.synthesizeSpeech({
+        text,
+        voice,
+        rate,
+        pitch
+      });
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', audioBuffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(audioBuffer);
+    } catch (error) {
+      console.error('Error synthesizing speech:', error);
+      res.status(500).json({ error: "Speech synthesis failed" });
+    }
+  });
+
+  app.get("/api/tts/voices", (req, res) => {
+    try {
+      const voices = ttsService.getAvailableVoices();
+      res.json({ voices });
+    } catch (error) {
+      console.error('Error getting available voices:', error);
+      res.status(500).json({ error: "Failed to get available voices" });
     }
   });
 
