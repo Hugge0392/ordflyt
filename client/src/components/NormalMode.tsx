@@ -431,45 +431,51 @@ export default function NormalMode({
                   <div className="space-y-4">
                     <div>
                       <Label className="text-sm font-medium">
-                        Textstorlek
+                        Textstorlek: {activeSettings.fontSize}px
                       </Label>
                       <Slider
                         value={[activeSettings.fontSize]}
-                        onValueChange={(value) =>
+                        onValueChange={([value]) =>
                           setActiveSettings((prev: any) => ({
                             ...prev,
-                            fontSize: value[0],
+                            fontSize: value,
                           }))
                         }
                         min={16}
                         max={60}
                         step={2}
                         className="mt-2"
+                        data-testid="slider-normal-font-size"
                       />
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {activeSettings.fontSize}px
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Liten</span>
+                        <span>Normal</span>
+                        <span>Stor</span>
                       </div>
                     </div>
 
                     <div>
                       <Label className="text-sm font-medium">
-                        Radavstånd
+                        Radavstånd: {activeSettings.lineHeight.toFixed(1)}
                       </Label>
                       <Slider
                         value={[activeSettings.lineHeight]}
-                        onValueChange={(value) =>
+                        onValueChange={([value]) =>
                           setActiveSettings((prev: any) => ({
                             ...prev,
-                            lineHeight: value[0],
+                            lineHeight: value,
                           }))
                         }
                         min={1.0}
                         max={3.0}
                         step={0.1}
                         className="mt-2"
+                        data-testid="slider-normal-line-height"
                       />
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {activeSettings.lineHeight.toFixed(1)}
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Tätt</span>
+                        <span>Normal</span>
+                        <span>Luftigt</span>
                       </div>
                     </div>
 
