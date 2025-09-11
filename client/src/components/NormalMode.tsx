@@ -30,21 +30,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { ReadingLesson } from "@shared/schema";
-
-const COLOR_SCHEMES: Record<string, { bg: string; text: string }> = {
-  "black-on-white":        { bg: "#FFFFFF", text: "#000000" }, // Svart på vitt
-  "light-gray-on-gray":    { bg: "#595959", text: "#D9D9D9" }, // Ljusgrå på grå
-  "white-on-black":        { bg: "#000000", text: "#FFFFFF" }, // Vit på svart
-  "black-on-light-yellow": { bg: "#FFFFCC", text: "#000000" }, // Svart på ljusgul
-  "black-on-light-blue":   { bg: "#CCFFFF", text: "#000000" }, // Svart på ljusblå
-  "light-yellow-on-blue":  { bg: "#003399", text: "#FFFFCC" }, // Ljusgul på blå
-  "black-on-light-red":    { bg: "#FFCCCC", text: "#000000" }, // Svart på ljusröd
-};
-
-const FONT_MAP: Record<string, string> = {
-  standard: "Inter, system-ui, -apple-system, sans-serif",
-  "dyslexia-friendly": "'OpenDyslexic', 'Open Dyslexic', system-ui, sans-serif",
-};
+import { COLOR_SCHEMES, FONT_MAPS } from "@/lib/accessibility-constants";
 
 interface NormalModeProps {
   lesson: ReadingLesson;
@@ -103,8 +89,8 @@ export default function NormalMode({
   const panelRef = useRef<HTMLDivElement>(null);
   
   // Beräkna färg- och font-variabler
-  const scheme = COLOR_SCHEMES[activeSettings.backgroundColor] ?? COLOR_SCHEMES["black-on-white"];
-  const fontFamilyResolved = FONT_MAP[activeSettings.fontFamily] ?? FONT_MAP["standard"];
+  const scheme = COLOR_SCHEMES[activeSettings.backgroundColor as keyof typeof COLOR_SCHEMES] ?? COLOR_SCHEMES["black-on-white"];
+  const fontFamilyResolved = FONT_MAPS[activeSettings.fontFamily as keyof typeof FONT_MAPS] ?? FONT_MAPS["standard"];
 
   const styleVars: React.CSSProperties = {
     // skriv CSS-variablerna som resten av din CSS redan använder
@@ -247,27 +233,59 @@ export default function NormalMode({
               </div>
 
               {/* Progress indicator */}
-              <div className="questions-progress-section mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <div 
+                className="questions-progress-section mb-4 p-3 rounded-lg"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 5%, transparent)",
+                } as React.CSSProperties}
+              >
                 <div className="questions-progress-header flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    <span 
+                      className="text-lg font-bold"
+                      style={{ color: "var(--accessibility-text-color)" } as React.CSSProperties}
+                    >
                       {currentQuestionIndex + 1}
                     </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">av</span>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span 
+                      className="text-sm"
+                      style={{ 
+                        color: "color-mix(in srgb, var(--accessibility-text-color) 60%, transparent)" 
+                      } as React.CSSProperties}
+                    >
+                      av
+                    </span>
+                    <span 
+                      className="text-sm font-medium"
+                      style={{ color: "var(--accessibility-text-color)" } as React.CSSProperties}
+                    >
                       {totalQuestions}
                     </span>
                   </div>
                   {isCurrentQuestionAnswered ? (
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800">
+                    <span 
+                      className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
+                        color: "var(--accessibility-text-color)",
+                        borderColor: "color-mix(in srgb, var(--accessibility-text-color) 30%, transparent)",
+                      } as React.CSSProperties}
+                    >
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                       Besvarad
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                      <svg className="w-3 h-3 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                    <span 
+                      className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 8%, transparent)",
+                        color: "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)",
+                        borderColor: "color-mix(in srgb, var(--accessibility-text-color) 20%, transparent)",
+                      } as React.CSSProperties}
+                    >
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                       </svg>
                       Väntar
@@ -276,19 +294,41 @@ export default function NormalMode({
                 </div>
                 <div className="relative">
                   <div
-                    className="questions-progress-bar-track w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 shadow-inner"
+                    className="questions-progress-bar-track w-full rounded-full h-3"
+                    style={{
+                      backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
+                    } as React.CSSProperties}
                   >
                     <div
-                      className="questions-progress-bar-fill h-3 rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm"
+                      className="questions-progress-bar-fill h-3 rounded-full transition-all duration-500 ease-out"
                       style={{
                         width: `${progressPercentage}%`,
-                      }}
+                        backgroundColor: "var(--accessibility-text-color)",
+                        opacity: 0.8,
+                      } as React.CSSProperties}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    <span>Start</span>
-                    <span className="font-medium">{Math.round(progressPercentage)}% klar</span>
-                    <span>Slut</span>
+                  <div className="flex justify-between text-xs mt-2">
+                    <span 
+                      style={{ 
+                        color: "color-mix(in srgb, var(--accessibility-text-color) 70%, transparent)" 
+                      } as React.CSSProperties}
+                    >
+                      Start
+                    </span>
+                    <span 
+                      className="font-medium"
+                      style={{ color: "var(--accessibility-text-color)" } as React.CSSProperties}
+                    >
+                      {Math.round(progressPercentage)}% klar
+                    </span>
+                    <span 
+                      style={{ 
+                        color: "color-mix(in srgb, var(--accessibility-text-color) 70%, transparent)" 
+                      } as React.CSSProperties}
+                    >
+                      Slut
+                    </span>
                   </div>
                 </div>
               </div>
@@ -296,9 +336,9 @@ export default function NormalMode({
               {/* Current question */}
               {currentQuestionData && (
                 <div className="questions-content-wrapper">
-                  <div className="question-card bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4 shadow-sm">
+                  <div className="question-card rounded-lg p-4 mb-4 shadow-sm" style={{ backgroundColor: "var(--accessibility-bg-color)", border: "2px solid", borderColor: "color-mix(in srgb, var(--accessibility-text-color) 25%, transparent)" } as React.CSSProperties}>
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="p-2 rounded-full bg-blue-500 text-white flex-shrink-0 mt-1 min-w-[32px] h-8 flex items-center justify-center">
+                      <div className="p-2 rounded-full flex-shrink-0 mt-1 min-w-[32px] h-8 flex items-center justify-center" style={{ backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)", color: "var(--accessibility-bg-color)" } as React.CSSProperties}>
                         <span className="text-sm font-bold">
                           {currentQuestionIndex + 1}
                         </span>
@@ -347,10 +387,11 @@ export default function NormalMode({
                                           optionValue,
                                         )
                                       }
-                                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                      className="w-5 h-5"
                                       style={{
-                                        accentColor: isSelected ? '#3B82F6' : undefined,
-                                      }}
+                                        color: "var(--accessibility-text-color)",
+                                        accentColor: isSelected ? "var(--accessibility-text-color)" : "color-mix(in srgb, var(--accessibility-text-color) 50%, transparent)",
+                                      } as React.CSSProperties}
                                     />
                                     {isSelected && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -359,11 +400,17 @@ export default function NormalMode({
                                     )}
                                   </div>
                                   <div className="flex items-center gap-3 flex-1">
-                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                                      isSelected 
-                                        ? 'bg-blue-500 text-white' 
-                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                                    }`}>
+                                    <span 
+                                      className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                                      style={{
+                                        backgroundColor: isSelected 
+                                          ? "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)"
+                                          : "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
+                                        color: isSelected 
+                                          ? "var(--accessibility-bg-color)"
+                                          : "color-mix(in srgb, var(--accessibility-text-color) 70%, transparent)"
+                                      } as React.CSSProperties}
+                                    >
                                       {optionValue}
                                     </span>
                                     <span 
@@ -374,7 +421,7 @@ export default function NormalMode({
                                     </span>
                                   </div>
                                   {isSelected && (
-                                    <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)" } as React.CSSProperties}>
                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                   )}
@@ -395,16 +442,20 @@ export default function NormalMode({
                           return (
                             <label
                               key={option.label}
-                              className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                                isSelected 
-                                  ? `border-${option.color}-500 bg-${option.color}-50 dark:bg-${option.color}-900/20` 
-                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                              }`}
+                              className="flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
+                              style={{
+                                borderColor: isSelected 
+                                  ? "color-mix(in srgb, var(--accessibility-text-color) 60%, transparent)"
+                                  : "color-mix(in srgb, var(--accessibility-text-color) 25%, transparent)",
+                                backgroundColor: isSelected 
+                                  ? "color-mix(in srgb, var(--accessibility-text-color) 10%, transparent)"
+                                  : "transparent"
+                              } as React.CSSProperties}
                             >
                               <div className="relative">
                                 <input
                                   type="radio"
-                                  name={`question-${currentQuestionIndex}`}
+                                  name={'question-' + currentQuestionIndex}
                                   value={option.label}
                                   checked={isSelected}
                                   onChange={() =>
@@ -413,17 +464,23 @@ export default function NormalMode({
                                       option.label,
                                     )
                                   }
-                                  className="w-5 h-5 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                  className="w-5 h-5"
                                   style={{
-                                    accentColor: isSelected ? (option.color === 'green' ? '#10B981' : '#EF4444') : undefined,
-                                  }}
+                                    accentColor: isSelected ? "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)" : "color-mix(in srgb, var(--accessibility-text-color) 50%, transparent)",
+                                  } as React.CSSProperties}
                                 />
                               </div>
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
-                                isSelected 
-                                  ? `bg-${option.color}-500 text-white` 
-                                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
-                              }`}>
+                              <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors"
+                                style={{
+                                  backgroundColor: isSelected 
+                                    ? "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)"
+                                    : "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
+                                  color: isSelected 
+                                    ? "var(--accessibility-bg-color)"
+                                    : "color-mix(in srgb, var(--accessibility-text-color) 70%, transparent)"
+                                } as React.CSSProperties}
+                              >
                                 {option.icon}
                               </div>
                               <span 
@@ -433,7 +490,7 @@ export default function NormalMode({
                                 {option.label}
                               </span>
                               {isSelected && (
-                                <svg className={`w-5 h-5 text-${option.color}-500 flex-shrink-0`} fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)" } as React.CSSProperties}>
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               )}
@@ -449,7 +506,7 @@ export default function NormalMode({
                       <div className="questions-open-ended-wrapper">
                         <div className="relative">
                           <textarea
-                            id={`question-${currentQuestionIndex}`}
+                            id={'question-' + currentQuestionIndex}
                             value={currentAnswer}
                             onChange={(e) =>
                               handleQuestionsPanel12Change(
@@ -475,19 +532,20 @@ export default function NormalMode({
                         <div className="flex items-center justify-between mt-3 text-sm">
                           {currentAnswer ? (
                             <div className="flex items-center gap-4">
-                              <span className={`flex items-center gap-1 font-medium ${
-                                currentAnswer.length > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
-                              }`}>
+                              <span className="flex items-center gap-1 font-medium" style={{ color: currentAnswer.length > 0 ? "color-mix(in srgb, var(--accessibility-text-color) 80%, green)" : "color-mix(in srgb, var(--accessibility-text-color) 50%, transparent)" } as React.CSSProperties}>
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                                 </svg>
                                 {currentAnswer.length} tecken
                               </span>
-                              <span className={`flex items-center gap-1 ${
-                                currentAnswer.split(' ').filter(word => word.trim().length > 0).length > 0 
-                                  ? 'text-blue-600 dark:text-blue-400' 
-                                  : 'text-gray-500 dark:text-gray-400'
-                              }`}>
+                              <span 
+                                className="flex items-center gap-1"
+                                style={{
+                                  color: currentAnswer.split(' ').filter(word => word.trim().length > 0).length > 0 
+                                    ? "var(--accessibility-text-color)" 
+                                    : "color-mix(in srgb, var(--accessibility-text-color) 50%, transparent)"
+                                } as React.CSSProperties}
+                              >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                 </svg>
@@ -502,11 +560,17 @@ export default function NormalMode({
                               Börja skriva ditt svar...
                             </span>
                           )}
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            currentAnswer && currentAnswer.trim().length > 10 
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                          }`}>
+                          <span 
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: currentAnswer && currentAnswer.trim().length > 10 
+                                ? "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)"
+                                : "color-mix(in srgb, var(--accessibility-text-color) 8%, transparent)",
+                              color: "var(--accessibility-text-color)",
+                              border: "1px solid",
+                              borderColor: "color-mix(in srgb, var(--accessibility-text-color) 20%, transparent)"
+                            } as React.CSSProperties}
+                          >
                             {currentAnswer && currentAnswer.trim().length > 10 ? 'Bra längd' : 'Kort svar'}
                           </span>
                         </div>
@@ -522,15 +586,25 @@ export default function NormalMode({
                   <button
                     onClick={goToPreviousQuestion}
                     disabled={isFirstQuestion}
-                    className={`group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm ${
-                      isFirstQuestion 
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md'
-                    }`}
+                    className="group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none text-sm"
+                    style={{
+                      backgroundColor: isFirstQuestion 
+                        ? "color-mix(in srgb, var(--accessibility-text-color) 8%, transparent)"
+                        : "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
+                      color: isFirstQuestion 
+                        ? "color-mix(in srgb, var(--accessibility-text-color) 40%, transparent)"
+                        : "var(--accessibility-text-color)",
+                      cursor: isFirstQuestion ? "not-allowed" : "pointer",
+                      border: "1px solid",
+                      borderColor: "color-mix(in srgb, var(--accessibility-text-color) 20%, transparent)"
+                    } as React.CSSProperties}
                   >
-                    <ChevronLeft className={`w-4 h-4 transition-transform duration-200 ${
-                      !isFirstQuestion ? 'group-hover:-translate-x-1' : ''
-                    }`} />
+                    <ChevronLeft 
+                      className="w-4 h-4 transition-transform duration-200"
+                      style={{
+                        transform: !isFirstQuestion ? 'translateX(-2px)' : 'none'
+                      } as React.CSSProperties}
+                    />
                     <span>Föregående</span>
                   </button>
 
@@ -541,11 +615,13 @@ export default function NormalMode({
                             alert("🎉 Fantastiskt! Du har svarat på alla frågor!")
                         : goToNextQuestion
                     }
-                    className={`group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-sm ${
-                      isLastQuestion
-                        ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
-                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                    }`}
+                    className="group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-sm"
+                    style={{
+                      backgroundColor: isLastQuestion 
+                        ? "color-mix(in srgb, var(--accessibility-text-color) 70%, green)"
+                        : "color-mix(in srgb, var(--accessibility-text-color) 80%, transparent)",
+                      color: "var(--accessibility-bg-color)"
+                    } as React.CSSProperties}
                   >
                     <span>{isLastQuestion ? "🎯 Slutför" : "Nästa"}</span>
                     {isLastQuestion ? (
@@ -782,7 +858,7 @@ export default function NormalMode({
                       <img
                         key={index}
                         src={imageUrl}
-                        alt={`Bild ovanför texten ${index + 1}`}
+                        alt={"Bild ovanför texten " + (index + 1)}
                         className="w-full max-w-3xl h-auto rounded-lg mx-auto"
                       />
                     ),
@@ -792,7 +868,7 @@ export default function NormalMode({
 
             <div
               ref={readingContainerRef}
-              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 lg:p-6 shadow-inner"
+              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative rounded-lg p-4 lg:p-6"
               style={{
                 ...styleVars,
                 whiteSpace: "pre-wrap",
@@ -804,6 +880,8 @@ export default function NormalMode({
                 textRendering: "optimizeLegibility",
                 WebkitFontSmoothing: "antialiased",
                 MozOsxFontSmoothing: "grayscale",
+                border: "1px solid",
+                borderColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
               } as React.CSSProperties}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
@@ -919,7 +997,7 @@ export default function NormalMode({
                       <img
                         key={index}
                         src={imageUrl}
-                        alt={`Bild under texten ${index + 1}`}
+                        alt={"Bild under texten " + (index + 1)}
                         className="w-full max-w-3xl h-auto rounded-lg mx-auto"
                       />
                     ),

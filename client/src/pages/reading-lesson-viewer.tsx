@@ -8,6 +8,7 @@ import { BookOpen, Clock, ArrowLeft, User, Target } from "lucide-react";
 import type { ReadingLesson, WordDefinition } from "@shared/schema";
 import NormalMode from "@/components/NormalMode";
 import FocusMode from "@/components/FocusMode";
+import { COLOR_SCHEMES, FONT_FAMILY_CSS } from "@/lib/accessibility-constants";
 
 interface HoveredWord {
   word: string;
@@ -102,37 +103,23 @@ export default function ReadingLessonViewer() {
     const root = document.documentElement;
     const settings = activeSettings;
 
-    // Set color scheme
-    const colorMap = {
-      "black-on-white": { bg: "#ffffff", text: "#000000" },
-      "light-gray-on-gray": { bg: "#f5f5f5", text: "#333333" },
-      "white-on-black": { bg: "#000000", text: "#ffffff" },
-      "black-on-light-yellow": { bg: "#fffacd", text: "#000000" },
-      "black-on-light-blue": { bg: "#add8e6", text: "#000000" },
-      "light-yellow-on-blue": { bg: "#0000ff", text: "#ffffe0" },
-      "black-on-light-red": { bg: "#ffb6c1", text: "#000000" },
-    };
-
-    const colors = colorMap[settings.backgroundColor] || colorMap["black-on-white"];
+    // Set color scheme using shared constants
+    const colors = COLOR_SCHEMES[settings.backgroundColor] || COLOR_SCHEMES["black-on-white"];
     root.style.setProperty("--accessibility-bg-color", colors.bg);
     root.style.setProperty("--accessibility-text-color", colors.text);
 
-    // Set font size and line height - CRITICAL: These were missing!
+    // Set font size and line height
     root.style.setProperty("--accessibility-font-size", `${settings.fontSize}px`);
     root.style.setProperty("--accessibility-line-height", settings.lineHeight.toString());
 
-    // Set font family
-    const fontMap = {
-      "standard": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-      "dyslexia-friendly": "'OpenDyslexic', 'Comic Sans MS', cursive, system-ui, sans-serif"
-    };
-    
-    root.style.setProperty("--accessibility-font-family", fontMap[settings.fontFamily]);
+    // Set font family using shared constants
+    const fontFamily = FONT_FAMILY_CSS[settings.fontFamily] || FONT_FAMILY_CSS["standard"];
+    root.style.setProperty("--accessibility-font-family", fontFamily);
     
     if (readingFocusMode) {
-      root.style.setProperty("--focus-font-family", fontMap[settings.fontFamily]);
+      root.style.setProperty("--focus-font-family", fontFamily);
     } else {
-      root.style.setProperty("--normal-font-family", fontMap[settings.fontFamily]);
+      root.style.setProperty("--normal-font-family", fontFamily);
     }
   }, [activeSettings, readingFocusMode]);
 
@@ -381,7 +368,7 @@ export default function ReadingLessonViewer() {
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto p-6">
           {/* Loading Header */}
-          <div className="mb-8 animate-pulse">
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
@@ -393,12 +380,12 @@ export default function ReadingLessonViewer() {
           <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-6 lg:space-y-0">
             {/* Loading Reading Content */}
             <div className="lg:col-span-2">
-              <div className="shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:p-8 animate-pulse">
+              <div className="shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:p-8">
                 {/* Loading Header */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-6">
+                <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 5%, transparent)", border: "1px solid", borderColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)" } as React.CSSProperties}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                      <div className="w-5 h-5 bg-blue-200 dark:bg-blue-800 rounded"></div>
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)" } as React.CSSProperties}>
+                      <div className="w-5 h-5 rounded" style={{ backgroundColor: "color-mix(in srgb, var(--accessibility-text-color) 25%, transparent)" } as React.CSSProperties}></div>
                     </div>
                     <div>
                       <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
@@ -463,7 +450,7 @@ export default function ReadingLessonViewer() {
           {/* Loading Indicator with Spinner */}
           <div className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 shadow-lg rounded-full p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="animate-spin w-5 h-5 border-2 rounded-full" style={{ borderColor: "color-mix(in srgb, var(--accessibility-text-color) 60%, transparent)", borderTopColor: "transparent" } as React.CSSProperties}></div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Laddar läsförståelseövning...
               </span>
