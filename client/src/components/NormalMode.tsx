@@ -188,7 +188,7 @@ export default function NormalMode({
   }, [currentPage, pages.length, onToggleFocusMode]);
 
   return (
-    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4 items-start mb-6 overflow-x-hidden">
+    <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[2.3fr_1fr] gap-3 items-start mb-4 overflow-x-hidden">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
         <div className="questions-panel-wrapper order-2 lg:order-2">
@@ -199,7 +199,7 @@ export default function NormalMode({
           />
           <div
             ref={panelRef}
-            className="questions-panel-container bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-2 border-blue-200 dark:border-blue-700 rounded-xl shadow-xl p-5 max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300"
+            className="questions-panel-container bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-2 border-blue-200 dark:border-blue-700 rounded-xl shadow-xl p-4 max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300"
               style={
                 {
                   ...styleVars,
@@ -212,7 +212,7 @@ export default function NormalMode({
                 } as React.CSSProperties
               }
             >
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                   <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -225,7 +225,7 @@ export default function NormalMode({
               </div>
 
               {/* Progress indicator */}
-              <div className="questions-progress-section mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <div className="questions-progress-section mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                 <div className="questions-progress-header flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
@@ -274,7 +274,7 @@ export default function NormalMode({
               {/* Current question */}
               {currentQuestionData && (
                 <div className="questions-content-wrapper">
-                  <div className="question-card bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-5 mb-5 shadow-sm">
+                  <div className="question-card bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4 shadow-sm">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="p-2 rounded-full bg-blue-500 text-white flex-shrink-0 mt-1 min-w-[32px] h-8 flex items-center justify-center">
                         <span className="text-sm font-bold">
@@ -495,7 +495,7 @@ export default function NormalMode({
               )}
 
               {/* Navigation buttons */}
-              <div className="questions-navigation-container mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="questions-navigation-container mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-4">
                   <button
                     onClick={goToPreviousQuestion}
@@ -574,7 +574,7 @@ export default function NormalMode({
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
       <Card
-        className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1 shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300"
+        className="reading-content-card mb-4 lg:mb-0 order-1 lg:order-1 shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300"
         style={
           {
             ...styleVars,
@@ -755,7 +755,7 @@ export default function NormalMode({
             </div>
           )}
         </CardHeader>
-        <CardContent className="relative p-6 lg:p-8">
+        <CardContent className="relative p-4 lg:p-6">
           <div className="reading-content-wrapper space-y-8">
             {/* Bilder ovanför texten för denna sida */}
             {lesson.pages &&
@@ -777,7 +777,7 @@ export default function NormalMode({
 
             <div
               ref={readingContainerRef}
-              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6 lg:p-8 shadow-inner"
+              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 lg:p-6 shadow-inner"
               style={{
                 ...styleVars,
                 whiteSpace: "pre-wrap",
