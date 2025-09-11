@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import useStickyPanel from "../hooks/useStickyPanel";
 import {
   Card,
@@ -122,6 +122,71 @@ export default function NormalMode({
   // Använd hooken för sticky-funktionalitet
   const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
 
+  // Keyboard navigation support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not in a text input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          if (currentPage > 0) {
+            e.preventDefault();
+            // Add smooth transition animation
+            const container = document.querySelector('.reading-text-container');
+            if (container) {
+              (container as HTMLElement).style.transition = 'transform 0.3s ease-in-out';
+              (container as HTMLElement).style.transform = 'translateX(-10px)';
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage - 1 }));
+                (container as HTMLElement).style.transform = 'translateX(10px)';
+                setTimeout(() => {
+                  (container as HTMLElement).style.transform = 'translateX(0)';
+                }, 50);
+              }, 150);
+            }
+          }
+          break;
+        case 'ArrowRight':
+        case 'ArrowDown':
+          if (currentPage < pages.length - 1) {
+            e.preventDefault();
+            // Add smooth transition animation
+            const container = document.querySelector('.reading-text-container');
+            if (container) {
+              (container as HTMLElement).style.transition = 'transform 0.3s ease-in-out';
+              (container as HTMLElement).style.transform = 'translateX(10px)';
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage + 1 }));
+                (container as HTMLElement).style.transform = 'translateX(-10px)';
+                setTimeout(() => {
+                  (container as HTMLElement).style.transform = 'translateX(0)';
+                }, 50);
+              }, 150);
+            }
+          }
+          break;
+        case 'f':
+        case 'F':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            onToggleFocusMode();
+          }
+          break;
+        case 'Escape':
+          // Focus management - return focus to main content
+          readingContainerRef.current?.focus();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage, pages.length, onToggleFocusMode]);
+
   return (
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-8 items-start mb-6">
       {/* Questions Panel - One Question at a Time */}
@@ -134,7 +199,7 @@ export default function NormalMode({
           />
           <div
             ref={panelRef}
-            className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto"
+            className="questions-panel-container bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-6 max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300"
               style={
                 {
                   ...styleVars,
@@ -147,244 +212,361 @@ export default function NormalMode({
                 } as React.CSSProperties
               }
             >
-              <h3 className="text-lg font-semibold mb-4">Frågor</h3>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Frågor</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Svara på frågorna medan du läser</p>
+                </div>
+              </div>
 
               {/* Progress indicator */}
-              <div className="questions-progress-section mb-6">
-                <div className="questions-progress-header flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">
-                    Fråga {currentQuestionIndex + 1} av {totalQuestions}
-                  </p>
-                  {isCurrentQuestionAnswered && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      ✓ Besvarad
+              <div className="questions-progress-section mb-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div className="questions-progress-header flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      {currentQuestionIndex + 1}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">av</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {totalQuestions}
+                    </span>
+                  </div>
+                  {isCurrentQuestionAnswered ? (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Besvarad
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      <svg className="w-3 h-3 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      Väntar
                     </span>
                   )}
                 </div>
-                <div
-                  className="questions-progress-bar-track w-full bg-gray-200 rounded-full h-2"
-                  style={{
-                    backgroundColor: "var(--accessibility-text-color)",
-                    opacity: 0.2,
-                  }}
-                >
+                <div className="relative">
                   <div
-                    className="questions-progress-bar-fill h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: `${progressPercentage}%`,
-                      backgroundColor: "var(--accessibility-text-color)",
-                      opacity: 0.8,
-                    }}
-                  />
+                    className="questions-progress-bar-track w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 shadow-inner"
+                  >
+                    <div
+                      className="questions-progress-bar-fill h-3 rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-blue-500 to-blue-600 shadow-sm"
+                      style={{
+                        width: `${progressPercentage}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <span>Start</span>
+                    <span className="font-medium">{Math.round(progressPercentage)}% klar</span>
+                    <span>Slut</span>
+                  </div>
                 </div>
               </div>
 
               {/* Current question */}
               {currentQuestionData && (
-                <div className="questions-content-wrapper space-y-4">
-                  <label 
-                    className="block text-lg font-medium leading-relaxed"
-                    style={{ fontFamily: "var(--normal-font-family)" }}
-                  >
-                    {currentQuestionData.question.question}
-                  </label>
+                <div className="questions-content-wrapper">
+                  <div className="question-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6 shadow-sm">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 flex-shrink-0 mt-1">
+                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          {currentQuestionIndex + 1}
+                        </span>
+                      </div>
+                      <label 
+                        className="block text-lg font-semibold leading-relaxed text-gray-900 dark:text-white"
+                        style={{ fontFamily: "var(--normal-font-family)" }}
+                      >
+                        {currentQuestionData.question.question}
+                      </label>
+                    </div>
 
-                  {/* Multiple choice questions */}
-                  {(currentQuestionData.question.type === "multiple_choice" ||
-                    currentQuestionData.question.type ===
-                      "multiple-choice") &&
-                    (currentQuestionData.question.alternatives ||
-                      currentQuestionData.question.options) && (
-                      <div className="questions-multiple-choice-options space-y-3">
-                        {(currentQuestionData.question.alternatives ||
-                          currentQuestionData.question.options)!.map(
-                          (option: string, optionIndex: number) => {
-                            const optionValue = String.fromCharCode(
-                              65 + optionIndex,
-                            );
-                            const isSelected = currentAnswer === optionValue;
+                    {/* Multiple choice questions */}
+                    {(currentQuestionData.question.type === "multiple_choice" ||
+                      currentQuestionData.question.type ===
+                        "multiple-choice") &&
+                      (currentQuestionData.question.alternatives ||
+                        currentQuestionData.question.options) && (
+                        <div className="questions-multiple-choice-options space-y-3">
+                          {(currentQuestionData.question.alternatives ||
+                            currentQuestionData.question.options)!.map(
+                            (option: string, optionIndex: number) => {
+                              const optionValue = String.fromCharCode(
+                                65 + optionIndex,
+                              );
+                              const isSelected = currentAnswer === optionValue;
 
-                            return (
-                              <label
-                                key={optionIndex}
-                                className="flex items-center gap-3 cursor-pointer"
-                              >
+                              return (
+                                <label
+                                  key={optionIndex}
+                                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                                    isSelected 
+                                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
+                                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                                  }`}
+                                >
+                                  <div className="relative">
+                                    <input
+                                      type="radio"
+                                      name={`question-${currentQuestionIndex}`}
+                                      value={optionValue}
+                                      checked={isSelected}
+                                      onChange={() =>
+                                        handleQuestionsPanel12Change(
+                                          currentQuestionIndex,
+                                          optionValue,
+                                        )
+                                      }
+                                      className="w-5 h-5 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                      style={{
+                                        accentColor: isSelected ? '#3B82F6' : undefined,
+                                      }}
+                                    />
+                                    {isSelected && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                      isSelected 
+                                        ? 'bg-blue-500 text-white' 
+                                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                                    }`}>
+                                      {optionValue}
+                                    </span>
+                                    <span 
+                                      className="flex-1 text-base font-medium text-gray-900 dark:text-white"
+                                      style={{ fontFamily: "var(--normal-font-family)" }}
+                                    >
+                                      {option}
+                                    </span>
+                                  </div>
+                                  {isSelected && (
+                                    <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </label>
+                              );
+                            },
+                          )}
+                        </div>
+                      )}
+
+                    {/* True/False questions */}
+                    {(currentQuestionData.question.type === "true_false" ||
+                      currentQuestionData.question.type === "true-false") && (
+                      <div className="questions-true-false-options grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[{label: "Sant", icon: "✓", color: "green"}, {label: "Falskt", icon: "✗", color: "red"}].map((option) => {
+                          const isSelected = currentAnswer === option.label;
+
+                          return (
+                            <label
+                              key={option.label}
+                              className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                                isSelected 
+                                  ? `border-${option.color}-500 bg-${option.color}-50 dark:bg-${option.color}-900/20` 
+                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                              }`}
+                            >
+                              <div className="relative">
                                 <input
                                   type="radio"
                                   name={`question-${currentQuestionIndex}`}
-                                  value={optionValue}
+                                  value={option.label}
                                   checked={isSelected}
                                   onChange={() =>
                                     handleQuestionsPanel12Change(
                                       currentQuestionIndex,
-                                      optionValue,
+                                      option.label,
                                     )
                                   }
-                                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                  className="w-5 h-5 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                                   style={{
-                                    accentColor:
-                                      "var(--accessibility-text-color)",
+                                    accentColor: isSelected ? (option.color === 'green' ? '#10B981' : '#EF4444') : undefined,
                                   }}
                                 />
-                                <span 
-                                  className="flex-1 text-base"
-                                  style={{ fontFamily: "var(--normal-font-family)" }}
-                                >
-                                  {option}
-                                </span>
-                              </label>
-                            );
-                          },
-                        )}
+                              </div>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
+                                isSelected 
+                                  ? `bg-${option.color}-500 text-white` 
+                                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                              }`}>
+                                {option.icon}
+                              </div>
+                              <span 
+                                className="flex-1 text-base font-medium text-gray-900 dark:text-white"
+                                style={{ fontFamily: "var(--normal-font-family)" }}
+                              >
+                                {option.label}
+                              </span>
+                              {isSelected && (
+                                <svg className={`w-5 h-5 text-${option.color}-500 flex-shrink-0`} fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
 
-                  {/* True/False questions */}
-                  {(currentQuestionData.question.type === "true_false" ||
-                    currentQuestionData.question.type === "true-false") && (
-                    <div className="questions-true-false-options space-y-3">
-                      {["Sant", "Falskt"].map((option) => {
-                        const isSelected = currentAnswer === option;
-
-                        return (
-                          <label
-                            key={option}
-                            className="flex items-center gap-3 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name={`question-${currentQuestionIndex}`}
-                              value={option}
-                              checked={isSelected}
-                              onChange={() =>
-                                handleQuestionsPanel12Change(
-                                  currentQuestionIndex,
-                                  option,
-                                )
-                              }
-                              className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                              style={{
-                                accentColor:
-                                  "var(--accessibility-text-color)",
-                              }}
-                            />
-                            <span 
-                              className="flex-1 text-base"
-                              style={{ fontFamily: "var(--normal-font-family)" }}
-                            >
-                              {option}
+                    {/* Open-ended questions */}
+                    {(currentQuestionData.question.type === "open_ended" ||
+                      currentQuestionData.question.type === "open") && (
+                      <div className="questions-open-ended-wrapper">
+                        <div className="relative">
+                          <textarea
+                            id={`question-${currentQuestionIndex}`}
+                            value={currentAnswer}
+                            onChange={(e) =>
+                              handleQuestionsPanel12Change(
+                                currentQuestionIndex,
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Skriv ditt svar här..."
+                            className="w-full min-h-[120px] p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical transition-all duration-200 bg-white dark:bg-gray-800"
+                            style={{
+                              fontSize: "16px",
+                              lineHeight: "1.6",
+                              fontFamily: "var(--normal-font-family)",
+                            }}
+                            rows={5}
+                          />
+                          <div className="absolute top-2 right-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3 text-sm">
+                          {currentAnswer ? (
+                            <div className="flex items-center gap-4">
+                              <span className={`flex items-center gap-1 font-medium ${
+                                currentAnswer.length > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                </svg>
+                                {currentAnswer.length} tecken
+                              </span>
+                              <span className={`flex items-center gap-1 ${
+                                currentAnswer.split(' ').filter(word => word.trim().length > 0).length > 0 
+                                  ? 'text-blue-600 dark:text-blue-400' 
+                                  : 'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                </svg>
+                                {currentAnswer.split(' ').filter(word => word.trim().length > 0).length} ord
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                              Börja skriva ditt svar...
                             </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Open-ended questions */}
-                  {(currentQuestionData.question.type === "open_ended" ||
-                    currentQuestionData.question.type === "open") && (
-                    <div className="questions-open-ended-wrapper space-y-2">
-                      <textarea
-                        id={`question-${currentQuestionIndex}`}
-                        value={currentAnswer}
-                        onChange={(e) =>
-                          handleQuestionsPanel12Change(
-                            currentQuestionIndex,
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Skriv ditt svar här..."
-                        className="w-full min-h-[100px] p-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-                        style={{
-                          backgroundColor: "var(--accessibility-bg-color)",
-                          color: "var(--accessibility-text-color)",
-                          borderColor: "var(--accessibility-text-color)",
-                          borderWidth: "0.5px",
-                          fontSize: "16px",
-                          lineHeight: "1.5",
-                          fontFamily: "var(--normal-font-family)",
-                        }}
-                        rows={4}
-                      />
-                      {currentAnswer && (
-                        <p className="text-sm text-gray-600">
-                          {currentAnswer.length} tecken
-                        </p>
-                      )}
-                    </div>
-                  )}
+                          )}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            currentAnswer && currentAnswer.trim().length > 10 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {currentAnswer && currentAnswer.trim().length > 10 ? 'Bra längd' : 'Kort svar'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Navigation buttons */}
-              <div
-                className="questions-navigation-container flex items-center justify-between mt-8 pt-4 border-t"
-                style={{
-                  borderColor: "var(--accessibility-text-color)",
-                  borderTopWidth: "0.5px",
-                }}
-              >
-                <button
-                  onClick={goToPreviousQuestion}
-                  disabled={isFirstQuestion}
-                  className="unique-prev-question-btn"
-                  style={{
-                    background: "#ffffff !important",
-                    color: "#000000 !important",
-                    border: "1px solid #000000 !important",
-                    padding: "10px 16px !important",
-                    borderRadius: "8px !important",
-                    cursor: isFirstQuestion ? "not-allowed" : "pointer",
-                    fontSize: "14px !important",
-                    fontWeight: "500 !important",
-                    display: "flex !important",
-                    alignItems: "center !important",
-                    gap: "8px !important",
-                    fontFamily: "system-ui, sans-serif !important",
-                    opacity: "1 !important",
-                    filter: "none !important",
-                    boxShadow: "none !important",
-                    outline: "none !important",
-                    position: "relative",
-                    zIndex: 999,
-                  }}
-                >
-                  <ChevronLeft style={{ width: "16px", height: "16px" }} />
-                  Tillbaka
-                </button>
+              <div className="questions-navigation-container mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-4">
+                  <button
+                    onClick={goToPreviousQuestion}
+                    disabled={isFirstQuestion}
+                    className={`group flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      isFirstQuestion 
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed' 
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 hover:scale-105 active:scale-95 shadow-sm hover:shadow-md'
+                    }`}
+                  >
+                    <ChevronLeft className={`w-4 h-4 transition-transform duration-200 ${
+                      !isFirstQuestion ? 'group-hover:-translate-x-1' : ''
+                    }`} />
+                    <span>Föregående</span>
+                  </button>
 
-                <button
-                  onClick={
-                    isLastQuestion
-                      ? () =>
-                          alert("Bra jobbat! Du har svarat på alla frågor.")
-                      : goToNextQuestion
-                  }
-                  className="unique-next-question-btn"
-                  style={{
-                    background: "#ffffff !important",
-                    color: "#000000 !important",
-                    border: "1px solid #000000 !important",
-                    padding: "10px 16px !important",
-                    borderRadius: "8px !important",
-                    cursor: "pointer",
-                    fontSize: "14px !important",
-                    fontWeight: "500 !important",
-                    display: "flex !important",
-                    alignItems: "center !important",
-                    gap: "8px !important",
-                    fontFamily: "system-ui, sans-serif !important",
-                    opacity: "1 !important",
-                    filter: "none !important",
-                    boxShadow: "none !important",
-                    outline: "none !important",
-                    position: "relative",
-                    zIndex: 999,
-                  }}
-                >
-                  {isLastQuestion ? "Skicka in" : "Nästa"}
-                  <ChevronRight style={{ width: "16px", height: "16px" }} />
-                </button>
+                  <div className="flex items-center gap-2">
+                    {/* Question dots indicator */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(totalQuestions, 5) }, (_, i) => {
+                        const questionIndex = totalQuestions <= 5 
+                          ? i 
+                          : Math.max(0, Math.min(
+                              totalQuestions - 5,
+                              currentQuestionIndex - 2
+                            )) + i;
+                        
+                        return (
+                          <div
+                            key={questionIndex}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                              questionIndex === currentQuestionIndex
+                                ? 'bg-blue-500 w-6'
+                                : questionIndex < currentQuestionIndex
+                                  ? 'bg-green-500'
+                                  : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          />
+                        );
+                      })}
+                      {totalQuestions > 5 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          ...och {totalQuestions - 5} till
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={
+                      isLastQuestion
+                        ? () =>
+                            alert("Bra jobbat! Du har svarat på alla frågor.")
+                        : goToNextQuestion
+                    }
+                    className={`group flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 ${
+                      isLastQuestion
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                    }`}
+                  >
+                    <span>{isLastQuestion ? "Slutför" : "Nästa"}</span>
+                    {isLastQuestion ? (
+                      <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                      </svg>
+                    ) : (
+                      <ChevronRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
         </div>
@@ -392,7 +574,7 @@ export default function NormalMode({
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
       <Card
-        className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1"
+        className="reading-content-card mb-6 lg:mb-0 order-1 lg:order-1 shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all duration-300"
         style={
           {
             ...styleVars,
@@ -404,11 +586,21 @@ export default function NormalMode({
           } as React.CSSProperties
         }
       >
-        <CardHeader className="relative">
+        <CardHeader className="relative bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
           <div className="reading-header-container flex items-center justify-between">
-            <CardTitle className="text-lg mt-2">
-              <span>Läs texten</span>
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                  Läs texten
+                </CardTitle>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Fokusera på innehållet och förståelsen</p>
+              </div>
+            </div>
             <div className="reading-controls-container flex gap-2">
               {/* Focus Mode Toggle Button */}
               <Button
@@ -551,14 +743,20 @@ export default function NormalMode({
             </div>
           </div>
           {lesson.wordDefinitions && lesson.wordDefinitions.length > 0 && (
-            <CardDescription>
-              💡 Ord med prickad understrykning har förklaringar - håll
-              musen över dem
-            </CardDescription>
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <CardDescription className="text-amber-800 dark:text-amber-200 font-medium">
+                  Ord med prickad understrykning har förklaringar - håll musen över dem för att se definitionen
+                </CardDescription>
+              </div>
+            </div>
           )}
         </CardHeader>
-        <CardContent className="relative">
-          <div className="reading-content-wrapper space-y-6">
+        <CardContent className="relative p-6 lg:p-8">
+          <div className="reading-content-wrapper space-y-8">
             {/* Bilder ovanför texten för denna sida */}
             {lesson.pages &&
               lesson.pages[currentPage]?.imagesAbove &&
@@ -579,7 +777,7 @@ export default function NormalMode({
 
             <div
               ref={readingContainerRef}
-              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative"
+              className="reading-text-container max-w-none min-h-[400px] reading-content accessibility-enhanced relative bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6 lg:p-8 shadow-inner"
               style={{
                 ...styleVars,
                 whiteSpace: "pre-wrap",
@@ -588,6 +786,9 @@ export default function NormalMode({
                 color: "var(--accessibility-text-color)",
                 display: "flow-root",
                 fontFamily: "var(--accessibility-font-family)",
+                textRendering: "optimizeLegibility",
+                WebkitFontSmoothing: "antialiased",
+                MozOsxFontSmoothing: "grayscale",
               } as React.CSSProperties}
               onMouseOver={handleContentMouseOver}
               onMouseOut={handleContentMouseOut}
@@ -630,11 +831,55 @@ export default function NormalMode({
                   margin: 0 0 0.15em 0 !important;
                 }
                 
-                /* Ordförklaringar styling */
+                /* Förbättrad paragrafstiling */
+                .reading-content [data-reading-text] p {
+                  font-size: var(--accessibility-font-size) !important;
+                  line-height: var(--accessibility-line-height) !important;
+                  font-family: var(--accessibility-font-family) !important;
+                  margin: 0 0 1.2em 0 !important;
+                  text-align: justify !important;
+                  hyphens: auto !important;
+                  word-spacing: 0.1em !important;
+                }
+                
+                /* Förbättrad ordfrkingsmarkeringar styling */
                 .defined-word {
-                  text-decoration: underline dotted;
-                  text-underline-offset: 2px;
-                  cursor: help;
+                  text-decoration: none !important;
+                  background: linear-gradient(120deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
+                  border-bottom: 2px dotted rgba(59, 130, 246, 0.6) !important;
+                  padding: 0.1em 0.2em !important;
+                  border-radius: 3px !important;
+                  cursor: help !important;
+                  transition: all 0.2s ease !important;
+                  position: relative !important;
+                }
+                .defined-word:hover {
+                  background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%) !important;
+                  border-bottom-color: rgba(59, 130, 246, 0.8) !important;
+                  transform: translateY(-1px) !important;
+                  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+                }
+                
+                /* Listor styling */
+                .reading-content [data-reading-text] ul,
+                .reading-content [data-reading-text] ol {
+                  margin: 0 0 1.2em 0 !important;
+                  padding-left: 1.5em !important;
+                }
+                .reading-content [data-reading-text] li {
+                  font-size: var(--accessibility-font-size) !important;
+                  line-height: var(--accessibility-line-height) !important;
+                  margin: 0 0 0.4em 0 !important;
+                }
+                
+                /* Blockquotes styling */
+                .reading-content [data-reading-text] blockquote {
+                  border-left: 4px solid rgba(59, 130, 246, 0.5) !important;
+                  margin: 1.2em 0 !important;
+                  padding: 1em 1.2em !important;
+                  background: rgba(59, 130, 246, 0.05) !important;
+                  border-radius: 0 8px 8px 0 !important;
+                  font-style: italic !important;
                 }
               `}</style>
 
@@ -669,17 +914,127 @@ export default function NormalMode({
 
             {/* Page navigation */}
             {pages.length > 1 && (
-              <div className="reading-page-navigation flex items-center justify-between pt-6">
-                <div className="reading-page-indicators flex gap-2">
-                  {pages.map((_, index) => (
-                    <Badge
-                      key={index}
-                      variant={index === currentPage ? "default" : "outline"}
-                      className="cursor-pointer"
-                    >
-                      Sida {index + 1}
-                    </Badge>
-                  ))}
+              <div className="reading-page-navigation bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Sidor i texten:
+                    </span>
+                  </div>
+                  <div className="reading-page-indicators flex gap-2">
+                    {pages.map((_, index) => (
+                      <Badge
+                        key={index}
+                        variant={index === currentPage ? "default" : "outline"}
+                        className={`cursor-pointer transition-all duration-200 ${
+                          index === currentPage 
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm'
+                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 hover:scale-105'
+                        }`}
+                        data-testid={`page-indicator-${index + 1}`}
+                        onClick={() => {
+                          if (index !== currentPage) {
+                            // Add smooth transition animation
+                            const container = document.querySelector('.reading-text-container');
+                            if (container) {
+                              container.style.transition = 'opacity 0.3s ease-in-out';
+                              container.style.opacity = '0.7';
+                              setTimeout(() => {
+                                setCurrentPage(index);
+                                container.style.opacity = '1';
+                              }, 150);
+                            } else {
+                              setCurrentPage(index);
+                            }
+                          }
+                        }}
+                      >
+                        <span className="flex items-center gap-1">
+                          {index === currentPage && (
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          Sida {index + 1}
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+                  Du läser sida {currentPage + 1} av {pages.length}
+                </div>
+                
+                {/* Navigation Arrows */}
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => {
+                      if (currentPage > 0) {
+                        const container = document.querySelector('.reading-text-container');
+                        if (container) {
+                          container.style.transition = 'transform 0.3s ease-in-out';
+                          container.style.transform = 'translateX(-10px)';
+                          setTimeout(() => {
+                            setCurrentPage(currentPage - 1);
+                            container.style.transform = 'translateX(10px)';
+                            setTimeout(() => {
+                              container.style.transform = 'translateX(0)';
+                            }, 50);
+                          }, 150);
+                        } else {
+                          setCurrentPage(currentPage - 1);
+                        }
+                      }
+                    }}
+                    disabled={currentPage === 0}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      currentPage === 0 
+                        ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                    data-testid="button-previous-page"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Föregående
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      if (currentPage < pages.length - 1) {
+                        const container = document.querySelector('.reading-text-container');
+                        if (container) {
+                          container.style.transition = 'transform 0.3s ease-in-out';
+                          container.style.transform = 'translateX(10px)';
+                          setTimeout(() => {
+                            setCurrentPage(currentPage + 1);
+                            container.style.transform = 'translateX(-10px)';
+                            setTimeout(() => {
+                              container.style.transform = 'translateX(0)';
+                            }, 50);
+                          }, 150);
+                        } else {
+                          setCurrentPage(currentPage + 1);
+                        }
+                      }
+                    }}
+                    disabled={currentPage === pages.length - 1}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      currentPage === pages.length - 1
+                        ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }`}
+                    data-testid="button-next-page"
+                  >
+                    Nästa
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             )}

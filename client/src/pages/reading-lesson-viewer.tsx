@@ -360,10 +360,97 @@ export default function ReadingLessonViewer() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="text-center py-12">
-          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
-          <p className="text-muted-foreground">Laddar läsförståelseövning...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Loading Header */}
+          <div className="mb-8 animate-pulse">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+            </div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-2"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96"></div>
+          </div>
+
+          <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-6 lg:space-y-0">
+            {/* Loading Reading Content */}
+            <div className="lg:col-span-2">
+              <div className="shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:p-8 animate-pulse">
+                {/* Loading Header */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <div className="w-5 h-5 bg-blue-200 dark:bg-blue-800 rounded"></div>
+                    </div>
+                    <div>
+                      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Loading Text Container */}
+                <div className="bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-6 lg:p-8 space-y-4">
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4/5"></div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Loading Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Loading Accessibility Panel */}
+              <div className="shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 animate-pulse">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                </div>
+                <div className="space-y-4">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+
+              {/* Loading Questions Panel */}
+              <div className="shadow-lg bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 animate-pulse">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-28"></div>
+                </div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Loading Indicator with Spinner */}
+          <div className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 shadow-lg rounded-full p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Laddar läsförståelseövning...
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     );

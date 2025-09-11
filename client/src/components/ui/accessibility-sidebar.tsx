@@ -149,56 +149,67 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
           variant="outline"
           size="sm"
           onClick={() => setIsOpen(true)}
-          className="fixed top-4 left-4 z-50"
+          className="fixed top-4 left-4 z-50 bg-white/95 backdrop-blur-sm shadow-lg border-gray-200 hover:bg-white hover:shadow-xl transition-all duration-200"
           data-testid="button-accessibility-toggle"
         >
-          <ChevronRight className="w-4 h-4" />
-          <span className="ml-2">Tillgänglighet</span>
+          <Eye className="w-4 h-4" />
+          <span className="ml-2 font-medium">Tillgänglighet</span>
           {isModified && (
-            <Badge variant="secondary" className="ml-2 w-2 h-2 p-0 rounded-full bg-blue-500" />
+            <Badge variant="secondary" className="ml-2 w-2 h-2 p-0 rounded-full bg-blue-500 animate-pulse" />
           )}
         </Button>
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-background border-r border-border z-40 transform transition-transform duration-300 overflow-y-auto ${
+        className={`fixed top-0 left-0 h-full w-80 bg-white/98 dark:bg-gray-900/98 backdrop-blur-sm border-r border-gray-200 dark:border-gray-700 z-40 transform transition-all duration-300 ease-out overflow-y-auto shadow-2xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-4 space-y-6">
-          <div className="pt-4">
+        <div className="p-6 space-y-8">
+          <div className="pt-2">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Eye className="w-5 h-5" />
-                <h2 className="text-lg font-semibold">Tillgänglighetsinställningar</h2>
-                {isModified && (
-                  <Badge variant="secondary" className="w-2 h-2 p-0 rounded-full bg-blue-500" />
-                )}
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <Eye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tillgänglighet</h2>
+                  {isModified && (
+                    <Badge variant="secondary" className="mt-1 text-xs px-2 py-1 bg-blue-100 text-blue-700 border-blue-200">
+                      Anpassat
+                    </Badge>
+                  )}
+                </div>
               </div>
               {/* Close button inside sidebar */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="p-1 h-auto"
+                className="p-2 h-auto rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 data-testid="button-accessibility-close"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5" />
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Anpassa texten för bättre läsbarhet
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              Anpassa texten för optimal läsbarhet och komfort
             </p>
           </div>
 
           {/* Font Size */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Type className="w-4 h-4" />
-              <Label className="text-sm font-medium">
-                Textstorlek: {settings.fontSize}px
-              </Label>
+          <div className="space-y-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-green-100 dark:bg-green-900/30">
+                <Type className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Textstorlek
+                </Label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{settings.fontSize}px</p>
+              </div>
             </div>
             <Slider
               value={[settings.fontSize]}
@@ -209,18 +220,37 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
               className="w-full"
               data-testid="slider-font-size"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Liten</span>
-              <span>Normal</span>
-              <span>Stor</span>
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                Liten
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                Normal
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                Stor
+              </span>
             </div>
           </div>
 
           {/* Line Height */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">
-              Radavstånd: {settings.lineHeight}
-            </Label>
+          <div className="space-y-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+                <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Radavstånd
+                </Label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{settings.lineHeight.toFixed(1)}</p>
+              </div>
+            </div>
             <Slider
               value={[settings.lineHeight]}
               onValueChange={([value]) => updateSetting('lineHeight', value)}
@@ -230,24 +260,40 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
               className="w-full"
               data-testid="slider-line-height"
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Tätt</span>
-              <span>Normal</span>
-              <span>Luftigt</span>
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-1 rounded bg-gray-300"></span>
+                Tätt
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded bg-gray-400"></span>
+                Normal
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-3 rounded bg-gray-500"></span>
+                Luftigt
+              </span>
             </div>
           </div>
 
 
           {/* Font Family */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Teckensnitt</Label>
+          <div className="space-y-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-900/30">
+                <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </div>
+              <Label className="text-sm font-semibold text-gray-900 dark:text-white">Teckensnitt</Label>
+            </div>
             <Select
               value={settings.fontFamily}
               onValueChange={(value: AccessibilitySettings['fontFamily']) => 
                 updateSetting('fontFamily', value)
               }
             >
-              <SelectTrigger data-testid="select-font-family">
+              <SelectTrigger data-testid="select-font-family" className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -258,10 +304,12 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
           </div>
 
           {/* Background Color */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              <Label className="text-sm font-medium">Bakgrundsfärg</Label>
+          <div className="space-y-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-pink-100 dark:bg-pink-900/30">
+                <Palette className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+              </div>
+              <Label className="text-sm font-semibold text-gray-900 dark:text-white">Bakgrundsfärg</Label>
             </div>
             <Select
               value={settings.backgroundColor}
@@ -269,7 +317,7 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
                 updateSetting('backgroundColor', value)
               }
             >
-              <SelectTrigger data-testid="select-background-color">
+              <SelectTrigger data-testid="select-background-color" className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -285,8 +333,16 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
           </div>
 
           {/* High Contrast */}
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Hög kontrast</Label>
+          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+                <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold text-gray-900 dark:text-white">Hög kontrast</Label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">För bättre synbarhet</p>
+              </div>
+            </div>
             <Switch
               checked={settings.contrast === 'high'}
               onCheckedChange={(checked) => 
@@ -298,16 +354,18 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
 
           {/* Reset Button */}
           {isModified && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetSettings}
-              className="w-full"
-              data-testid="button-reset-accessibility"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Återställ till standard
-            </Button>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetSettings}
+                className="w-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 transition-all duration-200"
+                data-testid="button-reset-accessibility"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Återställ till standard
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -315,7 +373,7 @@ export function AccessibilitySidebar({ onToggle }: AccessibilitySidebarProps = {
       {/* Overlay when sidebar is open on smaller screens */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-all duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
