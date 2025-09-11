@@ -85,6 +85,18 @@ export default function ReadingLessonViewer() {
     localStorage.setItem("reading-focus-settings", JSON.stringify(focusSettings));
   }, [focusSettings]);
 
+  // Listen for page change events from NormalMode component
+  useEffect(() => {
+    const handlePageChange = (e: CustomEvent) => {
+      if (typeof e.detail === 'number') {
+        setCurrentPage(e.detail);
+      }
+    };
+    
+    window.addEventListener('changePage', handlePageChange as EventListener);
+    return () => window.removeEventListener('changePage', handlePageChange as EventListener);
+  }, []);
+
   // CSS variables for accessibility
   useEffect(() => {
     const root = document.documentElement;
