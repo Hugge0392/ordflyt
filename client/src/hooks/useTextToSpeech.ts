@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 interface TTSSettings {
   voice: string;
@@ -44,6 +44,22 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentTextRef = useRef<string>("");
 
+  // Helper function to clean up audio element from DOM
+  const cleanupAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      if (audioRef.current.parentNode) {
+        audioRef.current.parentNode.removeChild(audioRef.current);
+      }
+      audioRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return cleanupAudio;
+  }, [cleanupAudio]);
+
   const setSettings = useCallback((newSettings: Partial<TTSSettings>) => {
     setSettingsState(prev => ({ ...prev, ...newSettings }));
   }, []);
@@ -81,10 +97,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       setError(null);
 
       // Stop current audio if playing
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      cleanupAudio();
 
       const cleanedText = cleanText(text);
       currentTextRef.current = cleanedText;
@@ -125,11 +138,22 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
       // Create audio from response using arrayBuffer for better control
       const arrayBuffer = await response.arrayBuffer();
-      const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+      
+      // Log arrayBuffer size for debugging
+      console.log(`TTS Client: Received ${arrayBuffer.byteLength} bytes`);
+      
+      // Use server's Content-Type header instead of hardcoded 'audio/mpeg'
+      const contentType = response.headers.get('Content-Type') ?? 'application/octet-stream';
+      const audioBlob = new Blob([new Uint8Array(arrayBuffer)], { type: contentType });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
+
+      // Add audio element to DOM for testing tools to detect
+      audio.style.display = 'none';
+      audio.setAttribute('data-testid', 'tts-audio-element');
+      document.body.appendChild(audio);
 
       // Set up audio event listeners
       audio.addEventListener('loadedmetadata', () => {
@@ -153,6 +177,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         setIsPlaying(false);
         setCurrentPosition(0);
         URL.revokeObjectURL(audioUrl);
+        cleanupAudio();
       });
 
       audio.addEventListener('error', (e) => {
@@ -183,6 +208,7 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         setIsPlaying(false);
         setIsLoading(false);
         URL.revokeObjectURL(audioUrl);
+        cleanupAudio();
       });
 
       // Start playback
@@ -224,7 +250,8 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       setCurrentPosition(0);
       setIsPlaying(false);
     }
-  }, []);
+    cleanupAudio();
+  }, [cleanupAudio]);
 
   return {
     isPlaying,

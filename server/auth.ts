@@ -402,6 +402,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
       "style-src 'self' 'unsafe-inline' https:; " +
       "img-src 'self' data: https: blob:; " +
       "font-src 'self' data: https:; " +
+      "media-src 'self' blob:; " +
       "connect-src 'self' https:; " +
       "frame-ancestors 'none';"
     : "default-src 'self'; " +
@@ -409,6 +410,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: https:; " +
       "font-src 'self' data:; " +
+      "media-src 'self' blob:; " +
       "connect-src 'self'; " +
       "frame-ancestors 'none';";
   

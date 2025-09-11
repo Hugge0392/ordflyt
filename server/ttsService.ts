@@ -22,7 +22,7 @@ export class TextToSpeechService {
     
     // Set default Swedish voice
     this.speechConfig.speechSynthesisVoiceName = "sv-SE-MattiasNeural";
-    this.speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
+    this.speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm;
   }
 
   async synthesizeSpeech(request: TTSRequest): Promise<Buffer> {
@@ -38,7 +38,15 @@ export class TextToSpeechService {
         (result: any) => {
           if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
             synthesizer.close();
-            resolve(Buffer.from(result.audioData));
+            
+            // Improved Buffer conversion using Uint8Array for safety
+            const audioBuffer = Buffer.from(new Uint8Array(result.audioData));
+            
+            // Log magic bytes (first 4 bytes) and total length for debugging
+            const magicBytes = Array.from(audioBuffer.slice(0, 4)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            console.log(`TTS Audio: ${audioBuffer.length} bytes, magic: ${magicBytes}`);
+            
+            resolve(audioBuffer);
           } else {
             synthesizer.close();
             reject(new Error(`Speech synthesis failed: ${result.errorDetails}`));

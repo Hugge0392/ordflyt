@@ -922,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Set proper audio headers
-      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Type', 'audio/wav');
       res.setHeader('Content-Length', audioBuffer.length.toString());
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Accept-Ranges', 'bytes');
