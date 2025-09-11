@@ -512,38 +512,6 @@ export default function NormalMode({
                     <span>Föregående</span>
                   </button>
 
-                  <div className="flex items-center gap-2">
-                    {/* Question dots indicator */}
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(totalQuestions, 5) }, (_, i) => {
-                        const questionIndex = totalQuestions <= 5 
-                          ? i 
-                          : Math.max(0, Math.min(
-                              totalQuestions - 5,
-                              currentQuestionIndex - 2
-                            )) + i;
-                        
-                        return (
-                          <div
-                            key={questionIndex}
-                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                              questionIndex === currentQuestionIndex
-                                ? 'bg-blue-500 w-6'
-                                : questionIndex < currentQuestionIndex
-                                  ? 'bg-green-500'
-                                  : 'bg-gray-300 dark:bg-gray-600'
-                            }`}
-                          />
-                        );
-                      })}
-                      {totalQuestions > 5 && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                          ...och {totalQuestions - 5} till
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
                   <button
                     onClick={
                       isLastQuestion
