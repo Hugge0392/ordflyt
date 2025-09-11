@@ -7,6 +7,20 @@ interface TTSRequest {
   pitch?: string;
 }
 
+interface TTSChunk {
+  index: number;
+  text: string;
+  audioBuffer: Buffer;
+}
+
+interface ChunkedTTSRequest {
+  text: string;
+  voice?: string;
+  rate?: string;
+  pitch?: string;
+  maxChunkLength?: number;
+}
+
 export class TextToSpeechService {
   private speechConfig: sdk.SpeechConfig;
 
@@ -83,6 +97,132 @@ export class TextToSpeechService {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&apos;");
+  }
+
+  // Text segmentation function
+  segmentText(text: string, maxChunkLength: number = 200): string[] {
+    // Clean and normalize the text
+    const cleanedText = text
+      .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+      .replace(/&amp;/g, '&') // Decode HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
+
+    if (!cleanedText) {
+      return [];
+    }
+
+    const chunks: string[] = [];
+    
+    // First try to split by double line breaks (paragraphs)
+    const paragraphs = cleanedText.split(/\n\s*\n/).filter(p => p.trim());
+    
+    for (const paragraph of paragraphs) {
+      if (paragraph.length <= maxChunkLength) {
+        chunks.push(paragraph.trim());
+      } else {
+        // If paragraph is too long, split by sentences
+        const sentences = paragraph.split(/[.!?]+/).filter(s => s.trim());
+        let currentChunk = '';
+        
+        for (const sentence of sentences) {
+          const trimmedSentence = sentence.trim();
+          if (!trimmedSentence) continue;
+          
+          // Add punctuation back
+          const sentenceWithPunctuation = trimmedSentence + (sentence.match(/[.!?]+/) ? sentence.match(/[.!?]+/)?.[0] || '.' : '.');
+          
+          if ((currentChunk + ' ' + sentenceWithPunctuation).length <= maxChunkLength) {
+            currentChunk = currentChunk ? currentChunk + ' ' + sentenceWithPunctuation : sentenceWithPunctuation;
+          } else {
+            if (currentChunk) {
+              chunks.push(currentChunk);
+            }
+            
+            // If single sentence is still too long, split by words
+            if (sentenceWithPunctuation.length > maxChunkLength) {
+              const words = sentenceWithPunctuation.split(' ');
+              let wordChunk = '';
+              
+              for (const word of words) {
+                if ((wordChunk + ' ' + word).length <= maxChunkLength) {
+                  wordChunk = wordChunk ? wordChunk + ' ' + word : word;
+                } else {
+                  if (wordChunk) {
+                    chunks.push(wordChunk);
+                  }
+                  wordChunk = word;
+                }
+              }
+              
+              if (wordChunk) {
+                chunks.push(wordChunk);
+              }
+            } else {
+              currentChunk = sentenceWithPunctuation;
+            }
+          }
+        }
+        
+        if (currentChunk) {
+          chunks.push(currentChunk);
+        }
+      }
+    }
+    
+    return chunks.filter(chunk => chunk.trim().length > 0);
+  }
+
+  // Synthesize text in chunks for faster startup
+  async synthesizeChunkedSpeech(request: ChunkedTTSRequest): Promise<TTSChunk[]> {
+    const { text, voice, rate, pitch, maxChunkLength = 200 } = request;
+    
+    if (!text || typeof text !== 'string') {
+      throw new Error("Text is required and must be a string");
+    }
+
+    const textChunks = this.segmentText(text, maxChunkLength);
+    
+    if (textChunks.length === 0) {
+      throw new Error("No valid text chunks found");
+    }
+
+    console.log(`TTS Chunked: Processing ${textChunks.length} chunks, lengths: ${textChunks.map(c => c.length).join(', ')}`);
+    
+    const chunks: TTSChunk[] = [];
+    
+    // Process all chunks concurrently for better performance
+    const synthesisPromises = textChunks.map(async (chunkText, index) => {
+      try {
+        const audioBuffer = await this.synthesizeSpeech({
+          text: chunkText,
+          voice,
+          rate,
+          pitch
+        });
+        
+        return {
+          index,
+          text: chunkText,
+          audioBuffer
+        } as TTSChunk;
+      } catch (error) {
+        console.error(`Error synthesizing chunk ${index}:`, error);
+        throw new Error(`Failed to synthesize chunk ${index}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+    
+    const results = await Promise.all(synthesisPromises);
+    chunks.push(...results);
+    
+    console.log(`TTS Chunked: Successfully synthesized ${chunks.length} audio chunks`);
+    
+    return chunks.sort((a, b) => a.index - b.index);
   }
 
   // Get available Swedish voices

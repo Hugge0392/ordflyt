@@ -938,6 +938,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chunked TTS synthesis for faster startup
+  app.post("/api/tts/synthesize-chunked", async (req, res) => {
+    try {
+      const { text, voice, rate, pitch, maxChunkLength } = req.body;
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: "Text is required and must be a string" });
+      }
+
+      if (text.length > 10000) {
+        return res.status(400).json({ error: "Text is too long for chunked processing (max 10000 characters)" });
+      }
+
+      const chunks = await ttsService.synthesizeChunkedSpeech({
+        text,
+        voice,
+        rate,
+        pitch,
+        maxChunkLength
+      });
+
+      // Create response with base64 encoded audio for JSON transport
+      const responseChunks = chunks.map(chunk => ({
+        index: chunk.index,
+        text: chunk.text,
+        audio: chunk.audioBuffer.toString('base64'),
+        size: chunk.audioBuffer.length
+      }));
+
+      res.json({ 
+        chunks: responseChunks,
+        totalChunks: chunks.length,
+        totalSize: chunks.reduce((sum, chunk) => sum + chunk.audioBuffer.length, 0)
+      });
+
+    } catch (error) {
+      console.error('Error synthesizing chunked speech:', error);
+      res.status(500).json({ error: "Chunked speech synthesis failed", message: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   app.get("/api/tts/voices", (req, res) => {
     try {
       const voices = ttsService.getAvailableVoices();

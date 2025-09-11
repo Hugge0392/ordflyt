@@ -36,6 +36,9 @@ export function TextToSpeechControls({
     error,
     currentPosition,
     duration,
+    currentChunk,
+    totalChunks,
+    chunkProgress,
     settings,
     availableVoices,
     play,
@@ -214,12 +217,31 @@ export function TextToSpeechControls({
       {/* Progress bar and time */}
       {(isPlaying || currentPosition > 0) && (
         <div className="space-y-2">
+          {/* Chunk information for multi-chunk playback */}
+          {totalChunks > 1 && (
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+              <span className="font-medium">
+                Segment {currentChunk} av {totalChunks}
+              </span>
+              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-200"
+                  style={{ width: `${(currentChunk / totalChunks) * 100}%` }}
+                />
+              </div>
+              <span className="text-xs">
+                {Math.round((currentChunk / totalChunks) * 100)}%
+              </span>
+            </div>
+          )}
+          
+          {/* Current chunk progress */}
           <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
             <span>{formatTime(currentPosition)}</span>
             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1">
               <div 
                 className="bg-blue-500 h-1 rounded-full transition-all duration-200"
-                style={{ width: `${progressPercentage}%` }}
+                style={{ width: `${totalChunks > 1 ? chunkProgress : progressPercentage}%` }}
               />
             </div>
             <span>{formatTime(duration)}</span>
