@@ -415,32 +415,15 @@ export default function NormalMode({
                 variant="outline"
                 size="sm"
                 onClick={onToggleFocusMode}
-                className="!bg-white !text-black !border-black transition-none"
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  color: "#000000",
-                  borderColor: "#000000",
-                  borderWidth: "1px"
-                }}
               >
-                <Eye className="w-4 h-4 mr-1" style={{ color: "#000000" }} />
+                <Eye className="w-4 h-4 mr-1" />
                 Fokusläge
               </Button>
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="!bg-white !text-black !border-black transition-none"
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      color: "#000000",
-                      borderColor: "#000000",
-                      borderWidth: "1px"
-                    }}
-                  >
-                    <Settings className="w-4 h-4 mr-1" style={{ color: "#000000" }} />
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4 mr-1" />
                     Inställningar
                   </Button>
                 </PopoverTrigger>

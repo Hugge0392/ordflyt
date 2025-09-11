@@ -123,7 +123,11 @@
 
 /* Word button styles for multiple choice sentences */
 .word-button {
-  @apply inline-block mx-1 my-1 px-3 py-2 rounded-lg border-2 border-gray-200 bg-white cursor-pointer;
+  @apply inline-block mx-1 my-1 px-3 py-2 rounded-lg border-2 border-gray-200 bg-white cursor-pointer transition-all duration-200 hover:shadow-md;
+}
+
+.word-button:hover {
+  @apply border-blue-300 bg-blue-50 transform scale-105;
 }
 
 .word-button.selected {
@@ -236,8 +240,8 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
   margin-left: 2px;
 }
 
-.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  opacity: 0.4;
+.space-y-3.max-h-\[60vh\].overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  opacity: 0.7;
 }
 
 /* --- Läsfokus: stabil textspalt och margin-collaps fix --- */
@@ -1132,7 +1136,14 @@ html, body {
    COMPONENT BEHAVIOR STYLES
    ============================================ */
 
-/* Enhanced hover states removed for better UX */
+/* Enhanced hover states for better UX */
+.reading-controls-container button:hover {
+  @apply shadow-md transition-shadow duration-200;
+}
+
+.questions-navigation-container button:hover {
+  @apply shadow-sm transition-shadow duration-200;
+}
 
 /* Focus mode specific animations */
 .focus-overlay-container {
@@ -1241,25 +1252,5 @@ html, body {
   }
   .panel-spacer {
     display: none;
-  }
-}
-
-/* Global no-hover utility class to completely disable hover effects */
-@layer utilities {
-  .no-hover *, 
-  .no-hover *:hover, 
-  .no-hover *:focus, 
-  .no-hover *:active,
-  .no-hover a:hover,
-  .no-hover button:hover,
-  .no-hover [role="button"]:hover {
-    transition: none !important;
-    transform: none !important;
-    box-shadow: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-    background: inherit !important;
-    color: inherit !important;
-    text-decoration: none !important;
   }
 }
