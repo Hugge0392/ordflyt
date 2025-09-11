@@ -142,10 +142,9 @@
   @apply border-red-400 bg-red-100 text-red-700 shadow-lg ring-2 ring-red-300;
 }
 
-/* Accessibility enhanced styles - apply to entire Card and all content within */
+/* Accessibility enhanced styles - apply background/border only, NOT text color (to avoid button inheritance) */
 .reading-content.accessibility-enhanced {
   background-color: var(--accessibility-bg-color) !important;
-  color: var(--accessibility-text-color) !important;
   border-color: var(--accessibility-border-color) !important;
   font-size: 16px; /* stable measuring font for ch units */
 }
@@ -283,10 +282,13 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
 
 /* --- Läsfokus: tvinga synlig text i läsytan (utan att röra spotlighten) --- */
 /* ❌ INGEN text-fill här – det orsakar compositing-buggar i "hålet" */
-.reading-content,
-.reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+/* Endast applicera färger på faktisk lästext, inte UI-kontroller */
+.reading-content.accessibility-enhanced [data-reading-text],
+.reading-content.accessibility-enhanced [data-reading-text] *:not(.rf-scrim):not(.rf-frame):not(.reading-spotlight-el):not(.reading-spotlight-el *) {
   color: var(--accessibility-text-color) !important;
 }
+
+/* FINAL: UI controls are always black on white - placed at end to override everything */
 
 /* Om du vill nolla vita inline-bakgrunder – gör det selektivt (du har redan detta högre upp) */
 .reading-content [style*="background:#fff"],
@@ -371,7 +373,6 @@ div.reading-content.accessibility-enhanced [data-reading-text].prose h6 {
 .reading-content.accessibility-enhanced .card-title,
 .reading-content.accessibility-enhanced .card-description,
 .reading-content.accessibility-enhanced .card-content,
-.reading-content.accessibility-enhanced button,
 .reading-content.accessibility-enhanced textarea,
 .reading-content.accessibility-enhanced h1,
 .reading-content.accessibility-enhanced h2, 
@@ -1278,4 +1279,19 @@ html, body {
   .panel-spacer {
     display: none;
   }
+}
+
+/* FINAL: UI controls are always black on white - MUST BE LAST RULE TO OVERRIDE ALL */
+.reading-content.accessibility-enhanced :is(.reading-controls-container, .reading-page-navigation, .questions-navigation-container, .card-header, .navigation-button, .navigation-page-counter) {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.reading-content.accessibility-enhanced :is(.reading-controls-container, .reading-page-navigation, .questions-navigation-container, .card-header, .navigation-button, .navigation-page-counter) :is(button, [role="button"], .btn, a, .toggle, .switch, [data-radix-collection-item], [data-state], .icon-button, span, svg, path) {
+  background: #fff !important;
+  color: #000 !important;
+  -webkit-text-fill-color: #000 !important;
+  fill: #000 !important;
+  stroke: #000 !important;
+  border-color: #000 !important;
 }

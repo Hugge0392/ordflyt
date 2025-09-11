@@ -204,7 +204,6 @@ export default function NormalMode({
                 {
                   ...styleVars,
                   backgroundColor: "var(--accessibility-bg-color)",
-                  color: "var(--accessibility-text-color)",
                   borderColor: "var(--accessibility-text-color)",
                   borderWidth: "0.5px",
                   maxWidth: "720px",
@@ -547,10 +546,8 @@ export default function NormalMode({
           {
             ...styleVars,
             backgroundColor: "var(--accessibility-bg-color)",
-            color: "var(--accessibility-text-color)",
             borderColor: "var(--accessibility-text-color)",
             borderWidth: "0.5px",
-            "--card-text-color": "var(--accessibility-text-color)",
           } as React.CSSProperties
         }
       >
