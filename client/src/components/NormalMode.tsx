@@ -882,128 +882,50 @@ export default function NormalMode({
 
             {/* Page navigation */}
             {pages.length > 1 && (
-              <div className="reading-page-navigation bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Sidor i texten:
-                    </span>
-                  </div>
-                  <div className="reading-page-indicators flex gap-2">
-                    {pages.map((_, index) => (
-                      <Badge
-                        key={index}
-                        variant={index === currentPage ? "default" : "outline"}
-                        className={`cursor-pointer transition-all duration-200 ${
-                          index === currentPage 
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm'
-                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 hover:scale-105'
-                        }`}
-                        data-testid={`page-indicator-${index + 1}`}
-                        onClick={() => {
-                          if (index !== currentPage) {
-                            // Add smooth transition animation
-                            const container = document.querySelector('.reading-text-container');
-                            if (container) {
-                              (container as HTMLElement).style.transition = 'opacity 0.3s ease-in-out';
-                              (container as HTMLElement).style.opacity = '0.7';
-                              setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('changePage', { detail: index }));
-                                (container as HTMLElement).style.opacity = '1';
-                              }, 150);
-                            } else {
-                              window.dispatchEvent(new CustomEvent('changePage', { detail: index }));
-                            }
-                          }
-                        }}
-                      >
-                        <span className="flex items-center gap-1">
-                          {index === currentPage && (
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                          Sida {index + 1}
-                        </span>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
-                  Du läser sida {currentPage + 1} av {pages.length}
-                </div>
+              <div className="reading-page-navigation flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                <button
+                  onClick={() => {
+                    if (currentPage > 0) {
+                      window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage - 1 }));
+                    }
+                  }}
+                  disabled={currentPage === 0}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    currentPage === 0 
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                  data-testid="button-previous-page"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Föregående
+                </button>
                 
-                {/* Navigation Arrows */}
-                <div className="flex items-center justify-between mt-4">
-                  <button
-                    onClick={() => {
-                      if (currentPage > 0) {
-                        const container = document.querySelector('.reading-text-container');
-                        if (container) {
-                          (container as HTMLElement).style.transition = 'transform 0.3s ease-in-out';
-                          (container as HTMLElement).style.transform = 'translateX(-10px)';
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage - 1 }));
-                            (container as HTMLElement).style.transform = 'translateX(10px)';
-                            setTimeout(() => {
-                              (container as HTMLElement).style.transform = 'translateX(0)';
-                            }, 50);
-                          }, 150);
-                        } else {
-                          window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage - 1 }));
-                        }
-                      }
-                    }}
-                    disabled={currentPage === 0}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      currentPage === 0 
-                        ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                    }`}
-                    data-testid="button-previous-page"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Föregående
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      if (currentPage < pages.length - 1) {
-                        const container = document.querySelector('.reading-text-container');
-                        if (container) {
-                          (container as HTMLElement).style.transition = 'transform 0.3s ease-in-out';
-                          (container as HTMLElement).style.transform = 'translateX(10px)';
-                          setTimeout(() => {
-                            window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage + 1 }));
-                            (container as HTMLElement).style.transform = 'translateX(-10px)';
-                            setTimeout(() => {
-                              (container as HTMLElement).style.transform = 'translateX(0)';
-                            }, 50);
-                          }, 150);
-                        } else {
-                          window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage + 1 }));
-                        }
-                      }
-                    }}
-                    disabled={currentPage === pages.length - 1}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      currentPage === pages.length - 1
-                        ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                        : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                    }`}
-                    data-testid="button-next-page"
-                  >
-                    Nästa
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {currentPage + 1} av {pages.length}
+                </span>
+                
+                <button
+                  onClick={() => {
+                    if (currentPage < pages.length - 1) {
+                      window.dispatchEvent(new CustomEvent('changePage', { detail: currentPage + 1 }));
+                    }
+                  }}
+                  disabled={currentPage === pages.length - 1}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    currentPage === pages.length - 1
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                  data-testid="button-next-page"
+                >
+                  Nästa
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             )}
           </div>
