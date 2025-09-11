@@ -446,6 +446,31 @@ button.navigation-button,
   transition: none !important;
 }
 
+/* Header buttons and navigation buttons should always have black text on white background */
+.reading-controls-container button,
+.reading-controls-container button *,
+.reading-page-navigation button,
+.reading-page-navigation button *,
+.questions-navigation-container button,
+.questions-navigation-container button * {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  background: #FFFFFF !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* Override accessibility colors for specific button areas */
+.reading-content.accessibility-enhanced .reading-controls-container button,
+.reading-content.accessibility-enhanced .reading-page-navigation button,
+.reading-content.accessibility-enhanced .questions-navigation-container button {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  background: #FFFFFF !important;
+}
+
 /* Completely isolated navigation page counter - never affected by accessibility colors */
 .navigation-page-counter {
   background-color: #FFFFFF !important;
