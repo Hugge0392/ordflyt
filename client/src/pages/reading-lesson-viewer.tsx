@@ -117,11 +117,17 @@ export default function ReadingLessonViewer() {
     root.style.setProperty("--accessibility-bg-color", colors.bg);
     root.style.setProperty("--accessibility-text-color", colors.text);
 
+    // Set font size and line height - CRITICAL: These were missing!
+    root.style.setProperty("--accessibility-font-size", `${settings.fontSize}px`);
+    root.style.setProperty("--accessibility-line-height", settings.lineHeight.toString());
+
     // Set font family
     const fontMap = {
       "standard": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       "dyslexia-friendly": "'OpenDyslexic', 'Comic Sans MS', cursive, system-ui, sans-serif"
     };
+    
+    root.style.setProperty("--accessibility-font-family", fontMap[settings.fontFamily]);
     
     if (readingFocusMode) {
       root.style.setProperty("--focus-font-family", fontMap[settings.fontFamily]);
