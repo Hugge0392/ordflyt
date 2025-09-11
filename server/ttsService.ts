@@ -22,7 +22,7 @@ export class TextToSpeechService {
     
     // Set default Swedish voice
     this.speechConfig.speechSynthesisVoiceName = "sv-SE-MattiasNeural";
-    this.speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm;
+    this.speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
   }
 
   async synthesizeSpeech(request: TTSRequest): Promise<Buffer> {
