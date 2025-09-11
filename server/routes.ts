@@ -921,13 +921,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pitch
       });
 
+      // Set proper audio headers
       res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Length', audioBuffer.length);
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.setHeader('Content-Length', audioBuffer.length.toString());
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Accept-Ranges', 'bytes');
+      
+      // Send the raw audio buffer
       res.send(audioBuffer);
     } catch (error) {
       console.error('Error synthesizing speech:', error);
-      res.status(500).json({ error: "Speech synthesis failed" });
+      
+      // For audio endpoint errors, set text/plain to avoid confusing the frontend
+      res.setHeader('Content-Type', 'text/plain');
+      res.status(500).send('Speech synthesis failed');
     }
   });
 

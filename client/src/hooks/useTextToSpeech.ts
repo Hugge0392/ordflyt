@@ -108,12 +108,24 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } else {
+            errorMessage = await response.text() || errorMessage;
+          }
+        } catch (e) {
+          // Use default error message
+        }
+        throw new Error(errorMessage);
       }
 
-      // Create audio from response
-      const audioBlob = await response.blob();
+      // Create audio from response using arrayBuffer for better control
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
@@ -144,7 +156,30 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       });
 
       audio.addEventListener('error', (e) => {
-        setError('Fel vid uppspelning av ljud');
+        console.error('Audio playback error:', e);
+        const audioError = audio.error;
+        let errorMessage = 'Fel vid uppspelning av ljud';
+        
+        if (audioError) {
+          switch (audioError.code) {
+            case MediaError.MEDIA_ERR_ABORTED:
+              errorMessage = 'Uppspelning avbröts';
+              break;
+            case MediaError.MEDIA_ERR_NETWORK:
+              errorMessage = 'Nätverksfel vid uppspelning';
+              break;
+            case MediaError.MEDIA_ERR_DECODE:
+              errorMessage = 'Fel vid avkodning av ljud';
+              break;
+            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMessage = 'Ljudformat stöds inte';
+              break;
+            default:
+              errorMessage = `Uppspelningsfel: ${audioError.message || 'Okänt fel'}`;
+          }
+        }
+        
+        setError(errorMessage);
         setIsPlaying(false);
         setIsLoading(false);
         URL.revokeObjectURL(audioUrl);
@@ -154,10 +189,16 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       await audio.play();
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Okänt fel uppstod');
+      const errorMessage = err instanceof Error ? err.message : 'Okänt fel uppstod';
+      setError(errorMessage);
       setIsPlaying(false);
       setIsLoading(false);
       console.error('TTS Error:', err);
+      console.error('TTS Error details:', {
+        message: errorMessage,
+        originalError: err,
+        text: cleanText(text).substring(0, 100)
+      });
     }
   }, [settings, cleanText]);
 
