@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SlashMenuProps } from './types';
-import { useImageUpload } from './components/ImageUploadHandler';
 import {
   Type,
   Heading1,
@@ -32,19 +31,109 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { openFileDialog, UploadDialog } = useImageUpload(editor);
+
+  // Helper function to get cursor position and remove slash
+  const getCursorPositionAndCleanSlash = () => {
+    const { state } = editor;
+    const { selection } = state;
+    const { $from } = selection;
+    
+    // Find the slash character and remove it
+    const textBefore = state.doc.textBetween(Math.max(0, $from.pos - 10), $from.pos);
+    const slashIndex = textBefore.lastIndexOf('/');
+    
+    if (slashIndex !== -1) {
+      const slashPos = $from.pos - (textBefore.length - slashIndex);
+      // Delete the slash
+      const tr = state.tr.delete(slashPos, $from.pos);
+      editor.view.dispatch(tr);
+      return slashPos;
+    }
+    
+    return $from.pos;
+  };
+
+  // Helper function to insert block at position
+  const insertBlockAtPosition = (blockContent: any, pos?: number) => {
+    const insertPos = pos || getCursorPositionAndCleanSlash();
+    
+    // Insert the block content and position cursor appropriately
+    return editor.chain()
+      .focus()
+      .insertContentAt(insertPos, blockContent)
+      .command(({ tr, commands }) => {
+        // Move cursor to the beginning of the newly inserted block
+        const newPos = insertPos + 1;
+        if (newPos <= tr.doc.content.size) {
+          commands.setTextSelection(newPos);
+        }
+        return true;
+      })
+      .run();
+  };
+
+  // Helper function to insert image via file dialog
+  const insertImageBlock = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpg,image/jpeg,image/webp,image/gif';
+    input.multiple = false;
+    
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        const file = files[0];
+        
+        try {
+          // Clean slash first
+          const insertPos = getCursorPositionAndCleanSlash();
+          
+          // Upload image
+          const formData = new FormData();
+          formData.append('file', file, file.name);
+          
+          const response = await fetch('/api/upload-direct', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) throw new Error('Upload failed');
+          
+          const { objectPath } = await response.json();
+          
+          // Insert image block at the cleaned position
+          editor.chain()
+            .focus()
+            .insertContentAt(insertPos, {
+              type: 'paragraph',
+              content: [],
+            })
+            .insertImageBlock({
+              src: objectPath,
+              alt: file.name.replace(/\.[^/.]+$/, ''),
+            })
+            .run();
+            
+        } catch (error) {
+          console.error('Image upload error:', error);
+        }
+      }
+    };
+    
+    input.click();
+  };
 
   const commands: MenuCommand[] = [
     {
       id: 'paragraph',
       title: 'Text',
-      description: 'Vanlig text',
+      description: 'Nytt textblock',
       icon: Type,
       command: () => {
-        editor.chain().focus().setParagraph().run();
+        insertBlockAtPosition({ type: 'paragraph', content: [] });
         onHide();
       },
-      searchTerms: ['paragraph', 'text', 'p']
+      searchTerms: ['paragraph', 'text', 'p', 'stycke']
     },
     {
       id: 'heading1',
@@ -52,10 +141,10 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
       description: 'Stor huvudrubrik',
       icon: Heading1,
       command: () => {
-        editor.chain().focus().toggleHeading({ level: 1 }).run();
+        insertBlockAtPosition({ type: 'heading', attrs: { level: 1 }, content: [] });
         onHide();
       },
-      searchTerms: ['heading', 'h1', 'title', 'rubrik']
+      searchTerms: ['heading', 'h1', 'title', 'rubrik', 'huvudrubrik']
     },
     {
       id: 'heading2',
@@ -63,10 +152,10 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
       description: 'Medium underrubrik',
       icon: Heading2,
       command: () => {
-        editor.chain().focus().toggleHeading({ level: 2 }).run();
+        insertBlockAtPosition({ type: 'heading', attrs: { level: 2 }, content: [] });
         onHide();
       },
-      searchTerms: ['heading', 'h2', 'subtitle', 'rubrik']
+      searchTerms: ['heading', 'h2', 'subtitle', 'rubrik', 'underrubrik']
     },
     {
       id: 'heading3',
@@ -74,18 +163,24 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
       description: 'Liten underrubrik',
       icon: Heading3,
       command: () => {
-        editor.chain().focus().toggleHeading({ level: 3 }).run();
+        insertBlockAtPosition({ type: 'heading', attrs: { level: 3 }, content: [] });
         onHide();
       },
-      searchTerms: ['heading', 'h3', 'subtitle', 'rubrik']
+      searchTerms: ['heading', 'h3', 'subtitle', 'rubrik', 'underrubrik']
     },
     {
       id: 'bulletList',
       title: 'Punktlista',
-      description: 'Skapa en lista med punkter',
+      description: 'Lista med punkter',
       icon: List,
       command: () => {
-        editor.chain().focus().toggleBulletList().run();
+        insertBlockAtPosition({
+          type: 'bulletList',
+          content: [{
+            type: 'listItem',
+            content: [{ type: 'paragraph', content: [] }]
+          }]
+        });
         onHide();
       },
       searchTerms: ['bullet', 'list', 'ul', 'punktlista', 'lista']
@@ -93,10 +188,16 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
     {
       id: 'orderedList',
       title: 'Numrerad lista',
-      description: 'Skapa en numrerad lista',
+      description: 'Lista med nummer',
       icon: ListOrdered,
       command: () => {
-        editor.chain().focus().toggleOrderedList().run();
+        insertBlockAtPosition({
+          type: 'orderedList',
+          content: [{
+            type: 'listItem',
+            content: [{ type: 'paragraph', content: [] }]
+          }]
+        });
         onHide();
       },
       searchTerms: ['numbered', 'ordered', 'list', 'ol', 'numrerad', 'lista']
@@ -104,10 +205,13 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
     {
       id: 'blockquote',
       title: 'Citat',
-      description: 'Infoga ett citat',
+      description: 'Citatblock',
       icon: Quote,
       command: () => {
-        editor.chain().focus().toggleBlockquote().run();
+        insertBlockAtPosition({
+          type: 'blockquote',
+          content: [{ type: 'paragraph', content: [] }]
+        });
         onHide();
       },
       searchTerms: ['quote', 'blockquote', 'citation', 'citat']
@@ -115,10 +219,10 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
     {
       id: 'codeBlock',
       title: 'Kodblock',
-      description: 'Infoga kod med syntaxmarkering',
+      description: 'Block för kod',
       icon: Code,
       command: () => {
-        editor.chain().focus().toggleCodeBlock().run();
+        insertBlockAtPosition({ type: 'codeBlock', content: [] });
         onHide();
       },
       searchTerms: ['code', 'codeblock', 'syntax', 'kod']
@@ -126,9 +230,11 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
     {
       id: 'table',
       title: 'Tabell',
-      description: 'Infoga en tabell',
+      description: 'Infoga tabell',
       icon: Table,
       command: () => {
+        // Clean slash first, then insert table
+        getCursorPositionAndCleanSlash();
         editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
         onHide();
       },
@@ -137,10 +243,10 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
     {
       id: 'image',
       title: 'Bild',
-      description: 'Infoga en bild',
+      description: 'Lägg till bild',
       icon: ImageIcon,
       command: () => {
-        openFileDialog();
+        insertImageBlock();
         onHide();
       },
       searchTerms: ['image', 'picture', 'photo', 'bild', 'foto']
@@ -151,7 +257,8 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
       description: 'Horisontell linje',
       icon: Minus,
       command: () => {
-        editor.chain().focus().setHorizontalRule().run();
+        const insertPos = getCursorPositionAndCleanSlash();
+        editor.chain().focus().insertContentAt(insertPos, { type: 'horizontalRule' }).run();
         onHide();
       },
       searchTerms: ['divider', 'hr', 'line', 'separator', 'avdelare', 'linje']
@@ -296,9 +403,6 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
           ↑↓ för att navigera • Enter för att välja • Esc för att stänga
         </div>
       </Card>
-      
-      {/* Upload Dialog */}
-      <UploadDialog />
     </div>
   );
 }
