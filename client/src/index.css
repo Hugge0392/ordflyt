@@ -61,6 +61,102 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Block UI Controls for Rich Text Editor */
+.block-editor-container {
+  position: relative;
+}
+
+/* Block hover effects */
+.ProseMirror > * {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.ProseMirror > *:hover {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+/* Block type menu styling */
+.block-type-menu {
+  animation: fadeInScale 0.15s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Smooth transitions for block reordering */
+.ProseMirror .block-reordering {
+  transition: transform 0.3s ease;
+}
+
+/* Drop zone indicators */
+.drop-zone {
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin: 4px 0;
+}
+
+.drop-zone.active {
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Block selection styling */
+.ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* Improved hover states for block content */
+.rich-doc-editor .ProseMirror > p:hover,
+.rich-doc-editor .ProseMirror > h1:hover,
+.rich-doc-editor .ProseMirror > h2:hover,
+.rich-doc-editor .ProseMirror > h3:hover,
+.rich-doc-editor .ProseMirror > h4:hover,
+.rich-doc-editor .ProseMirror > h5:hover,
+.rich-doc-editor .ProseMirror > h6:hover,
+.rich-doc-editor .ProseMirror > ul:hover,
+.rich-doc-editor .ProseMirror > ol:hover,
+.rich-doc-editor .ProseMirror > blockquote:hover,
+.rich-doc-editor .ProseMirror > pre:hover,
+.rich-doc-editor .ProseMirror > table:hover,
+.rich-doc-editor .ProseMirror > hr:hover,
+.rich-doc-editor .ProseMirror > .image-wrapper:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  transition: all 0.15s ease;
+}
+
+/* Enhanced focus states */
+.ProseMirror:focus-within {
+  outline: none;
+}
+
+.ProseMirror > *:focus-within {
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
 :root {
   --background: hsl(0 0% 100%);
   --foreground: hsl(210 25% 7.8431%);
