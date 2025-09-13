@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,7 +92,7 @@ export function RichTextEditor({
     if (value !== undefined && value !== content) {
       setContent(value);
     }
-  }, [value]);
+  }, [value, content]);
   
   // Load images from initialPages
   useEffect(() => {
@@ -105,41 +105,51 @@ export function RichTextEditor({
   
   // Call onChange when content changes
   const lastContentRef = useRef<string>('');
-  useEffect(() => {
-    if (onChange && content !== lastContentRef.current) {
-      lastContentRef.current = content;
-      const htmlContent = formatMarkdownToHTML(content);
+  const onChangeCallback = useCallback((htmlContent: string) => {
+    if (onChange) {
       onChange(htmlContent);
     }
-  }, [content, onChange]);
+  }, [onChange]);
+  
+  useEffect(() => {
+    if (content !== lastContentRef.current) {
+      lastContentRef.current = content;
+      const htmlContent = formatMarkdownToHTML(content);
+      onChangeCallback(htmlContent);
+    }
+  }, [content, onChangeCallback]);
   
   // Remove automatic page breaks since we now use separate pages
   // (This functionality is no longer needed)
   
   // Call onPagesChange when content or images change
   const lastPagesRef = useRef<string>('');
-  useEffect(() => {
+  const onPagesChangeCallback = useCallback((pagesData: any[]) => {
     if (onPagesChange) {
-      const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
-      if (pagesKey !== lastPagesRef.current) {
-        lastPagesRef.current = pagesKey;
-        
-        // Split content by page breaks
-        const pageBreakMarker = '--- SIDBRYTNING ---';
-        const contentParts = content.split(pageBreakMarker);
-        
-        const pagesData = contentParts.map((pageContent, index) => ({
-          id: `page-${index}`,
-          content: formatMarkdownToHTML(pageContent.trim()),
-          imagesAbove: index === 0 ? images.above : [], // Only first page gets images above
-          imagesBelow: index === contentParts.length - 1 ? images.below : [], // Only last page gets images below
-          questions: [] // Initialize empty questions array for each page
-        }));
-        
-        onPagesChange(pagesData);
-      }
+      onPagesChange(pagesData);
     }
-  }, [content, images, onPagesChange]);
+  }, [onPagesChange]);
+  
+  useEffect(() => {
+    const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
+    if (pagesKey !== lastPagesRef.current) {
+      lastPagesRef.current = pagesKey;
+      
+      // Split content by page breaks
+      const pageBreakMarker = '--- SIDBRYTNING ---';
+      const contentParts = content.split(pageBreakMarker);
+      
+      const pagesData = contentParts.map((pageContent, index) => ({
+        id: `page-${index}`,
+        content: formatMarkdownToHTML(pageContent.trim()),
+        imagesAbove: index === 0 ? images.above : [], // Only first page gets images above
+        imagesBelow: index === contentParts.length - 1 ? images.below : [], // Only last page gets images below
+        questions: [] // Initialize empty questions array for each page
+      }));
+      
+      onPagesChangeCallback(pagesData);
+    }
+  }, [content, images, onPagesChangeCallback]);
   
   // Helper function for formatting
   const insertMarkdown = (prefix: string, suffix: string = '', placeholder: string = '') => {
