@@ -34,20 +34,22 @@ import {
   EyeOff
 } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { ReadingQuestion, ReadingLesson, WordDefinition as SchemaWordDefinition } from "@shared/schema";
+import type { ReadingQuestion, ReadingLesson as SchemaReadingLesson, WordDefinition as SchemaWordDefinition } from "@shared/schema";
 
 interface WordDefinition {
-  id: string;
+  id?: string; // Make id optional to match schema
   word: string;
   definition: string;
+  context?: string; // Add context to match schema
 }
 
 interface Question {
   id: string;
-  type: 'multiple-choice' | 'true-false' | 'open';
+  type: 'multiple-choice' | 'multiple_choice' | 'true-false' | 'true_false' | 'open' | 'open_ended';
   question: string;
   alternatives?: string[];
-  correctAnswer?: string | number;
+  options?: string[]; // for legacy support
+  correctAnswer?: string | number | boolean;
   explanation?: string;
   pageNumber?: number;
 }
@@ -55,22 +57,23 @@ interface Question {
 interface PreReadingQuestion {
   id: string;
   question: string;
+  purpose: string;
 }
 
-interface ReadingLesson {
+interface LocalReadingLesson {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   gradeLevel: string;
-  subject: string;
-  readingTime: number;
+  subject: string | null;
+  readingTime: number | null;
   content: string;
-  featuredImage?: string;
+  featuredImage?: string | null;
   preReadingQuestions: PreReadingQuestion[];
   questions: Question[];
   wordDefinitions: WordDefinition[];
   isPublished: boolean;
-  createdAt: string;
+  createdAt: string | Date | null;
 }
 
 export default function ReadingLessonBuilder() {
@@ -80,7 +83,7 @@ export default function ReadingLessonBuilder() {
   const lessonId = params?.id;
   
   // Main lesson state
-  const [editingLesson, setEditingLesson] = useState<ReadingLesson | null>(null);
+  const [editingLesson, setEditingLesson] = useState<LocalReadingLesson | null>(null);
   const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
@@ -94,7 +97,7 @@ export default function ReadingLessonBuilder() {
     type: 'multiple-choice' as Question['type'],
     question: '',
     alternatives: ['', '', '', ''],
-    correctAnswer: 0,
+    correctAnswer: 0 as number | boolean,
     explanation: '',
     pageNumber: 1
   });
@@ -114,7 +117,7 @@ export default function ReadingLessonBuilder() {
   });
 
   // Fetch the specific lesson based on URL parameter
-  const { data: lesson, isLoading } = useQuery<ReadingLesson>({
+  const { data: lesson, isLoading } = useQuery<SchemaReadingLesson>({
     queryKey: ["/api/reading-lessons", lessonId],
     enabled: !!lessonId,
   });
@@ -128,7 +131,16 @@ export default function ReadingLessonBuilder() {
       
       setEditingLesson({
         ...lesson,
-        questions: lesson.questions || [] // Keep only global questions
+        isPublished: Boolean(lesson.isPublished), // Convert number to boolean
+        questions: (lesson.questions || []).map(q => ({
+          ...q,
+          // Ensure alternatives is set for compatibility
+          alternatives: q.alternatives || q.options
+        })), // Keep only global questions
+        wordDefinitions: (lesson.wordDefinitions || []).map((w, index) => ({
+          ...w,
+          id: `wd-${index}-${Date.now()}` // Generate consistent id for local use
+        }))
       });
       
       const numberOfPages = (lesson as any)?.numberOfPages || 1;
@@ -156,7 +168,7 @@ export default function ReadingLessonBuilder() {
         subject: lesson.subject || 'Svenska',
         readingTime: lesson.readingTime || 10,
         featuredImage: lesson.featuredImage || '',
-        isPublished: lesson.isPublished === 1,
+        isPublished: Boolean(lesson.isPublished),
         numberOfPages: numberOfPages
       });
     }
@@ -191,7 +203,7 @@ export default function ReadingLessonBuilder() {
 
   // Update lesson mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ id, lesson }: { id: string, lesson: Partial<ReadingLesson> }) => {
+    mutationFn: async ({ id, lesson }: { id: string, lesson: Partial<SchemaReadingLesson> }) => {
       return apiRequest('PUT', `/api/reading-lessons/${id}`, lesson);
     },
     onSuccess: (updatedLesson) => {
@@ -288,7 +300,7 @@ export default function ReadingLessonBuilder() {
         wordDefinitions: editingLesson.wordDefinitions ?? [],
         isPublished: newLessonForm.isPublished ? 1 : 0, // Convert boolean to number
         numberOfPages: newLessonForm.numberOfPages
-      } as Partial<ReadingLesson>
+      } as Partial<SchemaReadingLesson>
     });
   };
 
@@ -347,7 +359,8 @@ export default function ReadingLessonBuilder() {
     
     const question: PreReadingQuestion = {
       id: Date.now().toString(),
-      question: newPreReadingQuestion.trim()
+      question: newPreReadingQuestion.trim(),
+      purpose: 'Förbered läsningen' // Default purpose
     };
 
     setEditingLesson({
@@ -378,11 +391,11 @@ export default function ReadingLessonBuilder() {
     });
   };
 
-  const removeWordDefinition = (id: string) => {
-    if (!editingLesson) return;
+  const removeWordDefinition = (id: string | undefined) => {
+    if (!editingLesson || !id) return;
     setEditingLesson({
       ...editingLesson,
-      wordDefinitions: editingLesson.wordDefinitions.filter(w => w.id !== id)
+      wordDefinitions: editingLesson.wordDefinitions.filter(w => (w.id || w.word) !== id)
     });
   };
 
@@ -549,10 +562,14 @@ export default function ReadingLessonBuilder() {
     }));
 
     // Save immediately with ALL form data including featuredImage
-    const updatedLesson = {
-      ...editingLesson,
-      ...newLessonForm,
-      isPublished: newPublishStatus
+    const updatedLesson: Partial<SchemaReadingLesson> = {
+      title: newLessonForm.title,
+      description: newLessonForm.description,
+      gradeLevel: newLessonForm.gradeLevel,
+      subject: newLessonForm.subject,
+      readingTime: newLessonForm.readingTime,
+      featuredImage: newLessonForm.featuredImage,
+      isPublished: newPublishStatus ? 1 : 0 // Convert boolean to number
     };
 
     updateMutation.mutate({ 
@@ -795,6 +812,29 @@ export default function ReadingLessonBuilder() {
                                   return updated;
                                 });
                               }}
+                              onPagesChange={(pages) => {
+                                // Update the current page with image data from RichTextEditor
+                                if (pages.length > 0) {
+                                  const pageData = pages[0]; // RichTextEditor returns single page data
+                                  setLocalPages(prev => {
+                                    const updated = [...prev];
+                                    updated[currentPageIndex] = {
+                                      ...updated[currentPageIndex],
+                                      content: pageData.content,
+                                      imagesAbove: pageData.imagesAbove || [],
+                                      imagesBelow: pageData.imagesBelow || []
+                                    };
+                                    return updated;
+                                  });
+                                }
+                              }}
+                              initialPages={[{
+                                id: `page-${currentPageIndex}`,
+                                content: localPages[currentPageIndex].content || '',
+                                imagesAbove: localPages[currentPageIndex].imagesAbove || [],
+                                imagesBelow: localPages[currentPageIndex].imagesBelow || []
+                              }]}
+                              numberOfPages={1}
                               placeholder={`Skriv innehållet för sida ${currentPageIndex + 1} här...`}
                             />
                           )}
@@ -946,7 +986,7 @@ export default function ReadingLessonBuilder() {
                                 <Label>Rätt svar</Label>
                                 <Select 
                                   value={String(newQuestionForm.correctAnswer)} 
-                                  onValueChange={(value) => setNewQuestionForm(prev => ({ ...prev, correctAnswer: value === 'true' }))}
+                                  onValueChange={(value) => setNewQuestionForm(prev => ({ ...prev, correctAnswer: value === 'true' ? true : false }))}
                                 >
                                   <SelectTrigger data-testid="select-reading-true-false">
                                     <SelectValue />
@@ -1312,14 +1352,14 @@ export default function ReadingLessonBuilder() {
                         
                         <div className="space-y-2">
                           {editingLesson?.wordDefinitions?.map((def) => (
-                            <div key={def.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <div key={def.id || def.word} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                               <span className="font-medium">{def.word}:</span>
                               <span className="flex-1">{def.definition}</span>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeWordDefinition(def.id)}
-                                data-testid={`button-remove-definition-${def.id}`}
+                                onClick={() => removeWordDefinition(def.id || def.word)}
+                                data-testid={`button-remove-definition-${def.id || def.word}`}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -1533,7 +1573,7 @@ export default function ReadingLessonBuilder() {
               <div 
                 className="prose max-w-none"
                 dangerouslySetInnerHTML={{ 
-                  __html: currentEditorContent 
+                  __html: editingLesson.content || '' 
                 }}
               />
               
