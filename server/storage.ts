@@ -99,6 +99,9 @@ export class MemStorage implements IStorage {
   private publishedLessons: Map<string, PublishedLesson> = new Map();
   private lessonDrafts: Map<string, LessonDraft> = new Map();
   private readingLessons: Map<string, ReadingLesson> = new Map();
+  private klassKampGames: Map<string, KlassKampGame> = new Map();
+  private klassKampPlayers: Map<string, KlassKampPlayer> = new Map();
+  private klassKampAnswers: Map<string, KlassKampAnswer> = new Map();
 
   constructor() {
     this.gameProgress = this.createEmptyProgress();
@@ -242,7 +245,13 @@ export class MemStorage implements IStorage {
   // Admin methods for sentences
   async createSentence(sentence: InsertSentence): Promise<Sentence> {
     const id = randomUUID();
-    const newSentence = { ...sentence, id };
+    const newSentence: Sentence = { 
+      ...sentence, 
+      id,
+      level: sentence.level || 1,
+      wordClassType: sentence.wordClassType || null,
+      words: sentence.words as Word[]
+    };
     this.sentences.set(id, newSentence);
     return newSentence;
   }
@@ -250,7 +259,11 @@ export class MemStorage implements IStorage {
   async updateSentence(id: string, sentence: Partial<InsertSentence>): Promise<Sentence> {
     const existing = this.sentences.get(id);
     if (!existing) throw new Error("Sentence not found");
-    const updated = { ...existing, ...sentence };
+    const updated: Sentence = { 
+      ...existing, 
+      ...sentence,
+      words: sentence.words ? (sentence.words as Word[]) : existing.words
+    };
     this.sentences.set(id, updated);
     return updated;
   }
@@ -391,9 +404,12 @@ export class MemStorage implements IStorage {
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
       featuredImage: lesson.featuredImage || null,
-      preReadingQuestions: lesson.preReadingQuestions || [],
-      questions: lesson.questions || [],
-      wordDefinitions: lesson.wordDefinitions || [],
+      preReadingQuestions: (lesson.preReadingQuestions || []) as PreReadingQuestion[],
+      questions: (lesson.questions || []) as ReadingQuestion[],
+      wordDefinitions: (lesson.wordDefinitions || []) as WordDefinition[],
+      pages: (lesson.pages || []) as LegacyPage[],
+      richPages: (lesson.richPages || []) as RichPage[],
+      migrated: lesson.migrated || false,
       isPublished: lesson.isPublished || 0
     };
     this.readingLessons.set(id, newLesson);
@@ -420,9 +436,12 @@ export class MemStorage implements IStorage {
       ...lesson, 
       updatedAt: new Date(),
       featuredImage: lesson.featuredImage !== undefined ? lesson.featuredImage : existing.featuredImage,
-      preReadingQuestions: lesson.preReadingQuestions || existing.preReadingQuestions as PreReadingQuestion[],
-      questions: lesson.questions || existing.questions as ReadingQuestion[],
-      wordDefinitions: lesson.wordDefinitions || existing.wordDefinitions as WordDefinition[]
+      preReadingQuestions: (lesson.preReadingQuestions || existing.preReadingQuestions) as PreReadingQuestion[],
+      questions: (lesson.questions || existing.questions) as ReadingQuestion[],
+      wordDefinitions: (lesson.wordDefinitions || existing.wordDefinitions) as WordDefinition[],
+      pages: lesson.pages !== undefined ? (lesson.pages as LegacyPage[]) : existing.pages,
+      richPages: lesson.richPages !== undefined ? (lesson.richPages as RichPage[]) : existing.richPages,
+      migrated: lesson.migrated !== undefined ? lesson.migrated : existing.migrated
     };
     this.readingLessons.set(id, updated);
     return updated;
@@ -434,6 +453,79 @@ export class MemStorage implements IStorage {
 
   async getPublishedReadingLessons(): Promise<ReadingLesson[]> {
     return Array.from(this.readingLessons.values()).filter(l => l.isPublished === 1);
+  }
+
+  // KlassKamp methods
+  async createKlassKampGame(game: InsertKlassKampGame): Promise<KlassKampGame> {
+    const id = randomUUID();
+    const newGame: KlassKampGame = {
+      ...game,
+      id,
+      status: game.status || "waiting",
+      wordClassId: game.wordClassId || null,
+      currentQuestionIndex: game.currentQuestionIndex || null,
+      questionCount: game.questionCount || null,
+      createdAt: new Date(),
+      startedAt: null,
+      finishedAt: null
+    };
+    this.klassKampGames.set(id, newGame);
+    return newGame;
+  }
+
+  async getKlassKampGameByCode(code: string): Promise<KlassKampGame | undefined> {
+    return Array.from(this.klassKampGames.values()).find(g => g.code === code);
+  }
+
+  async updateKlassKampGame(id: string, game: Partial<InsertKlassKampGame>): Promise<KlassKampGame> {
+    const existing = this.klassKampGames.get(id);
+    if (!existing) throw new Error("KlassKamp game not found");
+    const updated = { ...existing, ...game };
+    this.klassKampGames.set(id, updated);
+    return updated;
+  }
+
+  async addKlassKampPlayer(player: InsertKlassKampPlayer): Promise<KlassKampPlayer> {
+    const id = randomUUID();
+    const newPlayer: KlassKampPlayer = {
+      ...player,
+      id,
+      score: player.score || null,
+      correctAnswers: player.correctAnswers || null,
+      isConnected: player.isConnected || null,
+      joinedAt: new Date()
+    };
+    this.klassKampPlayers.set(id, newPlayer);
+    return newPlayer;
+  }
+
+  async getKlassKampPlayers(gameId: string): Promise<KlassKampPlayer[]> {
+    return Array.from(this.klassKampPlayers.values()).filter(p => p.gameId === gameId);
+  }
+
+  async updateKlassKampPlayer(id: string, player: Partial<InsertKlassKampPlayer>): Promise<KlassKampPlayer> {
+    const existing = this.klassKampPlayers.get(id);
+    if (!existing) throw new Error("KlassKamp player not found");
+    const updated = { ...existing, ...player };
+    this.klassKampPlayers.set(id, updated);
+    return updated;
+  }
+
+  async addKlassKampAnswer(answer: InsertKlassKampAnswer): Promise<KlassKampAnswer> {
+    const id = randomUUID();
+    const newAnswer: KlassKampAnswer = {
+      ...answer,
+      id,
+      selectedWords: answer.selectedWords ? (answer.selectedWords as string[]) : null,
+      points: answer.points || null,
+      answeredAt: new Date()
+    };
+    this.klassKampAnswers.set(id, newAnswer);
+    return newAnswer;
+  }
+
+  async getSentencesByWordClass(wordClassId: string): Promise<Sentence[]> {
+    return Array.from(this.sentences.values()).filter(s => s.wordClassType === wordClassId);
   }
 }
 
@@ -574,7 +666,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSentence(sentence: InsertSentence): Promise<Sentence> {
-    const result = await db.insert(sentences).values(sentence).returning();
+    const sentenceData = {
+      ...sentence,
+      words: sentence.words as Word[]
+    };
+    const result = await db.insert(sentences).values(sentenceData).returning();
     return result[0];
   }
 
@@ -582,9 +678,13 @@ export class DatabaseStorage implements IStorage {
     id: string,
     sentence: Partial<InsertSentence>,
   ): Promise<Sentence> {
+    const updateData: any = { ...sentence };
+    if (sentence.words) {
+      updateData.words = sentence.words as Word[];
+    }
     const result = await db
       .update(sentences)
-      .set(sentence)
+      .set(updateData)
       .where(eq(sentences.id, id))
       .returning();
     return result[0];
@@ -684,7 +784,15 @@ export class DatabaseStorage implements IStorage {
 
   // Reading lesson methods
   async createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson> {
-    const [newLesson] = await db.insert(readingLessons).values(lesson).returning();
+    const lessonData = {
+      ...lesson,
+      preReadingQuestions: (lesson.preReadingQuestions || []) as any[],
+      questions: (lesson.questions || []) as any[],
+      wordDefinitions: (lesson.wordDefinitions || []) as any[],
+      pages: (lesson.pages || []) as any[],
+      richPages: (lesson.richPages || []) as any[]
+    };
+    const [newLesson] = await db.insert(readingLessons).values(lessonData).returning();
     return newLesson;
   }
 
@@ -801,7 +909,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addKlassKampAnswer(answer: InsertKlassKampAnswer): Promise<KlassKampAnswer> {
-    const [result] = await db.insert(klassKampAnswers).values(answer).returning();
+    const answerData = {
+      ...answer,
+      selectedWords: answer.selectedWords ? (answer.selectedWords as string[]) : null
+    };
+    const [result] = await db.insert(klassKampAnswers).values(answerData).returning();
     return result;
   }
 

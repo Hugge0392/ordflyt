@@ -371,13 +371,48 @@ export const insertLessonDraftSchema = createInsertSchema(lessonDrafts).omit({
 export type LessonDraft = typeof lessonDrafts.$inferSelect;
 export type InsertLessonDraft = z.infer<typeof insertLessonDraftSchema>;
 
+// Rich document types for ProseMirror format
+export interface RichDoc {
+  type: string;
+  content?: any[];
+  attrs?: Record<string, any>;
+}
+
+export interface RichPage {
+  id: string;
+  doc: RichDoc; // ProseMirror JSON document
+  meta?: {
+    wordCount?: number;
+  };
+}
+
+// Legacy page format for backward compatibility
+export interface LegacyPage {
+  id: string;
+  content: string;
+  imagesAbove?: string[];
+  imagesBelow?: string[];
+  questions?: ReadingQuestion[];
+}
+
 // Reading comprehension lessons table
 export const readingLessons = pgTable("reading_lessons", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: varchar("title").notNull(),
   description: text("description"),
+  
+  // Legacy content field - kept for backward compatibility
   content: text("content").notNull(), // The main text content (can include HTML for rich formatting)
-  pages: jsonb("pages").$type<{id: string, content: string, imagesAbove?: string[], imagesBelow?: string[], questions?: ReadingQuestion[]}[]>().default([]), // For paginated content with images and questions per page
+  
+  // Updated pages field - supports both legacy and rich document formats
+  pages: jsonb("pages").$type<RichPage[] | LegacyPage[]>().default([]), // Rich document pages or legacy pages
+  
+  // Rich document pages - new format with ProseMirror JSON
+  richPages: jsonb("rich_pages").$type<RichPage[]>().default([]), // Array of rich document pages
+  
+  // Migration tracking
+  migrated: boolean("migrated").default(false), // Track if content has been migrated to rich format
+  
   featuredImage: text("featured_image"), // URL to featured/header image
 
   gradeLevel: varchar("grade_level").notNull(), // e.g. "4-6", "7-9" 
