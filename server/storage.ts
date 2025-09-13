@@ -79,6 +79,15 @@ export interface IStorage {
   updateReadingLesson(id: string, lesson: Partial<InsertReadingLesson>): Promise<ReadingLesson>;
   deleteReadingLesson(id: string): Promise<void>;
   getPublishedReadingLessons(): Promise<ReadingLesson[]>;
+  
+  // Migration methods
+  getUnmigratedReadingLessons(): Promise<ReadingLesson[]>;
+  getMigratedReadingLessons(): Promise<ReadingLesson[]>;
+  getMigrationStatistics(): Promise<{
+    total: number;
+    migrated: number;
+    unmigrated: number;
+  }>;
 
   // KlassKamp methods
   createKlassKampGame(game: InsertKlassKampGame): Promise<KlassKampGame>;
@@ -527,6 +536,31 @@ export class MemStorage implements IStorage {
   async getSentencesByWordClass(wordClassId: string): Promise<Sentence[]> {
     return Array.from(this.sentences.values()).filter(s => s.wordClassType === wordClassId);
   }
+
+  // Migration methods implementation for MemStorage
+  async getUnmigratedReadingLessons(): Promise<ReadingLesson[]> {
+    return Array.from(this.readingLessons.values()).filter(lesson => !lesson.migrated);
+  }
+
+  async getMigratedReadingLessons(): Promise<ReadingLesson[]> {
+    return Array.from(this.readingLessons.values()).filter(lesson => lesson.migrated);
+  }
+
+  async getMigrationStatistics(): Promise<{
+    total: number;
+    migrated: number;
+    unmigrated: number;
+  }> {
+    const allLessons = Array.from(this.readingLessons.values());
+    const migrated = allLessons.filter(lesson => lesson.migrated);
+    const unmigrated = allLessons.filter(lesson => !lesson.migrated);
+    
+    return {
+      total: allLessons.length,
+      migrated: migrated.length,
+      unmigrated: unmigrated.length
+    };
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -869,6 +903,31 @@ export class DatabaseStorage implements IStorage {
 
   async getPublishedReadingLessons(): Promise<ReadingLesson[]> {
     return await db.select().from(readingLessons).where(eq(readingLessons.isPublished, 1));
+  }
+
+  // Migration methods implementation
+  async getUnmigratedReadingLessons(): Promise<ReadingLesson[]> {
+    return await db.select().from(readingLessons).where(eq(readingLessons.migrated, false));
+  }
+
+  async getMigratedReadingLessons(): Promise<ReadingLesson[]> {
+    return await db.select().from(readingLessons).where(eq(readingLessons.migrated, true));
+  }
+
+  async getMigrationStatistics(): Promise<{
+    total: number;
+    migrated: number;
+    unmigrated: number;
+  }> {
+    const total = await db.select().from(readingLessons);
+    const migrated = await db.select().from(readingLessons).where(eq(readingLessons.migrated, true));
+    const unmigrated = await db.select().from(readingLessons).where(eq(readingLessons.migrated, false));
+    
+    return {
+      total: total.length,
+      migrated: migrated.length,
+      unmigrated: unmigrated.length
+    };
   }
 
   // KlassKamp methods implementation

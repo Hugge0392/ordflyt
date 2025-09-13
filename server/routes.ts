@@ -24,6 +24,7 @@ import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema } from "@shared/schema";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ttsService } from "./ttsService";
+import { registerMigrationRoutes } from "./migration/migrationRoutes";
 
 const updateProgressSchema = z.object({
   score: z.number().optional(),
@@ -988,6 +989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get available voices" });
     }
   });
+
+  // Register migration routes
+  registerMigrationRoutes(app);
 
   const httpServer = createServer(app);
   
