@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import Cropper from 'react-easy-crop';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
@@ -187,6 +187,9 @@ export function ImageCropDialog({ isOpen, onClose, imageUrl, onCropComplete }: I
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Beskär bild</DialogTitle>
+          <DialogDescription>
+            Justera proportioner och zoom för att beskära bilden som önskas. Klicka "Beskär och spara" när du är nöjd.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

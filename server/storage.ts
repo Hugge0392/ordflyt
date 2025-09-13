@@ -23,6 +23,8 @@ import {
   type PreReadingQuestion,
   type ReadingQuestion,
   type WordDefinition,
+  type LegacyPage,
+  type RichPage,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -413,6 +415,7 @@ export class MemStorage implements IStorage {
       subject: lesson.subject || null,
       readingTime: lesson.readingTime || null,
       featuredImage: lesson.featuredImage || null,
+      numberOfPages: lesson.numberOfPages ?? 1,
       preReadingQuestions: (lesson.preReadingQuestions || []) as PreReadingQuestion[],
       questions: (lesson.questions || []) as ReadingQuestion[],
       wordDefinitions: (lesson.wordDefinitions || []) as WordDefinition[],
@@ -789,9 +792,29 @@ export class DatabaseStorage implements IStorage {
     await db.delete(publishedLessons).where(eq(publishedLessons.id, id));
   }
 
+  // Helper function to convert timestamp strings to Date objects
+  private convertTimestamps(data: any): any {
+    const result = { ...data };
+    
+    // Convert common timestamp fields that might come as strings from frontend
+    if (result.createdAt && typeof result.createdAt === 'string') {
+      result.createdAt = new Date(result.createdAt);
+    }
+    if (result.updatedAt && typeof result.updatedAt === 'string') {
+      result.updatedAt = new Date(result.updatedAt);
+    }
+    
+    return result;
+  }
+
   // Draft lesson methods
   async createLessonDraft(draft: InsertLessonDraft): Promise<LessonDraft> {
-    const [newDraft] = await db.insert(lessonDrafts).values(draft).returning();
+    const draftData = this.convertTimestamps({
+      ...draft,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const [newDraft] = await db.insert(lessonDrafts).values(draftData).returning();
     return newDraft;
   }
 
@@ -805,8 +828,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft> {
+    const updateData = this.convertTimestamps({
+      ...draft,
+      updatedAt: new Date()
+    });
     const [updatedDraft] = await db.update(lessonDrafts)
-      .set({ ...draft, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(lessonDrafts.id, id))
       .returning();
     return updatedDraft;

@@ -1,6 +1,5 @@
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Underline } from '@tiptap/extension-underline';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Placeholder } from '@tiptap/extension-placeholder';
@@ -8,8 +7,6 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
-import { Dropcursor } from '@tiptap/extension-dropcursor';
-import { Gapcursor } from '@tiptap/extension-gapcursor';
 import { ImageExtension } from './extensions/ImageExtension';
 import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -44,7 +41,6 @@ export function RichDocEditor({
           keepAttributes: false,
         },
       }),
-      Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
@@ -65,8 +61,6 @@ export function RichDocEditor({
       TableRow,
       TableHeader,
       TableCell,
-      Dropcursor,
-      Gapcursor,
       ImageExtension,
     ],
     content: content || {
