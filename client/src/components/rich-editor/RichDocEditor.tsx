@@ -10,12 +10,14 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { Dropcursor } from '@tiptap/extension-dropcursor';
 import { Gapcursor } from '@tiptap/extension-gapcursor';
+import { ImageExtension } from './extensions/ImageExtension';
 import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { EditorToolbar } from './EditorToolbar.tsx';
 import { SlashMenu } from './SlashMenu.tsx';
 import { RichDocEditorProps } from './types.ts';
 import { Button } from '@/components/ui/button';
+import { useImageUpload } from './components/ImageUploadHandler';
 // Icons imported from lucide-react for future use
 
 export function RichDocEditor({
@@ -28,6 +30,7 @@ export function RichDocEditor({
 }: RichDocEditorProps) {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ x: 0, y: 0 });
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -64,6 +67,7 @@ export function RichDocEditor({
       TableCell,
       Dropcursor,
       Gapcursor,
+      ImageExtension,
     ],
     content: content || {
       type: 'doc',
@@ -115,6 +119,41 @@ export function RichDocEditor({
     setShowSlashMenu(false);
   }, []);
 
+  // Image upload functionality
+  const { dragHandlers } = useImageUpload(editor);
+
+  // Enhanced drag handlers with visual feedback
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true);
+    }
+    dragHandlers.onDragEnter(e.nativeEvent as DragEvent);
+  }, [dragHandlers]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only hide overlay if we're leaving the editor completely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragHandlers.onDragOver(e.nativeEvent as DragEvent);
+  }, [dragHandlers]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    dragHandlers.onDrop(e.nativeEvent as DragEvent);
+  }, [dragHandlers]);
+
   if (!editor) {
     return (
       <div className={cn("border rounded-lg p-4", className)}>
@@ -131,11 +170,31 @@ export function RichDocEditor({
       {/* Fixed Toolbar */}
       <EditorToolbar editor={editor} />
       
-      {/* Editor Content */}
-      <div className="relative">
+      {/* Editor Content with Drag & Drop */}
+      <div 
+        className="relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drag Over Overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-400 rounded-lg z-10 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-blue-600 dark:text-blue-400 font-medium mb-1">
+                Släpp bilden här
+              </div>
+              <div className="text-sm text-blue-500 dark:text-blue-300">
+                Bilden kommer att laddas upp och infogas
+              </div>
+            </div>
+          </div>
+        )}
+
         <EditorContent
           editor={editor}
-          className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-6 min-h-[400px] focus-within:outline-none"
+          className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-6 min-h-[400px] focus-within:outline-none rich-doc-editor"
           style={{
             '--tw-prose-body': 'rgb(55 65 81)',
             '--tw-prose-headings': 'rgb(17 24 39)',

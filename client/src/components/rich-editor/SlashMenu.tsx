@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SlashMenuProps } from './types';
+import { useImageUpload } from './components/ImageUploadHandler';
 import {
   Type,
   Heading1,
@@ -13,7 +14,8 @@ import {
   Table,
   Minus,
   Code,
-  Hash
+  Hash,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +32,7 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { openFileDialog, UploadDialog } = useImageUpload(editor);
 
   const commands: MenuCommand[] = [
     {
@@ -130,6 +133,17 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
         onHide();
       },
       searchTerms: ['table', 'grid', 'tabell']
+    },
+    {
+      id: 'image',
+      title: 'Bild',
+      description: 'Infoga en bild',
+      icon: ImageIcon,
+      command: () => {
+        openFileDialog();
+        onHide();
+      },
+      searchTerms: ['image', 'picture', 'photo', 'bild', 'foto']
     },
     {
       id: 'divider',
@@ -282,6 +296,9 @@ export function SlashMenu({ editor, show, position, onHide }: SlashMenuProps) {
           ↑↓ för att navigera • Enter för att välja • Esc för att stänga
         </div>
       </Card>
+      
+      {/* Upload Dialog */}
+      <UploadDialog />
     </div>
   );
 }

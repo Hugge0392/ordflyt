@@ -18,7 +18,8 @@ import {
   Redo,
   Table,
   Type,
-  Minus
+  Minus,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToolbarProps } from './types';
@@ -30,9 +31,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
+import { useImageUpload } from './components/ImageUploadHandler';
 
 export function EditorToolbar({ editor }: ToolbarProps) {
   const [linkUrl, setLinkUrl] = useState('');
+  const { openFileDialog, isUploading, UploadDialog } = useImageUpload(editor);
 
   if (!editor) {
     return null;
@@ -386,8 +389,23 @@ export function EditorToolbar({ editor }: ToolbarProps) {
         >
           <Table className="h-4 w-4" />
         </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={openFileDialog}
+          className="h-8 w-8 p-0"
+          title="Infoga bild"
+          disabled={isUploading}
+          data-testid="toolbar-image"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
         
       </div>
+      
+      {/* Upload Dialog */}
+      <UploadDialog />
     </div>
   );
 }
