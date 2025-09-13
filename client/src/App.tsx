@@ -41,6 +41,7 @@ import KlassKampPlayPage from "@/pages/klasskamp-play";
 import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RichEditorTest from "@/pages/rich-editor-test";
 
 function Router() {
   return (
@@ -94,6 +95,9 @@ function Router() {
       <Route path="/klasskamp/host/:code" component={KlassKampHostPage} />
       <Route path="/klasskamp/play/:code" component={KlassKampPlayPage} />
       <Route path="/spela" component={SpelaPage} />
+      
+      {/* Rich Editor Test Route */}
+      <Route path="/rich-editor-test" component={RichEditorTest} />
       
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">
