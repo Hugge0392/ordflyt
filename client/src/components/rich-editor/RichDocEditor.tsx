@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import { ImageExtension } from './extensions/ImageExtension';
+import { KeyboardNavigation } from './extensions/KeyboardNavigation';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { EditorToolbar } from './EditorToolbar.tsx';
@@ -149,6 +150,12 @@ export function RichDocEditor({
       }),
       BlockNormalization,
       ImageExtension,
+      KeyboardNavigation.configure({
+        enableArrowNavigation: true,
+        enableEnterHandling: true,
+        enableEscapeHandling: true,
+        enableBlockShortcuts: true,
+      }),
     ],
     content: content || {
       type: 'doc',
