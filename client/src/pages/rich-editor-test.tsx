@@ -12,14 +12,14 @@ export default function RichEditorTest() {
       {
         type: 'heading',
         attrs: { level: 1 },
-        content: [{ type: 'text', text: 'Välkommen till den nya editorn!' }]
+        content: [{ type: 'text', text: 'Välkommen till den nya block-baserade editorn!' }]
       },
       {
         type: 'paragraph',
         content: [
           { type: 'text', text: 'Detta är en test av den nya ' },
-          { type: 'text', marks: [{ type: 'bold' }], text: 'RichDocEditor' },
-          { type: 'text', text: ' komponenten byggd med Tiptap.' }
+          { type: 'text', marks: [{ type: 'bold' }], text: 'block-baserade editorn' },
+          { type: 'text', text: ' med separata text- och bildblock.' }
         ]
       },
       {
@@ -36,11 +36,7 @@ export default function RichEditorTest() {
             content: [
               {
                 type: 'paragraph',
-                content: [
-                  { type: 'text', marks: [{ type: 'bold' }], text: 'Fetstil' },
-                  { type: 'text', text: ' och ' },
-                  { type: 'text', marks: [{ type: 'italic' }], text: 'kursiv' }
-                ]
+                content: [{ type: 'text', text: 'Separata textblock som är oberoende av bilder' }]
               }
             ]
           },
@@ -49,10 +45,7 @@ export default function RichEditorTest() {
             content: [
               {
                 type: 'paragraph',
-                content: [
-                  { type: 'text', text: 'Olika ' },
-                  { type: 'text', marks: [{ type: 'highlight' }], text: 'markeringar' }
-                ]
+                content: [{ type: 'text', text: 'Bildblock som inte läggs över texten' }]
               }
             ]
           },
@@ -61,19 +54,8 @@ export default function RichEditorTest() {
             content: [
               {
                 type: 'paragraph',
-                content: [{ type: 'text', text: 'Listor och rubriker' }]
+                content: [{ type: 'text', text: 'Lägg till nya block med plus-knappen' }]
               }
-            ]
-          }
-        ]
-      },
-      {
-        type: 'blockquote',
-        content: [
-          {
-            type: 'paragraph',
-            content: [
-              { type: 'text', text: 'Prova att skriva "/" för att öppna kommando-menyn!' }
             ]
           }
         ]
@@ -93,9 +75,9 @@ export default function RichEditorTest() {
         {/* Header */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">RichDocEditor Test</CardTitle>
+            <CardTitle className="text-2xl">Block-baserad Editor Test</CardTitle>
             <p className="text-gray-600 dark:text-gray-400">
-              Test den nya WYSIWYG-editorn med alla funktioner
+              Test den nya block-baserade editorn med separata text- och bildblock
             </p>
           </CardHeader>
         </Card>
@@ -105,9 +87,9 @@ export default function RichEditorTest() {
           {/* Editor */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Editor</CardTitle>
+              <CardTitle className="text-lg">Block Editor</CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Redigera innehållet här. Prova slash-kommandon med "/"
+                Använd "Lägg till block" för att lägga till nya text- eller bildblock
               </p>
             </CardHeader>
             <CardContent>
@@ -145,7 +127,7 @@ export default function RichEditorTest() {
               <div>
                 <CardTitle className="text-lg">JSON Data</CardTitle>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Rå JSON-data från editorn
+                  Rå JSON-data från editorn (konverterat från block-format)
                 </p>
               </div>
               <Button
@@ -174,21 +156,21 @@ export default function RichEditorTest() {
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div>
-                <h4 className="font-medium mb-2">Grundläggande formatering:</h4>
+                <h4 className="font-medium mb-2">Block-funktioner:</h4>
                 <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• Ctrl+B - Fetstil</li>
-                  <li>• Ctrl+I - Kursiv</li>
-                  <li>• Ctrl+U - Understrykning</li>
-                  <li>• Markera text för bubble menu</li>
+                  <li>• Klicka "Lägg till block" för att lägga till nya block</li>
+                  <li>• Välj "Textblock" eller "Bildblock" från menyn</li>
+                  <li>• Varje textblock har egen toolbar när det är fokuserat</li>
+                  <li>• Bildblock är helt separata från text</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium mb-2">Slash-kommandon:</h4>
+                <h4 className="font-medium mb-2">Text-formatering i textblock:</h4>
                 <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                  <li>• /heading - Rubriker</li>
-                  <li>• /quote - Citat</li>
-                  <li>• /list - Listor</li>
-                  <li>• /table - Tabell</li>
+                  <li>• Ctrl+B - Fetstil</li>
+                  <li>• Ctrl+I - Kursiv</li>
+                  <li>• Rubriker via dropdown i toolbar</li>
+                  <li>• Listor och citat via toolbar</li>
                 </ul>
               </div>
             </div>
