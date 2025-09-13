@@ -50,6 +50,8 @@ export const ImageExtension = Node.create<ImageOptions>({
   },
 
   draggable: true,
+  selectable: true,
+  atom: true, // Prevents splitting of the node
 
   addAttributes() {
     return {
@@ -128,11 +130,43 @@ export const ImageExtension = Node.create<ImageOptions>({
     return {
       setImage:
         (options) =>
-        ({ commands }) => {
-          return commands.insertContent({
-            type: this.name,
-            attrs: options,
-          });
+        ({ commands, state, chain }) => {
+          // Ensure we insert image as a separate block with paragraphs before/after
+          const { selection } = state;
+          const { $from } = selection;
+          
+          // Check if we're in an empty paragraph
+          const isEmptyParagraph = $from.parent.type.name === 'paragraph' && $from.parent.content.size === 0;
+          
+          if (isEmptyParagraph) {
+            // Replace empty paragraph with image and add paragraph after
+            return chain()
+              .insertContent({
+                type: this.name,
+                attrs: options,
+              })
+              .insertContent({
+                type: 'paragraph',
+                content: [],
+              })
+              .run();
+          } else {
+            // Insert image with paragraphs before and after
+            return chain()
+              .insertContent({
+                type: 'paragraph',
+                content: [],
+              })
+              .insertContent({
+                type: this.name,
+                attrs: options,
+              })
+              .insertContent({
+                type: 'paragraph',
+                content: [],
+              })
+              .run();
+          }
         },
     };
   },

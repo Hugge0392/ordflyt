@@ -21,10 +21,13 @@ export function ImageNode({ node, updateAttributes, selected, editor, deleteNode
     if (imageRef.current && !width && !height) {
       const img = imageRef.current;
       const handleLoad = () => {
-        updateAttributes({
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-        });
+        // Defer the update to avoid flushSync warnings
+        setTimeout(() => {
+          updateAttributes({
+            width: img.naturalWidth,
+            height: img.naturalHeight,
+          });
+        }, 0);
       };
       
       if (img.complete) {
@@ -51,9 +54,12 @@ export function ImageNode({ node, updateAttributes, selected, editor, deleteNode
         const newWidth = Math.max(100, Math.min(800, startWidth + deltaX));
         const newHeight = newWidth / aspectRatio;
 
-        updateAttributes({
-          width: Math.round(newWidth),
-          height: Math.round(newHeight),
+        // Use requestAnimationFrame to avoid flushSync warnings during drag
+        requestAnimationFrame(() => {
+          updateAttributes({
+            width: Math.round(newWidth),
+            height: Math.round(newHeight),
+          });
         });
       };
 
@@ -85,19 +91,24 @@ export function ImageNode({ node, updateAttributes, selected, editor, deleteNode
     setShowCaptionInput(false);
   };
 
-  const alignmentClass = {
+  type AlignType = 'left' | 'center' | 'right' | 'full';
+  
+  const alignmentClasses: Record<AlignType, string> = {
     left: 'justify-start',
     center: 'justify-center',
     right: 'justify-end',
     full: 'justify-center w-full',
-  }[align] || 'justify-center';
-
-  const imageWrapperClass = {
+  };
+  
+  const imageWrapperClasses: Record<AlignType, string> = {
     left: 'max-w-sm',
     center: 'max-w-2xl',
     right: 'max-w-sm ml-auto',
     full: 'w-full max-w-none',
-  }[align] || 'max-w-2xl';
+  };
+  
+  const alignmentClass = alignmentClasses[align as AlignType] || alignmentClasses.center;
+  const imageWrapperClass = imageWrapperClasses[align as AlignType] || imageWrapperClasses.center;
 
   return (
     <NodeViewWrapper

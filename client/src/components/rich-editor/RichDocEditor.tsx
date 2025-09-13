@@ -1,4 +1,7 @@
 import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Transaction } from '@tiptap/pm/state';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -7,6 +10,8 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
+import Gapcursor from '@tiptap/extension-gapcursor';
+import Dropcursor from '@tiptap/extension-dropcursor';
 import { ImageExtension } from './extensions/ImageExtension';
 import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -28,6 +33,69 @@ export function RichDocEditor({
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashMenuPosition, setSlashMenuPosition] = useState({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Block Normalization Extension - ensures paragraphs around images
+  const BlockNormalization = Extension.create({
+    name: 'blockNormalization',
+
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          key: new PluginKey('blockNormalization'),
+          appendTransaction(transactions: readonly Transaction[], oldState, newState) {
+            // Skip if no transactions that could affect structure
+            if (!transactions.some(tr => tr.docChanged)) return null;
+            
+            const tr = newState.tr;
+            let modified = false;
+            const addedPositions = new Set<number>();
+
+            try {
+              newState.doc.descendants((node, pos) => {
+                // If we find an image node
+                if (node.type.name === 'image') {
+                  const $pos = newState.doc.resolve(pos);
+                  
+                  // Only add paragraphs if we're in a context that allows them
+                  if ($pos.parent.type.name === 'doc' || $pos.parent.type.name === 'blockquote') {
+                    // Check if there's a paragraph before
+                    if ($pos.index() === 0 || $pos.nodeBefore?.type.name !== 'paragraph') {
+                      if (!addedPositions.has(pos)) {
+                        const paragraphBefore = newState.schema.nodes.paragraph.create();
+                        tr.insert(pos, paragraphBefore);
+                        addedPositions.add(pos);
+                        modified = true;
+                      }
+                    }
+                    
+                    // Check if there's a paragraph after (with position adjustment)
+                    const afterPos = pos + node.nodeSize;
+                    if (afterPos <= newState.doc.content.size) {
+                      const $afterPos = newState.doc.resolve(afterPos);
+                      if ($afterPos.index() === $afterPos.parent.childCount || $afterPos.nodeAfter?.type.name !== 'paragraph') {
+                        if (!addedPositions.has(afterPos)) {
+                          const paragraphAfter = newState.schema.nodes.paragraph.create();
+                          tr.insert(afterPos, paragraphAfter);
+                          addedPositions.add(afterPos);
+                          modified = true;
+                        }
+                      }
+                    }
+                  }
+                }
+              });
+            } catch (error) {
+              // If there's any error in the transformation, skip it to avoid schema violations
+              console.warn('BlockNormalization: Skipping transformation due to error:', error);
+              return null;
+            }
+
+            return modified ? tr : null;
+          },
+        }),
+      ];
+    },
+  });
 
   const editor = useEditor({
     extensions: [
@@ -61,6 +129,13 @@ export function RichDocEditor({
       TableRow,
       TableHeader,
       TableCell,
+      Gapcursor,
+      Dropcursor.configure({
+        color: '#3b82f6',
+        width: 2,
+        class: 'dropcursor',
+      }),
+      BlockNormalization,
       ImageExtension,
     ],
     content: content || {
@@ -74,6 +149,15 @@ export function RichDocEditor({
     },
     editable,
     autofocus: autoFocus,
+    editorProps: {
+      attributes: {
+        class: 'focus:outline-none prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none',
+        'data-testid': 'rich-editor-content',
+      },
+    },
+    parseOptions: {
+      preserveWhitespace: 'full',
+    },
     onUpdate: ({ editor }) => {
       if (onChange) {
         const json = editor.getJSON();
@@ -188,7 +272,7 @@ export function RichDocEditor({
 
         <EditorContent
           editor={editor}
-          className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-6 min-h-[400px] focus-within:outline-none rich-doc-editor"
+          className="p-6 min-h-[400px] focus-within:outline-none rich-doc-editor block-editor"
           style={{
             '--tw-prose-body': 'rgb(55 65 81)',
             '--tw-prose-headings': 'rgb(17 24 39)',

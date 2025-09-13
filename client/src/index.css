@@ -1389,3 +1389,191 @@ html, body {
   margin-top: 0;
   margin-bottom: 0;
 }
+
+/* Block Editor Styles - Notion-like block editing experience */
+.block-editor {
+  line-height: 1.6;
+}
+
+/* Block spacing and visual separation */
+.block-editor .ProseMirror > * + * {
+  margin-top: 0.75rem;
+}
+
+.block-editor .ProseMirror > h1 + *,
+.block-editor .ProseMirror > h2 + *,
+.block-editor .ProseMirror > h3 + * {
+  margin-top: 1rem;
+}
+
+/* Empty paragraph placeholder styling */
+.block-editor .ProseMirror p.is-empty::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Block hover states for manipulation */
+.block-editor .ProseMirror > *:hover {
+  position: relative;
+}
+
+.block-editor .ProseMirror > *:hover::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.block-editor .ProseMirror > *:hover::before {
+  background-color: #3b82f6;
+  opacity: 1;
+}
+
+/* Gap cursor styling - shows where blocks can be inserted */
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 2px solid #3b82f6;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.ProseMirror-gapcursor.ProseMirror-gapcursor-horizontal:after {
+  border-top: 2px solid #3b82f6;
+  border-radius: 1px;
+  margin-left: -10px;
+}
+
+/* Drop cursor styling - shows where content will be dropped */
+.dropcursor {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
+  margin: 4px 0;
+  opacity: 0.8;
+}
+
+.dropcursor::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -2px;
+  width: 8px;
+  height: 6px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+/* Block selection states */
+.block-editor .ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced focus styles for block editing */
+.block-editor .ProseMirror:focus {
+  outline: none;
+}
+
+.block-editor .ProseMirror p:focus,
+.block-editor .ProseMirror h1:focus,
+.block-editor .ProseMirror h2:focus,
+.block-editor .ProseMirror h3:focus {
+  outline: none;
+  position: relative;
+}
+
+/* Block padding for better click targets */
+.block-editor .ProseMirror > p,
+.block-editor .ProseMirror > h1,
+.block-editor .ProseMirror > h2,
+.block-editor .ProseMirror > h3,
+.block-editor .ProseMirror > ul,
+.block-editor .ProseMirror > ol,
+.block-editor .ProseMirror > blockquote {
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  min-height: 1.5em;
+}
+
+.block-editor .ProseMirror > p:hover,
+.block-editor .ProseMirror > h1:hover,
+.block-editor .ProseMirror > h2:hover,
+.block-editor .ProseMirror > h3:hover,
+.block-editor .ProseMirror > ul:hover,
+.block-editor .ProseMirror > ol:hover,
+.block-editor .ProseMirror > blockquote:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Image block specific styling */
+.block-editor [data-node-view-wrapper] {
+  margin: 1rem 0;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.block-editor [data-node-view-wrapper]:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.block-editor [data-node-view-wrapper].ProseMirror-selectednode {
+  background-color: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Dark mode support */
+.dark .block-editor .ProseMirror > *:hover::before {
+  background-color: #475569;
+}
+
+.dark .block-editor .ProseMirror > *:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.dark .dropcursor {
+  background: #60a5fa;
+}
+
+.dark .dropcursor::before {
+  background: #60a5fa;
+}
+
+.dark .ProseMirror-gapcursor:after {
+  border-top-color: #60a5fa;
+}
+
+.dark .block-editor [data-node-view-wrapper]:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
