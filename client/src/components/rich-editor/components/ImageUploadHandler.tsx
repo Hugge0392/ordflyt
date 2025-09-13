@@ -128,9 +128,9 @@ export function ImageUploadHandler({ editor, onImageInsert }: ImageUploadHandler
     try {
       const imageUrl = await uploadImageFile(file);
       
-      // Insert image into editor
+      // Insert image into editor using insertImageBlock for smooth text navigation
       if (editor) {
-        editor.chain().focus().setImage({
+        editor.chain().focus().insertImageBlock({
           src: imageUrl,
           alt: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension for alt text
         }).run();

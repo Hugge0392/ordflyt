@@ -1,5 +1,6 @@
 import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { TextSelection } from 'prosemirror-state';
 import { ImageNode } from '../components/ImageNode';
 
 export interface ImageOptions {
@@ -15,6 +16,19 @@ declare module '@tiptap/core' {
        * Add an image
        */
       setImage: (options: {
+        src: string;
+        alt?: string;
+        title?: string;
+        caption?: string;
+        width?: number;
+        height?: number;
+        align?: 'left' | 'center' | 'right' | 'full';
+        aspectRatio?: string;
+      }) => ReturnType;
+      /**
+       * Insert an image block with proper paragraph handling
+       */
+      insertImageBlock: (options: {
         src: string;
         alt?: string;
         title?: string;
@@ -164,6 +178,79 @@ export const ImageExtension = Node.create<ImageOptions>({
               .insertContent({
                 type: 'paragraph',
                 content: [],
+              })
+              .run();
+          }
+        },
+      insertImageBlock:
+        (options) =>
+        ({ state, chain, tr }) => {
+          const { selection } = state;
+          const { $from } = selection;
+          
+          // Check if we're in an empty paragraph
+          const isEmptyParagraph = $from.parent.type.name === 'paragraph' && $from.parent.content.size === 0;
+          
+          if (isEmptyParagraph) {
+            // Replace the empty paragraph with image, then add a new paragraph and place cursor there
+            const currentPos = $from.start();
+            
+            return chain()
+              .deleteSelection()
+              .insertContent({
+                type: this.name,
+                attrs: options,
+              })
+              .insertContent({
+                type: 'paragraph',
+                content: [],
+              })
+              .command(({ tr, dispatch }) => {
+                // Calculate position for the trailing paragraph
+                // Image node size + trailing paragraph position
+                const imageNodeSize = 1; // Block nodes are 1 position
+                const trailingParagraphPos = currentPos + imageNodeSize + 1; // +1 for the paragraph node itself
+                
+                // Set selection at the beginning of the trailing paragraph
+                if (dispatch && trailingParagraphPos <= tr.doc.content.size) {
+                  const $pos = tr.doc.resolve(trailingParagraphPos);
+                  if ($pos.parent.type.name === 'paragraph') {
+                    const selection = TextSelection.near($pos);
+                    tr.setSelection(selection);
+                  }
+                }
+                return true;
+              })
+              .run();
+          } else {
+            // Add a new line, insert image, then add paragraph and place cursor there
+            const insertPos = $from.after();
+            
+            return chain()
+              .splitBlock()
+              .insertContent({
+                type: this.name,
+                attrs: options,
+              })
+              .insertContent({
+                type: 'paragraph',
+                content: [],
+              })
+              .command(({ tr, dispatch }) => {
+                // Calculate position for the trailing paragraph
+                // Split creates a new paragraph, then we insert image and another paragraph
+                const imageNodeSize = 1; // Block nodes are 1 position  
+                const trailingParagraphPos = insertPos + imageNodeSize + 1;
+                
+                // Set selection at the beginning of the trailing paragraph
+                if (dispatch && trailingParagraphPos <= tr.doc.content.size) {
+                  const $pos = tr.doc.resolve(trailingParagraphPos);
+                  if ($pos.parent.type.name === 'paragraph') {
+                    const selection = TextSelection.near($pos);
+                    tr.setSelection(selection);
+                  }
+                }
+                return true;
               })
               .run();
           }
