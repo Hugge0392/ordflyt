@@ -297,3 +297,28 @@ export function createEmptyRichDoc(): JSONContent {
     ],
   };
 }
+
+// Extract plain text from rich document (for TTS, search, etc.)
+export function richDocToText(doc: JSONContent): string {
+  if (!doc || !doc.content) return '';
+
+  try {
+    const textParts: string[] = [];
+
+    function traverseNode(node: any) {
+      if (node.type === 'text' && node.text) {
+        textParts.push(node.text);
+      }
+      
+      if (node.content) {
+        node.content.forEach(traverseNode);
+      }
+    }
+
+    doc.content.forEach(traverseNode);
+    return textParts.join(' ').replace(/\s+/g, ' ').trim();
+  } catch (error) {
+    console.warn('Error extracting text from RichDoc:', error);
+    return '';
+  }
+}

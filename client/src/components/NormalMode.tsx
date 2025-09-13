@@ -31,13 +31,14 @@ import {
   Volume2,
 } from "lucide-react";
 import { TextToSpeechControls } from "./TextToSpeechControls";
-import type { ReadingLesson } from "@shared/schema";
+import type { ReadingLesson, RichPage, LegacyPage, WordDefinition } from "@shared/schema";
 import { COLOR_SCHEMES, FONT_MAPS } from "@/lib/accessibility-constants";
+import { RichDocRenderer } from "@/components/rich-editor";
 
 interface NormalModeProps {
   lesson: ReadingLesson;
   currentPage: number;
-  pages: string[];
+  pages: (RichPage | LegacyPage)[];
   activeSettings: {
     fontSize: number;
     lineHeight: number;
@@ -46,6 +47,9 @@ interface NormalModeProps {
   };
   setActiveSettings: (settings: any) => void;
   processContentWithDefinitions: (content: string, definitions: any[]) => string;
+  processRichDocWithDefinitions: (richDoc: any, definitions: WordDefinition[]) => any;
+  isRichContent: boolean;
+  getPageContentForDefinitions: (page: RichPage | LegacyPage) => string;
   handleContentMouseOver: (e: React.MouseEvent) => void;
   handleContentMouseOut: (e: React.MouseEvent) => void;
   onToggleFocusMode: () => void;
@@ -70,6 +74,9 @@ export default function NormalMode({
   activeSettings,
   setActiveSettings,
   processContentWithDefinitions,
+  processRichDocWithDefinitions,
+  isRichContent,
+  getPageContentForDefinitions,
   handleContentMouseOver,
   handleContentMouseOut,
   onToggleFocusMode,
@@ -86,6 +93,15 @@ export default function NormalMode({
   isLastQuestion,
   showQuestionsPanel12,
 }: NormalModeProps) {
+  
+  // Get current page object for rich/legacy content
+  const currentPageData = pages[currentPage];
+  
+  // Helper function to get text content for TTS and other text-based functionality
+  const getCurrentPageText = () => {
+    if (!currentPageData) return "";
+    return getPageContentForDefinitions(currentPageData);
+  };
   // Refs för sticky panel
   const readingContainerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -715,7 +731,7 @@ export default function NormalMode({
                   <div className="space-y-3">
                     <h4 className="font-semibold text-sm">Uppläsning av text</h4>
                     <TextToSpeechControls
-                      text={pages[currentPage] || ""}
+                      text={getCurrentPageText()}
                       variant="default"
                       accessibilityStyles={{
                         backgroundColor: "var(--accessibility-bg-color)",
@@ -1013,17 +1029,125 @@ export default function NormalMode({
                   border-radius: 0 8px 8px 0 !important;
                   font-style: italic !important;
                 }
+                
+                /* Rich content specific styling */
+                .rich-reading-content {
+                  background-color: var(--accessibility-bg-color) !important;
+                  color: var(--accessibility-text-color) !important;
+                  font-family: var(--accessibility-font-family) !important;
+                }
+                
+                .rich-reading-content * {
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                /* Rich content typography */
+                .rich-reading-content h1 {
+                  font-size: calc(var(--accessibility-font-size) * 1.8) !important;
+                  line-height: 1.2 !important;
+                  font-weight: bold !important;
+                  margin: 0 0 0.8em 0 !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content h2 {
+                  font-size: calc(var(--accessibility-font-size) * 1.5) !important;
+                  line-height: 1.3 !important;
+                  font-weight: bold !important;
+                  margin: 0 0 0.6em 0 !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content h3 {
+                  font-size: calc(var(--accessibility-font-size) * 1.3) !important;
+                  line-height: 1.3 !important;
+                  font-weight: bold !important;
+                  margin: 0 0 0.5em 0 !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content p {
+                  font-size: var(--accessibility-font-size) !important;
+                  line-height: var(--accessibility-line-height) !important;
+                  font-family: var(--accessibility-font-family) !important;
+                  margin: 0 0 1.2em 0 !important;
+                  text-align: justify !important;
+                  hyphens: auto !important;
+                  word-spacing: 0.1em !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content ul,
+                .rich-reading-content ol {
+                  margin: 0 0 1.2em 0 !important;
+                  padding-left: 1.5em !important;
+                }
+                
+                .rich-reading-content li {
+                  font-size: var(--accessibility-font-size) !important;
+                  line-height: var(--accessibility-line-height) !important;
+                  margin: 0 0 0.4em 0 !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content blockquote {
+                  border-left: 4px solid rgba(59, 130, 246, 0.5) !important;
+                  margin: 1.2em 0 !important;
+                  padding: 1em 1.2em !important;
+                  background: rgba(59, 130, 246, 0.05) !important;
+                  border-radius: 0 8px 8px 0 !important;
+                  font-style: italic !important;
+                  color: var(--accessibility-text-color) !important;
+                }
+                
+                .rich-reading-content img {
+                  max-width: 100% !important;
+                  height: auto !important;
+                  border-radius: 8px !important;
+                  margin: 1em 0 !important;
+                }
+                
+                .rich-reading-content table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                  margin: 1.2em 0 !important;
+                }
+                
+                .rich-reading-content th,
+                .rich-reading-content td {
+                  border: 1px solid color-mix(in srgb, var(--accessibility-text-color) 30%, transparent) !important;
+                  padding: 0.5em !important;
+                  text-align: left !important;
+                  color: var(--accessibility-text-color) !important;
+                  font-size: var(--accessibility-font-size) !important;
+                  line-height: var(--accessibility-line-height) !important;
+                }
+                
+                .rich-reading-content th {
+                  background: color-mix(in srgb, var(--accessibility-text-color) 10%, transparent) !important;
+                  font-weight: bold !important;
+                }
               `}</style>
 
-              <div
-                data-reading-text
-                dangerouslySetInnerHTML={{
-                  __html: processContentWithDefinitions(
-                    pages[currentPage] || "",
-                    lesson.wordDefinitions,
-                  ),
-                }}
-              />
+              {/* Content Rendering - Rich or Legacy */}
+              {isRichContent && currentPageData && 'doc' in currentPageData ? (
+                <div data-reading-text className="rich-content-container">
+                  <RichDocRenderer 
+                    content={processRichDocWithDefinitions(currentPageData.doc, lesson.wordDefinitions)}
+                    className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-0 focus-within:outline-none rich-reading-content"
+                  />
+                </div>
+              ) : (
+                <div
+                  data-reading-text
+                  dangerouslySetInnerHTML={{
+                    __html: processContentWithDefinitions(
+                      getCurrentPageText(),
+                      lesson.wordDefinitions,
+                    ),
+                  }}
+                />
+              )}
             </div>
 
             {/* Bilder under texten för denna sida */}

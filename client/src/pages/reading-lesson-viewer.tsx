@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Clock, ArrowLeft, User, Target } from "lucide-react";
-import type { ReadingLesson, WordDefinition } from "@shared/schema";
+import type { ReadingLesson, WordDefinition, RichPage, LegacyPage } from "@shared/schema";
 import NormalMode from "@/components/NormalMode";
 import FocusMode from "@/components/FocusMode";
 import { COLOR_SCHEMES, FONT_FAMILY_CSS } from "@/lib/accessibility-constants";
+import { RichDocRenderer } from "@/components/rich-editor";
+import { isLegacyContent, migrateLegacyPage, richDocToHtml, richDocToText } from "@/lib/content-converter";
 
 interface HoveredWord {
   word: string;
@@ -192,18 +194,63 @@ export default function ReadingLessonViewer() {
 
     return processedContent;
   };
+  
+  // Process rich doc with definitions (new approach for rich content)
+  const processRichDocWithDefinitions = (richDoc: any, definitions: WordDefinition[] = []) => {
+    if (!definitions.length) return richDoc;
+    
+    // For rich docs, we'll handle word definitions through CSS classes
+    // This is a simplified approach - in production you might want to
+    // traverse the doc tree and add marks to specific text nodes
+    return richDoc;
+  };
 
-  // Split content into pages
+  // Split content into pages with rich/legacy format detection
   const pages = useMemo(() => {
     if (!lesson) return [];
+    
+    // Handle rich pages first (new format)
+    if (lesson.richPages && lesson.richPages.length > 0) {
+      return lesson.richPages;
+    }
+    
+    // Handle pages array (mixed format)
     if (lesson.pages && lesson.pages.length > 0) {
-      return lesson.pages.map(page => page.content);
+      return lesson.pages.map(page => {
+        // Check if it's already a rich page
+        if ('doc' in page) {
+          return page as RichPage;
+        }
+        // Convert legacy page to rich format
+        return migrateLegacyPage(page as LegacyPage) as RichPage;
+      });
     }
+    
+    // Fallback to legacy content field
     if (lesson.content) {
-      return lesson.content.split('<!-- PAGE_BREAK -->').map(page => page.trim());
+      const contentPages = lesson.content.split('<!-- PAGE_BREAK -->').map(page => page.trim());
+      return contentPages.map((content, index) => 
+        migrateLegacyPage({
+          id: `page-${index}`,
+          content
+        } as LegacyPage) as RichPage
+      );
     }
+    
     return [];
   }, [lesson]);
+  
+  // Helper function to get content for TTS and text-based functionality
+  const getPageContentForDefinitions = (page: RichPage | LegacyPage) => {
+    if ('doc' in page) {
+      // Extract plain text from rich doc for TTS and other text-based functionality
+      return richDocToText(page.doc);
+    }
+    return (page as LegacyPage).content?.replace(/<[^>]+>/g, '') || '';
+  };
+  
+  // Check if we have rich pages
+  const isRichContent = pages.length > 0 && 'doc' in pages[0];
 
   // Handle answer changes
   const handleAnswerChange = (pageIndex: number, questionIndex: number, answer: string) => {
@@ -557,6 +604,9 @@ export default function ReadingLessonViewer() {
             focusSettings={focusSettings}
             setFocusSettings={setFocusSettings}
             processContentWithDefinitions={processContentWithDefinitions}
+            processRichDocWithDefinitions={processRichDocWithDefinitions}
+            isRichContent={isRichContent}
+            getPageContentForDefinitions={getPageContentForDefinitions}
             readingFocusLines={readingFocusLines}
             setReadingFocusLines={setReadingFocusLines}
             currentReadingLine={currentReadingLine}
@@ -585,6 +635,9 @@ export default function ReadingLessonViewer() {
             activeSettings={activeSettings}
             setActiveSettings={setActiveSettings}
             processContentWithDefinitions={processContentWithDefinitions}
+            processRichDocWithDefinitions={processRichDocWithDefinitions}
+            isRichContent={isRichContent}
+            getPageContentForDefinitions={getPageContentForDefinitions}
             handleContentMouseOver={handleContentMouseOver}
             handleContentMouseOut={handleContentMouseOut}
             onToggleFocusMode={handleToggleFocusMode}

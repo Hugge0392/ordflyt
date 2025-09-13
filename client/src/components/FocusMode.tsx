@@ -15,12 +15,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Settings, Volume2 } from "lucide-react";
 import { TextToSpeechControls } from "./TextToSpeechControls";
-import type { ReadingLesson } from "@shared/schema";
+import type { ReadingLesson, RichPage, LegacyPage, WordDefinition } from "@shared/schema";
+import { RichDocRenderer } from "@/components/rich-editor";
 
 interface FocusModeProps {
   lesson: ReadingLesson;
   currentPage: number;
-  pages: string[];
+  pages: (RichPage | LegacyPage)[];
   focusSettings: {
     fontSize: number;
     lineHeight: number;
@@ -29,6 +30,9 @@ interface FocusModeProps {
   };
   setFocusSettings: (settings: any | ((prev: any) => any)) => void;
   processContentWithDefinitions: (content: string, definitions: any[]) => string;
+  processRichDocWithDefinitions: (richDoc: any, definitions: WordDefinition[]) => any;
+  isRichContent: boolean;
+  getPageContentForDefinitions: (page: RichPage | LegacyPage) => string;
   readingFocusLines: number;
   setReadingFocusLines: (lines: number) => void;
   currentReadingLine: number;
@@ -102,6 +106,9 @@ export default function FocusMode({
   focusSettings,
   setFocusSettings,
   processContentWithDefinitions,
+  processRichDocWithDefinitions,
+  isRichContent,
+  getPageContentForDefinitions,
   readingFocusLines,
   setReadingFocusLines,
   currentReadingLine,
@@ -122,6 +129,15 @@ export default function FocusMode({
   goToNextPageFromFocus,
   goToPreviousPageFromFocus,
 }: FocusModeProps) {
+  
+  // Get current page object for rich/legacy content
+  const currentPageData = pages[currentPage];
+  
+  // Helper function to get text content for TTS and other text-based functionality
+  const getCurrentPageText = () => {
+    if (!currentPageData) return "";
+    return getPageContentForDefinitions(currentPageData);
+  };
   // DOM-based reading focus states
   const contentRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -407,18 +423,151 @@ export default function FocusMode({
               .reading-content.accessibility-enhanced { 
                 isolation: isolate !important; 
               }
+              
+              /* Rich content specific styling for focus mode */
+              .rich-focus-content {
+                background-color: var(--focus-bg-color) !important;
+                color: var(--focus-text-color) !important;
+                font-family: var(--focus-font-family) !important;
+              }
+              
+              .rich-focus-content * {
+                color: var(--focus-text-color) !important;
+              }
+              
+              /* Rich content typography for focus mode */
+              .rich-focus-content h1 {
+                font-size: calc(var(--focus-font-size) * 1.8) !important;
+                line-height: 1.2 !important;
+                font-weight: bold !important;
+                margin: 0 0 0.8em 0 !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content h2 {
+                font-size: calc(var(--focus-font-size) * 1.5) !important;
+                line-height: 1.3 !important;
+                font-weight: bold !important;
+                margin: 0 0 0.6em 0 !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content h3 {
+                font-size: calc(var(--focus-font-size) * 1.3) !important;
+                line-height: 1.3 !important;
+                font-weight: bold !important;
+                margin: 0 0 0.5em 0 !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content p {
+                font-size: var(--focus-font-size) !important;
+                line-height: var(--focus-line-height) !important;
+                font-family: var(--focus-font-family) !important;
+                margin: 0 0 1.2em 0 !important;
+                text-align: justify !important;
+                hyphens: auto !important;
+                word-spacing: 0.1em !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content ul,
+              .rich-focus-content ol {
+                margin: 0 0 1.2em 0 !important;
+                padding-left: 1.5em !important;
+              }
+              
+              .rich-focus-content li {
+                font-size: var(--focus-font-size) !important;
+                line-height: var(--focus-line-height) !important;
+                margin: 0 0 0.4em 0 !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content blockquote {
+                border-left: 4px solid rgba(59, 130, 246, 0.5) !important;
+                margin: 1.2em 0 !important;
+                padding: 1em 1.2em !important;
+                background: rgba(59, 130, 246, 0.05) !important;
+                border-radius: 0 8px 8px 0 !important;
+                font-style: italic !important;
+                color: var(--focus-text-color) !important;
+              }
+              
+              .rich-focus-content img {
+                max-width: 100% !important;
+                height: auto !important;
+                border-radius: 8px !important;
+                margin: 1em 0 !important;
+              }
+              
+              .rich-focus-content table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin: 1.2em 0 !important;
+              }
+              
+              .rich-focus-content th,
+              .rich-focus-content td {
+                border: 1px solid color-mix(in srgb, var(--focus-text-color) 30%, transparent) !important;
+                padding: 0.5em !important;
+                text-align: left !important;
+                color: var(--focus-text-color) !important;
+                font-size: var(--focus-font-size) !important;
+                line-height: var(--focus-line-height) !important;
+              }
+              
+              .rich-focus-content th {
+                background: color-mix(in srgb, var(--focus-text-color) 10%, transparent) !important;
+                font-weight: bold !important;
+              }
+              
+              /* Ensure rich content works well with focus overlays */
+              .rich-content-container {
+                position: relative;
+                z-index: 1;
+              }
+              
+              /* Word definitions styling for rich content */
+              .rich-focus-content .defined-word {
+                text-decoration: none !important;
+                background: linear-gradient(120deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
+                border-bottom: 2px dotted rgba(59, 130, 246, 0.6) !important;
+                padding: 0.1em 0.2em !important;
+                border-radius: 3px !important;
+                cursor: help !important;
+                transition: all 0.2s ease !important;
+                position: relative !important;
+              }
+              
+              .rich-focus-content .defined-word:hover {
+                background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%) !important;
+                border-bottom-color: rgba(59, 130, 246, 0.8) !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+              }
             `}</style>
 
-            <div
-              ref={textRef}
-              data-reading-text
-              dangerouslySetInnerHTML={{
-                __html: processContentWithDefinitions(
-                  pages[currentPage] || "",
-                  lesson.wordDefinitions,
-                ),
-              }}
-            />
+            {/* Content Rendering - Rich or Legacy */}
+            {isRichContent && currentPageData && 'doc' in currentPageData ? (
+              <div ref={textRef} data-reading-text className="rich-content-container">
+                <RichDocRenderer 
+                  content={processRichDocWithDefinitions(currentPageData.doc, lesson.wordDefinitions)}
+                  className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-0 focus-within:outline-none rich-focus-content"
+                />
+              </div>
+            ) : (
+              <div
+                ref={textRef}
+                data-reading-text
+                dangerouslySetInnerHTML={{
+                  __html: processContentWithDefinitions(
+                    getCurrentPageText(),
+                    lesson.wordDefinitions,
+                  ),
+                }}
+              />
+            )}
 
             {focusRect && (
               <div className={`focus-overlay-container focus-${focusAnimationState}`}>
@@ -497,7 +646,7 @@ export default function FocusMode({
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm">Uppläsning av text</h4>
                   <TextToSpeechControls
-                    text={pages[currentPage] || ""}
+                    text={getCurrentPageText()}
                     variant="default"
                   />
                 </div>
