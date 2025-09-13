@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import { RichDocEditor } from "@/components/rich-editor";
+import { htmlToRichDoc, richDocToHtml, createEmptyRichDoc, migrateLegacyPage, countWords } from "@/lib/content-converter";
 import { 
   ArrowLeft, 
   Save, 
@@ -84,7 +85,7 @@ export default function ReadingLessonBuilder() {
   
   // Main lesson state
   const [editingLesson, setEditingLesson] = useState<LocalReadingLesson | null>(null);
-  const [localPages, setLocalPages] = useState<{ id: string; content: string; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
+  const [localPages, setLocalPages] = useState<{ id: string; content: string; doc?: any; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
   // UI state
@@ -147,12 +148,25 @@ export default function ReadingLessonBuilder() {
       
       // Load pages with their questions intact (these will be "Under läsning" questions)
       if ((lesson as any).pages && (lesson as any).pages.length > 0) {
-        setLocalPages((lesson as any).pages);
+        // Migrate legacy pages to rich format if needed
+        const migratedPages = (lesson as any).pages.map((page: any) => {
+          if (!page.doc && page.content) {
+            // Legacy page - convert to rich format
+            return {
+              ...page,
+              doc: htmlToRichDoc(page.content || ''),
+              content: page.content // Keep original for backward compatibility
+            };
+          }
+          return page; // Already in rich format or no content
+        });
+        setLocalPages(migratedPages);
       } else {
         // Create empty pages based on numberOfPages
         const emptyPages = Array.from({ length: numberOfPages }, (_, index) => ({
           id: `page-${index + 1}`,
           content: '',
+          doc: createEmptyRichDoc(),
           imagesAbove: [],
           imagesBelow: [],
           questions: []
@@ -185,6 +199,7 @@ export default function ReadingLessonBuilder() {
         const newPages = Array.from({ length: targetPagesCount - currentPagesCount }, (_, index) => ({
           id: `page-${currentPagesCount + index + 1}`,
           content: '',
+          doc: createEmptyRichDoc(),
           imagesAbove: [],
           imagesBelow: [],
           questions: []
@@ -210,9 +225,25 @@ export default function ReadingLessonBuilder() {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons", lessonId] });
       // Keep user in editor and sync back server truth:
       setEditingLesson(updatedLesson);
-      // Update local pages if they exist in the updated lesson
-      if ((updatedLesson as any).pages) {
-        setLocalPages((updatedLesson as any).pages);
+      // Update local pages, preferring rich pages if available
+      if ((updatedLesson as any).richPages && (updatedLesson as any).richPages.length > 0) {
+        // Use rich pages format
+        const richPages = (updatedLesson as any).richPages.map((richPage: any) => ({
+          id: richPage.id,
+          content: richDocToHtml(richPage.doc),
+          doc: richPage.doc,
+          imagesAbove: richPage.imagesAbove || [],
+          imagesBelow: richPage.imagesBelow || [],
+          questions: richPage.questions || []
+        }));
+        setLocalPages(richPages);
+      } else if ((updatedLesson as any).pages) {
+        // Fallback to legacy pages format
+        const legacyPages = (updatedLesson as any).pages.map((page: any) => ({
+          ...page,
+          doc: page.doc || htmlToRichDoc(page.content || '')
+        }));
+        setLocalPages(legacyPages);
       }
       toast({ 
         title: "Lektion uppdaterad!", 
@@ -254,7 +285,13 @@ export default function ReadingLessonBuilder() {
   const handleSaveContent = async () => {
     if (!lesson || !editingLesson) return;
     
-    if (localPages.length === 0 || localPages.every(page => !page.content?.trim())) {
+    // Check if there's any content (either HTML or rich doc)
+    const hasContent = localPages.some(page => 
+      (page.content && page.content.trim()) || 
+      (page.doc && page.doc.content && page.doc.content.length > 0)
+    );
+    
+    if (localPages.length === 0 || !hasContent) {
       toast({
         title: "Ingen text att spara",
         description: "Skriv något innehåll först",
@@ -263,11 +300,14 @@ export default function ReadingLessonBuilder() {
       return;
     }
 
-    // Combine all page content for the main content field
-    const combinedContent = localPages.map(page => page.content).join('\n\n--- SIDBRYTNING ---\n\n');
+    // Combine all page content for the main content field (backward compatibility)
+    const combinedContent = localPages.map(page => {
+      // Use HTML content for backward compatibility
+      return page.content || richDocToHtml(page.doc || createEmptyRichDoc());
+    }).join('\n\n--- SIDBRYTNING ---\n\n');
 
-    // Distribute questions to correct pages based on pageNumber
-    const pagesWithQuestions = localPages.map((page, index) => {
+    // Prepare rich pages with questions distributed
+    const richPagesWithQuestions = localPages.map((page, index) => {
       const pageNumber = index + 1;
       // Get questions from both sources:
       // 1. From editingLesson.questions (global "Frågor" tab questions)
@@ -279,7 +319,15 @@ export default function ReadingLessonBuilder() {
       const allQuestionsForThisPage = [...globalQuestionsForThisPage, ...localQuestionsForThisPage];
       
       return {
-        ...page,
+        id: page.id,
+        doc: page.doc || htmlToRichDoc(page.content || ''),
+        meta: {
+          wordCount: page.doc ? countWords(page.doc) : 0
+        },
+        // Include backward compatibility fields
+        content: page.content,
+        imagesAbove: page.imagesAbove,
+        imagesBelow: page.imagesBelow,
         questions: allQuestionsForThisPage
       };
     });
@@ -287,8 +335,13 @@ export default function ReadingLessonBuilder() {
     await updateMutation.mutateAsync({
       id: lesson.id,
       lesson: {
-        content: combinedContent,
-        pages: pagesWithQuestions, // Include pages with questions distributed correctly!
+        content: combinedContent, // Legacy content field
+        pages: localPages.map((page, index) => ({ // Legacy pages format
+          ...page,
+          questions: richPagesWithQuestions[index].questions
+        })),
+        richPages: richPagesWithQuestions, // New rich pages format
+        migrated: true, // Mark as migrated to rich format
         title: newLessonForm.title || lesson.title,
         gradeLevel: newLessonForm.gradeLevel || lesson.gradeLevel,
         description: newLessonForm.description || lesson.description,
@@ -799,43 +852,23 @@ export default function ReadingLessonBuilder() {
 
                           {/* Current Page Editor */}
                           {localPages[currentPageIndex] && (
-                            <RichTextEditor
-                              value={localPages[currentPageIndex].content || ''}
-                              onChange={(content) => {
-                                const safe = content ?? "";
+                            <RichDocEditor
+                              content={localPages[currentPageIndex].doc || htmlToRichDoc(localPages[currentPageIndex].content || '')}
+                              onChange={(doc) => {
                                 setLocalPages(prev => {
                                   const updated = [...prev];
                                   updated[currentPageIndex] = {
                                     ...updated[currentPageIndex],
-                                    content: safe
+                                    doc: doc,
+                                    content: richDocToHtml(doc) // Keep HTML for backward compatibility
                                   };
                                   return updated;
                                 });
                               }}
-                              onPagesChange={(pages) => {
-                                // Update the current page with image data from RichTextEditor
-                                if (pages.length > 0) {
-                                  const pageData = pages[0]; // RichTextEditor returns single page data
-                                  setLocalPages(prev => {
-                                    const updated = [...prev];
-                                    updated[currentPageIndex] = {
-                                      ...updated[currentPageIndex],
-                                      content: pageData.content,
-                                      imagesAbove: pageData.imagesAbove || [],
-                                      imagesBelow: pageData.imagesBelow || []
-                                    };
-                                    return updated;
-                                  });
-                                }
-                              }}
-                              initialPages={[{
-                                id: `page-${currentPageIndex}`,
-                                content: localPages[currentPageIndex].content || '',
-                                imagesAbove: localPages[currentPageIndex].imagesAbove || [],
-                                imagesBelow: localPages[currentPageIndex].imagesBelow || []
-                              }]}
-                              numberOfPages={1}
                               placeholder={`Skriv innehållet för sida ${currentPageIndex + 1} här...`}
+                              className="min-h-[400px]"
+                              editable={true}
+                              autoFocus={false}
                             />
                           )}
                         </div>
