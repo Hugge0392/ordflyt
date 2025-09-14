@@ -10,7 +10,8 @@ import NormalMode from "@/components/NormalMode";
 import FocusMode from "@/components/FocusMode";
 import { COLOR_SCHEMES, FONT_FAMILY_CSS } from "@/lib/accessibility-constants";
 import { RichDocRenderer } from "@/components/rich-editor";
-import { isLegacyContent, migrateLegacyPage, richDocToHtml, richDocToText } from "@/lib/content-converter";
+import { isLegacyContent, migrateLegacyPage, richDocToHtml, richDocToText, blocksToRichDoc } from "@/lib/content-converter";
+import type { Block } from "@/components/blocks/types";
 
 interface HoveredWord {
   word: string;
@@ -205,13 +206,36 @@ export default function ReadingLessonViewer() {
     return richDoc;
   };
 
-  // Split content into pages with rich/legacy format detection
+  // Normalize all page formats to RichPage for consistent rendering
   const pages = useMemo(() => {
     if (!lesson) return [];
     
     // Handle block pages first (newest format with separate TextBlock and ImageBlock components)
     if (lesson.blockPages && lesson.blockPages.length > 0) {
-      return lesson.blockPages;
+      // Normalize to RichPage format for compatibility with RichDocRenderer
+      return (lesson.blockPages as any[]).map(p => {
+        // If page has blocks array, convert to RichDoc format
+        if (p.blocks && Array.isArray(p.blocks)) {
+          const richDoc = blocksToRichDoc(p.blocks as Block[]);
+          return {
+            ...p,
+            doc: richDoc
+          } as RichPage;
+        }
+        // If page already has doc property, use as-is
+        if (p.doc) {
+          return p as RichPage;
+        }
+        // If page has legacy content, migrate it
+        if (p.content) {
+          return migrateLegacyPage(p) as RichPage;
+        }
+        // Default to empty doc
+        return {
+          ...p,
+          doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] }
+        } as RichPage;
+      });
     }
     
     // Handle rich pages (new format)
