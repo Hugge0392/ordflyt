@@ -13,8 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { RichDocEditor } from "@/components/rich-editor";
-import { htmlToRichDoc, richDocToHtml, createEmptyRichDoc, migrateLegacyPage, countWords } from "@/lib/content-converter";
+import { BlockManager } from "@/components/blocks/BlockManager";
+import { htmlToRichDoc, richDocToHtml, createEmptyRichDoc, migrateLegacyPage, countWords, richDocToBlocks, blocksToRichDoc, blocksToHtml, migrateLegacyPageToBlocks } from "@/lib/content-converter";
+import type { Block } from "@/components/blocks/types";
+import { createTextBlock } from "@/components/blocks/types";
 import { 
   ArrowLeft, 
   Save, 
@@ -85,7 +87,7 @@ export default function ReadingLessonBuilder() {
   
   // Main lesson state
   const [editingLesson, setEditingLesson] = useState<LocalReadingLesson | null>(null);
-  const [localPages, setLocalPages] = useState<{ id: string; content: string; doc?: any; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
+  const [localPages, setLocalPages] = useState<{ id: string; content: string; doc?: any; blocks?: Block[]; imagesAbove?: string[]; imagesBelow?: string[]; questions?: Question[] }[]>([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   
   // UI state
@@ -148,17 +150,31 @@ export default function ReadingLessonBuilder() {
       
       // Load pages with their questions intact (these will be "Under läsning" questions)
       if ((lesson as any).pages && (lesson as any).pages.length > 0) {
-        // Migrate legacy pages to rich format if needed
+        // Migrate legacy pages to block format
         const migratedPages = (lesson as any).pages.map((page: any) => {
-          if (!page.doc && page.content) {
-            // Legacy page - convert to rich format
-            return {
-              ...page,
-              doc: htmlToRichDoc(page.content || ''),
-              content: page.content // Keep original for backward compatibility
-            };
+          let blocks: Block[] = [];
+          
+          if (page.blocks && Array.isArray(page.blocks)) {
+            // Already in block format
+            blocks = page.blocks;
+          } else if (page.doc) {
+            // Convert from RichDoc to blocks
+            blocks = richDocToBlocks(page.doc);
+          } else if (page.content && typeof page.content === 'string') {
+            // Convert from HTML to blocks
+            blocks = migrateLegacyPageToBlocks(page);
+          } else {
+            // Empty page
+            blocks = [createTextBlock()];
           }
-          return page; // Already in rich format or no content
+          
+          return {
+            ...page,
+            blocks: blocks,
+            // Keep legacy fields for backward compatibility
+            doc: page.doc || (blocks.length > 0 ? blocksToRichDoc(blocks) : createEmptyRichDoc()),
+            content: page.content || blocksToHtml(blocks)
+          };
         });
         setLocalPages(migratedPages);
       } else {
@@ -167,6 +183,7 @@ export default function ReadingLessonBuilder() {
           id: `page-${index + 1}`,
           content: '',
           doc: createEmptyRichDoc(),
+          blocks: [createTextBlock()],
           imagesAbove: [],
           imagesBelow: [],
           questions: []
@@ -200,6 +217,7 @@ export default function ReadingLessonBuilder() {
           id: `page-${currentPagesCount + index + 1}`,
           content: '',
           doc: createEmptyRichDoc(),
+          blocks: [createTextBlock()],
           imagesAbove: [],
           imagesBelow: [],
           questions: []
@@ -225,24 +243,45 @@ export default function ReadingLessonBuilder() {
       queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons", lessonId] });
       // Keep user in editor and sync back server truth:
       setEditingLesson(updatedLesson);
-      // Update local pages, preferring rich pages if available
-      if ((updatedLesson as any).richPages && (updatedLesson as any).richPages.length > 0) {
-        // Use rich pages format
-        const richPages = (updatedLesson as any).richPages.map((richPage: any) => ({
-          id: richPage.id,
-          content: richDocToHtml(richPage.doc),
-          doc: richPage.doc,
-          imagesAbove: richPage.imagesAbove || [],
-          imagesBelow: richPage.imagesBelow || [],
-          questions: richPage.questions || []
+      // Update local pages, preferring block pages, then rich pages, then legacy
+      if ((updatedLesson as any).blockPages && (updatedLesson as any).blockPages.length > 0) {
+        // Use new block pages format
+        const blockPages = (updatedLesson as any).blockPages.map((blockPage: any) => ({
+          id: blockPage.id,
+          blocks: blockPage.blocks || [createTextBlock()],
+          content: blocksToHtml(blockPage.blocks || [createTextBlock()]),
+          doc: blocksToRichDoc(blockPage.blocks || [createTextBlock()]),
+          imagesAbove: [],
+          imagesBelow: [],
+          questions: blockPage.questions || []
         }));
+        setLocalPages(blockPages);
+      } else if ((updatedLesson as any).richPages && (updatedLesson as any).richPages.length > 0) {
+        // Convert rich pages to block format
+        const richPages = (updatedLesson as any).richPages.map((richPage: any) => {
+          const blocks = richPage.blocks || (richPage.doc ? richDocToBlocks(richPage.doc) : [createTextBlock()]);
+          return {
+            id: richPage.id,
+            blocks: blocks,
+            content: richDocToHtml(richPage.doc || blocksToRichDoc(blocks)),
+            doc: richPage.doc || blocksToRichDoc(blocks),
+            imagesAbove: richPage.imagesAbove || [],
+            imagesBelow: richPage.imagesBelow || [],
+            questions: richPage.questions || []
+          };
+        });
         setLocalPages(richPages);
       } else if ((updatedLesson as any).pages) {
-        // Fallback to legacy pages format
-        const legacyPages = (updatedLesson as any).pages.map((page: any) => ({
-          ...page,
-          doc: page.doc || htmlToRichDoc(page.content || '')
-        }));
+        // Fallback to legacy pages format - convert to blocks
+        const legacyPages = (updatedLesson as any).pages.map((page: any) => {
+          const blocks = migrateLegacyPageToBlocks(page);
+          return {
+            ...page,
+            blocks: blocks,
+            doc: page.doc || blocksToRichDoc(blocks),
+            content: page.content || blocksToHtml(blocks)
+          };
+        });
         setLocalPages(legacyPages);
       }
       toast({ 
@@ -285,8 +324,12 @@ export default function ReadingLessonBuilder() {
   const handleSaveContent = async () => {
     if (!lesson || !editingLesson) return;
     
-    // Check if there's any content (either HTML or rich doc)
+    // Check if there's any content (blocks, RichDoc, or HTML)
     const hasContent = localPages.some(page => 
+      (page.blocks && page.blocks.length > 0 && page.blocks.some(block => 
+        (block.type === 'text' && block.data.content && block.data.content.content && block.data.content.content.length > 0) ||
+        (block.type === 'image' && block.data.src)
+      )) ||
       (page.content && page.content.trim()) || 
       (page.doc && page.doc.content && page.doc.content.length > 0)
     );
@@ -302,12 +345,15 @@ export default function ReadingLessonBuilder() {
 
     // Combine all page content for the main content field (backward compatibility)
     const combinedContent = localPages.map(page => {
-      // Use HTML content for backward compatibility
+      // Prioritize blocks format, then fallback to legacy formats
+      if (page.blocks && page.blocks.length > 0) {
+        return blocksToHtml(page.blocks);
+      }
       return page.content || richDocToHtml(page.doc || createEmptyRichDoc());
     }).join('\n\n--- SIDBRYTNING ---\n\n');
 
-    // Prepare rich pages with questions distributed
-    const richPagesWithQuestions = localPages.map((page, index) => {
+    // Prepare pages with questions distributed - now with block format
+    const enhancedPages = localPages.map((page, index) => {
       const pageNumber = index + 1;
       // Get questions from both sources:
       // 1. From editingLesson.questions (global "Frågor" tab questions)
@@ -318,16 +364,22 @@ export default function ReadingLessonBuilder() {
       // Combine both types of questions
       const allQuestionsForThisPage = [...globalQuestionsForThisPage, ...localQuestionsForThisPage];
       
+      // Ensure we have blocks
+      const pageBlocks = page.blocks || [createTextBlock()];
+      const pageRichDoc = blocksToRichDoc(pageBlocks);
+      
       return {
         id: page.id,
-        doc: page.doc || htmlToRichDoc(page.content || ''),
+        blocks: pageBlocks, // New block format
+        doc: pageRichDoc, // RichDoc for backward compatibility
         meta: {
-          wordCount: page.doc ? countWords(page.doc) : 0
+          wordCount: countWords(pageRichDoc),
+          blockCount: pageBlocks.length
         },
         // Include backward compatibility fields
-        content: page.content,
-        imagesAbove: page.imagesAbove,
-        imagesBelow: page.imagesBelow,
+        content: blocksToHtml(pageBlocks),
+        imagesAbove: page.imagesAbove || [],
+        imagesBelow: page.imagesBelow || [],
         questions: allQuestionsForThisPage
       };
     });
@@ -336,12 +388,23 @@ export default function ReadingLessonBuilder() {
       id: lesson.id,
       lesson: {
         content: combinedContent, // Legacy content field
-        pages: localPages.map((page, index) => ({ // Legacy pages format
-          ...page,
-          questions: richPagesWithQuestions[index].questions
+        pages: enhancedPages.map(page => ({ // Legacy pages format with enhanced data
+          id: page.id,
+          content: page.content,
+          doc: page.doc,
+          imagesAbove: page.imagesAbove,
+          imagesBelow: page.imagesBelow,
+          questions: page.questions
         })),
-        richPages: richPagesWithQuestions, // New rich pages format
-        migrated: true, // Mark as migrated to rich format
+        richPages: enhancedPages, // Rich pages format with block support
+        blockPages: enhancedPages.map(page => ({ // New block pages format
+          id: page.id,
+          blocks: page.blocks,
+          meta: page.meta,
+          questions: page.questions
+        })),
+        migrated: true, // Mark as migrated to block format
+        blockFormatVersion: '1.0', // Version tracking for future migrations
         title: newLessonForm.title || lesson.title,
         gradeLevel: newLessonForm.gradeLevel || lesson.gradeLevel,
         description: newLessonForm.description || lesson.description,
@@ -852,24 +915,32 @@ export default function ReadingLessonBuilder() {
 
                           {/* Current Page Editor */}
                           {localPages[currentPageIndex] && (
-                            <RichDocEditor
-                              content={localPages[currentPageIndex].doc || htmlToRichDoc(localPages[currentPageIndex].content || '')}
-                              onChange={(doc) => {
-                                setLocalPages(prev => {
-                                  const updated = [...prev];
-                                  updated[currentPageIndex] = {
-                                    ...updated[currentPageIndex],
-                                    doc: doc,
-                                    content: richDocToHtml(doc) // Keep HTML for backward compatibility
-                                  };
-                                  return updated;
-                                });
-                              }}
-                              placeholder={`Skriv innehållet för sida ${currentPageIndex + 1} här...`}
-                              className="min-h-[400px]"
-                              editable={true}
-                              autoFocus={false}
-                            />
+                            <div className="border rounded-lg p-4 min-h-[400px] bg-white dark:bg-gray-900">
+                              <BlockManager
+                                blocks={localPages[currentPageIndex].blocks || [createTextBlock()]}
+                                onChange={(blocks) => {
+                                  setLocalPages(prev => {
+                                    const updated = [...prev];
+                                    updated[currentPageIndex] = {
+                                      ...updated[currentPageIndex],
+                                      blocks: blocks,
+                                      // Keep legacy formats for backward compatibility
+                                      doc: blocksToRichDoc(blocks),
+                                      content: blocksToHtml(blocks)
+                                    };
+                                    return updated;
+                                  });
+                                }}
+                                readonly={false}
+                                className="min-h-[350px]"
+                              />
+                              {(!localPages[currentPageIndex].blocks || localPages[currentPageIndex].blocks.length === 0) && (
+                                <div className="text-center py-8 text-gray-500">
+                                  <p className="text-sm">Sida {currentPageIndex + 1} är tom</p>
+                                  <p className="text-xs mt-1">Klicka "Lägg till block" för att börja redigera</p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </CardContent>

@@ -77,10 +77,14 @@ export function TextBlock({
     },
     editable: !readonly,
     autofocus: autoFocus,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'focus:outline-none prose prose-sm max-w-none min-h-[40px] py-2',
-        'data-testid': `text-block-${block.id}`,
+        'data-testid': `text-block-editor-${block.id}`,
+        'contenteditable': 'true',
+        'role': 'textbox',
+        'aria-label': 'Text block editor',
       },
     },
     onUpdate: ({ editor }) => {
@@ -92,6 +96,12 @@ export function TextBlock({
           content: json
         }
       });
+    },
+    onCreate: ({ editor }) => {
+      // Ensure editor is ready for interaction
+      if (autoFocus) {
+        setTimeout(() => editor.commands.focus(), 100);
+      }
     },
     onFocus: () => {
       setIsFocused(true);
@@ -106,8 +116,13 @@ export function TextBlock({
 
   // Update editor content when block data changes
   useEffect(() => {
-    if (editor && block.data.content && editor.getJSON() !== block.data.content) {
-      editor.commands.setContent(block.data.content);
+    if (editor && block.data.content) {
+      const currentContent = editor.getJSON();
+      // Deep compare to avoid unnecessary updates that cause cursor jumps
+      const contentChanged = JSON.stringify(currentContent) !== JSON.stringify(block.data.content);
+      if (contentChanged) {
+        editor.commands.setContent(block.data.content);
+      }
     }
   }, [editor, block.data.content]);
 

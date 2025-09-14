@@ -410,6 +410,9 @@ export const readingLessons = pgTable("reading_lessons", {
   // Rich document pages - new format with ProseMirror JSON
   richPages: jsonb("rich_pages").$type<RichPage[]>().default([]), // Array of rich document pages
   
+  // Block-based pages - newest format with separate TextBlock and ImageBlock components
+  blockPages: jsonb("block_pages").$type<RichPage[]>().default([]), // Array of block-based pages
+  
   // Migration tracking
   migrated: boolean("migrated").default(false), // Track if content has been migrated to rich format
   

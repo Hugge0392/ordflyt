@@ -421,6 +421,7 @@ export class MemStorage implements IStorage {
       wordDefinitions: (lesson.wordDefinitions || []) as WordDefinition[],
       pages: (lesson.pages || []) as LegacyPage[],
       richPages: (lesson.richPages || []) as RichPage[],
+      blockPages: (lesson.blockPages || []) as RichPage[],
       migrated: lesson.migrated || false,
       isPublished: lesson.isPublished || 0
     };
@@ -453,6 +454,7 @@ export class MemStorage implements IStorage {
       wordDefinitions: (lesson.wordDefinitions || existing.wordDefinitions) as WordDefinition[],
       pages: lesson.pages !== undefined ? (lesson.pages as LegacyPage[]) : existing.pages,
       richPages: lesson.richPages !== undefined ? (lesson.richPages as RichPage[]) : existing.richPages,
+      blockPages: lesson.blockPages !== undefined ? (lesson.blockPages as RichPage[]) : existing.blockPages,
       migrated: lesson.migrated !== undefined ? lesson.migrated : existing.migrated
     };
     this.readingLessons.set(id, updated);
@@ -851,7 +853,8 @@ export class DatabaseStorage implements IStorage {
       questions: (lesson.questions || []) as any[],
       wordDefinitions: (lesson.wordDefinitions || []) as any[],
       pages: (lesson.pages || []) as any[],
-      richPages: (lesson.richPages || []) as any[]
+      richPages: (lesson.richPages || []) as any[],
+      blockPages: (lesson.blockPages || []) as any[]
     };
     const [newLesson] = await db.insert(readingLessons).values(lessonData).returning();
     return newLesson;

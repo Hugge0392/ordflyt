@@ -1,8 +1,11 @@
 import { JSONContent } from '@tiptap/react';
+import type { Block, TextBlock, ImageBlock } from '@/components/blocks/types';
+import { createTextBlock, createImageBlock } from '@/components/blocks/types';
 
 /**
  * Utilities for converting between different content formats
  * Used for migrating from legacy HTML/markdown to ProseMirror JSON
+ * Now includes Block format conversion for the new block system
  */
 
 // Basic HTML to ProseMirror JSON conversion
@@ -305,7 +308,7 @@ export function richDocToText(doc: JSONContent): string {
   try {
     const textParts: string[] = [];
 
-    function traverseNode(node: any) {
+    const traverseNode = (node: any) => {
       if (node.type === 'text' && node.text) {
         textParts.push(node.text);
       }
@@ -313,12 +316,180 @@ export function richDocToText(doc: JSONContent): string {
       if (node.content) {
         node.content.forEach(traverseNode);
       }
-    }
+    };
 
     doc.content.forEach(traverseNode);
     return textParts.join(' ').replace(/\s+/g, ' ').trim();
   } catch (error) {
     console.warn('Error extracting text from RichDoc:', error);
     return '';
+  }
+}
+
+// ========== NEW BLOCK FORMAT CONVERSION FUNCTIONS ==========
+
+/**
+ * Convert RichDoc JSON format to new Block array format
+ * This is used when migrating from old editor to BlockManager
+ */
+export function richDocToBlocks(richDoc: JSONContent): Block[] {
+  if (!richDoc?.content) {
+    return [createTextBlock()];
+  }
+
+  const blocks: Block[] = [];
+  let currentTextContent: any[] = [];
+  let order = 0;
+
+  const flushTextBlock = () => {
+    if (currentTextContent.length > 0) {
+      blocks.push(createTextBlock({
+        content: {
+          type: 'doc',
+          content: currentTextContent
+        }
+      }, order++));
+      currentTextContent = [];
+    }
+  };
+
+  richDoc.content.forEach((node: any) => {
+    if (node.type === 'image') {
+      // Flush any accumulated text content
+      flushTextBlock();
+      
+      // Create image block
+      blocks.push(createImageBlock({
+        src: node.attrs?.src || '',
+        alt: node.attrs?.alt || '',
+        caption: node.attrs?.title || ''
+      }, order++));
+    } else {
+      // Accumulate text content (paragraphs, headings, etc.)
+      currentTextContent.push(node);
+    }
+  });
+
+  // Flush any remaining text content
+  flushTextBlock();
+
+  // Always have at least one block
+  if (blocks.length === 0) {
+    blocks.push(createTextBlock());
+  }
+
+  return blocks;
+}
+
+/**
+ * Convert Block array format to RichDoc JSON format
+ * This is used when saving content for backward compatibility
+ */
+export function blocksToRichDoc(blocks: Block[]): JSONContent {
+  const content = [...blocks]
+    .sort((a, b) => a.order - b.order)
+    .map(block => {
+      if (block.type === 'text' && block.data.content) {
+        // Ensure we extract content correctly from Tiptap JSON structure
+        if (block.data.content.type === 'doc' && block.data.content.content) {
+          return block.data.content.content;
+        }
+        // Fallback for direct content array
+        return Array.isArray(block.data.content) ? block.data.content : [block.data.content];
+      }
+      if (block.type === 'image') {
+        return [{
+          type: 'image',
+          attrs: {
+            src: block.data.src,
+            alt: block.data.alt || '',
+            title: block.data.caption || null
+          }
+        }];
+      }
+      return [];
+    })
+    .flat();
+
+  return {
+    type: 'doc',
+    content: content.length > 0 ? content : [{ type: 'paragraph', content: [] }]
+  };
+}
+
+/**
+ * Convert HTML to Block array format (for migration)
+ * This bypasses RichDoc and converts directly to blocks
+ */
+export function htmlToBlocks(html: string): Block[] {
+  if (!html || html.trim() === '') {
+    return [createTextBlock()];
+  }
+
+  // First convert HTML to RichDoc, then to blocks
+  const richDoc = htmlToRichDoc(html);
+  return richDocToBlocks(richDoc);
+}
+
+/**
+ * Convert Block array to HTML (for backward compatibility)
+ */
+export function blocksToHtml(blocks: Block[]): string {
+  const richDoc = blocksToRichDoc(blocks);
+  return richDocToHtml(richDoc);
+}
+
+/**
+ * Migrate legacy page format to new block format
+ * This handles both HTML content and existing RichDoc content
+ */
+export function migrateLegacyPageToBlocks(page: any): Block[] {
+  if (!page) return [createTextBlock()];
+
+  // If page already has blocks, return them
+  if (page.blocks && Array.isArray(page.blocks)) {
+    return page.blocks;
+  }
+
+  // If page has RichDoc format, convert it
+  if (page.doc) {
+    return richDocToBlocks(page.doc);
+  }
+
+  // If page has HTML content, convert it
+  if (page.content && typeof page.content === 'string') {
+    return htmlToBlocks(page.content);
+  }
+
+  // Fallback: empty text block
+  return [createTextBlock()];
+}
+
+/**
+ * Check if content has been converted to block format
+ */
+export function hasBlockFormat(content: any): boolean {
+  return Array.isArray(content) && content.length > 0 && 
+         content[0].hasOwnProperty('type') && content[0].hasOwnProperty('order');
+}
+
+/**
+ * Validate that block conversion preserves content integrity
+ */
+export function validateBlockConversion(originalRichDoc: JSONContent, convertedBlocks: Block[]): boolean {
+  try {
+    const reconvertedRichDoc = blocksToRichDoc(convertedBlocks);
+    
+    // Basic checks
+    const originalText = richDocToText(originalRichDoc);
+    const convertedText = richDocToText(reconvertedRichDoc);
+    
+    // Allow some whitespace differences but content should be similar
+    const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+    
+    return normalizeText(originalText) === normalizeText(convertedText);
+  } catch (error) {
+    console.warn('Block conversion validation failed:', error);
+    return false;
   }
 }
