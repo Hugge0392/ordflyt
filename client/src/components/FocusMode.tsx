@@ -609,7 +609,7 @@ export default function FocusMode({
             {getShowFocusQuestionsButton() && getTotalQuestionsCount() > 0 && (
               <button
                 onClick={() => setShowFocusQuestionsPopup(true)}
-                className="bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                className="bg-background border-2 shadow-lg transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
                 title="Visa frågor"
               >
                 <svg
@@ -633,7 +633,7 @@ export default function FocusMode({
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="bg-background border-2 shadow-lg hover:shadow-xl transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
+                  className="bg-background border-2 shadow-lg transition-all text-foreground px-3 py-2 rounded-md flex items-center gap-2"
                   title="Lyssna på texten"
                 >
                   <Volume2 className="w-5 h-5" />
@@ -655,7 +655,7 @@ export default function FocusMode({
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="bg-background border-2 shadow-lg hover:shadow-xl text-foreground p-3 rounded-md"
+                  className="bg-background border-2 shadow-lg text-foreground p-3 rounded-md"
                   title="Anpassa textstorlek"
                 >
                   <Settings className="w-5 h-5" />
@@ -749,7 +749,7 @@ export default function FocusMode({
           {isOnLastLine() && hasNextPage() && (
             <button
               onClick={goToNextPageFromFocus}
-              className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+              className="fixed bottom-6 right-6 z-40 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg flex items-center gap-2"
               title="Gå till nästa sida"
             >
               <span className="text-sm font-medium">Nästa sida</span>
@@ -773,7 +773,7 @@ export default function FocusMode({
           {isOnLastLine() && hasPreviousPage() && (
             <button
               onClick={goToPreviousPageFromFocus}
-              className="fixed bottom-6 left-6 z-40 bg-gray-600 bg-opacity-90 text-white px-6 py-3 rounded-lg hover:bg-opacity-100 transition-all shadow-lg flex items-center gap-2"
+              className="fixed bottom-6 left-6 z-40 bg-gray-600 bg-opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg flex items-center gap-2"
               title="Gå till föregående sida"
             >
               <svg
@@ -809,7 +809,7 @@ export default function FocusMode({
                     <h3 className="text-xl font-semibold text-gray-900">Frågor</h3>
                     <button
                       onClick={() => setShowFocusQuestionsPopup(false)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-400 transition-colors"
                       title="Stäng"
                     >
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

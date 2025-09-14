@@ -387,10 +387,10 @@ export default function NormalMode({
                               return (
                                 <label
                                   key={optionIndex}
-                                  className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                                  className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                                     isSelected 
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-md' 
-                                      : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
+                                      : 'border-gray-200 dark:border-gray-600'
                                   }`}
                                 >
                                   <div className="relative">
@@ -460,7 +460,7 @@ export default function NormalMode({
                           return (
                             <label
                               key={option.label}
-                              className="flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
+                              className="flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200"
                               style={{
                                 borderColor: isSelected 
                                   ? "color-mix(in srgb, var(--accessibility-text-color) 60%, transparent)"
@@ -633,7 +633,7 @@ export default function NormalMode({
                             alert("🎉 Fantastiskt! Du har svarat på alla frågor!")
                         : goToNextQuestion
                     }
-                    className="group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-sm"
+                    className="group flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none shadow-sm text-sm"
                     style={{
                       backgroundColor: isLastQuestion 
                         ? "color-mix(in srgb, var(--accessibility-text-color) 70%, green)"
@@ -643,11 +643,11 @@ export default function NormalMode({
                   >
                     <span>{isLastQuestion ? "🎯 Slutför" : "Nästa"}</span>
                     {isLastQuestion ? (
-                      <svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                       </svg>
                     ) : (
-                      <ChevronRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                      <ChevronRight className="w-4 h-4" />
                     )}
                   </button>
                 </div>
@@ -1179,7 +1179,7 @@ export default function NormalMode({
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     currentPage === 0 
                       ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700'
+                      : 'text-gray-700 dark:text-gray-300'
                   }`}
                   data-testid="button-previous-page"
                 >
@@ -1203,7 +1203,7 @@ export default function NormalMode({
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     currentPage === pages.length - 1
                       ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700'
+                      : 'text-gray-700 dark:text-gray-300'
                   }`}
                   data-testid="button-next-page"
                 >
