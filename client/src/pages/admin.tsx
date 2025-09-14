@@ -286,19 +286,19 @@ export default function Admin() {
             </Link>
             
             <Link 
-              href="/admin/lessons" 
+              href="/admin/grammatik" 
               className="tile"
-              data-testid="link-admin-lessons"
+              data-testid="link-admin-grammatik"
               role="button" 
               tabIndex={0}
             >
               <div className="tile-content">
                 <div className="tile-icon admin-lesson">
-                  🎯
+                  ✏️
                 </div>
-                <h2 className="tile-title">Skapa lektion</h2>
+                <h2 className="tile-title">Grammatik</h2>
                 <p className="tile-description">
-                  Bygg interaktiva lektioner med olika aktiviteter och spel för språklärande
+                  Hantera ordklasser, grammatikövningar och språkspel för eleverna
                 </p>
               </div>
             </Link>

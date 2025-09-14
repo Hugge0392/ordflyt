@@ -21,6 +21,7 @@ import WordClassLevels from "@/pages/word-class-levels";
 import Admin from "@/pages/admin";
 import AdminReading from "@/pages/admin-reading";
 import AdminLessons from "@/pages/admin-lessons";
+import AdminGrammatik from "@/pages/admin-grammatik";
 import AdminAccounts from "@/pages/admin-accounts";
 import AdminSentences from "@/pages/admin-sentences";
 import AdminEmailTest from "@/pages/admin-email-test";
@@ -130,6 +131,11 @@ function Router() {
       <Route path="/admin/lessons">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminLessons />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/grammatik">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminGrammatik />
         </ProtectedRoute>
       </Route>
       <Route path="/admin/accounts">
