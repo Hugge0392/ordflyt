@@ -53,9 +53,10 @@ import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebS
 import StudentWorkReview from '@/components/StudentWorkReview';
 import FeedbackList from '@/components/FeedbackList';
 import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
+import ExportDashboard from '@/components/export/ExportDashboard';
 
 // Dashboard section types
-type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback';
+type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export';
 
 interface DashboardStats {
   totalStudents: number;
@@ -1321,6 +1322,12 @@ export default function TeacherDashboard() {
       label: 'Återkoppling',
       icon: MessageSquare,
       description: 'Ge feedback och granska elevarbeten'
+    },
+    {
+      id: 'export' as DashboardSection,
+      label: 'Dataexport',
+      icon: Download,
+      description: 'Exportera elevdata för föräldramöten och backup'
     }
   ];
 
@@ -1583,6 +1590,8 @@ export default function TeacherDashboard() {
         );
       case 'feedback':
         return <StudentWorkReview />;
+      case 'export':
+        return <ExportDashboard teacherId={user?.id} />;
       default:
         return renderOverview();
     }

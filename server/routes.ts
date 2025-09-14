@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -2630,6 +2630,349 @@ export async function registerRoutes(app: Express): Promise<Server> {
   new KlassKampWebSocket(httpServer);
   const classroomWebSocket = new ClassroomWebSocket(httpServer);
   
+  // ===============================
+  // COMPREHENSIVE EXPORT SYSTEM ENDPOINTS
+  // ===============================
+
+  // Export validation schemas
+  const createExportJobSchema = z.object({
+    exportType: z.enum(['student_progress_report', 'parent_meeting_report', 'class_data_backup', 'administrative_report', 'assignment_overview', 'custom_report']),
+    format: z.enum(['pdf', 'csv', 'excel', 'json', 'html']),
+    title: z.string().min(1).max(255),
+    description: z.string().optional(),
+    classIds: z.array(z.string()).default([]),
+    studentIds: z.array(z.string()).default([]),
+    assignmentIds: z.array(z.string()).default([]),
+    dateRange: z.object({
+      start: z.string(),
+      end: z.string()
+    }).optional(),
+    dataFields: z.array(z.string()).default([]),
+    filterCriteria: z.object({
+      assignmentTypes: z.array(z.string()).optional(),
+      progressStatus: z.array(z.string()).optional(),
+      includeInactive: z.boolean().optional(),
+      includeFeedback: z.boolean().optional(),
+      includeTeacherComments: z.boolean().optional()
+    }).optional(),
+    templateId: z.string().optional(),
+    customization: z.object({
+      showCharts: z.boolean().optional(),
+      showProgressGraphs: z.boolean().optional(),
+      includeSummary: z.boolean().optional(),
+      customTitle: z.string().optional(),
+      colorScheme: z.enum(['default', 'professional', 'colorful', 'monochrome']).optional()
+    }).optional()
+  });
+
+  const createExportTemplateSchema = z.object({
+    name: z.string().min(1).max(255),
+    description: z.string().optional(),
+    exportType: z.enum(['student_progress_report', 'parent_meeting_report', 'class_data_backup', 'administrative_report', 'assignment_overview', 'custom_report']),
+    format: z.enum(['pdf', 'csv', 'excel', 'json', 'html']),
+    dataFields: z.array(z.string()),
+    defaultFilters: z.object({}).optional(),
+    layoutConfig: z.object({}).optional(),
+    styling: z.object({}).optional(),
+    isPublic: z.boolean().default(false)
+  });
+
+  // Export Jobs Endpoints
+  app.post("/api/exports/jobs", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = createExportJobSchema.parse(req.body);
+      const teacherId = req.user!.id;
+      const schoolId = req.teacherContext?.schoolId;
+
+      // Validate permissions for requested data
+      if (validatedData.classIds.length > 0) {
+        // Check if teacher has access to requested classes
+        const teacherClasses = await db
+          .select()
+          .from(schema.teacherClasses)
+          .where(and(
+            eq(schema.teacherClasses.teacherId, teacherId),
+            schoolId ? eq(schema.teacherClasses.schoolId, schoolId) : undefined
+          ));
+        
+        const allowedClassIds = teacherClasses.map(c => c.id);
+        const unauthorizedClassIds = validatedData.classIds.filter(id => !allowedClassIds.includes(id));
+        
+        if (unauthorizedClassIds.length > 0) {
+          return res.status(403).json({ 
+            error: 'Du har inte behörighet att exportera data från alla begärda klasser' 
+          });
+        }
+      }
+
+      const jobData = {
+        ...validatedData,
+        teacherId,
+        schoolId,
+        estimatedRecords: 100, // TODO: Calculate based on scope
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      };
+
+      const exportJob = await storage.createExportJob(jobData);
+
+      // Log export creation
+      await storage.createExportHistoryEntry({
+        jobId: exportJob.id,
+        teacherId,
+        action: 'created',
+        details: { exportType: validatedData.exportType, format: validatedData.format },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      res.status(201).json(exportJob);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Ogiltiga exportparametrar', details: error.errors });
+      }
+      console.error('Error creating export job:', error);
+      res.status(500).json({ error: 'Kunde inte skapa exportjobb' });
+    }
+  });
+
+  app.get("/api/exports/jobs", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const teacherId = req.user!.id;
+      const jobs = await storage.getExportJobsByTeacher(teacherId);
+      res.json(jobs);
+    } catch (error) {
+      console.error('Error fetching export jobs:', error);
+      res.status(500).json({ error: 'Kunde inte hämta exportjobb' });
+    }
+  });
+
+  app.get("/api/exports/jobs/:id", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const teacherId = req.user!.id;
+      
+      const job = await storage.getExportJob(jobId);
+      if (!job) {
+        return res.status(404).json({ error: 'Exportjobb hittades inte' });
+      }
+
+      // Verify ownership
+      if (job.teacherId !== teacherId) {
+        return res.status(403).json({ error: 'Du har inte behörighet att visa detta exportjobb' });
+      }
+
+      res.json(job);
+    } catch (error) {
+      console.error('Error fetching export job:', error);
+      res.status(500).json({ error: 'Kunde inte hämta exportjobb' });
+    }
+  });
+
+  app.put("/api/exports/jobs/:id", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const teacherId = req.user!.id;
+      
+      const job = await storage.getExportJob(jobId);
+      if (!job) {
+        return res.status(404).json({ error: 'Exportjobb hittades inte' });
+      }
+
+      if (job.teacherId !== teacherId) {
+        return res.status(403).json({ error: 'Du har inte behörighet att uppdatera detta exportjobb' });
+      }
+
+      const allowedUpdates = {
+        status: req.body.status,
+        progress: req.body.progress,
+        processingMessage: req.body.processingMessage,
+        errorMessage: req.body.errorMessage
+      };
+
+      const updatedJob = await storage.updateExportJob(jobId, allowedUpdates);
+      res.json(updatedJob);
+    } catch (error) {
+      console.error('Error updating export job:', error);
+      res.status(500).json({ error: 'Kunde inte uppdatera exportjobb' });
+    }
+  });
+
+  app.delete("/api/exports/jobs/:id", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const teacherId = req.user!.id;
+      
+      const job = await storage.getExportJob(jobId);
+      if (!job) {
+        return res.status(404).json({ error: 'Exportjobb hittades inte' });
+      }
+
+      if (job.teacherId !== teacherId) {
+        return res.status(403).json({ error: 'Du har inte behörighet att ta bort detta exportjobb' });
+      }
+
+      await storage.deleteExportJob(jobId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting export job:', error);
+      res.status(500).json({ error: 'Kunde inte ta bort exportjobb' });
+    }
+  });
+
+  // Export Templates Endpoints
+  app.post("/api/exports/templates", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = createExportTemplateSchema.parse(req.body);
+      const teacherId = req.user!.id;
+      const schoolId = req.teacherContext?.schoolId;
+
+      const templateData = {
+        ...validatedData,
+        teacherId,
+        schoolId
+      };
+
+      const template = await storage.createExportTemplate(templateData);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Ogiltiga mallparametrar', details: error.errors });
+      }
+      console.error('Error creating export template:', error);
+      res.status(500).json({ error: 'Kunde inte skapa exportmall' });
+    }
+  });
+
+  app.get("/api/exports/templates", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const teacherId = req.user!.id;
+      const schoolId = req.teacherContext?.schoolId;
+      
+      const [teacherTemplates, schoolTemplates, publicTemplates] = await Promise.all([
+        storage.getExportTemplatesByTeacher(teacherId),
+        schoolId ? storage.getExportTemplatesBySchool(schoolId) : Promise.resolve([]),
+        storage.getPublicExportTemplates()
+      ]);
+
+      const allTemplates = [
+        ...teacherTemplates,
+        ...schoolTemplates.filter(t => t.teacherId !== teacherId),
+        ...publicTemplates.filter(t => t.teacherId !== teacherId && t.schoolId !== schoolId)
+      ];
+
+      res.json(allTemplates);
+    } catch (error) {
+      console.error('Error fetching export templates:', error);
+      res.status(500).json({ error: 'Kunde inte hämta exportmallar' });
+    }
+  });
+
+  // Student Progress Report Generation
+  app.post("/api/exports/student-progress-report", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const { studentId, dateRange } = req.body;
+      const teacherId = req.user!.id;
+
+      // Verify teacher has access to this student
+      const student = await db
+        .select()
+        .from(schema.studentAccounts)
+        .innerJoin(schema.teacherClasses, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .where(and(
+          eq(schema.studentAccounts.id, studentId),
+          eq(schema.teacherClasses.teacherId, teacherId)
+        ));
+
+      if (!student.length) {
+        return res.status(403).json({ error: 'Du har inte behörighet att exportera data för denna elev' });
+      }
+
+      const report = await storage.generateStudentProgressReport(studentId, teacherId, dateRange);
+      res.json(report);
+    } catch (error) {
+      console.error('Error generating student progress report:', error);
+      res.status(500).json({ error: 'Kunde inte generera elevrapport' });
+    }
+  });
+
+  // Class Data Backup Generation
+  app.post("/api/exports/class-backup", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const { classId, includeInactive } = req.body;
+      const teacherId = req.user!.id;
+
+      // Verify teacher owns this class
+      const teacherClass = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(and(
+          eq(schema.teacherClasses.id, classId),
+          eq(schema.teacherClasses.teacherId, teacherId)
+        ));
+
+      if (!teacherClass.length) {
+        return res.status(403).json({ error: 'Du har inte behörighet att exportera data för denna klass' });
+      }
+
+      const backup = await storage.generateClassDataBackup(classId, teacherId, includeInactive);
+      res.json(backup);
+    } catch (error) {
+      console.error('Error generating class backup:', error);
+      res.status(500).json({ error: 'Kunde inte generera klassbackup' });
+    }
+  });
+
+  // Export History
+  app.get("/api/exports/history", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const teacherId = req.user!.id;
+      const history = await storage.getExportHistoryByTeacher(teacherId);
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching export history:', error);
+      res.status(500).json({ error: 'Kunde inte hämta exporthistorik' });
+    }
+  });
+
+  // Bulk Export Operations
+  app.post("/api/exports/bulk", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const { exportType, format, targets, filters, customization } = req.body;
+      const teacherId = req.user!.id;
+
+      // Create multiple export jobs for bulk operation
+      const jobs = [];
+      
+      if (targets.studentIds && targets.studentIds.length > 0) {
+        for (const studentId of targets.studentIds) {
+          const jobData = {
+            exportType,
+            format,
+            title: `Bulk Export - Student ${studentId}`,
+            teacherId,
+            schoolId: req.teacherContext?.schoolId,
+            studentIds: [studentId],
+            classIds: [],
+            assignmentIds: [],
+            dataFields: [],
+            filterCriteria: filters || {},
+            customization: customization || {},
+            estimatedRecords: 1,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          };
+
+          const job = await storage.createExportJob(jobData);
+          jobs.push(job);
+        }
+      }
+
+      res.json({ jobs, message: `Skapade ${jobs.length} exportjobb för bulkoperation` });
+    } catch (error) {
+      console.error('Error creating bulk export:', error);
+      res.status(500).json({ error: 'Kunde inte skapa bulkexport' });
+    }
+  });
+
   // Store reference to ClassroomWebSocket for classroom APIs
   (app as any).classroomWebSocket = classroomWebSocket;
   

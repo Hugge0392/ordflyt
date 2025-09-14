@@ -1603,3 +1603,402 @@ export interface TopPerformerData {
   };
   recognitions: string[];
 }
+
+// ===============================
+// DATA EXPORT SYSTEM MODELS
+// ===============================
+
+// Export types enum
+export const exportTypeEnum = pgEnum('export_type', [
+  'student_progress_report',
+  'parent_meeting_report',
+  'class_data_backup',
+  'administrative_report',
+  'assignment_overview',
+  'custom_report'
+]);
+
+// Export formats enum
+export const exportFormatEnum = pgEnum('export_format', [
+  'pdf',
+  'csv',
+  'excel',
+  'json',
+  'html'
+]);
+
+// Export status enum
+export const exportStatusEnum = pgEnum('export_status', [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'cancelled',
+  'expired'
+]);
+
+// Export jobs table - track export requests and processing
+export const exportJobs = pgTable("export_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: 'cascade' }),
+  
+  // Export configuration
+  exportType: exportTypeEnum("export_type").notNull(),
+  format: exportFormatEnum("format").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Target scope
+  classIds: jsonb("class_ids").$type<string[]>().default([]),
+  studentIds: jsonb("student_ids").$type<string[]>().default([]),
+  assignmentIds: jsonb("assignment_ids").$type<string[]>().default([]),
+  
+  // Filter criteria
+  dateRange: jsonb("date_range").$type<ExportDateRange>(),
+  dataFields: jsonb("data_fields").$type<string[]>().default([]), // which fields to include
+  filterCriteria: jsonb("filter_criteria").$type<ExportFilterCriteria>().default({}),
+  
+  // Configuration and customization
+  templateId: varchar("template_id").references(() => exportTemplates.id),
+  customization: jsonb("customization").$type<ExportCustomization>().default({}),
+  
+  // Processing status
+  status: exportStatusEnum("status").default('pending'),
+  progress: integer("progress").default(0), // 0-100 percentage
+  processingMessage: text("processing_message"),
+  errorMessage: text("error_message"),
+  
+  // File management
+  outputPath: text("output_path"), // path to generated file
+  fileSize: integer("file_size"), // file size in bytes
+  downloadCount: integer("download_count").default(0),
+  expiresAt: timestamp("expires_at"), // when file expires for security
+  
+  // Metadata
+  estimatedRecords: integer("estimated_records"), // estimated number of records to export
+  actualRecords: integer("actual_records"), // actual number of records exported
+  processingStartedAt: timestamp("processing_started_at"),
+  processingCompletedAt: timestamp("processing_completed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  teacherIdx: index("export_jobs_teacher_idx").on(table.teacherId),
+  schoolIdx: index("export_jobs_school_idx").on(table.schoolId),
+  statusIdx: index("export_jobs_status_idx").on(table.status),
+  typeIdx: index("export_jobs_type_idx").on(table.exportType),
+  createdAtIdx: index("export_jobs_created_at_idx").on(table.createdAt),
+  expiresAtIdx: index("export_jobs_expires_at_idx").on(table.expiresAt),
+}));
+
+// Export templates table - reusable export configurations
+export const exportTemplates = pgTable("export_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Template scope
+  teacherId: varchar("teacher_id").references(() => users.id, { onDelete: 'cascade' }), // null = global template
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: 'cascade' }), // null = system template
+  
+  // Template configuration
+  exportType: exportTypeEnum("export_type").notNull(),
+  format: exportFormatEnum("format").notNull(),
+  dataFields: jsonb("data_fields").$type<string[]>().notNull(),
+  defaultFilters: jsonb("default_filters").$type<ExportFilterCriteria>().default({}),
+  
+  // Template design
+  layoutConfig: jsonb("layout_config").$type<ExportLayoutConfig>().default({}),
+  styling: jsonb("styling").$type<ExportStyling>().default({}),
+  
+  // Usage and maintenance
+  isActive: boolean("is_active").default(true),
+  isPublic: boolean("is_public").default(false), // can other teachers use this template
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  teacherIdx: index("export_templates_teacher_idx").on(table.teacherId),
+  schoolIdx: index("export_templates_school_idx").on(table.schoolId),
+  typeIdx: index("export_templates_type_idx").on(table.exportType),
+  activeIdx: index("export_templates_active_idx").on(table.isActive),
+  publicIdx: index("export_templates_public_idx").on(table.isPublic),
+}));
+
+// Export history table - track all export activities for audit
+export const exportHistory = pgTable("export_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => exportJobs.id, { onDelete: 'cascade' }),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id),
+  
+  // Action tracking
+  action: varchar("action", { length: 50 }).notNull(), // 'created', 'started', 'completed', 'downloaded', 'failed'
+  details: jsonb("details").$type<Record<string, any>>().default({}),
+  
+  // Request context
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  
+  timestamp: timestamp("timestamp").defaultNow(),
+}, (table) => ({
+  jobIdx: index("export_history_job_idx").on(table.jobId),
+  teacherIdx: index("export_history_teacher_idx").on(table.teacherId),
+  actionIdx: index("export_history_action_idx").on(table.action),
+  timestampIdx: index("export_history_timestamp_idx").on(table.timestamp),
+}));
+
+// TypeScript interfaces for export configuration
+export interface ExportDateRange {
+  start: string;
+  end: string;
+  granularity?: 'day' | 'week' | 'month';
+}
+
+export interface ExportFilterCriteria {
+  assignmentTypes?: string[];
+  progressStatus?: string[];
+  scoreThreshold?: {
+    min?: number;
+    max?: number;
+  };
+  completionRateThreshold?: {
+    min?: number;
+    max?: number;
+  };
+  timeSpentThreshold?: {
+    min?: number; // minutes
+    max?: number; // minutes
+  };
+  includeInactive?: boolean;
+  includeFeedback?: boolean;
+  includeTeacherComments?: boolean;
+  language?: 'sv' | 'en';
+}
+
+export interface ExportCustomization {
+  showCharts?: boolean;
+  showProgressGraphs?: boolean;
+  showComparisons?: boolean;
+  includeSummary?: boolean;
+  includeRecommendations?: boolean;
+  customTitle?: string;
+  customHeader?: string;
+  customFooter?: string;
+  logoUrl?: string;
+  schoolBranding?: boolean;
+  colorScheme?: 'default' | 'professional' | 'colorful' | 'monochrome';
+}
+
+export interface ExportLayoutConfig {
+  pageSize?: 'A4' | 'A3' | 'Letter';
+  orientation?: 'portrait' | 'landscape';
+  margins?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  columns?: number;
+  sectionsOrder?: string[];
+  includeTableOfContents?: boolean;
+  includePageNumbers?: boolean;
+}
+
+export interface ExportStyling {
+  fontFamily?: string;
+  fontSize?: number;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  headerStyle?: 'simple' | 'professional' | 'colorful';
+  tableStyle?: 'simple' | 'striped' | 'bordered' | 'minimal';
+}
+
+// Comprehensive export data models extending existing analytics
+
+export interface StudentProgressReport extends StudentAnalytics {
+  exportMetadata: {
+    generatedAt: string;
+    generatedBy: string;
+    reportPeriod: ExportDateRange;
+    teacherComments: string;
+    nextSteps: string[];
+  };
+  parentMeetingData: {
+    keyHighlights: string[];
+    areasOfConcern: string[];
+    homeRecommendations: string[];
+    followUpActions: string[];
+  };
+  visualizations: {
+    progressChart: ChartConfig;
+    comparisonChart: ChartConfig;
+    trendsChart: ChartConfig;
+  };
+}
+
+export interface ClassDataBackup {
+  classInfo: {
+    id: string;
+    name: string;
+    teacherName: string;
+    schoolName: string;
+    term: string;
+    studentCount: number;
+  };
+  exportMetadata: {
+    exportedAt: string;
+    exportedBy: string;
+    dataRange: ExportDateRange;
+    includesFields: string[];
+  };
+  students: StudentBackupData[];
+  assignments: AssignmentBackupData[];
+  analytics: ClassAnalytics;
+  teacherNotes: {
+    classNotes: string;
+    studentSpecificNotes: { studentId: string; notes: string }[];
+  };
+}
+
+export interface StudentBackupData {
+  studentInfo: {
+    id: string;
+    username: string;
+    studentName: string;
+    enrollmentDate: string;
+    lastActivity: string | null;
+  };
+  academicData: {
+    overallScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    assignmentsCompleted: number;
+    currentStatus: string;
+  };
+  progressRecords: {
+    assignmentId: string;
+    assignmentTitle: string;
+    status: string;
+    score: number | null;
+    timeSpent: number;
+    completedAt: string | null;
+    attempts: number;
+  }[];
+  feedbackHistory: {
+    feedbackId: string;
+    feedbackType: string;
+    message: string;
+    isPositive: boolean;
+    createdAt: string;
+    teacherResponse?: string;
+  }[];
+}
+
+export interface AssignmentBackupData {
+  assignmentInfo: {
+    id: string;
+    title: string;
+    assignmentType: string;
+    description: string;
+    createdAt: string;
+    dueDate: string | null;
+  };
+  analytics: AssignmentAnalytics;
+  configuration: {
+    allowRetries: boolean;
+    showCorrectAnswers: boolean;
+    timeLimit: number | null;
+    estimatedDuration: number | null;
+  };
+}
+
+export interface ChartConfig {
+  type: 'line' | 'bar' | 'pie' | 'scatter';
+  title: string;
+  data: any[];
+  xAxis?: string;
+  yAxis?: string;
+  colors?: string[];
+  showLegend?: boolean;
+}
+
+export interface BulkExportRequest {
+  exportType: string;
+  format: string;
+  targets: {
+    studentIds?: string[];
+    classIds?: string[];
+    assignmentIds?: string[];
+  };
+  filters: ExportFilterCriteria;
+  customization: ExportCustomization;
+  templateId?: string;
+  generateSeparateFiles?: boolean; // if true, creates one file per student/class
+  emailResults?: boolean;
+  emailAddresses?: string[];
+}
+
+export interface ExportProgress {
+  jobId: string;
+  status: string;
+  progress: number;
+  currentPhase: string;
+  estimatedTimeRemaining?: number; // seconds
+  recordsProcessed: number;
+  totalRecords: number;
+  message?: string;
+}
+
+export interface ExportSummary {
+  jobId: string;
+  title: string;
+  exportType: string;
+  format: string;
+  status: string;
+  recordCount: number;
+  fileSize: number;
+  downloadUrl?: string;
+  expiresAt: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// Zod schemas for export system
+export const insertExportJobSchema = createInsertSchema(exportJobs).omit({
+  id: true,
+  status: true,
+  progress: true,
+  processingStartedAt: true,
+  processingCompletedAt: true,
+  outputPath: true,
+  fileSize: true,
+  downloadCount: true,
+  actualRecords: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExportTemplateSchema = createInsertSchema(exportTemplates).omit({
+  id: true,
+  usageCount: true,
+  lastUsedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExportHistorySchema = createInsertSchema(exportHistory).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Export type definitions
+export type ExportJob = typeof exportJobs.$inferSelect;
+export type InsertExportJob = z.infer<typeof insertExportJobSchema>;
+export type ExportTemplate = typeof exportTemplates.$inferSelect;
+export type InsertExportTemplate = z.infer<typeof insertExportTemplateSchema>;
+export type ExportHistoryEntry = typeof exportHistory.$inferSelect;
+export type InsertExportHistoryEntry = z.infer<typeof insertExportHistorySchema>;

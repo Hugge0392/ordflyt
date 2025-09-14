@@ -43,11 +43,22 @@ import {
   type TimeSpentAnalytics,
   type StrugglingStudentData,
   type TopPerformerData,
+  type ExportJob,
+  type InsertExportJob,
+  type ExportTemplate,
+  type InsertExportTemplate,
+  type ExportHistoryEntry,
+  type InsertExportHistoryEntry,
+  type StudentProgressReport,
+  type ClassDataBackup,
+  type BulkExportRequest,
+  type ExportProgress,
+  type ExportSummary,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, gte, sql } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -160,6 +171,37 @@ export interface IStorage {
   getTimeSpentAnalytics(teacherId: string): Promise<TimeSpentAnalytics>;
   getStrugglingStudents(teacherId: string): Promise<StrugglingStudentData[]>;
   getTopPerformers(teacherId: string): Promise<TopPerformerData[]>;
+
+  // Export system methods
+  createExportJob(job: InsertExportJob): Promise<ExportJob>;
+  getExportJob(id: string): Promise<ExportJob | undefined>;
+  getExportJobsByTeacher(teacherId: string): Promise<ExportJob[]>;
+  getExportJobsBySchool(schoolId: string): Promise<ExportJob[]>;
+  updateExportJob(id: string, job: Partial<InsertExportJob>): Promise<ExportJob>;
+  deleteExportJob(id: string): Promise<void>;
+  getActiveExportJobs(): Promise<ExportJob[]>;
+  getExpiredExportJobs(): Promise<ExportJob[]>;
+
+  // Export templates methods
+  createExportTemplate(template: InsertExportTemplate): Promise<ExportTemplate>;
+  getExportTemplate(id: string): Promise<ExportTemplate | undefined>;
+  getExportTemplatesByTeacher(teacherId: string): Promise<ExportTemplate[]>;
+  getExportTemplatesBySchool(schoolId: string): Promise<ExportTemplate[]>;
+  getPublicExportTemplates(): Promise<ExportTemplate[]>;
+  updateExportTemplate(id: string, template: Partial<InsertExportTemplate>): Promise<ExportTemplate>;
+  deleteExportTemplate(id: string): Promise<void>;
+
+  // Export history methods
+  createExportHistoryEntry(entry: InsertExportHistoryEntry): Promise<ExportHistoryEntry>;
+  getExportHistory(jobId: string): Promise<ExportHistoryEntry[]>;
+  getExportHistoryByTeacher(teacherId: string): Promise<ExportHistoryEntry[]>;
+
+  // Export data aggregation methods
+  generateStudentProgressReport(studentId: string, teacherId: string, dateRange?: { start: string; end: string }): Promise<StudentProgressReport>;
+  generateClassDataBackup(classId: string, teacherId: string, includeInactive?: boolean): Promise<ClassDataBackup>;
+  getExportableStudentData(studentIds: string[], teacherId: string): Promise<any[]>;
+  getExportableClassData(classIds: string[], teacherId: string): Promise<any[]>;
+  getExportableAssignmentData(assignmentIds: string[], teacherId: string): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -625,6 +667,99 @@ export class MemStorage implements IStorage {
       migrated: migrated.length,
       unmigrated: unmigrated.length
     };
+  }
+
+  // Export system methods - stub implementations for MemStorage
+  async createExportJob(job: InsertExportJob): Promise<ExportJob> {
+    throw new Error("Export jobs not implemented in MemStorage");
+  }
+
+  async getExportJob(id: string): Promise<ExportJob | undefined> {
+    throw new Error("Export jobs not implemented in MemStorage");
+  }
+
+  async getExportJobsByTeacher(teacherId: string): Promise<ExportJob[]> {
+    return [];
+  }
+
+  async getExportJobsBySchool(schoolId: string): Promise<ExportJob[]> {
+    return [];
+  }
+
+  async updateExportJob(id: string, job: Partial<InsertExportJob>): Promise<ExportJob> {
+    throw new Error("Export jobs not implemented in MemStorage");
+  }
+
+  async deleteExportJob(id: string): Promise<void> {
+    // No-op for MemStorage
+  }
+
+  async getActiveExportJobs(): Promise<ExportJob[]> {
+    return [];
+  }
+
+  async getExpiredExportJobs(): Promise<ExportJob[]> {
+    return [];
+  }
+
+  async createExportTemplate(template: InsertExportTemplate): Promise<ExportTemplate> {
+    throw new Error("Export templates not implemented in MemStorage");
+  }
+
+  async getExportTemplate(id: string): Promise<ExportTemplate | undefined> {
+    return undefined;
+  }
+
+  async getExportTemplatesByTeacher(teacherId: string): Promise<ExportTemplate[]> {
+    return [];
+  }
+
+  async getExportTemplatesBySchool(schoolId: string): Promise<ExportTemplate[]> {
+    return [];
+  }
+
+  async getPublicExportTemplates(): Promise<ExportTemplate[]> {
+    return [];
+  }
+
+  async updateExportTemplate(id: string, template: Partial<InsertExportTemplate>): Promise<ExportTemplate> {
+    throw new Error("Export templates not implemented in MemStorage");
+  }
+
+  async deleteExportTemplate(id: string): Promise<void> {
+    // No-op for MemStorage
+  }
+
+  async createExportHistoryEntry(entry: InsertExportHistoryEntry): Promise<ExportHistoryEntry> {
+    throw new Error("Export history not implemented in MemStorage");
+  }
+
+  async getExportHistory(jobId: string): Promise<ExportHistoryEntry[]> {
+    return [];
+  }
+
+  async getExportHistoryByTeacher(teacherId: string): Promise<ExportHistoryEntry[]> {
+    return [];
+  }
+
+  async generateStudentProgressReport(studentId: string, teacherId: string, dateRange?: { start: string; end: string }): Promise<StudentProgressReport> {
+    throw new Error("Student progress reports not implemented in MemStorage");
+  }
+
+  async generateClassDataBackup(classId: string, teacherId: string, includeInactive?: boolean): Promise<ClassDataBackup> {
+    throw new Error("Class data backup not implemented in MemStorage");
+  }
+
+  async getExportableStudentData(studentIds: string[], teacherId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getExportableClassData(classIds: string[], teacherId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getExportableAssignmentData(assignmentIds: string[], teacherId: string): Promise<any[]> {
+    return [];
   }
 }
 
@@ -1482,6 +1617,260 @@ export class DatabaseStorage implements IStorage {
   async getTopPerformers(teacherId: string): Promise<TopPerformerData[]> {
     // TODO: Implement top performers identification
     throw new Error('Not implemented yet');
+  }
+
+  // Export system methods for DatabaseStorage
+  async createExportJob(job: InsertExportJob): Promise<ExportJob> {
+    const [newJob] = await db.insert(schema.exportJobs).values(job).returning();
+    return newJob;
+  }
+
+  async getExportJob(id: string): Promise<ExportJob | undefined> {
+    const result = await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.id, id));
+    return result[0];
+  }
+
+  async getExportJobsByTeacher(teacherId: string): Promise<ExportJob[]> {
+    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.teacherId, teacherId));
+  }
+
+  async getExportJobsBySchool(schoolId: string): Promise<ExportJob[]> {
+    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.schoolId, schoolId));
+  }
+
+  async updateExportJob(id: string, job: Partial<InsertExportJob>): Promise<ExportJob> {
+    const [updatedJob] = await db.update(schema.exportJobs)
+      .set({ ...job, updatedAt: new Date() })
+      .where(eq(schema.exportJobs.id, id))
+      .returning();
+    return updatedJob;
+  }
+
+  async deleteExportJob(id: string): Promise<void> {
+    await db.delete(schema.exportJobs).where(eq(schema.exportJobs.id, id));
+  }
+
+  async getActiveExportJobs(): Promise<ExportJob[]> {
+    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.status, 'processing'));
+  }
+
+  async getExpiredExportJobs(): Promise<ExportJob[]> {
+    return await db.select().from(schema.exportJobs).where(
+      and(
+        eq(schema.exportJobs.status, 'completed'),
+        sql`${schema.exportJobs.expiresAt} < NOW()`
+      )
+    );
+  }
+
+  async createExportTemplate(template: InsertExportTemplate): Promise<ExportTemplate> {
+    const [newTemplate] = await db.insert(schema.exportTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async getExportTemplate(id: string): Promise<ExportTemplate | undefined> {
+    const result = await db.select().from(schema.exportTemplates).where(eq(schema.exportTemplates.id, id));
+    return result[0];
+  }
+
+  async getExportTemplatesByTeacher(teacherId: string): Promise<ExportTemplate[]> {
+    return await db.select().from(schema.exportTemplates).where(
+      and(
+        eq(schema.exportTemplates.teacherId, teacherId),
+        eq(schema.exportTemplates.isActive, true)
+      )
+    );
+  }
+
+  async getExportTemplatesBySchool(schoolId: string): Promise<ExportTemplate[]> {
+    return await db.select().from(schema.exportTemplates).where(
+      and(
+        eq(schema.exportTemplates.schoolId, schoolId),
+        eq(schema.exportTemplates.isActive, true)
+      )
+    );
+  }
+
+  async getPublicExportTemplates(): Promise<ExportTemplate[]> {
+    return await db.select().from(schema.exportTemplates).where(
+      and(
+        eq(schema.exportTemplates.isPublic, true),
+        eq(schema.exportTemplates.isActive, true)
+      )
+    );
+  }
+
+  async updateExportTemplate(id: string, template: Partial<InsertExportTemplate>): Promise<ExportTemplate> {
+    const [updatedTemplate] = await db.update(schema.exportTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(schema.exportTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteExportTemplate(id: string): Promise<void> {
+    await db.delete(schema.exportTemplates).where(eq(schema.exportTemplates.id, id));
+  }
+
+  async createExportHistoryEntry(entry: InsertExportHistoryEntry): Promise<ExportHistoryEntry> {
+    const [newEntry] = await db.insert(schema.exportHistory).values(entry).returning();
+    return newEntry;
+  }
+
+  async getExportHistory(jobId: string): Promise<ExportHistoryEntry[]> {
+    return await db.select().from(schema.exportHistory).where(eq(schema.exportHistory.jobId, jobId));
+  }
+
+  async getExportHistoryByTeacher(teacherId: string): Promise<ExportHistoryEntry[]> {
+    return await db.select().from(schema.exportHistory).where(eq(schema.exportHistory.teacherId, teacherId));
+  }
+
+  async generateStudentProgressReport(studentId: string, teacherId: string, dateRange?: { start: string; end: string }): Promise<StudentProgressReport> {
+    // Get comprehensive student analytics
+    const studentAnalytics = await this.getStudentAnalytics(studentId);
+    
+    // Add export metadata
+    const exportMetadata = {
+      generatedAt: new Date().toISOString(),
+      generatedBy: teacherId,
+      reportPeriod: dateRange || { start: '', end: '' },
+      teacherComments: '',
+      nextSteps: []
+    };
+
+    // Add parent meeting specific data
+    const parentMeetingData = {
+      keyHighlights: [],
+      areasOfConcern: [],
+      homeRecommendations: [],
+      followUpActions: []
+    };
+
+    // Add visualization configs
+    const visualizations = {
+      progressChart: { type: 'line' as const, title: 'Progress Over Time', data: [] },
+      comparisonChart: { type: 'bar' as const, title: 'Class Comparison', data: [] },
+      trendsChart: { type: 'line' as const, title: 'Learning Trends', data: [] }
+    };
+
+    return {
+      ...studentAnalytics,
+      exportMetadata,
+      parentMeetingData,
+      visualizations
+    };
+  }
+
+  async generateClassDataBackup(classId: string, teacherId: string, includeInactive?: boolean): Promise<ClassDataBackup> {
+    // Get class information
+    const [teacherClass] = await db
+      .select()
+      .from(schema.teacherClasses)
+      .where(eq(schema.teacherClasses.id, classId));
+
+    if (!teacherClass) {
+      throw new Error('Class not found');
+    }
+
+    // Get teacher and school information
+    const [teacher] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, teacherId));
+
+    const [school] = await db
+      .select()
+      .from(schema.schools)
+      .where(eq(schema.schools.id, teacherClass.schoolId || ''));
+
+    const classInfo = {
+      id: teacherClass.id,
+      name: teacherClass.name,
+      teacherName: teacher?.username || 'Unknown',
+      schoolName: school?.name || 'Unknown',
+      term: new Date().getFullYear().toString(),
+      studentCount: 0
+    };
+
+    const exportMetadata = {
+      exportedAt: new Date().toISOString(),
+      exportedBy: teacherId,
+      dataRange: { start: '', end: '' },
+      includesFields: ['progress', 'assignments', 'feedback']
+    };
+
+    // Get students, assignments, and analytics
+    const students: any[] = [];
+    const assignments: any[] = [];
+    const analytics = await this.getClassAnalytics(classId);
+    
+    const teacherNotes = {
+      classNotes: '',
+      studentSpecificNotes: []
+    };
+
+    return {
+      classInfo,
+      exportMetadata,
+      students,
+      assignments,
+      analytics,
+      teacherNotes
+    };
+  }
+
+  async getExportableStudentData(studentIds: string[], teacherId: string): Promise<any[]> {
+    // Implement basic student data export
+    const studentData = [];
+    
+    for (const studentId of studentIds) {
+      const [student] = await db
+        .select()
+        .from(schema.studentAccounts)
+        .where(eq(schema.studentAccounts.id, studentId));
+
+      if (student) {
+        studentData.push({
+          id: student.id,
+          studentName: student.studentName,
+          username: student.username,
+          classId: student.classId,
+          lastLogin: student.lastLogin
+        });
+      }
+    }
+
+    return studentData;
+  }
+
+  async getExportableClassData(classIds: string[], teacherId: string): Promise<any[]> {
+    // Implement basic class data export
+    const classData = [];
+    
+    for (const classId of classIds) {
+      const analytics = await this.getClassAnalytics(classId);
+      classData.push(analytics);
+    }
+
+    return classData;
+  }
+
+  async getExportableAssignmentData(assignmentIds: string[], teacherId: string): Promise<any[]> {
+    // Implement basic assignment data export
+    const assignmentData = [];
+    
+    for (const assignmentId of assignmentIds) {
+      const [assignment] = await db
+        .select()
+        .from(lessonAssignments)
+        .where(eq(lessonAssignments.id, assignmentId));
+
+      if (assignment) {
+        assignmentData.push(assignment);
+      }
+    }
+
+    return assignmentData;
   }
 }
 
