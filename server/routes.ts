@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
 import emailTestRoutes from "./emailTestRoutes";
+import { requireAuth, requireRole, requireCsrf } from "./auth";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -282,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update game progress
-  app.patch("/api/game-progress", async (req, res) => {
+  app.patch("/api/game-progress", requireCsrf, async (req, res) => {
     try {
       const validatedData = updateProgressSchema.parse(req.body);
       
@@ -334,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reset game progress
-  app.post("/api/game-progress/reset", async (req, res) => {
+  app.post("/api/game-progress/reset", requireCsrf, async (req, res) => {
     try {
       const progress = await storage.resetGameProgress();
       res.json(progress);
@@ -371,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new sentence
-  app.post("/api/admin/sentences", async (req, res) => {
+  app.post("/api/admin/sentences", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const validatedData = insertSentenceSchema.parse(req.body);
       const sentence = await storage.createSentence(validatedData);
@@ -386,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update sentence
-  app.put("/api/admin/sentences/:id", async (req, res) => {
+  app.put("/api/admin/sentences/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const validatedData = insertSentenceSchema.partial().parse(req.body);
       const sentence = await storage.updateSentence(req.params.id, validatedData);
@@ -401,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete sentence
-  app.delete("/api/admin/sentences/:id", async (req, res) => {
+  app.delete("/api/admin/sentences/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       await storage.deleteSentence(req.params.id);
       res.status(204).send();
@@ -414,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== ERROR REPORT ENDPOINTS =====
   
   // Create error report
-  app.post("/api/error-reports", async (req, res) => {
+  app.post("/api/error-reports", requireCsrf, async (req, res) => {
     try {
       const validatedData = insertErrorReportSchema.parse(req.body);
       const errorReport = await storage.createErrorReport(validatedData);
@@ -440,7 +441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update error report status (admin)
-  app.patch("/api/admin/error-reports/:id", async (req, res) => {
+  app.patch("/api/admin/error-reports/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const updates = req.body;
       const errorReport = await storage.updateErrorReport(req.params.id, updates);
@@ -452,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete error report (admin)
-  app.delete("/api/admin/error-reports/:id", async (req, res) => {
+  app.delete("/api/admin/error-reports/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       await storage.deleteErrorReport(req.params.id);
       res.status(204).send();
@@ -484,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
   });
   
-  app.post("/api/upload-direct", upload.single('file'), async (req: any, res) => {
+  app.post("/api/upload-direct", requireAuth, requireCsrf, upload.single('file'), async (req: any, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
       if (!req.file) {
@@ -523,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/objects/upload", async (req, res) => {
+  app.post("/api/objects/upload", requireAuth, requireCsrf, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -539,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Removed - no longer needed since objectPath is returned directly from /api/objects/upload
 
   // Published lesson endpoints
-  app.post("/api/lessons/publish", async (req, res) => {
+  app.post("/api/lessons/publish", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       console.log("Received publish request:", req.body);
       const validatedData = insertPublishedLessonSchema.parse(req.body);
@@ -591,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/lessons/published/:id", async (req, res) => {
+  app.put("/api/lessons/published/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       console.log("Received update request for lesson:", req.params.id, req.body);
       const validatedData = insertPublishedLessonSchema.parse(req.body);
@@ -607,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/lessons/published/:id", async (req, res) => {
+  app.delete("/api/lessons/published/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deletePublishedLesson(id);
@@ -619,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Draft lesson endpoints
-  app.post("/api/lessons/drafts", async (req, res) => {
+  app.post("/api/lessons/drafts", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const draft = await storage.createLessonDraft(req.body);
       res.json(draft);
@@ -652,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/lessons/drafts/:id", async (req, res) => {
+  app.put("/api/lessons/drafts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const draft = await storage.updateLessonDraft(req.params.id, req.body);
       res.json(draft);
@@ -662,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/lessons/drafts/:id", async (req, res) => {
+  app.delete("/api/lessons/drafts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       await storage.deleteLessonDraft(req.params.id);
       res.json({ success: true });
@@ -675,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== READING LESSON ENDPOINTS =====
 
   // Create reading lesson
-  app.post("/api/reading-lessons", async (req, res) => {
+  app.post("/api/reading-lessons", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       const validatedData = insertReadingLessonSchema.parse(req.body);
       const lesson = await storage.createReadingLesson(validatedData);
@@ -740,7 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update reading lesson
-  app.put("/api/reading-lessons/:id", async (req, res) => {
+  app.put("/api/reading-lessons/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       console.log('[API UPDATE] Received lesson update:', {
         id: req.params.id,
@@ -779,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete reading lesson
-  app.delete("/api/reading-lessons/:id", async (req, res) => {
+  app.delete("/api/reading-lessons/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
       await storage.deleteReadingLesson(req.params.id);
       res.status(204).send();
@@ -819,7 +820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Removed duplicate - object storage upload endpoint is defined above
 
-  app.put("/api/lesson-images", async (req, res) => {
+  app.put("/api/lesson-images", requireAuth, requireCsrf, async (req, res) => {
     try {
       const { imageURL } = req.body;
       if (!imageURL) {
@@ -856,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // KlassKamp API endpoints
-  app.post("/api/klasskamp/create", async (req, res) => {
+  app.post("/api/klasskamp/create", requireCsrf, async (req, res) => {
     try {
       const { teacherName, wordClassId, questionCount } = req.body;
       
@@ -903,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Text-to-Speech API endpoints
-  app.post("/api/tts/synthesize", async (req, res) => {
+  app.post("/api/tts/synthesize", requireCsrf, async (req, res) => {
     try {
       const { text, voice, rate, pitch } = req.body;
       
@@ -940,7 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Chunked TTS synthesis for faster startup
-  app.post("/api/tts/synthesize-chunked", async (req, res) => {
+  app.post("/api/tts/synthesize-chunked", requireCsrf, async (req, res) => {
     try {
       const { text, voice, rate, pitch, maxChunkLength } = req.body;
       

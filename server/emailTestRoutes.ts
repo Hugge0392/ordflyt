@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { emailService } from './emailService';
-import { requireAuth, requireRole } from './auth';
+import { requireAuth, requireRole, requireCsrf } from './auth';
 import { z } from 'zod';
 
 const router = Router();
@@ -16,7 +16,7 @@ const testEmailSchema = z.object({
 });
 
 // POST /api/email/test-domain - Test if email domain is compatible with sender domain
-router.post('/test-domain', requireAuth, requireRole('ADMIN'), async (req: any, res) => {
+router.post('/test-domain', requireAuth, requireRole('ADMIN'), requireCsrf, async (req: any, res) => {
   try {
     const { email } = req.body;
     const fromEmail = process.env.FROM_EMAIL || 'noreply@ordflyt.se';
@@ -38,7 +38,7 @@ router.post('/test-domain', requireAuth, requireRole('ADMIN'), async (req: any, 
 });
 
 // POST /api/email/test - Test email functionality
-router.post('/test', requireAuth, requireRole('ADMIN'), async (req: any, res) => {
+router.post('/test', requireAuth, requireRole('ADMIN'), requireCsrf, async (req: any, res) => {
   try {
     const { email, testType, customMessage, customSubject } = testEmailSchema.parse(req.body);
     const userId = req.user.id;

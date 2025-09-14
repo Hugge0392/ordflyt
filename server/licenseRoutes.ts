@@ -17,10 +17,10 @@ import {
   licenseDb
 } from './licenseDb';
 import { emailService } from './emailService';
-import { requireAuth, requireRole } from './auth';
+import { requireAuth, requireRole, requireSchoolAccess, requireTeacherLicense, requireCsrf } from './auth';
 import { Request, Response } from 'express';
-import { oneTimeCodes, teacherLicenses, teacherClasses } from '@shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { oneTimeCodes, teacherLicenses, teacherClasses, studentAccounts } from '@shared/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -75,7 +75,7 @@ async function requireActiveLicense(req: any, res: Response, next: Function) {
 }
 
 // POST /api/license/redeem - Lösa in engångskod
-router.post('/redeem', requireAuth, async (req: any, res: Response) => {
+router.post('/redeem', requireAuth, requireCsrf, async (req: any, res: Response) => {
   try {
     const { code } = redeemCodeSchema.parse(req.body);
     const userId = req.user.id;
@@ -214,7 +214,7 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
 });
 
 // GET /api/license/classes - Hämta lärarens klasser
-router.get('/classes', requireAuth, requireActiveLicense, async (req: any, res: Response) => {
+router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     const userId = req.user.id;
     const classes = await getTeacherClasses(userId);
@@ -228,7 +228,7 @@ router.get('/classes', requireAuth, requireActiveLicense, async (req: any, res: 
 });
 
 // POST /api/license/classes - Skapa ny klass
-router.post('/classes', requireAuth, requireActiveLicense, async (req: any, res: Response) => {
+router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
   try {
     const { name, term, description, studentNames } = createClassSchema.parse(req.body);
     const userId = req.user.id;
@@ -317,7 +317,7 @@ router.get('/admin/codes', requireAuth, requireRole('ADMIN'), async (req: any, r
 });
 
 // POST /api/license/admin/generate - Generera ny engångskod (Admin only)
-router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
+router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, async (req: any, res: Response) => {
   try {
     const { recipientEmail, validityDays } = generateCodeSchema.parse(req.body);
     const userId = req.user.id;
@@ -414,7 +414,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), async (req: an
 });
 
 // DELETE /api/license/admin/codes/:id - Ta bort engångskod (Admin only)
-router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
+router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), requireCsrf, async (req: any, res: Response) => {
   try {
     const codeId = req.params.id;
     const userId = req.user.id;
@@ -454,7 +454,7 @@ router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), async (req:
 });
 
 // DELETE /api/license/admin/licenses/:id - Ta bort lärarlicens (Admin only)  
-router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), async (req: any, res: Response) => {
+router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), requireCsrf, async (req: any, res: Response) => {
   try {
     const licenseId = req.params.id;
     const userId = req.user.id;
@@ -486,6 +486,197 @@ router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), async (r
   } catch (error: any) {
     console.error('Delete license error:', error);
     res.status(500).json({ error: 'Serverfel vid borttagning av licens' });
+  }
+});
+
+// GET /api/license/classes/:classId/students - Hämta elever i en klass
+router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const userId = req.user.id;
+    
+    // Verify teacher owns this class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna klass' });
+    }
+    
+    // Get students in the class
+    const students = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        username: studentAccounts.username,
+        studentName: studentAccounts.studentName,
+        mustChangePassword: studentAccounts.mustChangePassword,
+        failedLoginAttempts: studentAccounts.failedLoginAttempts,
+        lastLogin: studentAccounts.lastLogin,
+        createdAt: studentAccounts.createdAt,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.classId, classId));
+    
+    res.json({ students });
+  } catch (error) {
+    console.error('Get class students error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/classes/:classId/students - Lägg till elev i klass
+router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const { studentName } = req.body;
+    const userId = req.user.id;
+    
+    if (!studentName || typeof studentName !== 'string') {
+      return res.status(400).json({ error: 'Elevnamn krävs' });
+    }
+    
+    // Verify teacher owns this class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna klass' });
+    }
+    
+    // Generate username and password
+    const baseUsername = studentName.toLowerCase()
+      .replace(/[åä]/g, 'a')
+      .replace(/ö/g, 'o')
+      .replace(/[^a-z]/g, '')
+      .substring(0, 8);
+    
+    // Get existing students count to generate unique username
+    const existingStudents = await licenseDb
+      .select({ count: sql<number>`count(*)` })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.classId, classId));
+    
+    const studentCount = existingStudents[0]?.count || 0;
+    const username = `${baseUsername}${String(studentCount + 1).padStart(2, '0')}`;
+    const password = generateSecurePassword();
+    const passwordHash = bcrypt.hashSync(password, 12);
+    
+    // Create student account
+    const [newStudent] = await licenseDb.insert(studentAccounts).values({
+      studentName,
+      username,
+      passwordHash,
+      classId,
+      mustChangePassword: true,
+    }).returning();
+    
+    res.json({
+      success: true,
+      student: {
+        ...newStudent,
+        clearPassword: password // Only for initial display
+      }
+    });
+  } catch (error) {
+    console.error('Add student error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// PUT /api/license/students/:studentId/reset-password - Återställ elevlösenord
+router.put('/students/:studentId/reset-password', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access to this student's class
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class this student belongs to
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
+    }
+    
+    // Generate new password
+    const newPassword = generateSecurePassword();
+    const newPasswordHash = bcrypt.hashSync(newPassword, 12);
+    
+    // Update student password
+    await updateStudentPassword(studentId, newPasswordHash);
+    
+    res.json({
+      success: true,
+      message: 'Lösenord återställt',
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName,
+        newPassword // Only for display to teacher
+      }
+    });
+  } catch (error) {
+    console.error('Reset student password error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// DELETE /api/license/students/:studentId - Ta bort elev
+router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet att ta bort denna elev' });
+    }
+    
+    // Delete student account
+    await licenseDb
+      .delete(studentAccounts)
+      .where(eq(studentAccounts.id, studentId));
+    
+    res.json({
+      success: true,
+      message: 'Elev borttagen'
+    });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Serverfel' });
   }
 });
 

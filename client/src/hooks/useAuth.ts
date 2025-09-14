@@ -7,9 +7,29 @@ interface User {
   email?: string;
 }
 
+interface TeacherContext {
+  schoolId?: string;
+  schoolName?: string;
+  isTeacher: boolean;
+  licenseId?: string;
+}
+
+interface School {
+  id: string;
+  name: string;
+  district?: string;
+  municipality?: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  isActive: boolean;
+}
+
 interface AuthData {
   user: User;
   csrfToken?: string;
+  teacherContext?: TeacherContext;
+  school?: School;
 }
 
 export function useAuth() {
@@ -46,7 +66,11 @@ export function useAuth() {
     isAuthenticated: !!data?.user,
     isLoading,
     error,
-    csrfToken: data?.csrfToken || localStorage.getItem("csrfToken")
+    csrfToken: data?.csrfToken || localStorage.getItem("csrfToken"),
+    teacherContext: data?.teacherContext || null,
+    school: data?.school || null,
+    isTeacher: data?.teacherContext?.isTeacher || false,
+    hasSchoolAccess: !!(data?.teacherContext?.schoolId && data?.school)
   };
 }
 

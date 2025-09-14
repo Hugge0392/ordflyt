@@ -58,10 +58,16 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
     // Verify password with constant time to prevent timing attacks
     let validPassword = false;
     if (user) {
-      // Development mode: simple check for test users
-      if ((username === 'admin' && password === 'admin') ||
-          (username === 'larare' && password === 'larare') ||
-          (username === 'elev' && password === 'elev')) {
+      // SECURITY: Only allow hardcoded test credentials in development mode with explicit warnings
+      if (process.env.NODE_ENV === 'development' && 
+          ((username === 'admin' && password === 'admin') ||
+           (username === 'larare' && password === 'larare') ||
+           (username === 'elev' && password === 'elev'))) {
+        console.warn(`🚨 SECURITY WARNING: Using hardcoded test credentials for user '${username}' - ONLY ALLOWED IN DEVELOPMENT!`);
+        await logAuditEvent('HARDCODED_LOGIN', user.id, true, ipAddress, userAgent, { 
+          username, 
+          warning: 'Development hardcoded credentials used' 
+        });
         validPassword = true;
       } else {
         try {
@@ -325,7 +331,7 @@ router.post("/api/auth/register", async (req, res) => {
     // Send registration confirmation email
     try {
       await emailService.sendRegistrationConfirmation(
-        newUser.email,
+        newUser.email || email,
         newUser.username
       );
       
@@ -383,7 +389,7 @@ router.get("/api/auth/me", requireAuth, async (req, res) => {
   // Generate new CSRF token
   const csrfToken = await generateCsrfToken(req.session!.id);
   
-  res.json({
+  const response: any = {
     user: {
       id: req.user.id,
       username: req.user.username,
@@ -391,7 +397,18 @@ router.get("/api/auth/me", requireAuth, async (req, res) => {
       email: req.user.email,
     },
     csrfToken
-  });
+  };
+
+  // Add teacher context and school information if available
+  if (req.teacherContext) {
+    response.teacherContext = req.teacherContext;
+  }
+  
+  if (req.school) {
+    response.school = req.school;
+  }
+
+  res.json(response);
 });
 
 // Session validation endpoint

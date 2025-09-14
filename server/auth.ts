@@ -4,9 +4,9 @@ import crypto from "crypto";
 import { createHmac } from "crypto";
 import rateLimit from "express-rate-limit";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins, csrfTokens } from "@shared/schema";
+import { users, sessions, auditLog, failedLogins, csrfTokens, schools, teacherSchoolMemberships, teacherLicenses } from "@shared/schema";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import type { User, Session } from "@shared/schema";
+import type { User, Session, School } from "@shared/schema";
 
 // Extend Express Request type
 declare global {
@@ -16,6 +16,13 @@ declare global {
       session?: Session;
       csrfToken?: string;
       deviceFingerprint?: string;
+      school?: School;
+      teacherContext?: {
+        schoolId?: string;
+        schoolName?: string;
+        isTeacher: boolean;
+        licenseId?: string;
+      };
     }
   }
 }
@@ -141,6 +148,90 @@ export async function recordFailedLogin(
     deviceFingerprint,
     reason,
   });
+}
+
+// Get teacher's school context
+export async function getTeacherSchoolContext(userId: string): Promise<{
+  schoolId?: string;
+  schoolName?: string;
+  isTeacher: boolean;
+  licenseId?: string;
+} | null> {
+  try {
+    // First check if user is a teacher through licenses
+    const [license] = await db
+      .select({
+        id: teacherLicenses.id,
+        schoolId: teacherLicenses.schoolId,
+        isActive: teacherLicenses.isActive,
+      })
+      .from(teacherLicenses)
+      .where(
+        and(
+          eq(teacherLicenses.teacherId, userId),
+          eq(teacherLicenses.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (!license) {
+      return { isTeacher: false };
+    }
+
+    // If license has school, get school info
+    if (license.schoolId) {
+      const [school] = await db
+        .select({
+          id: schools.id,
+          name: schools.name,
+        })
+        .from(schools)
+        .where(eq(schools.id, license.schoolId))
+        .limit(1);
+
+      if (school) {
+        return {
+          schoolId: school.id,
+          schoolName: school.name,
+          isTeacher: true,
+          licenseId: license.id,
+        };
+      }
+    }
+
+    // Check teacher-school memberships as fallback
+    const [membership] = await db
+      .select({
+        schoolId: teacherSchoolMemberships.schoolId,
+        schoolName: schools.name,
+      })
+      .from(teacherSchoolMemberships)
+      .innerJoin(schools, eq(teacherSchoolMemberships.schoolId, schools.id))
+      .where(
+        and(
+          eq(teacherSchoolMemberships.teacherId, userId),
+          eq(teacherSchoolMemberships.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (membership) {
+      return {
+        schoolId: membership.schoolId,
+        schoolName: membership.schoolName,
+        isTeacher: true,
+        licenseId: license.id,
+      };
+    }
+
+    return {
+      isTeacher: true,
+      licenseId: license.id,
+    };
+  } catch (error) {
+    console.error('Error fetching teacher school context:', error);
+    return null;
+  }
 }
 
 // Create session
@@ -292,6 +383,27 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   req.session = session;
   req.deviceFingerprint = generateDeviceFingerprint(req);
   
+  // Add school context for teachers
+  if (user.role === 'LARARE' || user.role === 'ADMIN') {
+    const teacherContext = await getTeacherSchoolContext(user.id);
+    if (teacherContext) {
+      req.teacherContext = teacherContext;
+      
+      // If teacher has school, also fetch full school object
+      if (teacherContext.schoolId) {
+        const [school] = await db
+          .select()
+          .from(schools)
+          .where(eq(schools.id, teacherContext.schoolId))
+          .limit(1);
+        
+        if (school) {
+          req.school = school;
+        }
+      }
+    }
+  }
+  
   next();
 }
 
@@ -380,6 +492,95 @@ export const apiRateLimit = rateLimit({
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'development', // Skip rate limiting in dev
 });
+
+// School-scoped authorization middleware - ensures teachers can only access their school's data
+export function requireSchoolAccess(schoolIdParam?: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Ej inloggad' });
+    }
+    
+    // Admins have access to all schools
+    if (req.user.role === 'ADMIN') {
+      return next();
+    }
+    
+    // Students don't need school access (they access their own data)
+    if (req.user.role === 'ELEV') {
+      return next();
+    }
+    
+    // Teachers need school context
+    if (req.user.role === 'LARARE') {
+      if (!req.teacherContext?.isTeacher) {
+        await logAuditEvent(
+          'UNAUTHORIZED_SCHOOL_ACCESS',
+          req.user.id,
+          false,
+          req.ip || 'unknown',
+          req.headers['user-agent'],
+          { reason: 'No teacher context', attemptedPath: req.path }
+        );
+        return res.status(403).json({ error: 'Ingen behörighet - lärarkonto krävs' });
+      }
+      
+      // If schoolId is specified in route params, verify teacher has access to that school
+      const targetSchoolId = schoolIdParam ? req.params[schoolIdParam] : req.teacherContext.schoolId;
+      
+      if (targetSchoolId && req.teacherContext.schoolId && req.teacherContext.schoolId !== targetSchoolId) {
+        await logAuditEvent(
+          'UNAUTHORIZED_SCHOOL_ACCESS',
+          req.user.id,
+          false,
+          req.ip || 'unknown',
+          req.headers['user-agent'],
+          { 
+            reason: 'School access denied',
+            teacherSchoolId: req.teacherContext.schoolId,
+            attemptedSchoolId: targetSchoolId,
+            attemptedPath: req.path
+          }
+        );
+        return res.status(403).json({ error: 'Ingen behörighet - kan endast komma åt din egen skolas data' });
+      }
+    }
+    
+    next();
+  };
+}
+
+// Middleware to require teacher with active license
+export async function requireTeacherLicense(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Ej inloggad' });
+  }
+  
+  if (req.user.role !== 'LARARE' && req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Lärarbehörighet krävs' });
+  }
+  
+  // Admins bypass license requirement
+  if (req.user.role === 'ADMIN') {
+    return next();
+  }
+  
+  if (!req.teacherContext?.isTeacher || !req.teacherContext?.licenseId) {
+    await logAuditEvent(
+      'LICENSE_ACCESS_DENIED',
+      req.user.id,
+      false,
+      req.ip || 'unknown',
+      req.headers['user-agent'],
+      { reason: 'No active teacher license', attemptedPath: req.path }
+    );
+    return res.status(403).json({ 
+      error: 'Aktiv lärarlicens krävs',
+      message: 'Gå till /license för att aktivera din licens'
+    });
+  }
+  
+  next();
+}
 
 // Security headers middleware
 export function securityHeaders(req: Request, res: Response, next: NextFunction) {
