@@ -268,7 +268,7 @@ export default function Admin() {
           
           <div className="admin-grid">
             <Link 
-              href="/admin/reading" 
+              href="/admin/reading/create" 
               className="tile" 
               data-testid="link-admin-reading"
               role="button" 
