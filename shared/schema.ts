@@ -1,10 +1,51 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp, pgEnum, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, pgEnum, boolean, uniqueIndex, index, check } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User role enum
 export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'LARARE', 'ELEV']);
+
+// Assignment type enum
+export const assignmentTypeEnum = pgEnum('assignment_type', [
+  'reading_lesson',
+  'word_class_practice', 
+  'published_lesson',
+  'custom_exercise'
+]);
+
+// Progress status enum
+export const progressStatusEnum = pgEnum('progress_status', [
+  'not_started',
+  'in_progress',
+  'completed',
+  'submitted'
+]);
+
+// Feedback type enum
+export const feedbackTypeEnum = pgEnum('feedback_type', [
+  'lesson_completion',
+  'progress_comment',
+  'behavior_note',
+  'achievement',
+  'concern'
+]);
+
+// Error report status enum
+export const errorReportStatusEnum = pgEnum('error_report_status', [
+  'pending',
+  'reviewed',
+  'resolved',
+  'dismissed'
+]);
+
+// Error report type enum
+export const errorReportTypeEnum = pgEnum('error_report_type', [
+  'wrong_word_class',
+  'missing_word',
+  'spelling_error',
+  'other'
+]);
 
 // Users table - core authentication
 export const users = pgTable("users", {
@@ -122,6 +163,7 @@ export const teacherLicenses = pgTable("teacher_licenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   licenseKey: varchar("license_key", { length: 64 }).notNull().unique(),
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: 'cascade' }),
   isActive: boolean("is_active").default(true),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -134,6 +176,7 @@ export const teacherClasses = pgTable("teacher_classes", {
   name: varchar("name", { length: 255 }).notNull(),
   teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   licenseId: varchar("license_id").notNull().references(() => teacherLicenses.id, { onDelete: 'cascade' }),
+  schoolId: varchar("school_id").references(() => schools.id, { onDelete: 'cascade' }),
   term: varchar("term", { length: 50 }),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -303,17 +346,21 @@ export const errorReports = pgTable("error_reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sentenceId: varchar("sentence_id").references(() => sentences.id),
   sentenceText: text("sentence_text").notNull(),
-  reportType: varchar("report_type").notNull(), // 'wrong_word_class', 'missing_word', 'spelling_error', 'other'
+  reportType: errorReportTypeEnum("report_type").notNull(),
   description: text("description").notNull(),
   reportedWord: varchar("reported_word"),
   expectedWordClass: varchar("expected_word_class"),
   actualWordClass: varchar("actual_word_class"),
   playerEmail: varchar("player_email"),
-  status: varchar("status").default("pending"), // 'pending', 'reviewed', 'resolved', 'dismissed'
+  status: errorReportStatusEnum("status").default('pending'),
   createdAt: timestamp("created_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
   reviewNotes: text("review_notes"),
-});
+}, (table) => ({
+  statusIdx: index("error_reports_status_idx").on(table.status),
+  typeIdx: index("error_reports_type_idx").on(table.reportType),
+  createdAtIdx: index("error_reports_created_at_idx").on(table.createdAt),
+}));
 
 export const insertErrorReportSchema = createInsertSchema(errorReports).omit({
   id: true,
@@ -510,3 +557,483 @@ export type KlassKampPlayer = typeof klassKampPlayers.$inferSelect;
 export type InsertKlassKampPlayer = z.infer<typeof insertKlassKampPlayerSchema>;
 export type KlassKampAnswer = typeof klassKampAnswers.$inferSelect;
 export type InsertKlassKampAnswer = z.infer<typeof insertKlassKampAnswerSchema>;
+
+// Schools table - track which school teachers belong to (important for archiving when teachers leave)
+export const schools = pgTable("schools", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  district: varchar("district", { length: 255 }),
+  municipality: varchar("municipality", { length: 255 }),
+  address: text("address"),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  nameIdx: uniqueIndex("school_name_idx").on(table.name),
+}));
+
+// Teacher-school memberships table - track which teachers belong to which schools
+export const teacherSchoolMemberships = pgTable("teacher_school_memberships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  schoolId: varchar("school_id").notNull().references(() => schools.id, { onDelete: 'cascade' }),
+  role: varchar("role").default('teacher'), // 'teacher', 'substitute', 'admin', 'coordinator'
+  isActive: boolean("is_active").default(true),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  teacherSchoolIdx: uniqueIndex("teacher_school_memberships_idx").on(table.teacherId, table.schoolId),
+  teacherIdx: index("teacher_memberships_idx").on(table.teacherId),
+  schoolIdx: index("school_memberships_idx").on(table.schoolId),
+}));
+
+// Lesson assignments table - track which lessons/categories are assigned to which students or classes
+export const lessonAssignments = pgTable("lesson_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Assignment can be to a specific student or entire class
+  studentId: varchar("student_id").references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  classId: varchar("class_id").references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  
+  // What's being assigned
+  assignmentType: assignmentTypeEnum("assignment_type").notNull(),
+  lessonId: varchar("lesson_id"), // can reference readingLessons.id, publishedLessons.id, etc.
+  wordClass: varchar("word_class"), // for word class practice assignments
+  
+  // Assignment details
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  instructions: text("instructions"), // special instructions for this assignment
+  
+  // Timing and availability
+  availableFrom: timestamp("available_from"),
+  dueDate: timestamp("due_date"),
+  estimatedDuration: integer("estimated_duration"), // minutes
+  
+  // Configuration
+  allowRetries: boolean("allow_retries").default(true),
+  showCorrectAnswers: boolean("show_correct_answers").default(true),
+  requireCompletion: boolean("require_completion").default(false),
+  
+  // Assignment settings in JSONB for flexibility
+  settings: jsonb("settings").$type<AssignmentSettings>().default({}),
+  
+  // Status and tracking
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  // CHECK constraint: exactly one of studentId or classId must be set
+  assignmentTargetCheck: check('assignment_target_check', 
+    sql`((student_id IS NULL) != (class_id IS NULL))`),
+  // Indexes for performance
+  teacherIdx: index("lesson_assignments_teacher_idx").on(table.teacherId),
+  classIdx: index("lesson_assignments_class_idx").on(table.classId),
+  studentIdx: index("lesson_assignments_student_idx").on(table.studentId),
+  activeIdx: index("lesson_assignments_active_idx").on(table.isActive),
+  dueDateIdx: index("lesson_assignments_due_date_idx").on(table.dueDate),
+  assignmentTypeIdx: index("lesson_assignments_type_idx").on(table.assignmentType),
+}));
+
+export interface AssignmentSettings {
+  difficultyLevel?: 'easy' | 'medium' | 'hard';
+  maxAttempts?: number;
+  timeLimit?: number; // minutes
+  showProgress?: boolean;
+  allowSkipping?: boolean;
+  customInstructions?: string;
+  adaptiveDifficulty?: boolean;
+  requireMinScore?: number; // percentage
+}
+
+// Student lesson progress table - track individual student progress on specific lessons
+export const studentLessonProgress = pgTable("student_lesson_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  assignmentId: varchar("assignment_id").references(() => lessonAssignments.id, { onDelete: 'cascade' }),
+  
+  // What lesson/exercise this progress is for
+  lessonType: assignmentTypeEnum("lesson_type").notNull(), // 'reading_lesson', 'word_class_practice', 'published_lesson'
+  lessonId: varchar("lesson_id"), // reference to specific lesson
+  
+  // Progress tracking
+  status: progressStatusEnum("status").notNull().default('not_started'),
+  progressPercentage: integer("progress_percentage").default(0), // 0-100
+  currentStep: varchar("current_step"), // which part of the lesson they're on
+  
+  // Performance metrics
+  score: integer("score").default(0),
+  maxScore: integer("max_score"),
+  correctAnswers: integer("correct_answers").default(0),
+  totalQuestions: integer("total_questions").default(0),
+  attemptCount: integer("attempt_count").default(0),
+  
+  // Time tracking
+  timeSpent: integer("time_spent").default(0), // total minutes spent
+  lastActivityAt: timestamp("last_activity_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Detailed progress data in JSONB for flexibility
+  progressData: jsonb("progress_data").$type<LessonProgressData>().default({}),
+  
+  // Notes and feedback
+  studentNotes: text("student_notes"), // student's own notes
+  needsHelp: boolean("needs_help").default(false),
+  flaggedForReview: boolean("flagged_for_review").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  // Partial unique indexes to prevent duplicate progress records
+  studentAssignmentIdx: uniqueIndex("student_assignment_progress_idx")
+    .on(table.studentId, table.assignmentId)
+    .where(sql`assignment_id IS NOT NULL`),
+  studentLessonIdx: uniqueIndex("student_lesson_progress_idx")
+    .on(table.studentId, table.lessonId, table.lessonType)
+    .where(sql`lesson_id IS NOT NULL`),
+  // Performance indexes
+  studentIdx: index("student_progress_student_idx").on(table.studentId),
+  assignmentIdx: index("student_progress_assignment_idx").on(table.assignmentId),
+  statusIdx: index("student_progress_status_idx").on(table.status),
+  lastActivityIdx: index("student_progress_activity_idx").on(table.lastActivityAt),
+  completedAtIdx: index("student_progress_completed_idx").on(table.completedAt),
+}));
+
+export interface LessonProgressData {
+  questionsAnswered?: string[]; // IDs of questions answered
+  pagesVisited?: number[]; // which pages have been visited
+  bookmarkedPages?: number[]; // pages student has bookmarked
+  highlightedText?: HighlightedText[]; // text student has highlighted
+  wrongAnswers?: WrongAnswer[]; // track mistakes for analysis
+  achievements?: string[]; // achievements unlocked
+  toolsUsed?: string[]; // which accessibility tools were used
+  sessionDurations?: number[]; // duration of each session in minutes
+  difficultyAdjustments?: DifficultyAdjustment[]; // track adaptive difficulty changes
+}
+
+export interface HighlightedText {
+  pageNumber: number;
+  text: string;
+  note?: string;
+}
+
+export interface WrongAnswer {
+  questionId: string;
+  selectedAnswer: string;
+  correctAnswer: string;
+  timestamp: string;
+}
+
+export interface DifficultyAdjustment {
+  timestamp: string;
+  fromLevel: string;
+  toLevel: string;
+  reason: string;
+}
+
+// Teacher feedback table - allow teachers to leave comments/feedback on student work
+export const teacherFeedback = pgTable("teacher_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // What the feedback is about
+  feedbackType: feedbackTypeEnum("feedback_type").notNull(),
+  progressId: varchar("progress_id").references(() => studentLessonProgress.id, { onDelete: 'cascade' }),
+  assignmentId: varchar("assignment_id").references(() => lessonAssignments.id, { onDelete: 'cascade' }),
+  
+  // Feedback content
+  title: varchar("title", { length: 255 }),
+  message: text("message").notNull(),
+  
+  // Feedback metadata
+  priority: varchar("priority").default('normal'), // 'low', 'normal', 'high', 'urgent'
+  isPositive: boolean("is_positive"), // true for praise, false for concerns, null for neutral
+  isPrivate: boolean("is_private").default(false), // only visible to teacher and student
+  
+  // Student response
+  studentHasRead: boolean("student_has_read").default(false),
+  studentResponse: text("student_response"),
+  studentRespondedAt: timestamp("student_responded_at"),
+  
+  // Follow-up tracking
+  requiresFollowUp: boolean("requires_follow_up").default(false),
+  followedUpAt: timestamp("followed_up_at"),
+  followUpNotes: text("follow_up_notes"),
+  
+  // Feedback data for rich content
+  feedbackData: jsonb("feedback_data").$type<FeedbackData>().default({}),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export interface FeedbackData {
+  attachments?: string[]; // URLs to attached files
+  scoreDetails?: ScoreDetails; // detailed scoring information
+  recommendedActions?: string[]; // suggested next steps
+  tags?: string[]; // categorization tags
+  relatedFeedback?: string[]; // IDs of related feedback entries
+}
+
+export interface ScoreDetails {
+  areas: FeedbackArea[];
+  overallRating: number; // 1-5 scale
+  improvementAreas: string[];
+  strengths: string[];
+}
+
+export interface FeedbackArea {
+  name: string;
+  score: number;
+  comment: string;
+}
+
+// Student tool settings table - track which tools (AI help, voice, etc.) each student has access to
+export const studentToolSettings = pgTable("student_tool_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // Accessibility and support tools
+  textToSpeechEnabled: boolean("text_to_speech_enabled").default(false),
+  speechToTextEnabled: boolean("speech_to_text_enabled").default(false),
+  aiAssistantEnabled: boolean("ai_assistant_enabled").default(false),
+  dictionaryLookupEnabled: boolean("dictionary_lookup_enabled").default(true),
+  
+  // Visual accessibility
+  fontSize: varchar("font_size").default('medium'), // 'small', 'medium', 'large', 'extra_large'
+  fontFamily: varchar("font_family").default('default'), // 'default', 'dyslexia_friendly', 'sans_serif', 'serif'
+  highContrastMode: boolean("high_contrast_mode").default(false),
+  reducedAnimations: boolean("reduced_animations").default(false),
+  
+  // Learning support
+  showHints: boolean("show_hints").default(true),
+  allowSkipping: boolean("allow_skipping").default(false),
+  extendedTimeAllowed: boolean("extended_time_allowed").default(false),
+  timeMultiplier: integer("time_multiplier").default(100), // percentage (100 = normal, 150 = 50% extra time)
+  
+  // Progress and feedback
+  showProgress: boolean("show_progress").default(true),
+  immediateCorrection: boolean("immediate_correction").default(true),
+  detailedFeedback: boolean("detailed_feedback").default(true),
+  
+  // Customization and preferences
+  preferredBackground: varchar("preferred_background").default('beach'),
+  preferredTheme: varchar("preferred_theme").default('light'),
+  language: varchar("language").default('sv'), // 'sv' for Swedish, 'en' for English
+  
+  // Tool-specific settings in JSONB for flexibility
+  toolSettings: jsonb("tool_settings").$type<StudentToolConfig>().default({}),
+  
+  // Permission and override settings
+  teacherOverrides: jsonb("teacher_overrides").$type<TeacherOverrides>().default({}),
+  parentalControls: jsonb("parental_controls").$type<ParentalControls>().default({}),
+  
+  // Tracking
+  lastModifiedBy: varchar("last_modified_by").references(() => users.id), // teacher who last modified settings
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentSettingsIdx: uniqueIndex("student_tool_settings_idx").on(table.studentId),
+}));
+
+export interface StudentToolConfig {
+  speechRate?: number; // 0.5 to 2.0 for text-to-speech
+  speechVoice?: string; // preferred voice for TTS
+  aiAssistantLevel?: 'basic' | 'intermediate' | 'advanced'; // how much AI help to provide
+  keyboardShortcuts?: Record<string, string>; // custom keyboard shortcuts
+  autoSave?: boolean; // automatically save progress
+  reminderFrequency?: number; // minutes between progress reminders
+  gamificationLevel?: 'minimal' | 'standard' | 'full'; // level of game elements
+}
+
+export interface TeacherOverrides {
+  forcedSettings?: string[]; // settings that teacher has locked
+  tempDisabledTools?: string[]; // temporarily disabled tools
+  customInstructions?: string; // special instructions for this student
+  monitoringLevel?: 'normal' | 'increased' | 'intensive'; // level of progress monitoring
+}
+
+export interface ParentalControls {
+  screenTimeLimit?: number; // daily limit in minutes
+  allowedTimeSlots?: TimeSlot[]; // when student can access the system
+  reportFrequency?: 'daily' | 'weekly' | 'monthly'; // how often to send progress reports
+  contactMethods?: string[]; // how to contact parents (email, SMS, etc.)
+}
+
+export interface TimeSlot {
+  dayOfWeek: number; // 0-6 (Sunday = 0)
+  startTime: string; // HH:MM format
+  endTime: string; // HH:MM format
+}
+
+// Classroom controls table - manage classroom screen states (locked/unlocked, active timers, etc.)
+export const classroomControls = pgTable("classroom_controls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classId: varchar("class_id").notNull().references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Classroom state management
+  isLocked: boolean("is_locked").default(false), // are student screens locked?
+  lockMessage: text("lock_message"), // message to show when locked
+  
+  // Timer management
+  timerActive: boolean("timer_active").default(false),
+  timerDuration: integer("timer_duration"), // total duration in seconds
+  timerRemaining: integer("timer_remaining"), // remaining time in seconds
+  timerStartedAt: timestamp("timer_started_at"),
+  timerMessage: varchar("timer_message"),
+  timerAutoLock: boolean("timer_auto_lock").default(false), // lock screens when timer ends
+  
+  // Attention management
+  attentionRequest: boolean("attention_request").default(false), // teacher requesting attention
+  attentionMessage: varchar("attention_message"),
+  
+  // Current activity control
+  forcedActivity: varchar("forced_activity"), // force all students to specific activity
+  forcedLessonId: varchar("forced_lesson_id"), // specific lesson all students must do
+  allowFreeChoice: boolean("allow_free_choice").default(true),
+  
+  // Monitoring and visibility
+  showStudentScreens: boolean("show_student_screens").default(false), // teacher can see student screens
+  showProgressToClass: boolean("show_progress_to_class").default(false), // show class progress publicly
+  anonymousMode: boolean("anonymous_mode").default(false), // hide student names from each other
+  
+  // Communication controls
+  chatEnabled: boolean("chat_enabled").default(false),
+  helpRequestsEnabled: boolean("help_requests_enabled").default(true),
+  voiceChatEnabled: boolean("voice_chat_enabled").default(false),
+  
+  // Session management
+  sessionName: varchar("session_name"), // name for current session
+  sessionStartedAt: timestamp("session_started_at"),
+  expectedEndTime: timestamp("expected_end_time"),
+  
+  // Real-time classroom data
+  controlData: jsonb("control_data").$type<ClassroomControlData>().default({}),
+  
+  // Active student tracking
+  activeStudents: jsonb("active_students").$type<string[]>().default([]), // student IDs currently online
+  
+  // History and logging
+  lastAction: varchar("last_action"), // last action performed
+  lastActionAt: timestamp("last_action_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  classControlIdx: uniqueIndex("classroom_controls_idx").on(table.classId),
+}));
+
+export interface ClassroomControlData {
+  announcements?: Announcement[]; // current announcements
+  breakSchedule?: BreakTime[]; // scheduled breaks
+  collaborativeGroups?: StudentGroup[]; // grouped students for collaboration
+  restrictedWebsites?: string[]; // websites that are blocked
+  allowedApps?: string[]; // only these apps can be used
+  currentTopic?: string; // what the class is currently studying
+  learningObjectives?: string[]; // goals for the current session
+  emergencyContacts?: EmergencyContact[]; // emergency contact information
+}
+
+export interface Announcement {
+  id: string;
+  message: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  showUntil: string; // ISO timestamp
+  targetStudents?: string[]; // specific student IDs, or empty for all
+}
+
+export interface BreakTime {
+  startTime: string; // HH:MM format
+  duration: number; // minutes
+  type: 'short' | 'lunch' | 'recess';
+  message?: string;
+}
+
+export interface StudentGroup {
+  id: string;
+  name: string;
+  studentIds: string[];
+  activity?: string;
+  color?: string; // for visual identification
+}
+
+export interface EmergencyContact {
+  name: string;
+  role: string;
+  phone: string;
+  email?: string;
+}
+
+// Insert schemas for the new teacher dashboard tables
+export const insertSchoolSchema = createInsertSchema(schools).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLessonAssignmentSchema = createInsertSchema(lessonAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentLessonProgressSchema = createInsertSchema(studentLessonProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTeacherFeedbackSchema = createInsertSchema(teacherFeedback).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentToolSettingsSchema = createInsertSchema(studentToolSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClassroomControlsSchema = createInsertSchema(classroomControls).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Insert schema for teacher-school memberships
+export const insertTeacherSchoolMembershipSchema = createInsertSchema(teacherSchoolMemberships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for the new teacher dashboard tables
+export type School = typeof schools.$inferSelect;
+export type InsertSchool = z.infer<typeof insertSchoolSchema>;
+
+export type TeacherSchoolMembership = typeof teacherSchoolMemberships.$inferSelect;
+export type InsertTeacherSchoolMembership = z.infer<typeof insertTeacherSchoolMembershipSchema>;
+
+export type LessonAssignment = typeof lessonAssignments.$inferSelect;
+export type InsertLessonAssignment = z.infer<typeof insertLessonAssignmentSchema>;
+
+export type StudentLessonProgress = typeof studentLessonProgress.$inferSelect;
+export type InsertStudentLessonProgress = z.infer<typeof insertStudentLessonProgressSchema>;
+
+export type TeacherFeedback = typeof teacherFeedback.$inferSelect;
+export type InsertTeacherFeedback = z.infer<typeof insertTeacherFeedbackSchema>;
+
+export type StudentToolSettings = typeof studentToolSettings.$inferSelect;
+export type InsertStudentToolSettings = z.infer<typeof insertStudentToolSettingsSchema>;
+
+export type ClassroomControls = typeof classroomControls.$inferSelect;
+export type InsertClassroomControls = z.infer<typeof insertClassroomControlsSchema>;

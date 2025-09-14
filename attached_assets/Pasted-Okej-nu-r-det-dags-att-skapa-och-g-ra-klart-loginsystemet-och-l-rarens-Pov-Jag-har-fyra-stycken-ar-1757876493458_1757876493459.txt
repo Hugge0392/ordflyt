@@ -1,0 +1,33 @@
+Okej nu är det dags att skapa och göra klart loginsystemet och lärarens Pov. Jag har fyra stycken arbetsnamn på kategorier som läraren kan välja mellan. Ifall du tycker att det finns namn som skulle bli bättre var fri att använda ditt eget
+kategorierna är 
+
+Mina elever
+
+Tilldela lektioner
+
+Resultat elever
+
+Klassrumsskärm
+
+
+
+När läraren loggar in så kommer den till lärarcentralen
+
+Mina under mina elever kan man se hela sin klasslista. Man har möjlighet att se alla lösenord och användarnamn för eleverna. Det finns också en funktion att skriva ut alla lösenord och användarnamn och då skapas en enkel lista där man som lärare kan klippa ut remsor med användarnamn och lösenord för eleverna som läraren kan dela ut senare. 
+Här kan man välja en specifik elev - då kan man ställa in vad för vertyg den har tillgång till som standard, tex ai-hjälp eller röstuppläsning, däremot vissa funktioner som ändra textstorlek osv går inta att välja . Ifall man klickar på restultat under eleven tas man till sidan med resultat får den specifika eleven . Det är här man även lägger till elever. Här kan läraren skapa konton till eleverna. Läraren kan lägga till så många elever som den licens man har köpt. Från min adminpanel kan  jag se alla lärare och välja hur många elever denna lärare har rätt till att skapa. Läraren kan ta bort och skapa elever som den villl. ifall den tar bort en elevev som slutar klassen så har den möjlighet att skapa en till osv.  Läraren ska ha kontroll över klassen. När man skapar en ny klass eller ny elev så finns finns möjligheten att generera lösenord och användarnamn. Läraren lägger in alla förnamn på eleverna och datorn genererar lösenord. Jag tänker att det behöver inte vara så avancerat. Då läraren har koll på alla lösenord så kan lösenorden vara rätt enkla för elevernas bästa. Tex så kan Alice12 ha lösenordet bok12  eller Hugo15 kan ha lösenordet penna15 eller Isac17 har lösenorden suddigumm17 osv osv. Det ska vara lätt för eleverna att komma ihåg det genererade lösenordet. Så man skriver in förnamnet på eleven för att generera fram ett elevkonto där du har skapat lösenord och användarnamn, men som sagt ta det simpelt. Det är dock viktigt att det inte finns flera Alice 12 med lösen glasögon12 då det är nästa 20 000 elever som ska använda verktyget, det komer att finnas fler Alicar
+
+
+
+
+När läraren klickar på “tilldela lektioner” får läraren en vi över alla olika kategorier man kan välja mellan . Där klan man se alla kategorier av lektioner som vi har, tex läsförståelse, grammatik, muntligt, källkritik osv. Denna baseras på de lektioner och katergoirer vi har skapat. När man klickar på någon av katagorierna så får man upp en lista med alla lektioner inom vald kategoir. Varje lektion är en liten bild och beskrivning av lektionen. När jag skapar lektioner så vill jag få varlen att skapa denna förhandsgranskningsbeskrivning. Man kan välja att “tilldela lektioner” eller att förhandsgranska lektion.  När man tilldelar lektionen så får man upp alternativ vilka elever man vill välja, vilket datum uppdraget ska publiceras för eleverna, och inställningar vad eleverna ska ha tillgång till för verktyg, det kan vara ai-hjälp, uppläsning man kan välja bort. Man kan också sätta timer på hur länge man får arbeta med lektionen ifall man vill. När man förhandsgranskanr lektionen
+
+
+under 
+Resultat elever
+så vill jag att man som lärare ska få en överblick hur det går för klassen. Detta ska vara ett avancerat verktyg där man som lärare kan följa sina eleveres och klassens utveckling under längre tid. När man kommer in så får man en klassöversikt över hur det går för klassen som helhet, men när man klickar på elever, så kan man se mer specifikt för hur det går för eleverna
+
+Klassrumsskärmen är ett kraftfullt verktyg. där man läraren ha en timer, instruktioner, osv. Det ska vara liknande som “classroomscreen”. man kan även som lärare välja att “låsa” eller släcka övningen som eleverna håller på med .Det betyder att deras skärm blir helt mörk och all talsyntes försvinner där det står “lyssa på din lärare” . Detta är till för ifall läraren  vill säga något under tiden som lektionen pågår och vill påkalla uppmärksamhet. 
+
+
+
+Saknar jag något? Är det något som ska tillföras för att det ska bli en användarvänlig upplevelse för läraren?  
