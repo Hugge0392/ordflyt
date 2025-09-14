@@ -989,18 +989,6 @@ export const insertSchoolSchema = createInsertSchema(schools).omit({
   updatedAt: true,
 });
 
-export const insertLessonAssignmentSchema = createInsertSchema(lessonAssignments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertStudentLessonProgressSchema = createInsertSchema(studentLessonProgress).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 export const insertTeacherFeedbackSchema = createInsertSchema(teacherFeedback).omit({
   id: true,
   createdAt: true,
@@ -1026,12 +1014,32 @@ export const insertTeacherSchoolMembershipSchema = createInsertSchema(teacherSch
   updatedAt: true,
 });
 
+// Lesson assignment schemas (after all table definitions)
+export const insertLessonAssignmentSchema = createInsertSchema(lessonAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentLessonProgressSchema = createInsertSchema(studentLessonProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for the new teacher dashboard tables
 export type School = typeof schools.$inferSelect;
 export type InsertSchool = z.infer<typeof insertSchoolSchema>;
 
 export type TeacherSchoolMembership = typeof teacherSchoolMemberships.$inferSelect;
 export type InsertTeacherSchoolMembership = z.infer<typeof insertTeacherSchoolMembershipSchema>;
+
+export type LessonAssignment = typeof lessonAssignments.$inferSelect;
+export type InsertLessonAssignment = z.infer<typeof insertLessonAssignmentSchema>;
+export type StudentLessonProgress = typeof studentLessonProgress.$inferSelect;
+export type InsertStudentLessonProgress = z.infer<typeof insertStudentLessonProgressSchema>;
+export type TeacherFeedback = typeof teacherFeedback.$inferSelect;
+export type InsertTeacherFeedback = z.infer<typeof insertTeacherFeedbackSchema>;
 
 export type LessonAssignment = typeof lessonAssignments.$inferSelect;
 export type InsertLessonAssignment = z.infer<typeof insertLessonAssignmentSchema>;

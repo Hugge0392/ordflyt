@@ -25,11 +25,15 @@ import {
   type WordDefinition,
   type LegacyPage,
   type RichPage,
+  type LessonAssignment,
+  type InsertLessonAssignment,
+  type StudentLessonProgress,
+  type InsertStudentLessonProgress,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -100,6 +104,23 @@ export interface IStorage {
   updateKlassKampPlayer(id: string, player: Partial<InsertKlassKampPlayer>): Promise<KlassKampPlayer>;
   addKlassKampAnswer(answer: InsertKlassKampAnswer): Promise<KlassKampAnswer>;
   getSentencesByWordClass(wordClassId: string): Promise<Sentence[]>;
+
+  // Lesson assignment methods
+  createLessonAssignment(assignment: InsertLessonAssignment): Promise<LessonAssignment>;
+  getLessonAssignments(teacherId: string): Promise<LessonAssignment[]>;
+  getLessonAssignmentsByClass(classId: string): Promise<LessonAssignment[]>;
+  getLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]>;
+  getLessonAssignment(id: string): Promise<LessonAssignment | undefined>;
+  updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment>;
+  deleteLessonAssignment(id: string): Promise<void>;
+  getActiveLessonAssignments(teacherId: string): Promise<LessonAssignment[]>;
+
+  // Student progress methods  
+  createStudentLessonProgress(progress: InsertStudentLessonProgress): Promise<StudentLessonProgress>;
+  getStudentLessonProgress(studentId: string, assignmentId: string): Promise<StudentLessonProgress | undefined>;
+  getStudentProgressByAssignment(assignmentId: string): Promise<StudentLessonProgress[]>;
+  updateStudentLessonProgress(id: string, progress: Partial<InsertStudentLessonProgress>): Promise<StudentLessonProgress>;
+  getClassProgressSummary(classId: string): Promise<{ studentId: string; assignments: { assignmentId: string; status: string; score: number | null; completedAt: Date | null }[] }[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1009,6 +1030,84 @@ export class DatabaseStorage implements IStorage {
   async getSentencesByWordClass(wordClassId: string): Promise<Sentence[]> {
     const results = await db.select().from(sentences).where(eq(sentences.wordClassType, wordClassId));
     return results;
+  }
+
+  // Lesson assignment methods
+  async createLessonAssignment(assignment: InsertLessonAssignment): Promise<LessonAssignment> {
+    const [newAssignment] = await db.insert(lessonAssignments).values(assignment).returning();
+    return newAssignment;
+  }
+
+  async getLessonAssignments(teacherId: string): Promise<LessonAssignment[]> {
+    return await db.select().from(lessonAssignments).where(eq(lessonAssignments.teacherId, teacherId));
+  }
+
+  async getLessonAssignmentsByClass(classId: string): Promise<LessonAssignment[]> {
+    return await db.select().from(lessonAssignments).where(eq(lessonAssignments.classId, classId));
+  }
+
+  async getLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]> {
+    return await db.select().from(lessonAssignments).where(eq(lessonAssignments.studentId, studentId));
+  }
+
+  async getLessonAssignment(id: string): Promise<LessonAssignment | undefined> {
+    const result = await db.select().from(lessonAssignments).where(eq(lessonAssignments.id, id));
+    return result[0];
+  }
+
+  async updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment> {
+    const [updatedAssignment] = await db.update(lessonAssignments)
+      .set({ ...assignment, updatedAt: new Date() })
+      .where(eq(lessonAssignments.id, id))
+      .returning();
+    return updatedAssignment;
+  }
+
+  async deleteLessonAssignment(id: string): Promise<void> {
+    await db.delete(lessonAssignments).where(eq(lessonAssignments.id, id));
+  }
+
+  async getActiveLessonAssignments(teacherId: string): Promise<LessonAssignment[]> {
+    return await db.select().from(lessonAssignments).where(
+      and(
+        eq(lessonAssignments.teacherId, teacherId),
+        eq(lessonAssignments.isActive, true)
+      )
+    );
+  }
+
+  // Student progress methods
+  async createStudentLessonProgress(progress: InsertStudentLessonProgress): Promise<StudentLessonProgress> {
+    const [newProgress] = await db.insert(studentLessonProgress).values(progress).returning();
+    return newProgress;
+  }
+
+  async getStudentLessonProgress(studentId: string, assignmentId: string): Promise<StudentLessonProgress | undefined> {
+    const result = await db.select().from(studentLessonProgress).where(
+      and(
+        eq(studentLessonProgress.studentId, studentId),
+        eq(studentLessonProgress.assignmentId, assignmentId)
+      )
+    );
+    return result[0];
+  }
+
+  async getStudentProgressByAssignment(assignmentId: string): Promise<StudentLessonProgress[]> {
+    return await db.select().from(studentLessonProgress).where(eq(studentLessonProgress.assignmentId, assignmentId));
+  }
+
+  async updateStudentLessonProgress(id: string, progress: Partial<InsertStudentLessonProgress>): Promise<StudentLessonProgress> {
+    const [updatedProgress] = await db.update(studentLessonProgress)
+      .set({ ...progress, updatedAt: new Date() })
+      .where(eq(studentLessonProgress.id, id))
+      .returning();
+    return updatedProgress;
+  }
+
+  async getClassProgressSummary(classId: string): Promise<{ studentId: string; assignments: { assignmentId: string; status: string; score: number | null; completedAt: Date | null }[] }[]> {
+    // This is a complex query that would need to join multiple tables
+    // For now, return empty array - would need to implement proper joins in production
+    return [];
   }
 }
 

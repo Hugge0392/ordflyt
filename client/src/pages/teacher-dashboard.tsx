@@ -48,7 +48,7 @@ import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
 
 // Dashboard section types
-type DashboardSection = 'overview' | 'students' | 'assignments' | 'results' | 'classroom';
+type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom';
 
 interface DashboardStats {
   totalStudents: number;
@@ -1518,19 +1518,17 @@ export default function TeacherDashboard() {
       case 'students':
         return <StudentManagementSection />;
       case 'assignments':
+        // Redirect to the dedicated assign-lessons page
+        window.location.href = '/teacher/assign-lessons';
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Tilldela lektioner</CardTitle>
-              <CardDescription>Tilldela uppgifter och lektioner till dina elever</CardDescription>
+              <CardTitle>Omdirigerar...</CardTitle>
+              <CardDescription>Tar dig till lektionstilldelningssidan</CardDescription>
             </CardHeader>
             <CardContent className="text-center py-12">
-              <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Lektionstilldelning</h3>
-              <p className="text-gray-600 mb-6">Här kommer du kunna tilldela lektioner och övningar till dina klasser och enskilda elever.</p>
-              <Button variant="outline" disabled>
-                Kommer snart
-              </Button>
+              <BookOpen className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <p className="text-gray-600">Omdirigerar till lektionstilldelning...</p>
             </CardContent>
           </Card>
         );

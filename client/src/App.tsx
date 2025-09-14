@@ -36,6 +36,7 @@ import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import TeacherPage from "@/pages/teacher";
 import TeacherDashboard from "@/pages/teacher-dashboard";
+import AssignLessonsPage from "@/pages/assign-lessons";
 import KlassKampPage from "@/pages/klasskamp";
 import SpelaPage from "@/pages/spela";
 import KlassKampHostPage from "@/pages/klasskamp-host";
@@ -120,6 +121,12 @@ function Router() {
       <Route path="/teacher/classes">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
           <TeacherClassesPage />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/teacher/assign-lessons">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <AssignLessonsPage />
         </ProtectedRoute>
       </Route>
       

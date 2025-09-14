@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
 import emailTestRoutes from "./emailTestRoutes";
-import { requireAuth, requireRole, requireCsrf } from "./auth";
+import { requireAuth, requireRole, requireCsrf, requireTeacherLicense } from "./auth";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema } from "@shared/schema";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
@@ -993,6 +993,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register migration routes
   registerMigrationRoutes(app);
+
+  // ===== LESSON ASSIGNMENT ENDPOINTS =====
+  
+  // Get all lessons available for assignment (browsing interface)
+  app.get("/api/assignments/lessons", async (req, res) => {
+    try {
+      const { type, wordClass, difficulty, gradeLevel, search } = req.query;
+      
+      let lessons: any[] = [];
+      
+      // Get published lessons
+      if (!type || type === 'published_lesson') {
+        const publishedLessons = await storage.getPublishedLessons();
+        lessons.push(...publishedLessons.map(lesson => ({
+          ...lesson,
+          type: 'published_lesson',
+          lessonType: 'Interaktiv lektion',
+          category: lesson.wordClass || 'Allmänt'
+        })));
+      }
+      
+      // Get reading lessons
+      if (!type || type === 'reading_lesson') {
+        const readingLessons = await storage.getPublishedReadingLessons();
+        lessons.push(...readingLessons.map(lesson => ({
+          ...lesson,
+          type: 'reading_lesson',
+          lessonType: 'Läsförståelse',
+          category: lesson.subject || 'Svenska',
+          difficulty: lesson.gradeLevel || 'medium'
+        })));
+      }
+      
+      // Apply filters
+      if (wordClass) {
+        lessons = lessons.filter(lesson => lesson.wordClass === wordClass);
+      }
+      if (difficulty) {
+        lessons = lessons.filter(lesson => lesson.difficulty === difficulty);
+      }
+      if (gradeLevel) {
+        lessons = lessons.filter(lesson => lesson.gradeLevel === gradeLevel);
+      }
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        lessons = lessons.filter(lesson => 
+          lesson.title?.toLowerCase().includes(searchLower) ||
+          lesson.description?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      res.json(lessons);
+    } catch (error) {
+      console.error("Failed to fetch lessons for assignment:", error);
+      res.status(500).json({ message: "Failed to fetch lessons" });
+    }
+  });
+  
+  // Create new lesson assignment
+  app.post("/api/assignments", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+      
+      const validatedData = insertLessonAssignmentSchema.parse({
+        ...req.body,
+        teacherId
+      });
+      
+      const assignment = await storage.createLessonAssignment(validatedData);
+      res.status(201).json(assignment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      console.error("Failed to create lesson assignment:", error);
+      res.status(500).json({ message: "Failed to create lesson assignment" });
+    }
+  });
+  
+  // Get assignments for a teacher
+  app.get("/api/assignments", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+      
+      const { active } = req.query;
+      let assignments;
+      
+      if (active === 'true') {
+        assignments = await storage.getActiveLessonAssignments(teacherId);
+      } else {
+        assignments = await storage.getLessonAssignments(teacherId);
+      }
+      
+      res.json(assignments);
+    } catch (error) {
+      console.error("Failed to fetch assignments:", error);
+      res.status(500).json({ message: "Failed to fetch assignments" });
+    }
+  });
+  
+  // Get specific assignment
+  app.get("/api/assignments/:id", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const assignment = await storage.getLessonAssignment(req.params.id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      // Verify teacher owns this assignment
+      if (assignment.teacherId !== req.user?.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(assignment);
+    } catch (error) {
+      console.error("Failed to fetch assignment:", error);
+      res.status(500).json({ message: "Failed to fetch assignment" });
+    }
+  });
+  
+  // Update assignment
+  app.put("/api/assignments/:id", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const assignment = await storage.getLessonAssignment(req.params.id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      // Verify teacher owns this assignment
+      if (assignment.teacherId !== req.user?.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const validatedData = insertLessonAssignmentSchema.partial().parse(req.body);
+      const updatedAssignment = await storage.updateLessonAssignment(req.params.id, validatedData);
+      res.json(updatedAssignment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      console.error("Failed to update assignment:", error);
+      res.status(500).json({ message: "Failed to update assignment" });
+    }
+  });
+  
+  // Delete assignment
+  app.delete("/api/assignments/:id", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const assignment = await storage.getLessonAssignment(req.params.id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      // Verify teacher owns this assignment
+      if (assignment.teacherId !== req.user?.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteLessonAssignment(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Failed to delete assignment:", error);
+      res.status(500).json({ message: "Failed to delete assignment" });
+    }
+  });
+  
+  // Get assignments for a class
+  app.get("/api/assignments/class/:classId", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const assignments = await storage.getLessonAssignmentsByClass(req.params.classId);
+      
+      // Verify teacher owns these assignments
+      const teacherId = req.user?.id;
+      const filteredAssignments = assignments.filter(assignment => assignment.teacherId === teacherId);
+      
+      res.json(filteredAssignments);
+    } catch (error) {
+      console.error("Failed to fetch class assignments:", error);
+      res.status(500).json({ message: "Failed to fetch class assignments" });
+    }
+  });
+  
+  // Get progress for an assignment
+  app.get("/api/assignments/:id/progress", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const assignment = await storage.getLessonAssignment(req.params.id);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      // Verify teacher owns this assignment
+      if (assignment.teacherId !== req.user?.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const progress = await storage.getStudentProgressByAssignment(req.params.id);
+      res.json(progress);
+    } catch (error) {
+      console.error("Failed to fetch assignment progress:", error);
+      res.status(500).json({ message: "Failed to fetch assignment progress" });
+    }
+  });
 
   // Teacher dashboard endpoints
   app.get("/api/teacher/dashboard-stats", requireAuth, requireRole('LARARE', 'ADMIN'), async (req: any, res) => {
