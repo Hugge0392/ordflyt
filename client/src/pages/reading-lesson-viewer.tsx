@@ -209,7 +209,12 @@ export default function ReadingLessonViewer() {
   const pages = useMemo(() => {
     if (!lesson) return [];
     
-    // Handle rich pages first (new format)
+    // Handle block pages first (newest format with separate TextBlock and ImageBlock components)
+    if (lesson.blockPages && lesson.blockPages.length > 0) {
+      return lesson.blockPages;
+    }
+    
+    // Handle rich pages (new format)
     if (lesson.richPages && lesson.richPages.length > 0) {
       return lesson.richPages;
     }
@@ -274,6 +279,10 @@ export default function ReadingLessonViewer() {
     }));
   };
 
+  // Type guards for different page types and question handling
+  const isRichPage = (p: any): p is RichPage => !!p && 'doc' in p;
+  const hasPageQuestions = (p: any): p is { questions: any[] } => !!p && Array.isArray(p.questions);
+
   // Get all questions for the questions panel
   const getAllQuestions = () => {
     const allQuestions: Array<{
@@ -284,7 +293,7 @@ export default function ReadingLessonViewer() {
       globalIndex: number;
     }> = [];
 
-    // Add general questions
+    // Add general questions (lesson-level questions)
     if (lesson?.questions) {
       lesson.questions.forEach((question, index) => {
         allQuestions.push({
@@ -296,10 +305,11 @@ export default function ReadingLessonViewer() {
       });
     }
 
-    // Add page-specific questions
-    if (lesson?.pages) {
+    // Add page-specific questions only for legacy format
+    // Skip if using blockPages or richPages (new formats with lesson-level questions only)
+    if (!lesson?.blockPages?.length && !lesson?.richPages?.length && lesson?.pages) {
       lesson.pages.forEach((page, pageIndex) => {
-        if (page.questions) {
+        if (hasPageQuestions(page)) {
           page.questions.forEach((question, questionIndex) => {
             allQuestions.push({
               question,
@@ -355,10 +365,15 @@ export default function ReadingLessonViewer() {
     if (lesson.questions && lesson.questions.length > 0) {
       count += lesson.questions.length;
     }
-    const currentPageQuestions = lesson.pages?.[currentPage]?.questions;
-    if (currentPageQuestions && currentPageQuestions.length > 0) {
-      count += currentPageQuestions.length;
+    
+    // Only count page-specific questions for legacy format
+    if (!lesson?.blockPages?.length && !lesson?.richPages?.length && lesson.pages?.[currentPage]) {
+      const currentPageData = lesson.pages[currentPage];
+      if (hasPageQuestions(currentPageData)) {
+        count += currentPageData.questions.length;
+      }
     }
+    
     return count;
   };
 
