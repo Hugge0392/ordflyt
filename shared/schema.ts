@@ -1055,3 +1055,261 @@ export type InsertStudentToolSettings = z.infer<typeof insertStudentToolSettings
 
 export type ClassroomControls = typeof classroomControls.$inferSelect;
 export type InsertClassroomControls = z.infer<typeof insertClassroomControlsSchema>;
+
+// Analytics data types for comprehensive student results dashboard
+export interface TeacherAnalytics {
+  overview: {
+    totalStudents: number;
+    totalClasses: number;
+    activeAssignments: number;
+    completedAssignments: number;
+    averageCompletionRate: number;
+    averageScore: number;
+    totalTimeSpent: number; // minutes
+  };
+  recentActivity: {
+    date: string;
+    completions: number;
+    averageScore: number;
+  }[];
+  classBreakdown: {
+    classId: string;
+    className: string;
+    studentCount: number;
+    averageScore: number;
+    completionRate: number;
+    strugglingStudents: number;
+  }[];
+}
+
+export interface ClassAnalytics {
+  classInfo: {
+    id: string;
+    name: string;
+    studentCount: number;
+    averageScore: number;
+    averageCompletionRate: number;
+    totalTimeSpent: number;
+  };
+  studentPerformance: {
+    studentId: string;
+    studentName: string;
+    averageScore: number;
+    completionRate: number;
+    timeSpent: number;
+    assignmentsCompleted: number;
+    lastActivity: string | null;
+    needsHelp: boolean;
+  }[];
+  assignmentBreakdown: {
+    assignmentId: string;
+    title: string;
+    assignmentType: string;
+    completionRate: number;
+    averageScore: number;
+    strugglingStudentCount: number;
+  }[];
+  progressTrends: {
+    date: string;
+    completions: number;
+    averageScore: number;
+    timeSpent: number;
+  }[];
+}
+
+export interface StudentAnalytics {
+  studentInfo: {
+    id: string;
+    name: string;
+    className: string;
+    overallScore: number;
+    completionRate: number;
+    totalTimeSpent: number;
+    assignmentsCompleted: number;
+    lastActivity: string | null;
+  };
+  performanceHistory: {
+    date: string;
+    assignmentTitle: string;
+    assignmentType: string;
+    score: number;
+    timeSpent: number;
+    status: string;
+  }[];
+  weakAreas: {
+    assignmentType: string;
+    averageScore: number;
+    completionRate: number;
+    needsAttention: boolean;
+  }[];
+  progressTrajectory: {
+    date: string;
+    cumulativeScore: number;
+    monthlyAverage: number;
+  }[];
+  strengthsAndChallenges: {
+    strengths: string[];
+    challenges: string[];
+  };
+}
+
+export interface AssignmentAnalytics {
+  assignmentInfo: {
+    id: string;
+    title: string;
+    assignmentType: string;
+    dueDate: string | null;
+    studentCount: number;
+  };
+  completionStats: {
+    completed: number;
+    inProgress: number;
+    notStarted: number;
+    overdue: number;
+    completionRate: number;
+    averageScore: number;
+    averageTimeSpent: number;
+  };
+  studentResults: {
+    studentId: string;
+    studentName: string;
+    status: string;
+    score: number | null;
+    timeSpent: number;
+    completedAt: string | null;
+    needsHelp: boolean;
+  }[];
+  performanceDistribution: {
+    scoreRange: string;
+    studentCount: number;
+  }[];
+}
+
+export interface PerformanceComparisonOptions {
+  classIds?: string[];
+  assignmentTypes?: string[];
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+  comparisonType: 'class' | 'assignment_type' | 'time_period';
+}
+
+export interface PerformanceComparison {
+  comparisonType: string;
+  baseline: {
+    name: string;
+    averageScore: number;
+    completionRate: number;
+    studentCount: number;
+  };
+  comparisons: {
+    name: string;
+    averageScore: number;
+    completionRate: number;
+    studentCount: number;
+    percentageDifference: number;
+  }[];
+  insights: {
+    bestPerforming: string;
+    needsImprovement: string;
+    trends: string[];
+  };
+}
+
+export interface TimeRange {
+  start: string;
+  end: string;
+  granularity: 'day' | 'week' | 'month';
+}
+
+export interface ProgressTrends {
+  timeRange: TimeRange;
+  overallTrend: {
+    direction: 'improving' | 'declining' | 'stable';
+    percentage: number;
+  };
+  trends: {
+    date: string;
+    completions: number;
+    averageScore: number;
+    timeSpent: number;
+    activeStudents: number;
+  }[];
+  insights: {
+    bestPeriod: string;
+    challengingPeriod: string;
+    recommendations: string[];
+  };
+}
+
+export interface CompletionRateData {
+  id: string;
+  name: string;
+  total: number;
+  completed: number;
+  completionRate: number;
+  averageScore: number;
+  category: 'class' | 'assignment' | 'student';
+}
+
+export interface TimeSpentAnalytics {
+  totalHours: number;
+  averageSessionLength: number; // minutes
+  timeDistribution: {
+    assignmentType: string;
+    hours: number;
+    percentage: number;
+  }[];
+  dailyActivity: {
+    date: string;
+    hours: number;
+    sessions: number;
+  }[];
+  efficiencyMetrics: {
+    fastLearners: { studentId: string; studentName: string; averageTime: number }[];
+    needsMoreTime: { studentId: string; studentName: string; averageTime: number }[];
+  };
+}
+
+export interface StrugglingStudentData {
+  studentId: string;
+  studentName: string;
+  className: string;
+  concerns: {
+    lowCompletionRate: boolean;
+    lowAverageScore: boolean;
+    longTimeSpent: boolean;
+    frequentHelp: boolean;
+    recentInactivity: boolean;
+  };
+  metrics: {
+    completionRate: number;
+    averageScore: number;
+    averageTimeSpent: number;
+    helpRequests: number;
+    daysSinceLastActivity: number;
+  };
+  recommendations: string[];
+}
+
+export interface TopPerformerData {
+  studentId: string;
+  studentName: string;
+  className: string;
+  achievements: {
+    highCompletionRate: boolean;
+    highAverageScore: boolean;
+    efficientLearning: boolean;
+    consistentProgress: boolean;
+    helpingOthers: boolean;
+  };
+  metrics: {
+    completionRate: number;
+    averageScore: number;
+    averageTimeSpent: number;
+    streakDays: number;
+    assignmentsAheadOfSchedule: number;
+  };
+  recognitions: string[];
+}

@@ -46,6 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
+import StudentResultsAnalytics from '@/components/analytics/StudentResultsAnalytics';
 
 // Dashboard section types
 type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom';
@@ -1533,22 +1534,7 @@ export default function TeacherDashboard() {
           </Card>
         );
       case 'results':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resultat elever</CardTitle>
-              <CardDescription>Analysera elevers framsteg och resultat</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center py-12">
-              <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Resultatanalys</h3>
-              <p className="text-gray-600 mb-6">Här kommer du kunna se detaljerade resultat, framsteg och statistik för dina elever.</p>
-              <Button variant="outline" disabled>
-                Kommer snart
-              </Button>
-            </CardContent>
-          </Card>
-        );
+        return <StudentResultsAnalytics />;
       case 'classroom':
         return (
           <Card>

@@ -29,10 +29,22 @@ import {
   type InsertLessonAssignment,
   type StudentLessonProgress,
   type InsertStudentLessonProgress,
+  type TeacherAnalytics,
+  type ClassAnalytics,
+  type StudentAnalytics,
+  type AssignmentAnalytics,
+  type PerformanceComparison,
+  type PerformanceComparisonOptions,
+  type ProgressTrends,
+  type TimeRange,
+  type CompletionRateData,
+  type TimeSpentAnalytics,
+  type StrugglingStudentData,
+  type TopPerformerData,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, gte, sql } from "drizzle-orm";
 import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress } from "@shared/schema";
 
 export interface IStorage {
@@ -121,6 +133,18 @@ export interface IStorage {
   getStudentProgressByAssignment(assignmentId: string): Promise<StudentLessonProgress[]>;
   updateStudentLessonProgress(id: string, progress: Partial<InsertStudentLessonProgress>): Promise<StudentLessonProgress>;
   getClassProgressSummary(classId: string): Promise<{ studentId: string; assignments: { assignmentId: string; status: string; score: number | null; completedAt: Date | null }[] }[]>;
+
+  // Analytics methods
+  getTeacherAnalytics(teacherId: string): Promise<TeacherAnalytics>;
+  getClassAnalytics(classId: string): Promise<ClassAnalytics>;
+  getStudentAnalytics(studentId: string): Promise<StudentAnalytics>;
+  getAssignmentAnalytics(assignmentId: string): Promise<AssignmentAnalytics>;
+  getPerformanceComparison(teacherId: string, options?: PerformanceComparisonOptions): Promise<PerformanceComparison>;
+  getProgressTrends(teacherId: string, timeRange: TimeRange): Promise<ProgressTrends>;
+  getCompletionRates(teacherId: string, groupBy: 'class' | 'assignment' | 'student'): Promise<CompletionRateData[]>;
+  getTimeSpentAnalytics(teacherId: string): Promise<TimeSpentAnalytics>;
+  getStrugglingStudents(teacherId: string): Promise<StrugglingStudentData[]>;
+  getTopPerformers(teacherId: string): Promise<TopPerformerData[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1108,6 +1132,341 @@ export class DatabaseStorage implements IStorage {
     // This is a complex query that would need to join multiple tables
     // For now, return empty array - would need to implement proper joins in production
     return [];
+  }
+
+  // ===============================
+  // COMPREHENSIVE ANALYTICS METHODS  
+  // ===============================
+
+  async getTeacherAnalytics(teacherId: string): Promise<TeacherAnalytics> {
+    try {
+      // Optimized: Get all overview data with a single efficient query using joins and aggregations
+      const overviewQuery = await db
+        .select({
+          totalClasses: sql<number>`COUNT(DISTINCT ${schema.teacherClasses.id})`,
+          totalStudents: sql<number>`COUNT(DISTINCT ${schema.studentAccounts.id})`,
+          totalActiveAssignments: sql<number>`COUNT(DISTINCT ${lessonAssignments.id})`,
+          totalCompletedAssignments: sql<number>`COUNT(DISTINCT CASE WHEN ${studentLessonProgress.status} = 'completed' THEN ${studentLessonProgress.id} END)`,
+          totalTimeSpent: sql<number>`COALESCE(SUM(${studentLessonProgress.timeSpent}), 0)`,
+          averageScore: sql<number>`COALESCE(AVG(CASE WHEN ${studentLessonProgress.score} IS NOT NULL THEN ${studentLessonProgress.score} END), 0)`
+        })
+        .from(schema.teacherClasses)
+        .leftJoin(schema.studentAccounts, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .leftJoin(lessonAssignments, and(
+          eq(lessonAssignments.teacherId, teacherId),
+          eq(lessonAssignments.classId, schema.teacherClasses.id),
+          eq(lessonAssignments.isActive, true)
+        ))
+        .leftJoin(studentLessonProgress, and(
+          eq(studentLessonProgress.studentId, schema.studentAccounts.id),
+          eq(studentLessonProgress.assignmentId, lessonAssignments.id)
+        ))
+        .where(and(
+          eq(schema.teacherClasses.teacherId, teacherId),
+          isNull(schema.teacherClasses.archivedAt)
+        ));
+
+      const overview = overviewQuery[0];
+      const averageCompletionRate = overview.totalActiveAssignments > 0 && overview.totalStudents > 0
+        ? Math.round((overview.totalCompletedAssignments / (overview.totalActiveAssignments * overview.totalStudents)) * 100)
+        : 0;
+
+      // Optimized: Get class breakdown with a single query per class using aggregations
+      const classBreakdownQuery = await db
+        .select({
+          classId: schema.teacherClasses.id,
+          className: schema.teacherClasses.name,
+          studentCount: sql<number>`COUNT(DISTINCT ${schema.studentAccounts.id})`,
+          averageScore: sql<number>`COALESCE(AVG(CASE WHEN ${studentLessonProgress.score} IS NOT NULL THEN ${studentLessonProgress.score} END), 0)`,
+          completedAssignments: sql<number>`COUNT(DISTINCT CASE WHEN ${studentLessonProgress.status} = 'completed' THEN ${studentLessonProgress.id} END)`,
+          totalAssignments: sql<number>`COUNT(DISTINCT ${lessonAssignments.id})`,
+          strugglingStudentsCount: sql<number>`COUNT(DISTINCT CASE WHEN 
+            (SELECT AVG(slp2.score) FROM ${studentLessonProgress} slp2 WHERE slp2.student_id = ${schema.studentAccounts.id} AND slp2.score IS NOT NULL) < 60 OR
+            (SELECT COUNT(*) FROM ${studentLessonProgress} slp3 WHERE slp3.student_id = ${schema.studentAccounts.id} AND slp3.status = 'completed') / NULLIF(COUNT(DISTINCT ${lessonAssignments.id}), 0) < 0.5
+            THEN ${schema.studentAccounts.id} END)`
+        })
+        .from(schema.teacherClasses)
+        .leftJoin(schema.studentAccounts, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .leftJoin(lessonAssignments, and(
+          eq(lessonAssignments.teacherId, teacherId),
+          eq(lessonAssignments.classId, schema.teacherClasses.id),
+          eq(lessonAssignments.isActive, true)
+        ))
+        .leftJoin(studentLessonProgress, and(
+          eq(studentLessonProgress.studentId, schema.studentAccounts.id),
+          eq(studentLessonProgress.assignmentId, lessonAssignments.id)
+        ))
+        .where(and(
+          eq(schema.teacherClasses.teacherId, teacherId),
+          isNull(schema.teacherClasses.archivedAt)
+        ))
+        .groupBy(schema.teacherClasses.id, schema.teacherClasses.name);
+
+      const classBreakdown = classBreakdownQuery.map(row => ({
+        classId: row.classId,
+        className: row.className,
+        studentCount: row.studentCount,
+        averageScore: Math.round(row.averageScore),
+        completionRate: row.totalAssignments > 0 && row.studentCount > 0 
+          ? Math.round((row.completedAssignments / (row.studentCount * row.totalAssignments)) * 100)
+          : 0,
+        strugglingStudents: row.strugglingStudentsCount
+      }));
+
+      // Optimized: Generate recent activity (last 7 days) with a single aggregated query
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const recentActivityQuery = await db
+        .select({
+          date: sql<string>`DATE(${studentLessonProgress.completedAt})`,
+          completions: sql<number>`COUNT(*)`,
+          averageScore: sql<number>`COALESCE(AVG(${studentLessonProgress.score}), 0)`
+        })
+        .from(studentLessonProgress)
+        .innerJoin(lessonAssignments, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
+        .where(and(
+          eq(lessonAssignments.teacherId, teacherId),
+          gte(studentLessonProgress.completedAt, sevenDaysAgo),
+          eq(studentLessonProgress.status, 'completed')
+        ))
+        .groupBy(sql`DATE(${studentLessonProgress.completedAt})`)
+        .orderBy(sql`DATE(${studentLessonProgress.completedAt})`);
+
+      const recentActivityArray = recentActivityQuery.map(row => ({
+        date: row.date,
+        completions: row.completions,
+        averageScore: Math.round(row.averageScore)
+      }));
+
+      return {
+        overview: {
+          totalStudents: overview.totalStudents,
+          totalClasses: overview.totalClasses,
+          activeAssignments: overview.totalActiveAssignments,
+          completedAssignments: overview.totalCompletedAssignments,
+          averageCompletionRate,
+          averageScore: Math.round(overview.averageScore),
+          totalTimeSpent: Math.round(overview.totalTimeSpent)
+        },
+        recentActivity: recentActivityArray,
+        classBreakdown
+      };
+    } catch (error) {
+      console.error('Error fetching teacher analytics:', error);
+      throw error;
+    }
+  }
+
+  async getClassAnalytics(classId: string): Promise<ClassAnalytics> {
+    try {
+      // Get class info
+      const classInfo = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(eq(schema.teacherClasses.id, classId))
+        .limit(1);
+
+      if (classInfo.length === 0) {
+        throw new Error('Class not found');
+      }
+
+      const teacherClass = classInfo[0];
+
+      // Get students in this class
+      const students = await db
+        .select()
+        .from(schema.studentAccounts)
+        .where(eq(schema.studentAccounts.classId, classId));
+
+      // Get assignments for this class
+      const assignments = await db
+        .select()
+        .from(lessonAssignments)
+        .where(and(
+          eq(lessonAssignments.classId, classId),
+          eq(lessonAssignments.isActive, true)
+        ));
+
+      let classTimeSpent = 0;
+      let classScoreSum = 0;
+      let classScoreCount = 0;
+      let completedAssignments = 0;
+      const studentPerformance = [];
+      const assignmentBreakdown = [];
+
+      // Calculate student performance
+      for (const student of students) {
+        const studentProgress = await db
+          .select()
+          .from(studentLessonProgress)
+          .where(eq(studentLessonProgress.studentId, student.id));
+
+        const completed = studentProgress.filter(p => p.status === 'completed');
+        const scores = studentProgress.filter(p => p.score !== null).map(p => p.score!);
+        const timeSpent = studentProgress.reduce((sum, p) => sum + (p.timeSpent || 0), 0);
+        const needsHelp = studentProgress.some(p => p.needsHelp);
+
+        const averageScore = scores.length > 0 
+          ? scores.reduce((a, b) => a + b, 0) / scores.length 
+          : 0;
+        const completionRate = assignments.length > 0 
+          ? completed.length / assignments.length 
+          : 0;
+
+        studentPerformance.push({
+          studentId: student.id,
+          studentName: student.studentName,
+          averageScore: Math.round(averageScore),
+          completionRate: Math.round(completionRate * 100),
+          timeSpent: Math.round(timeSpent),
+          assignmentsCompleted: completed.length,
+          lastActivity: student.lastLogin?.toISOString() || null,
+          needsHelp
+        });
+
+        classTimeSpent += timeSpent;
+        if (scores.length > 0) {
+          classScoreSum += averageScore;
+          classScoreCount++;
+        }
+        completedAssignments += completed.length;
+      }
+
+      // Calculate assignment breakdown
+      for (const assignment of assignments) {
+        const assignmentProgress = await db
+          .select()
+          .from(studentLessonProgress)
+          .where(eq(studentLessonProgress.assignmentId, assignment.id));
+
+        const completed = assignmentProgress.filter(p => p.status === 'completed');
+        const scores = assignmentProgress.filter(p => p.score !== null).map(p => p.score!);
+        const struggling = assignmentProgress.filter(p => 
+          p.needsHelp || (p.score !== null && p.score < 60)
+        );
+
+        assignmentBreakdown.push({
+          assignmentId: assignment.id,
+          title: assignment.title,
+          assignmentType: assignment.assignmentType,
+          completionRate: students.length > 0 
+            ? Math.round((completed.length / students.length) * 100)
+            : 0,
+          averageScore: scores.length > 0 
+            ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+            : 0,
+          strugglingStudentCount: struggling.length
+        });
+      }
+
+      // Generate progress trends (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const progressTrends = await db
+        .select({
+          date: studentLessonProgress.completedAt,
+          score: studentLessonProgress.score,
+          timeSpent: studentLessonProgress.timeSpent
+        })
+        .from(studentLessonProgress)
+        .innerJoin(lessonAssignments, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
+        .where(and(
+          eq(lessonAssignments.classId, classId),
+          gte(studentLessonProgress.completedAt, thirtyDaysAgo),
+          eq(studentLessonProgress.status, 'completed')
+        ));
+
+      // Group trends by date
+      const trendsByDate: { [date: string]: { completions: number; scores: number[]; timeSpent: number } } = {};
+      progressTrends.forEach(trend => {
+        if (trend.date) {
+          const dateStr = trend.date.toISOString().split('T')[0];
+          if (!trendsByDate[dateStr]) {
+            trendsByDate[dateStr] = { completions: 0, scores: [], timeSpent: 0 };
+          }
+          trendsByDate[dateStr].completions++;
+          if (trend.score !== null) {
+            trendsByDate[dateStr].scores.push(trend.score);
+          }
+          trendsByDate[dateStr].timeSpent += trend.timeSpent || 0;
+        }
+      });
+
+      const trendsArray = Object.entries(trendsByDate).map(([date, data]) => ({
+        date,
+        completions: data.completions,
+        averageScore: data.scores.length > 0 
+          ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length)
+          : 0,
+        timeSpent: Math.round(data.timeSpent)
+      }));
+
+      return {
+        classInfo: {
+          id: teacherClass.id,
+          name: teacherClass.name,
+          studentCount: students.length,
+          averageScore: classScoreCount > 0 
+            ? Math.round(classScoreSum / classScoreCount)
+            : 0,
+          averageCompletionRate: Math.round(
+            assignments.length > 0 && students.length > 0
+              ? (completedAssignments / (assignments.length * students.length)) * 100
+              : 0
+          ),
+          totalTimeSpent: Math.round(classTimeSpent)
+        },
+        studentPerformance,
+        assignmentBreakdown,
+        progressTrends: trendsArray
+      };
+    } catch (error) {
+      console.error('Error fetching class analytics:', error);
+      throw error;
+    }
+  }
+
+  // Add remaining analytics methods as stub implementations for now
+  async getStudentAnalytics(studentId: string): Promise<StudentAnalytics> {
+    // TODO: Implement comprehensive student analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getAssignmentAnalytics(assignmentId: string): Promise<AssignmentAnalytics> {
+    // TODO: Implement assignment analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getPerformanceComparison(teacherId: string, options?: PerformanceComparisonOptions): Promise<PerformanceComparison> {
+    // TODO: Implement performance comparison analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getProgressTrends(teacherId: string, timeRange: TimeRange): Promise<ProgressTrends> {
+    // TODO: Implement progress trends analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getCompletionRates(teacherId: string, groupBy: 'class' | 'assignment' | 'student'): Promise<CompletionRateData[]> {
+    // TODO: Implement completion rates analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getTimeSpentAnalytics(teacherId: string): Promise<TimeSpentAnalytics> {
+    // TODO: Implement time spent analytics
+    throw new Error('Not implemented yet');
+  }
+
+  async getStrugglingStudents(teacherId: string): Promise<StrugglingStudentData[]> {
+    // TODO: Implement struggling students identification
+    throw new Error('Not implemented yet');
+  }
+
+  async getTopPerformers(teacherId: string): Promise<TopPerformerData[]> {
+    // TODO: Implement top performers identification
+    throw new Error('Not implemented yet');
   }
 }
 

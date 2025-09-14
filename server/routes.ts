@@ -23,11 +23,14 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema } from "@shared/schema";
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
 
-const updateProgressSchema = z.object({
+// Analytics validation schemas\nconst analyticsExportSchema = z.object({\n  format: z.enum(['csv', 'json']).default('json'),\n  type: z.enum(['teacher', 'class', 'student']),\n  classId: z.string().optional(),\n  studentId: z.string().optional(),\n  dateRange: z.object({\n    start: z.string().optional(),\n    end: z.string().optional()\n  }).optional()\n});\n\nconst performanceComparisonSchema = z.object({\n  compareBy: z.enum(['class', 'assignment', 'timeframe']).optional(),\n  classIds: z.array(z.string()).optional(),\n  assignmentIds: z.array(z.string()).optional(),\n  timeRange: z.object({\n    start: z.string(),\n    end: z.string()\n  }).optional()\n});\n\nconst progressTrendsSchema = z.object({\n  start: z.string(),\n  end: z.string(),\n  granularity: z.enum(['day', 'week', 'month']).default('week')\n});\n\nconst completionRatesSchema = z.object({\n  groupBy: z.enum(['class', 'assignment', 'student']).default('class')\n});\n\n// CSV conversion helper functions\nfunction convertTeacherAnalyticsToCSV(data: any): string {\n  const headers = ['Metric', 'Value'];\n  const rows = [\n    ['Total Students', data.overview.totalStudents],\n    ['Total Classes', data.overview.totalClasses],\n    ['Active Assignments', data.overview.activeAssignments],\n    ['Completed Assignments', data.overview.completedAssignments],\n    ['Average Score', data.overview.averageScore],\n    ['Average Completion Rate', data.overview.averageCompletionRate],\n    ['Total Time Spent (min)', data.overview.totalTimeSpent]\n  ];\n  \n  let csv = headers.join(',') + '\\n';\n  rows.forEach(row => {\n    csv += row.join(',') + '\\n';\n  });\n  \n  // Add class breakdown\n  csv += '\\nClass Breakdown\\n';\n  csv += 'Class Name,Student Count,Average Score,Completion Rate,Struggling Students\\n';\n  data.classBreakdown.forEach((cls: any) => {\n    csv += `${cls.className},${cls.studentCount},${cls.averageScore},${cls.completionRate},${cls.strugglingStudents}\\n`;\n  });\n  \n  return csv;\n}\n\nfunction convertClassAnalyticsToCSV(data: any): string {\n  let csv = 'Student Performance\\n';\n  csv += 'Student Name,Average Score,Completion Rate,Time Spent,Assignments Completed,Last Activity,Needs Help\\n';\n  data.studentPerformance.forEach((student: any) => {\n    csv += `${student.studentName},${student.averageScore},${student.completionRate},${student.timeSpent},${student.assignmentsCompleted},${student.lastActivity || 'N/A'},${student.needsHelp}\\n`;\n  });\n  return csv;\n}\n\nfunction convertStudentAnalyticsToCSV(data: any): string {\n  let csv = 'Student Analytics\\n';\n  csv += 'Metric,Value\\n';\n  csv += `Average Score,${data.averageScore}\\n`;\n  csv += `Completion Rate,${data.completionRate}\\n`;\n  csv += `Time Spent,${data.timeSpent}\\n`;\n  csv += `Assignments Completed,${data.assignmentsCompleted}\\n`;\n  return csv;\n}\n\nconst updateProgressSchema = z.object({
   score: z.number().optional(),
   level: z.number().optional(),
   correctAnswers: z.number().optional(),
@@ -1250,6 +1253,301 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Recent activity error:', error);
       res.status(500).json({ error: 'Kunde inte hämta aktivitet' });
+    }
+  });
+
+  // ===============================
+  // COMPREHENSIVE ANALYTICS ENDPOINTS
+  // ===============================
+
+  // Teacher analytics overview
+  app.get("/api/analytics/teacher", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const analytics = await storage.getTeacherAnalytics(teacherId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch teacher analytics:", error);
+      res.status(500).json({ message: "Failed to fetch teacher analytics" });
+    }
+  });
+
+  // Class analytics
+  app.get("/api/analytics/class/:classId", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher has access to this class
+      const teacherClasses = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(eq(schema.teacherClasses.teacherId, teacherId));
+      
+      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied: You do not have access to this class" });
+      }
+      
+      const analytics = await storage.getClassAnalytics(classId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch class analytics:", error);
+      res.status(500).json({ message: "Failed to fetch class analytics" });
+    }
+  });
+
+  // Student analytics
+  app.get("/api/analytics/student/:studentId", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const { studentId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher has access to this student
+      const studentAccount = await db
+        .select()
+        .from(schema.studentAccounts)
+        .where(eq(schema.studentAccounts.id, studentId))
+        .limit(1);
+      
+      if (studentAccount.length === 0) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const teacherClasses = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(and(
+          eq(schema.teacherClasses.teacherId, teacherId),
+          eq(schema.teacherClasses.classId, studentAccount[0].classId)
+        ));
+      
+      if (teacherClasses.length === 0) {
+        return res.status(403).json({ message: "Access denied: You do not have access to this student" });
+      }
+      
+      const analytics = await storage.getStudentAnalytics(studentId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch student analytics:", error);
+      res.status(500).json({ message: "Failed to fetch student analytics" });
+    }
+  });
+
+  // Assignment analytics
+  app.get("/api/analytics/assignment/:assignmentId", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const { assignmentId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher owns this assignment
+      const assignment = await storage.getLessonAssignment(assignmentId);
+      if (!assignment) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      
+      if (assignment.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied: You do not own this assignment" });
+      }
+      
+      const analytics = await storage.getAssignmentAnalytics(assignmentId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch assignment analytics:", error);
+      res.status(500).json({ message: "Failed to fetch assignment analytics" });
+    }
+  });
+
+  // Performance comparison
+  app.post("/api/analytics/performance-comparison", requireAuth, requireTeacherLicense, requireCsrf, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const validatedOptions = performanceComparisonSchema.parse(req.body);
+      const comparison = await storage.getPerformanceComparison(teacherId, validatedOptions);
+      res.json(comparison);
+    } catch (error) {
+      console.error("Failed to fetch performance comparison:", error);
+      res.status(500).json({ message: "Failed to fetch performance comparison" });
+    }
+  });
+
+  // Progress trends
+  app.get("/api/analytics/progress-trends", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const validatedQuery = progressTrendsSchema.parse(req.query);
+      const trends = await storage.getProgressTrends(teacherId, validatedQuery);
+      res.json(trends);
+    } catch (error) {
+      console.error("Failed to fetch progress trends:", error);
+      res.status(500).json({ message: "Failed to fetch progress trends" });
+    }
+  });
+
+  // Completion rates
+  app.get("/api/analytics/completion-rates", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const validatedQuery = completionRatesSchema.parse(req.query);
+      const rates = await storage.getCompletionRates(teacherId, validatedQuery.groupBy);
+      res.json(rates);
+    } catch (error) {
+      console.error("Failed to fetch completion rates:", error);
+      res.status(500).json({ message: "Failed to fetch completion rates" });
+    }
+  });
+
+  // Time spent analytics
+  app.get("/api/analytics/time-spent", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const analytics = await storage.getTimeSpentAnalytics(teacherId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch time spent analytics:", error);
+      res.status(500).json({ message: "Failed to fetch time spent analytics" });
+    }
+  });
+
+  // Struggling students
+  app.get("/api/analytics/struggling-students", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const strugglingStudents = await storage.getStrugglingStudents(teacherId);
+      res.json(strugglingStudents);
+    } catch (error) {
+      console.error("Failed to fetch struggling students:", error);
+      res.status(500).json({ message: "Failed to fetch struggling students" });
+    }
+  });
+
+  // Top performers
+  app.get("/api/analytics/top-performers", requireAuth, requireTeacherLicense, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const topPerformers = await storage.getTopPerformers(teacherId);
+      res.json(topPerformers);
+    } catch (error) {
+      console.error("Failed to fetch top performers:", error);
+      res.status(500).json({ message: "Failed to fetch top performers" });
+    }
+  });
+
+  // Export analytics data
+  app.post("/api/analytics/export", requireAuth, requireTeacherLicense, requireCsrf, async (req: any, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const validatedRequest = analyticsExportSchema.parse(req.body);
+      const { format, type, classId, studentId, dateRange } = validatedRequest;
+      
+      // Generate export data based on type with proper authorization checks
+      let exportData;
+      switch (type) {
+        case 'teacher':
+          exportData = await storage.getTeacherAnalytics(teacherId);
+          break;
+        case 'class':
+          if (!classId) {
+            return res.status(400).json({ message: "Class ID required for class export" });
+          }
+          // Verify teacher has access to this class
+          const teacherClasses = await db
+            .select()
+            .from(schema.teacherClasses)
+            .where(eq(schema.teacherClasses.teacherId, teacherId));
+          
+          const hasClassAccess = teacherClasses.some(tc => tc.classId === classId);
+          if (!hasClassAccess) {
+            return res.status(403).json({ message: "Access denied: You do not have access to this class" });
+          }
+          exportData = await storage.getClassAnalytics(classId);
+          break;
+        case 'student':
+          if (!studentId) {
+            return res.status(400).json({ message: "Student ID required for student export" });
+          }
+          // Verify teacher has access to this student
+          const studentAccount = await db
+            .select()
+            .from(schema.studentAccounts)
+            .where(eq(schema.studentAccounts.id, studentId))
+            .limit(1);
+          
+          if (studentAccount.length === 0) {
+            return res.status(404).json({ message: "Student not found" });
+          }
+          
+          const teacherClassesForStudent = await db
+            .select()
+            .from(schema.teacherClasses)
+            .where(and(
+              eq(schema.teacherClasses.teacherId, teacherId),
+              eq(schema.teacherClasses.classId, studentAccount[0].classId)
+            ));
+          
+          if (teacherClassesForStudent.length === 0) {
+            return res.status(403).json({ message: "Access denied: You do not have access to this student" });
+          }
+          exportData = await storage.getStudentAnalytics(studentId);
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid export type" });
+      }
+
+      if (format === 'csv') {
+        // Convert to CSV format
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${type}-analytics-${Date.now()}.csv"`);
+        
+        // Convert analytics data to CSV
+        let csvContent = '';
+        if (type === 'teacher' && exportData) {
+          csvContent = convertTeacherAnalyticsToCSV(exportData);
+        } else if (type === 'class' && exportData) {
+          csvContent = convertClassAnalyticsToCSV(exportData);
+        } else if (type === 'student' && exportData) {
+          csvContent = convertStudentAnalyticsToCSV(exportData);
+        }
+        res.send(csvContent);
+      } else {
+        // Return JSON by default
+        res.json(exportData);
+      }
+    } catch (error) {
+      console.error("Failed to export analytics:", error);
+      res.status(500).json({ message: "Failed to export analytics" });
     }
   });
 
