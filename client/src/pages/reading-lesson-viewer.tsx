@@ -210,7 +210,12 @@ export default function ReadingLessonViewer() {
   const pages = useMemo(() => {
     if (!lesson) return [];
     
-    // Handle block pages first (newest format with separate TextBlock and ImageBlock components)
+    // Prioritize rich pages first since they're in the correct format already
+    if (lesson.richPages && lesson.richPages.length > 0) {
+      return lesson.richPages;
+    }
+    
+    // Handle block pages (newest format with separate TextBlock and ImageBlock components)
     if (lesson.blockPages && lesson.blockPages.length > 0) {
       // Normalize to RichPage format for compatibility with RichDocRenderer
       return (lesson.blockPages as any[]).map(p => {
@@ -236,11 +241,6 @@ export default function ReadingLessonViewer() {
           doc: { type: 'doc', content: [{ type: 'paragraph', content: [] }] }
         } as RichPage;
       });
-    }
-    
-    // Handle rich pages (new format)
-    if (lesson.richPages && lesson.richPages.length > 0) {
-      return lesson.richPages;
     }
     
     // Handle pages array (mixed format)

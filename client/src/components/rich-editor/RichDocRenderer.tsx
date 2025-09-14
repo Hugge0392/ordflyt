@@ -2,6 +2,7 @@ import { useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
+import { Image } from '@tiptap/extension-image';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -18,6 +19,11 @@ export function RichDocRenderer({ content, className }: RichDocRendererProps) {
       }),
       Highlight.configure({
         multicolor: true,
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'reading-lesson-image',
+        },
       }),
       Table.configure({
         resizable: false, // No resizing in read-only mode
