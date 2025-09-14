@@ -7,6 +7,7 @@ import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
 import { initializeDatabase } from "./initDatabase";
 import { checkProductionEnvironment, logRequestInfo } from "./productionCheck";
+import { ClassroomWebSocket } from "./classroom-websocket";
 
 const app = express();
 

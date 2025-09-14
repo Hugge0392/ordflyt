@@ -47,6 +47,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
 import StudentResultsAnalytics from '@/components/analytics/StudentResultsAnalytics';
+import ClassroomControlPanel from '@/components/classroom/ClassroomControlPanel';
+import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebSocketContext';
 
 // Dashboard section types
 type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom';
@@ -104,10 +106,12 @@ function StudentManagementSection() {
   const [bulkAction, setBulkAction] = useState<'none' | 'password-reset' | 'settings'>('none');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isAuthenticated, teacherContext } = useAuth();
 
   // Fetch teacher's classes and students
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
+    enabled: isAuthenticated && teacherContext?.isTeacher,
     initialData: { classes: [] },
   });
 
@@ -1536,21 +1540,36 @@ export default function TeacherDashboard() {
       case 'results':
         return <StudentResultsAnalytics />;
       case 'classroom':
+        // Get teacher's first class for classroom control
+        const teacherClasses = dashboardClassesData?.classes || [];
+        const primaryClass = teacherClasses[0];
+        
+        if (!primaryClass) {
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle>Klassrumsskärm</CardTitle>
+                <CardDescription>Klassrumskontroller med timer och skärmlås</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center py-12">
+                <Monitor className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen klass tillgänglig</h3>
+                <p className="text-gray-600 mb-6">Du behöver ha minst en klass för att använda klassrumskontrollerna.</p>
+                <Link href="/teacher/classes">
+                  <Button>Skapa klass</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          );
+        }
+        
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Klassrumsskärm</CardTitle>
-              <CardDescription>Klassrumskontroller med timer och skärmlås</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center py-12">
-              <Monitor className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Klassrumskontroll</h3>
-              <p className="text-gray-600 mb-6">Här kommer du kunna styra timers, låsa skärmar och kontrollera klassrumsaktiviteter.</p>
-              <Button variant="outline" disabled>
-                Kommer snart
-              </Button>
-            </CardContent>
-          </Card>
+          <ClassroomWebSocketProvider>
+            <ClassroomControlPanel 
+              classId={primaryClass.id} 
+              className={primaryClass.name} 
+            />
+          </ClassroomWebSocketProvider>
         );
       default:
         return renderOverview();

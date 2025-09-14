@@ -568,6 +568,296 @@ export type InsertKlassKampPlayer = z.infer<typeof insertKlassKampPlayerSchema>;
 export type KlassKampAnswer = typeof klassKampAnswers.$inferSelect;
 export type InsertKlassKampAnswer = z.infer<typeof insertKlassKampAnswerSchema>;
 
+// Classroom management enums
+export const classroomSessionStatusEnum = pgEnum('classroom_session_status', [
+  'active',
+  'paused',
+  'ended'
+]);
+
+export const classroomMessageTypeEnum = pgEnum('classroom_message_type', [
+  'instruction',
+  'announcement',
+  'alert',
+  'timer_warning',
+  'break_time',
+  'attention'
+]);
+
+export const timerTypeEnum = pgEnum('timer_type', [
+  'countdown',
+  'stopwatch',
+  'break_timer',
+  'exercise_timer',
+  'attention_timer'
+]);
+
+export const timerStatusEnum = pgEnum('timer_status', [
+  'stopped',
+  'running',
+  'paused',
+  'completed'
+]);
+
+export const screenControlStatusEnum = pgEnum('screen_control_status', [
+  'unlocked',
+  'locked',
+  'attention_mode',
+  'break_mode'
+]);
+
+export const classroomActivityTypeEnum = pgEnum('classroom_activity_type', [
+  'lesson',
+  'exercise',
+  'test',
+  'break',
+  'group_work',
+  'discussion'
+]);
+
+export const classroomModeEnum = pgEnum('classroom_mode', [
+  'instruction',
+  'exercise',
+  'test',
+  'break',
+  'group_work',
+  'silent'
+]);
+
+// Classroom sessions - active classroom management sessions
+export const classroomSessions = pgTable("classroom_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  classId: varchar("class_id").notNull().references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  sessionName: varchar("session_name", { length: 255 }).notNull(),
+  currentMode: classroomModeEnum("current_mode").default('instruction'),
+  status: classroomSessionStatusEnum("status").default('active'),
+  startedAt: timestamp("started_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  settings: jsonb("settings").$type<ClassroomSettings>().default({}),
+}, (table) => ({
+  teacherIdx: index("classroom_sessions_teacher_idx").on(table.teacherId),
+  classIdx: index("classroom_sessions_class_idx").on(table.classId),
+  statusIdx: index("classroom_sessions_status_idx").on(table.status),
+}));
+
+// Classroom messages - messages sent to students
+export const classroomMessages = pgTable("classroom_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  messageType: classroomMessageTypeEnum("message_type").notNull(),
+  title: varchar("title", { length: 255 }),
+  content: text("content").notNull(),
+  targetStudentIds: jsonb("target_student_ids").$type<string[]>().default([]), // empty array means all students
+  displayDuration: integer("display_duration"), // milliseconds, null means permanent
+  isUrgent: boolean("is_urgent").default(false),
+  requiresAcknowledgment: boolean("requires_acknowledgment").default(false),
+  sentAt: timestamp("sent_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+}, (table) => ({
+  sessionIdx: index("classroom_messages_session_idx").on(table.sessionId),
+  typeIdx: index("classroom_messages_type_idx").on(table.messageType),
+  sentAtIdx: index("classroom_messages_sent_at_idx").on(table.sentAt),
+}));
+
+// Classroom timers - timer configurations and states
+export const classroomTimers = pgTable("classroom_timers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: timerTypeEnum("type").notNull(),
+  duration: integer("duration"), // total duration in milliseconds (null for stopwatch)
+  elapsed: integer("elapsed").default(0), // elapsed time in milliseconds
+  status: timerStatusEnum("status").default('stopped'),
+  displayStyle: varchar("display_style", { length: 50 }).default('digital'), // digital, progress_bar, circular
+  showOnStudentScreens: boolean("show_on_student_screens").default(true),
+  playAudioOnComplete: boolean("play_audio_on_complete").default(true),
+  warningThresholds: jsonb("warning_thresholds").$type<number[]>().default([]), // warning times in milliseconds
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  pausedAt: timestamp("paused_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  sessionIdx: index("classroom_timers_session_idx").on(table.sessionId),
+  statusIdx: index("classroom_timers_status_idx").on(table.status),
+}));
+
+// Student screen controls - lock/unlock states for student screens
+export const studentScreenControls = pgTable("student_screen_controls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  status: screenControlStatusEnum("status").default('unlocked'),
+  restrictedUrls: jsonb("restricted_urls").$type<string[]>().default([]),
+  allowedUrls: jsonb("allowed_urls").$type<string[]>().default([]),
+  lockMessage: text("lock_message"),
+  lastStatusChange: timestamp("last_status_change").defaultNow(),
+  controlledBy: varchar("controlled_by").references(() => users.id),
+}, (table) => ({
+  sessionIdx: index("student_screen_controls_session_idx").on(table.sessionId),
+  studentIdx: index("student_screen_controls_student_idx").on(table.studentId),
+  statusIdx: index("student_screen_controls_status_idx").on(table.status),
+  uniqueSessionStudent: uniqueIndex("student_screen_controls_session_student").on(table.sessionId, table.studentId),
+}));
+
+// Classroom activities - synchronized activities across students
+export const classroomActivities = pgTable("classroom_activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: classroomActivityTypeEnum("type").notNull(),
+  description: text("description"),
+  lessonId: varchar("lesson_id").references(() => readingLessons.id),
+  assignmentId: varchar("assignment_id").references(() => lessonAssignments.id),
+  targetStudentIds: jsonb("target_student_ids").$type<string[]>().default([]), // empty array means all students
+  isActive: boolean("is_active").default(false),
+  autoStart: boolean("auto_start").default(false),
+  timeLimit: integer("time_limit"), // in milliseconds
+  settings: jsonb("settings").$type<ActivitySettings>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+}, (table) => ({
+  sessionIdx: index("classroom_activities_session_idx").on(table.sessionId),
+  typeIdx: index("classroom_activities_type_idx").on(table.type),
+  activeIdx: index("classroom_activities_active_idx").on(table.isActive),
+}));
+
+// Student connection status - track which students are connected to classroom
+export const studentConnections = pgTable("student_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  isConnected: boolean("is_connected").default(false),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  connectionCount: integer("connection_count").default(0), // number of times connected this session
+  userAgent: text("user_agent"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  connectedAt: timestamp("connected_at"),
+  disconnectedAt: timestamp("disconnected_at"),
+}, (table) => ({
+  sessionIdx: index("student_connections_session_idx").on(table.sessionId),
+  studentIdx: index("student_connections_student_idx").on(table.studentId),
+  connectedIdx: index("student_connections_connected_idx").on(table.isConnected),
+  uniqueSessionStudent: uniqueIndex("student_connections_session_student").on(table.sessionId, table.studentId),
+}));
+
+// Message acknowledgments - track student acknowledgments
+export const messageAcknowledgments = pgTable("message_acknowledgments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull().references(() => classroomMessages.id, { onDelete: 'cascade' }),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  acknowledgedAt: timestamp("acknowledged_at").defaultNow(),
+}, (table) => ({
+  messageIdx: index("message_acknowledgments_message_idx").on(table.messageId),
+  studentIdx: index("message_acknowledgments_student_idx").on(table.studentId),
+  uniqueMessageStudent: uniqueIndex("message_acknowledgments_message_student").on(table.messageId, table.studentId),
+}));
+
+// Classroom audit log - track all classroom management actions
+export const classroomAuditLog = pgTable("classroom_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => classroomSessions.id, { onDelete: 'cascade' }),
+  performedBy: varchar("performed_by").notNull().references(() => users.id),
+  action: varchar("action", { length: 100 }).notNull(), // TIMER_START, MESSAGE_SEND, SCREEN_LOCK, etc.
+  targetType: varchar("target_type", { length: 50 }), // student, class, activity, timer, etc.
+  targetId: varchar("target_id"),
+  targetStudentIds: jsonb("target_student_ids").$type<string[]>().default([]),
+  details: jsonb("details").$type<Record<string, any>>().default({}),
+  timestamp: timestamp("timestamp").defaultNow(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+}, (table) => ({
+  sessionIdx: index("classroom_audit_log_session_idx").on(table.sessionId),
+  performedByIdx: index("classroom_audit_log_performed_by_idx").on(table.performedBy),
+  actionIdx: index("classroom_audit_log_action_idx").on(table.action),
+  timestampIdx: index("classroom_audit_log_timestamp_idx").on(table.timestamp),
+}));
+
+// TypeScript interfaces for complex JSON fields
+export interface ClassroomSettings {
+  autoConnectStudents?: boolean;
+  allowStudentChat?: boolean;
+  defaultTimerStyle?: string;
+  emergencyContactInfo?: string;
+  classroomRules?: string[];
+  breakDuration?: number; // in minutes
+  attentionModeTimeout?: number; // in minutes
+}
+
+export interface ActivitySettings {
+  showProgressToStudents?: boolean;
+  allowCollaboration?: boolean;
+  randomizeQuestions?: boolean;
+  showHints?: boolean;
+  maxAttempts?: number;
+  passThreshold?: number; // percentage
+}
+
+// Zod schemas for classroom management
+export const insertClassroomSessionSchema = createInsertSchema(classroomSessions).omit({
+  id: true,
+  startedAt: true,
+  lastActivityAt: true,
+});
+
+export const insertClassroomMessageSchema = createInsertSchema(classroomMessages).omit({
+  id: true,
+  sentAt: true,
+});
+
+export const insertClassroomTimerSchema = createInsertSchema(classroomTimers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentScreenControlSchema = createInsertSchema(studentScreenControls).omit({
+  id: true,
+  lastStatusChange: true,
+});
+
+export const insertClassroomActivitySchema = createInsertSchema(classroomActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertStudentConnectionSchema = createInsertSchema(studentConnections).omit({
+  id: true,
+  lastSeen: true,
+  connectedAt: true,
+  disconnectedAt: true,
+});
+
+export const insertMessageAcknowledgmentSchema = createInsertSchema(messageAcknowledgments).omit({
+  id: true,
+  acknowledgedAt: true,
+});
+
+export const insertClassroomAuditLogSchema = createInsertSchema(classroomAuditLog).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Export types for classroom management
+export type ClassroomSession = typeof classroomSessions.$inferSelect;
+export type InsertClassroomSession = z.infer<typeof insertClassroomSessionSchema>;
+export type ClassroomMessage = typeof classroomMessages.$inferSelect;
+export type InsertClassroomMessage = z.infer<typeof insertClassroomMessageSchema>;
+export type ClassroomTimer = typeof classroomTimers.$inferSelect;
+export type InsertClassroomTimer = z.infer<typeof insertClassroomTimerSchema>;
+export type StudentScreenControl = typeof studentScreenControls.$inferSelect;
+export type InsertStudentScreenControl = z.infer<typeof insertStudentScreenControlSchema>;
+export type ClassroomActivity = typeof classroomActivities.$inferSelect;
+export type InsertClassroomActivity = z.infer<typeof insertClassroomActivitySchema>;
+export type StudentConnection = typeof studentConnections.$inferSelect;
+export type InsertStudentConnection = z.infer<typeof insertStudentConnectionSchema>;
+export type MessageAcknowledgment = typeof messageAcknowledgments.$inferSelect;
+export type InsertMessageAcknowledgment = z.infer<typeof insertMessageAcknowledgmentSchema>;
+export type ClassroomAuditLogEntry = typeof classroomAuditLog.$inferSelect;
+export type InsertClassroomAuditLogEntry = z.infer<typeof insertClassroomAuditLogSchema>;
+
 // Schools table - track which school teachers belong to (important for archiving when teachers leave)
 export const schools = pgTable("schools", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
