@@ -1004,8 +1004,6 @@ export default function NormalMode({
                 .defined-word:hover {
                   background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%) !important;
                   border-bottom-color: rgba(59, 130, 246, 0.8) !important;
-                  transform: translateY(-1px) !important;
-                  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
                 }
                 
                 /* Listor styling */
