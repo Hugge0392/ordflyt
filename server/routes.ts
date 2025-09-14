@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -31,7 +31,86 @@ import { ClassroomWebSocket } from "./classroom-websocket";
 import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
 
-// Analytics validation schemas\nconst analyticsExportSchema = z.object({\n  format: z.enum(['csv', 'json']).default('json'),\n  type: z.enum(['teacher', 'class', 'student']),\n  classId: z.string().optional(),\n  studentId: z.string().optional(),\n  dateRange: z.object({\n    start: z.string().optional(),\n    end: z.string().optional()\n  }).optional()\n});\n\nconst performanceComparisonSchema = z.object({\n  compareBy: z.enum(['class', 'assignment', 'timeframe']).optional(),\n  classIds: z.array(z.string()).optional(),\n  assignmentIds: z.array(z.string()).optional(),\n  timeRange: z.object({\n    start: z.string(),\n    end: z.string()\n  }).optional()\n});\n\nconst progressTrendsSchema = z.object({\n  start: z.string(),\n  end: z.string(),\n  granularity: z.enum(['day', 'week', 'month']).default('week')\n});\n\nconst completionRatesSchema = z.object({\n  groupBy: z.enum(['class', 'assignment', 'student']).default('class')\n});\n\n// CSV conversion helper functions\nfunction convertTeacherAnalyticsToCSV(data: any): string {\n  const headers = ['Metric', 'Value'];\n  const rows = [\n    ['Total Students', data.overview.totalStudents],\n    ['Total Classes', data.overview.totalClasses],\n    ['Active Assignments', data.overview.activeAssignments],\n    ['Completed Assignments', data.overview.completedAssignments],\n    ['Average Score', data.overview.averageScore],\n    ['Average Completion Rate', data.overview.averageCompletionRate],\n    ['Total Time Spent (min)', data.overview.totalTimeSpent]\n  ];\n  \n  let csv = headers.join(',') + '\\n';\n  rows.forEach(row => {\n    csv += row.join(',') + '\\n';\n  });\n  \n  // Add class breakdown\n  csv += '\\nClass Breakdown\\n';\n  csv += 'Class Name,Student Count,Average Score,Completion Rate,Struggling Students\\n';\n  data.classBreakdown.forEach((cls: any) => {\n    csv += `${cls.className},${cls.studentCount},${cls.averageScore},${cls.completionRate},${cls.strugglingStudents}\\n`;\n  });\n  \n  return csv;\n}\n\nfunction convertClassAnalyticsToCSV(data: any): string {\n  let csv = 'Student Performance\\n';\n  csv += 'Student Name,Average Score,Completion Rate,Time Spent,Assignments Completed,Last Activity,Needs Help\\n';\n  data.studentPerformance.forEach((student: any) => {\n    csv += `${student.studentName},${student.averageScore},${student.completionRate},${student.timeSpent},${student.assignmentsCompleted},${student.lastActivity || 'N/A'},${student.needsHelp}\\n`;\n  });\n  return csv;\n}\n\nfunction convertStudentAnalyticsToCSV(data: any): string {\n  let csv = 'Student Analytics\\n';\n  csv += 'Metric,Value\\n';\n  csv += `Average Score,${data.averageScore}\\n`;\n  csv += `Completion Rate,${data.completionRate}\\n`;\n  csv += `Time Spent,${data.timeSpent}\\n`;\n  csv += `Assignments Completed,${data.assignmentsCompleted}\\n`;\n  return csv;\n}\n\nconst updateProgressSchema = z.object({
+// Analytics validation schemas
+const analyticsExportSchema = z.object({
+  format: z.enum(['csv', 'json']).default('json'),
+  type: z.enum(['teacher', 'class', 'student']),
+  classId: z.string().optional(),
+  studentId: z.string().optional(),
+  dateRange: z.object({
+    start: z.string().optional(),
+    end: z.string().optional()
+  }).optional()
+});
+
+const performanceComparisonSchema = z.object({
+  compareBy: z.enum(['class', 'assignment', 'timeframe']).optional(),
+  classIds: z.array(z.string()).optional(),
+  assignmentIds: z.array(z.string()).optional(),
+  timeRange: z.object({
+    start: z.string(),
+    end: z.string()
+  }).optional()
+});
+
+const progressTrendsSchema = z.object({
+  start: z.string(),
+  end: z.string(),
+  granularity: z.enum(['day', 'week', 'month']).default('week')
+});
+
+const completionRatesSchema = z.object({
+  groupBy: z.enum(['class', 'assignment', 'student']).default('class')
+});
+
+// CSV conversion helper functions
+function convertTeacherAnalyticsToCSV(data: any): string {
+  const headers = ['Metric', 'Value'];
+  const rows = [
+    ['Total Students', data.overview.totalStudents],
+    ['Total Classes', data.overview.totalClasses],
+    ['Active Assignments', data.overview.activeAssignments],
+    ['Completed Assignments', data.overview.completedAssignments],
+    ['Average Score', data.overview.averageScore],
+    ['Average Completion Rate', data.overview.averageCompletionRate],
+    ['Total Time Spent (min)', data.overview.totalTimeSpent]
+  ];
+  
+  let csv = headers.join(',') + '\n';
+  rows.forEach(row => {
+    csv += row.join(',') + '\n';
+  });
+  
+  // Add class breakdown
+  csv += '\nClass Breakdown\n';
+  csv += 'Class Name,Student Count,Average Score,Completion Rate,Struggling Students\n';
+  data.classBreakdown.forEach((cls: any) => {
+    csv += `${cls.className},${cls.studentCount},${cls.averageScore},${cls.completionRate},${cls.strugglingStudents}\n`;
+  });
+  
+  return csv;
+}
+
+function convertClassAnalyticsToCSV(data: any): string {
+  let csv = 'Student Performance\n';
+  csv += 'Student Name,Average Score,Completion Rate,Time Spent,Assignments Completed,Last Activity,Needs Help\n';
+  data.studentPerformance.forEach((student: any) => {
+    csv += `${student.studentName},${student.averageScore},${student.completionRate},${student.timeSpent},${student.assignmentsCompleted},${student.lastActivity || 'N/A'},${student.needsHelp}\n`;
+  });
+  return csv;
+}
+
+function convertStudentAnalyticsToCSV(data: any): string {
+  let csv = 'Student Analytics\n';
+  csv += 'Metric,Value\n';
+  csv += `Average Score,${data.averageScore}\n`;
+  csv += `Completion Rate,${data.completionRate}\n`;
+  csv += `Time Spent,${data.timeSpent}\n`;
+  csv += `Assignments Completed,${data.assignmentsCompleted}\n`;
+  return csv;
+}
+
+const updateProgressSchema = z.object({
   score: z.number().optional(),
   level: z.number().optional(),
   correctAnswers: z.number().optional(),
@@ -1203,6 +1282,365 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch assignment progress:", error);
       res.status(500).json({ message: "Failed to fetch assignment progress" });
+    }
+  });
+
+  // ===============================
+  // TEACHER FEEDBACK ENDPOINTS
+  // ===============================
+
+  // Create teacher feedback
+  app.post("/api/feedback", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const validatedData = insertTeacherFeedbackSchema.parse({
+        ...req.body,
+        teacherId
+      });
+
+      const feedback = await storage.createTeacherFeedback(validatedData);
+      res.status(201).json(feedback);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid feedback data", errors: error.errors });
+      }
+      console.error("Failed to create teacher feedback:", error);
+      res.status(500).json({ message: "Failed to create teacher feedback" });
+    }
+  });
+
+  // Get feedback by teacher
+  app.get("/api/feedback/teacher", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getTeacherFeedback(teacherId);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Failed to fetch teacher feedback:", error);
+      res.status(500).json({ message: "Failed to fetch teacher feedback" });
+    }
+  });
+
+  // Get feedback for a specific student
+  app.get("/api/feedback/student/:studentId", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getStudentFeedback(req.params.studentId);
+      
+      // Verify teacher has access to this student's feedback
+      const teacherFeedback = feedback.filter(f => f.teacherId === teacherId);
+      
+      res.json(teacherFeedback);
+    } catch (error) {
+      console.error("Failed to fetch student feedback:", error);
+      res.status(500).json({ message: "Failed to fetch student feedback" });
+    }
+  });
+
+  // Get feedback for a specific assignment
+  app.get("/api/feedback/assignment/:assignmentId", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      // Verify teacher owns this assignment
+      const assignment = await storage.getLessonAssignment(req.params.assignmentId);
+      if (!assignment || assignment.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const feedback = await storage.getFeedbackByAssignment(req.params.assignmentId);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Failed to fetch assignment feedback:", error);
+      res.status(500).json({ message: "Failed to fetch assignment feedback" });
+    }
+  });
+
+  // Get feedback for a specific progress entry
+  app.get("/api/feedback/progress/:progressId", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getFeedbackByProgress(req.params.progressId);
+      
+      // Verify teacher has access to this feedback
+      const teacherFeedback = feedback.filter(f => f.teacherId === teacherId);
+      
+      res.json(teacherFeedback);
+    } catch (error) {
+      console.error("Failed to fetch progress feedback:", error);
+      res.status(500).json({ message: "Failed to fetch progress feedback" });
+    }
+  });
+
+  // Get specific feedback by ID
+  app.get("/api/feedback/:id", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getTeacherFeedbackById(req.params.id);
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+
+      // Verify teacher owns this feedback
+      if (feedback.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(feedback);
+    } catch (error) {
+      console.error("Failed to fetch feedback:", error);
+      res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+  });
+
+  // Update teacher feedback
+  app.put("/api/feedback/:id", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getTeacherFeedbackById(req.params.id);
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+
+      // Verify teacher owns this feedback
+      if (feedback.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const validatedData = insertTeacherFeedbackSchema.partial().parse(req.body);
+      const updatedFeedback = await storage.updateTeacherFeedback(req.params.id, validatedData);
+      
+      res.json(updatedFeedback);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid feedback data", errors: error.errors });
+      }
+      console.error("Failed to update teacher feedback:", error);
+      res.status(500).json({ message: "Failed to update teacher feedback" });
+    }
+  });
+
+  // Delete teacher feedback
+  app.delete("/api/feedback/:id", requireAuth, requireTeacherLicense, requireCsrf, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getTeacherFeedbackById(req.params.id);
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+
+      // Verify teacher owns this feedback
+      if (feedback.teacherId !== teacherId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteTeacherFeedback(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Failed to delete teacher feedback:", error);
+      res.status(500).json({ message: "Failed to delete teacher feedback" });
+    }
+  });
+
+  // Mark feedback as read by student
+  app.post("/api/feedback/:id/mark-read", requireAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.user?.id;
+      if (!studentId) {
+        return res.status(401).json({ message: "Student ID required" });
+      }
+
+      const feedback = await storage.getTeacherFeedbackById(req.params.id);
+      if (!feedback) {
+        return res.status(404).json({ message: "Feedback not found" });
+      }
+
+      // Verify student is the intended recipient
+      if (feedback.studentId !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedFeedback = await storage.markFeedbackAsRead(req.params.id, studentId);
+      res.json(updatedFeedback);
+    } catch (error) {
+      console.error("Failed to mark feedback as read:", error);
+      res.status(500).json({ message: "Failed to mark feedback as read" });
+    }
+  });
+
+  // Get feedback requiring follow-up
+  app.get("/api/feedback/teacher/follow-up", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const feedback = await storage.getFeedbackRequiringFollowUp(teacherId);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Failed to fetch follow-up feedback:", error);
+      res.status(500).json({ message: "Failed to fetch follow-up feedback" });
+    }
+  });
+
+  // Get unread feedback count for student
+  app.get("/api/feedback/student/unread-count", requireAuth, async (req, res) => {
+    try {
+      const studentId = req.user?.id;
+      if (!studentId) {
+        return res.status(401).json({ message: "Student ID required" });
+      }
+
+      const count = await storage.getUnreadFeedbackCount(studentId);
+      res.json({ unreadCount: count });
+    } catch (error) {
+      console.error("Failed to fetch unread feedback count:", error);
+      res.status(500).json({ message: "Failed to fetch unread feedback count" });
+    }
+  });
+
+  // Student work review - Get all student work for review
+  app.get("/api/feedback/student-work/review", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const { classId, assignmentId, status, sortBy, sortOrder } = req.query;
+
+      // Get assignments owned by teacher
+      const assignments = await storage.getLessonAssignments(teacherId);
+      let filteredAssignments = assignments;
+
+      if (classId) {
+        filteredAssignments = assignments.filter(a => a.classId === classId);
+      }
+      if (assignmentId) {
+        filteredAssignments = assignments.filter(a => a.id === assignmentId);
+      }
+
+      // Get student progress for these assignments
+      let allProgress: any[] = [];
+      for (const assignment of filteredAssignments) {
+        const progress = await storage.getStudentProgressByAssignment(assignment.id);
+        const progressWithAssignment = progress.map(p => ({
+          ...p,
+          assignment: assignment
+        }));
+        allProgress = allProgress.concat(progressWithAssignment);
+      }
+
+      // Filter by status if provided
+      if (status) {
+        allProgress = allProgress.filter(p => p.status === status);
+      }
+
+      // Sort the results
+      if (sortBy) {
+        allProgress.sort((a, b) => {
+          let aVal = a[sortBy as string];
+          let bVal = b[sortBy as string];
+          
+          if (sortBy === 'completedAt' || sortBy === 'createdAt') {
+            aVal = new Date(aVal || 0).getTime();
+            bVal = new Date(bVal || 0).getTime();
+          }
+          
+          if (sortOrder === 'desc') {
+            return bVal - aVal;
+          }
+          return aVal - bVal;
+        });
+      }
+
+      res.json(allProgress);
+    } catch (error) {
+      console.error("Failed to fetch student work for review:", error);
+      res.status(500).json({ message: "Failed to fetch student work for review" });
+    }
+  });
+
+  // Get completion status overview for teacher
+  app.get("/api/feedback/completion-overview", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const teacherId = req.user?.id;
+      if (!teacherId) {
+        return res.status(401).json({ message: "Teacher ID required" });
+      }
+
+      const { classId, assignmentId } = req.query;
+
+      // Get assignments owned by teacher
+      const assignments = await storage.getLessonAssignments(teacherId);
+      let filteredAssignments = assignments;
+
+      if (classId) {
+        filteredAssignments = assignments.filter(a => a.classId === classId);
+      }
+      if (assignmentId) {
+        filteredAssignments = assignments.filter(a => a.id === assignmentId);
+      }
+
+      const completionData = [];
+      for (const assignment of filteredAssignments) {
+        const progress = await storage.getStudentProgressByAssignment(assignment.id);
+        
+        const statusCounts = {
+          not_started: 0,
+          in_progress: 0,
+          completed: 0,
+          submitted: 0
+        };
+
+        progress.forEach(p => {
+          statusCounts[p.status as keyof typeof statusCounts]++;
+        });
+
+        completionData.push({
+          assignment,
+          totalStudents: progress.length,
+          statusCounts,
+          completionRate: progress.length > 0 ? (statusCounts.completed + statusCounts.submitted) / progress.length * 100 : 0
+        });
+      }
+
+      res.json(completionData);
+    } catch (error) {
+      console.error("Failed to fetch completion overview:", error);
+      res.status(500).json({ message: "Failed to fetch completion overview" });
     }
   });
 

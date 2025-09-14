@@ -29,6 +29,8 @@ import {
   type InsertLessonAssignment,
   type StudentLessonProgress,
   type InsertStudentLessonProgress,
+  type TeacherFeedback,
+  type InsertTeacherFeedback,
   type TeacherAnalytics,
   type ClassAnalytics,
   type StudentAnalytics,
@@ -45,7 +47,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, gte, sql } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -133,6 +135,19 @@ export interface IStorage {
   getStudentProgressByAssignment(assignmentId: string): Promise<StudentLessonProgress[]>;
   updateStudentLessonProgress(id: string, progress: Partial<InsertStudentLessonProgress>): Promise<StudentLessonProgress>;
   getClassProgressSummary(classId: string): Promise<{ studentId: string; assignments: { assignmentId: string; status: string; score: number | null; completedAt: Date | null }[] }[]>;
+
+  // Teacher feedback methods
+  createTeacherFeedback(feedback: InsertTeacherFeedback): Promise<TeacherFeedback>;
+  getTeacherFeedback(teacherId: string): Promise<TeacherFeedback[]>;
+  getStudentFeedback(studentId: string): Promise<TeacherFeedback[]>;
+  getFeedbackByAssignment(assignmentId: string): Promise<TeacherFeedback[]>;
+  getFeedbackByProgress(progressId: string): Promise<TeacherFeedback[]>;
+  getTeacherFeedbackById(id: string): Promise<TeacherFeedback | undefined>;
+  updateTeacherFeedback(id: string, feedback: Partial<InsertTeacherFeedback>): Promise<TeacherFeedback>;
+  deleteTeacherFeedback(id: string): Promise<void>;
+  markFeedbackAsRead(id: string, studentId: string): Promise<TeacherFeedback>;
+  getFeedbackRequiringFollowUp(teacherId: string): Promise<TeacherFeedback[]>;
+  getUnreadFeedbackCount(studentId: string): Promise<number>;
 
   // Analytics methods
   getTeacherAnalytics(teacherId: string): Promise<TeacherAnalytics>;

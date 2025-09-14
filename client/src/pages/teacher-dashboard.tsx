@@ -40,7 +40,8 @@ import {
   Download,
   Plus,
   Printer,
-  Trash2
+  Trash2,
+  MessageSquare
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -49,9 +50,12 @@ import { Link } from 'wouter';
 import StudentResultsAnalytics from '@/components/analytics/StudentResultsAnalytics';
 import ClassroomControlPanel from '@/components/classroom/ClassroomControlPanel';
 import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebSocketContext';
+import StudentWorkReview from '@/components/StudentWorkReview';
+import FeedbackList from '@/components/FeedbackList';
+import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
 
 // Dashboard section types
-type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom';
+type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback';
 
 interface DashboardStats {
   totalStudents: number;
@@ -1311,6 +1315,12 @@ export default function TeacherDashboard() {
       label: 'Klassrumsskärm',
       icon: Monitor,
       description: 'Klassrumskontroll och timer'
+    },
+    {
+      id: 'feedback' as DashboardSection,
+      label: 'Återkoppling',
+      icon: MessageSquare,
+      description: 'Ge feedback och granska elevarbeten'
     }
   ];
 
@@ -1571,6 +1581,8 @@ export default function TeacherDashboard() {
             />
           </ClassroomWebSocketProvider>
         );
+      case 'feedback':
+        return <StudentWorkReview />;
       default:
         return renderOverview();
     }
