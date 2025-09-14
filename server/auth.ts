@@ -163,7 +163,6 @@ export async function getTeacherSchoolContext(userId: string): Promise<{
     const [license] = await db
       .select({
         id: teacherLicenses.id,
-        schoolId: teacherLicenses.schoolId,
         isActive: teacherLicenses.isActive,
       })
       .from(teacherLicenses)
@@ -179,28 +178,7 @@ export async function getTeacherSchoolContext(userId: string): Promise<{
       return { isTeacher: false };
     }
 
-    // If license has school, get school info
-    if (license.schoolId) {
-      const [school] = await db
-        .select({
-          id: schools.id,
-          name: schools.name,
-        })
-        .from(schools)
-        .where(eq(schools.id, license.schoolId))
-        .limit(1);
-
-      if (school) {
-        return {
-          schoolId: school.id,
-          schoolName: school.name,
-          isTeacher: true,
-          licenseId: license.id,
-        };
-      }
-    }
-
-    // Check teacher-school memberships as fallback
+    // Check teacher-school memberships for school info
     const [membership] = await db
       .select({
         schoolId: teacherSchoolMemberships.schoolId,

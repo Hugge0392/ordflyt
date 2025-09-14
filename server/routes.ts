@@ -2690,10 +2690,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const teacherClasses = await db
           .select()
           .from(schema.teacherClasses)
-          .where(and(
-            eq(schema.teacherClasses.teacherId, teacherId),
-            schoolId ? eq(schema.teacherClasses.schoolId, schoolId) : undefined
-          ));
+          .where(
+            eq(schema.teacherClasses.teacherId, teacherId)
+          );
         
         const allowedClassIds = teacherClasses.map(c => c.id);
         const unauthorizedClassIds = validatedData.classIds.filter(id => !allowedClassIds.includes(id));

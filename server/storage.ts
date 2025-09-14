@@ -58,7 +58,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, gte, sql } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -1293,27 +1293,27 @@ export class DatabaseStorage implements IStorage {
       // Optimized: Get all overview data with a single efficient query using joins and aggregations
       const overviewQuery = await db
         .select({
-          totalClasses: sql<number>`COUNT(DISTINCT ${schema.teacherClasses.id})`,
-          totalStudents: sql<number>`COUNT(DISTINCT ${schema.studentAccounts.id})`,
+          totalClasses: sql<number>`COUNT(DISTINCT ${teacherClasses.id})`,
+          totalStudents: sql<number>`COUNT(DISTINCT ${studentAccounts.id})`,
           totalActiveAssignments: sql<number>`COUNT(DISTINCT ${lessonAssignments.id})`,
           totalCompletedAssignments: sql<number>`COUNT(DISTINCT CASE WHEN ${studentLessonProgress.status} = 'completed' THEN ${studentLessonProgress.id} END)`,
           totalTimeSpent: sql<number>`COALESCE(SUM(${studentLessonProgress.timeSpent}), 0)`,
           averageScore: sql<number>`COALESCE(AVG(CASE WHEN ${studentLessonProgress.score} IS NOT NULL THEN ${studentLessonProgress.score} END), 0)`
         })
-        .from(schema.teacherClasses)
-        .leftJoin(schema.studentAccounts, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .from(teacherClasses)
+        .leftJoin(studentAccounts, eq(studentAccounts.classId, teacherClasses.id))
         .leftJoin(lessonAssignments, and(
           eq(lessonAssignments.teacherId, teacherId),
-          eq(lessonAssignments.classId, schema.teacherClasses.id),
+          eq(lessonAssignments.classId, teacherClasses.id),
           eq(lessonAssignments.isActive, true)
         ))
         .leftJoin(studentLessonProgress, and(
-          eq(studentLessonProgress.studentId, schema.studentAccounts.id),
+          eq(studentLessonProgress.studentId, studentAccounts.id),
           eq(studentLessonProgress.assignmentId, lessonAssignments.id)
         ))
         .where(and(
-          eq(schema.teacherClasses.teacherId, teacherId),
-          isNull(schema.teacherClasses.archivedAt)
+          eq(teacherClasses.teacherId, teacherId),
+          isNull(teacherClasses.archivedAt)
         ));
 
       const overview = overviewQuery[0];
@@ -1324,33 +1324,33 @@ export class DatabaseStorage implements IStorage {
       // Optimized: Get class breakdown with a single query per class using aggregations
       const classBreakdownQuery = await db
         .select({
-          classId: schema.teacherClasses.id,
-          className: schema.teacherClasses.name,
-          studentCount: sql<number>`COUNT(DISTINCT ${schema.studentAccounts.id})`,
+          classId: teacherClasses.id,
+          className: teacherClasses.name,
+          studentCount: sql<number>`COUNT(DISTINCT ${studentAccounts.id})`,
           averageScore: sql<number>`COALESCE(AVG(CASE WHEN ${studentLessonProgress.score} IS NOT NULL THEN ${studentLessonProgress.score} END), 0)`,
           completedAssignments: sql<number>`COUNT(DISTINCT CASE WHEN ${studentLessonProgress.status} = 'completed' THEN ${studentLessonProgress.id} END)`,
           totalAssignments: sql<number>`COUNT(DISTINCT ${lessonAssignments.id})`,
           strugglingStudentsCount: sql<number>`COUNT(DISTINCT CASE WHEN 
-            (SELECT AVG(slp2.score) FROM ${studentLessonProgress} slp2 WHERE slp2.student_id = ${schema.studentAccounts.id} AND slp2.score IS NOT NULL) < 60 OR
-            (SELECT COUNT(*) FROM ${studentLessonProgress} slp3 WHERE slp3.student_id = ${schema.studentAccounts.id} AND slp3.status = 'completed') / NULLIF(COUNT(DISTINCT ${lessonAssignments.id}), 0) < 0.5
-            THEN ${schema.studentAccounts.id} END)`
+            (SELECT AVG(slp2.score) FROM ${studentLessonProgress} slp2 WHERE slp2.student_id = ${studentAccounts.id} AND slp2.score IS NOT NULL) < 60 OR
+            (SELECT COUNT(*) FROM ${studentLessonProgress} slp3 WHERE slp3.student_id = ${studentAccounts.id} AND slp3.status = 'completed') / NULLIF(COUNT(DISTINCT ${lessonAssignments.id}), 0) < 0.5
+            THEN ${studentAccounts.id} END)`
         })
-        .from(schema.teacherClasses)
-        .leftJoin(schema.studentAccounts, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .from(teacherClasses)
+        .leftJoin(studentAccounts, eq(studentAccounts.classId, teacherClasses.id))
         .leftJoin(lessonAssignments, and(
           eq(lessonAssignments.teacherId, teacherId),
-          eq(lessonAssignments.classId, schema.teacherClasses.id),
+          eq(lessonAssignments.classId, teacherClasses.id),
           eq(lessonAssignments.isActive, true)
         ))
         .leftJoin(studentLessonProgress, and(
-          eq(studentLessonProgress.studentId, schema.studentAccounts.id),
+          eq(studentLessonProgress.studentId, studentAccounts.id),
           eq(studentLessonProgress.assignmentId, lessonAssignments.id)
         ))
         .where(and(
-          eq(schema.teacherClasses.teacherId, teacherId),
-          isNull(schema.teacherClasses.archivedAt)
+          eq(teacherClasses.teacherId, teacherId),
+          isNull(teacherClasses.archivedAt)
         ))
-        .groupBy(schema.teacherClasses.id, schema.teacherClasses.name);
+        .groupBy(teacherClasses.id, teacherClasses.name);
 
       const classBreakdown = classBreakdownQuery.map(row => ({
         classId: row.classId,
@@ -1413,8 +1413,8 @@ export class DatabaseStorage implements IStorage {
       // Get class info
       const classInfo = await db
         .select()
-        .from(schema.teacherClasses)
-        .where(eq(schema.teacherClasses.id, classId))
+        .from(teacherClasses)
+        .where(eq(teacherClasses.id, classId))
         .limit(1);
 
       if (classInfo.length === 0) {
@@ -1426,8 +1426,8 @@ export class DatabaseStorage implements IStorage {
       // Get students in this class
       const students = await db
         .select()
-        .from(schema.studentAccounts)
-        .where(eq(schema.studentAccounts.classId, classId));
+        .from(studentAccounts)
+        .where(eq(studentAccounts.classId, classId));
 
       // Get assignments for this class
       const assignments = await db
@@ -1587,14 +1587,14 @@ export class DatabaseStorage implements IStorage {
       // Get student info with class name
       const studentQuery = await db
         .select({
-          id: schema.studentAccounts.id,
-          studentName: schema.studentAccounts.studentName,
-          className: schema.teacherClasses.name,
-          lastLogin: schema.studentAccounts.lastLogin
+          id: studentAccounts.id,
+          studentName: studentAccounts.studentName,
+          className: teacherClasses.name,
+          lastLogin: studentAccounts.lastLogin
         })
-        .from(schema.studentAccounts)
-        .innerJoin(schema.teacherClasses, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
-        .where(eq(schema.studentAccounts.id, studentId));
+        .from(studentAccounts)
+        .innerJoin(teacherClasses, eq(studentAccounts.classId, teacherClasses.id))
+        .where(eq(studentAccounts.id, studentId));
 
       if (studentQuery.length === 0) {
         throw new Error('Student not found');
@@ -1770,21 +1770,21 @@ export class DatabaseStorage implements IStorage {
       const progressQuery = await db
         .select({
           studentId: studentLessonProgress.studentId,
-          studentName: schema.studentAccounts.studentName,
+          studentName: studentAccounts.studentName,
           status: studentLessonProgress.status,
           score: studentLessonProgress.score,
           timeSpent: studentLessonProgress.timeSpent,
           completedAt: studentLessonProgress.completedAt
         })
         .from(studentLessonProgress)
-        .innerJoin(schema.studentAccounts, eq(studentLessonProgress.studentId, schema.studentAccounts.id))
+        .innerJoin(studentAccounts, eq(studentLessonProgress.studentId, studentAccounts.id))
         .where(eq(studentLessonProgress.assignmentId, assignmentId));
 
       // Get total student count for this assignment (from class)
       const classStudentsQuery = await db
         .select({ count: sql<number>`COUNT(*)` })
-        .from(schema.studentAccounts)
-        .where(eq(schema.studentAccounts.classId, assignment.classId || ''));
+        .from(studentAccounts)
+        .where(eq(studentAccounts.classId, assignment.classId || ''));
 
       const totalStudents = classStudentsQuery[0]?.count || progressQuery.length;
 
@@ -1872,10 +1872,10 @@ export class DatabaseStorage implements IStorage {
       // Get teacher's classes for baseline
       const teacherClasses = await db
         .select()
-        .from(schema.teacherClasses)
+        .from(teacherClasses)
         .where(and(
-          eq(schema.teacherClasses.teacherId, teacherId),
-          isNull(schema.teacherClasses.archivedAt)
+          eq(teacherClasses.teacherId, teacherId),
+          isNull(teacherClasses.archivedAt)
         ));
 
       if (teacherClasses.length === 0) {
@@ -2056,20 +2056,20 @@ export class DatabaseStorage implements IStorage {
         // Get completion rates by class
         const classQuery = await db
           .select({
-            id: schema.teacherClasses.id,
-            name: schema.teacherClasses.name,
+            id: teacherClasses.id,
+            name: teacherClasses.name,
             totalAssignments: sql<number>`COUNT(DISTINCT ${lessonAssignments.id})`,
             completedAssignments: sql<number>`COUNT(DISTINCT CASE WHEN ${studentLessonProgress.status} = 'completed' THEN ${studentLessonProgress.id} END)`,
             averageScore: sql<number>`AVG(CASE WHEN ${studentLessonProgress.score} IS NOT NULL THEN ${studentLessonProgress.score} END)`
           })
-          .from(schema.teacherClasses)
-          .leftJoin(lessonAssignments, eq(lessonAssignments.classId, schema.teacherClasses.id))
+          .from(teacherClasses)
+          .leftJoin(lessonAssignments, eq(lessonAssignments.classId, teacherClasses.id))
           .leftJoin(studentLessonProgress, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
           .where(and(
-            eq(schema.teacherClasses.teacherId, teacherId),
-            isNull(schema.teacherClasses.archivedAt)
+            eq(teacherClasses.teacherId, teacherId),
+            isNull(teacherClasses.archivedAt)
           ))
-          .groupBy(schema.teacherClasses.id, schema.teacherClasses.name);
+          .groupBy(teacherClasses.id, teacherClasses.name);
 
         classQuery.forEach(row => {
           const completionRate = row.totalAssignments > 0 
@@ -2104,11 +2104,11 @@ export class DatabaseStorage implements IStorage {
           assignmentType: lessonAssignments.assignmentType,
           completedAt: studentLessonProgress.completedAt,
           studentId: studentLessonProgress.studentId,
-          studentName: schema.studentAccounts.studentName
+          studentName: studentAccounts.studentName
         })
         .from(studentLessonProgress)
         .innerJoin(lessonAssignments, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
-        .innerJoin(schema.studentAccounts, eq(studentLessonProgress.studentId, schema.studentAccounts.id))
+        .innerJoin(studentAccounts, eq(studentLessonProgress.studentId, studentAccounts.id))
         .where(and(
           eq(lessonAssignments.teacherId, teacherId),
           eq(studentLessonProgress.status, 'completed'),
@@ -2200,16 +2200,16 @@ export class DatabaseStorage implements IStorage {
       // Get all students and their performance data
       const studentsQuery = await db
         .select({
-          studentId: schema.studentAccounts.id,
-          studentName: schema.studentAccounts.studentName,
-          className: schema.teacherClasses.name,
-          lastLogin: schema.studentAccounts.lastLogin
+          studentId: studentAccounts.id,
+          studentName: studentAccounts.studentName,
+          className: teacherClasses.name,
+          lastLogin: studentAccounts.lastLogin
         })
-        .from(schema.studentAccounts)
-        .innerJoin(schema.teacherClasses, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .from(studentAccounts)
+        .innerJoin(teacherClasses, eq(studentAccounts.classId, teacherClasses.id))
         .where(and(
-          eq(schema.teacherClasses.teacherId, teacherId),
-          isNull(schema.teacherClasses.archivedAt)
+          eq(teacherClasses.teacherId, teacherId),
+          isNull(teacherClasses.archivedAt)
         ));
 
       const strugglingStudents: StrugglingStudentData[] = [];
@@ -2308,15 +2308,15 @@ export class DatabaseStorage implements IStorage {
       // Get all students and their performance data
       const studentsQuery = await db
         .select({
-          studentId: schema.studentAccounts.id,
-          studentName: schema.studentAccounts.studentName,
-          className: schema.teacherClasses.name
+          studentId: studentAccounts.id,
+          studentName: studentAccounts.studentName,
+          className: teacherClasses.name
         })
-        .from(schema.studentAccounts)
-        .innerJoin(schema.teacherClasses, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+        .from(studentAccounts)
+        .innerJoin(teacherClasses, eq(studentAccounts.classId, teacherClasses.id))
         .where(and(
-          eq(schema.teacherClasses.teacherId, teacherId),
-          isNull(schema.teacherClasses.archivedAt)
+          eq(teacherClasses.teacherId, teacherId),
+          isNull(teacherClasses.archivedAt)
         ));
 
       const topPerformers: TopPerformerData[] = [];
@@ -2470,65 +2470,65 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExportTemplate(template: InsertExportTemplate): Promise<ExportTemplate> {
-    const [newTemplate] = await db.insert(schema.exportTemplates).values(template).returning();
+    const [newTemplate] = await db.insert(exportTemplates).values(template).returning();
     return newTemplate;
   }
 
   async getExportTemplate(id: string): Promise<ExportTemplate | undefined> {
-    const result = await db.select().from(schema.exportTemplates).where(eq(schema.exportTemplates.id, id));
+    const result = await db.select().from(exportTemplates).where(eq(exportTemplates.id, id));
     return result[0];
   }
 
   async getExportTemplatesByTeacher(teacherId: string): Promise<ExportTemplate[]> {
-    return await db.select().from(schema.exportTemplates).where(
+    return await db.select().from(exportTemplates).where(
       and(
-        eq(schema.exportTemplates.teacherId, teacherId),
-        eq(schema.exportTemplates.isActive, true)
+        eq(exportTemplates.teacherId, teacherId),
+        eq(exportTemplates.isActive, true)
       )
     );
   }
 
   async getExportTemplatesBySchool(schoolId: string): Promise<ExportTemplate[]> {
-    return await db.select().from(schema.exportTemplates).where(
+    return await db.select().from(exportTemplates).where(
       and(
-        eq(schema.exportTemplates.schoolId, schoolId),
-        eq(schema.exportTemplates.isActive, true)
+        eq(exportTemplates.schoolId, schoolId),
+        eq(exportTemplates.isActive, true)
       )
     );
   }
 
   async getPublicExportTemplates(): Promise<ExportTemplate[]> {
-    return await db.select().from(schema.exportTemplates).where(
+    return await db.select().from(exportTemplates).where(
       and(
-        eq(schema.exportTemplates.isPublic, true),
-        eq(schema.exportTemplates.isActive, true)
+        eq(exportTemplates.isPublic, true),
+        eq(exportTemplates.isActive, true)
       )
     );
   }
 
   async updateExportTemplate(id: string, template: Partial<InsertExportTemplate>): Promise<ExportTemplate> {
-    const [updatedTemplate] = await db.update(schema.exportTemplates)
+    const [updatedTemplate] = await db.update(exportTemplates)
       .set({ ...template, updatedAt: new Date() })
-      .where(eq(schema.exportTemplates.id, id))
+      .where(eq(exportTemplates.id, id))
       .returning();
     return updatedTemplate;
   }
 
   async deleteExportTemplate(id: string): Promise<void> {
-    await db.delete(schema.exportTemplates).where(eq(schema.exportTemplates.id, id));
+    await db.delete(exportTemplates).where(eq(exportTemplates.id, id));
   }
 
   async createExportHistoryEntry(entry: InsertExportHistoryEntry): Promise<ExportHistoryEntry> {
-    const [newEntry] = await db.insert(schema.exportHistory).values(entry).returning();
+    const [newEntry] = await db.insert(exportHistory).values(entry).returning();
     return newEntry;
   }
 
   async getExportHistory(jobId: string): Promise<ExportHistoryEntry[]> {
-    return await db.select().from(schema.exportHistory).where(eq(schema.exportHistory.jobId, jobId));
+    return await db.select().from(exportHistory).where(eq(exportHistory.jobId, jobId));
   }
 
   async getExportHistoryByTeacher(teacherId: string): Promise<ExportHistoryEntry[]> {
-    return await db.select().from(schema.exportHistory).where(eq(schema.exportHistory.teacherId, teacherId));
+    return await db.select().from(exportHistory).where(eq(exportHistory.teacherId, teacherId));
   }
 
   async generateStudentProgressReport(studentId: string, teacherId: string, dateRange?: { start: string; end: string }): Promise<StudentProgressReport> {
@@ -2571,8 +2571,8 @@ export class DatabaseStorage implements IStorage {
     // Get class information
     const [teacherClass] = await db
       .select()
-      .from(schema.teacherClasses)
-      .where(eq(schema.teacherClasses.id, classId));
+      .from(teacherClasses)
+      .where(eq(teacherClasses.id, classId));
 
     if (!teacherClass) {
       throw new Error('Class not found');
@@ -2581,13 +2581,13 @@ export class DatabaseStorage implements IStorage {
     // Get teacher and school information
     const [teacher] = await db
       .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, teacherId));
+      .from(users)
+      .where(eq(users.id, teacherId));
 
     const [school] = await db
       .select()
-      .from(schema.schools)
-      .where(eq(schema.schools.id, teacherClass.schoolId || ''));
+      .from(schools)
+      .where(eq(schools.id, teacherClass.schoolId || ''));
 
     const classInfo = {
       id: teacherClass.id,
@@ -2632,8 +2632,8 @@ export class DatabaseStorage implements IStorage {
     for (const studentId of studentIds) {
       const [student] = await db
         .select()
-        .from(schema.studentAccounts)
-        .where(eq(schema.studentAccounts.id, studentId));
+        .from(studentAccounts)
+        .where(eq(studentAccounts.id, studentId));
 
       if (student) {
         studentData.push({
