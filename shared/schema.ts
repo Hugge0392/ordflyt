@@ -197,6 +197,16 @@ export const studentAccounts = pgTable("student_accounts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Temporary password storage for teacher access (expires after 1 hour)
+export const studentPasswordAccess = pgTable("student_password_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  clearPassword: varchar("clear_password", { length: 255 }).notNull(),
+  accessedBy: varchar("accessed_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // License activity log
 export const licenseLog = pgTable("license_log", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

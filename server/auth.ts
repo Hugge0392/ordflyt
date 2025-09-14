@@ -42,6 +42,7 @@ console.log('Security config loaded:', {
   nodeEnv: process.env.NODE_ENV,
   hasSessionSecret: !!process.env.SESSION_SECRET,
   hasPepper: !!process.env.PASSWORD_PEPPER,
+  pepperFallback: PEPPER.substring(0, 10) + '...',
   sessionSecretPreview: SESSION_SECRET.substring(0, 10) + '...'
 });
 

@@ -37,8 +37,14 @@ import {
   RefreshCw,
   Search,
   Filter,
-  Download
+  Download,
+  Plus,
+  Printer,
+  Trash2
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
 
 // Dashboard section types
@@ -87,6 +93,14 @@ function StudentManagementSection() {
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showPasswords, setShowPasswords] = useState<{[key: string]: boolean}>({});
+  const [studentPasswords, setStudentPasswords] = useState<{[key: string]: string}>({});
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [selectedClassForCreation, setSelectedClassForCreation] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [showToolSettings, setShowToolSettings] = useState(false);
+  const [selectedStudentForSettings, setSelectedStudentForSettings] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<'none' | 'password-reset' | 'settings'>('none');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -94,13 +108,6 @@ function StudentManagementSection() {
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
     initialData: { classes: [] },
-  });
-
-  // Fetch detailed student data with passwords (when needed)
-  const { data: studentsWithPasswords, isLoading: isLoadingPasswords } = useQuery<StudentsWithPasswordsResponse>({
-    queryKey: ['/api/license/students-with-passwords', selectedClass],
-    enabled: Object.keys(showPasswords).some(key => showPasswords[key]),
-    initialData: { students: [] },
   });
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -119,11 +126,41 @@ function StudentManagementSection() {
     }
   };
 
-  const togglePasswordVisibility = (studentId: string) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [studentId]: !prev[studentId]
-    }));
+  const fetchStudentPassword = async (studentId: string) => {
+    try {
+      const response = await apiRequest(`/api/license/students/${studentId}/password`, 'GET');
+      setStudentPasswords(prev => ({
+        ...prev,
+        [studentId]: response.password
+      }));
+      return response.password;
+    } catch (error: any) {
+      toast({
+        title: 'Kunde inte hämta lösenord',
+        description: error.message || 'Lösenordet har gått ut. Återställ lösenordet för att se det.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  const togglePasswordVisibility = async (studentId: string) => {
+    if (showPasswords[studentId]) {
+      // Hide password
+      setShowPasswords(prev => ({
+        ...prev,
+        [studentId]: false
+      }));
+    } else {
+      // Show password - fetch if not already cached
+      if (!studentPasswords[studentId]) {
+        await fetchStudentPassword(studentId);
+      }
+      setShowPasswords(prev => ({
+        ...prev,
+        [studentId]: true
+      }));
+    }
   };
 
   const resetPasswordMutation = useMutation({
@@ -131,17 +168,92 @@ function StudentManagementSection() {
       return apiRequest(`/api/license/students/${studentId}/reset-password`, 'POST');
     },
     onSuccess: (data, studentId) => {
+      // Cache the new password for immediate display
+      if (data.student?.newPassword) {
+        setStudentPasswords(prev => ({
+          ...prev,
+          [studentId]: data.student.newPassword
+        }));
+        setShowPasswords(prev => ({
+          ...prev,
+          [studentId]: true
+        }));
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/license/students-with-passwords'] });
       toast({
         title: 'Lösenord återställt',
-        description: `Nytt lösenord genererat för eleven.`,
+        description: `Nytt lösenord: ${data.student?.newPassword || 'Se kolumnen för lösenord'}`,
       });
     },
     onError: (error: any) => {
       toast({
         title: 'Fel vid återställning',
         description: error.message || 'Kunde inte återställa lösenordet.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createStudentMutation = useMutation({
+    mutationFn: async ({ classId, studentName }: { classId: string; studentName: string }) => {
+      return apiRequest(`/api/license/classes/${classId}/students`, 'POST', { studentName });
+    },
+    onSuccess: (data) => {
+      // Cache the new password for immediate display
+      if (data.student?.clearPassword) {
+        setStudentPasswords(prev => ({
+          ...prev,
+          [data.student.id]: data.student.clearPassword
+        }));
+        setShowPasswords(prev => ({
+          ...prev,
+          [data.student.id]: true
+        }));
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] });
+      setShowCreateForm(false);
+      setNewStudentName('');
+      setSelectedClassForCreation('');
+      toast({
+        title: 'Elev skapad',
+        description: `${data.student?.studentName} har lagts till med användarnamn: ${data.student?.username}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Fel vid skapande av elev',
+        description: error.message || 'Kunde inte skapa eleven.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteStudentMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      return apiRequest(`/api/license/students/${studentId}`, 'DELETE');
+    },
+    onSuccess: (data, studentId) => {
+      // Remove password from cache
+      setStudentPasswords(prev => {
+        const newPasswords = { ...prev };
+        delete newPasswords[studentId];
+        return newPasswords;
+      });
+      setShowPasswords(prev => {
+        const newShow = { ...prev };
+        delete newShow[studentId];
+        return newShow;
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] });
+      toast({
+        title: 'Elev borttagen',
+        description: 'Eleven har tagits bort från systemet.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Fel vid borttagning',
+        description: error.message || 'Kunde inte ta bort eleven.',
         variant: 'destructive',
       });
     },
@@ -188,6 +300,205 @@ function StudentManagementSection() {
     link.click();
     document.body.removeChild(link);
   };
+
+  const printStudentCredentials = () => {
+    const studentsWithPasswords = filteredStudents.filter(student => 
+      studentPasswords[student.id]
+    );
+    
+    if (studentsWithPasswords.length === 0) {
+      toast({
+        title: 'Inga lösenord att skriva ut',
+        description: 'Visa lösenord för elever innan du skriver ut dem.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Elevkonton - ${new Date().toLocaleDateString('sv-SE')}</title>
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+            .page-break { page-break-after: always; }
+            .student-card {
+              border: 2px solid #333;
+              margin: 20px 0;
+              padding: 20px;
+              border-radius: 8px;
+              background: #f9f9f9;
+              display: inline-block;
+              width: calc(50% - 20px);
+              margin-right: 20px;
+              vertical-align: top;
+            }
+            .school-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .student-name { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+            .credential-line { margin: 8px 0; font-size: 14px; }
+            .credential-value { font-family: monospace; font-weight: bold; }
+          }
+          @media screen {
+            body { padding: 40px; background: #f0f0f0; }
+            .print-preview { background: white; max-width: 800px; margin: 0 auto; padding: 40px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-preview">
+          <div class="school-header">
+            <h1>Elevkonton</h1>
+            <p>Utskrivet: ${new Date().toLocaleDateString('sv-SE')} - ${classesData?.classes?.find(c => c.id === selectedClass)?.name || 'Alla klasser'}</p>
+          </div>
+          ${studentsWithPasswords.map(student => `
+            <div class="student-card">
+              <div class="student-name">${student.studentName}</div>
+              <div class="credential-line">Användarnamn: <span class="credential-value">${student.username}</span></div>
+              <div class="credential-line">Lösenord: <span class="credential-value">${studentPasswords[student.id]}</span></div>
+              <div class="credential-line">Klass: <span class="credential-value">${student.className}</span></div>
+              <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                Första inloggning kräver lösenordsändring
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow?.document.write(printContent);
+    printWindow?.document.close();
+  };
+
+  const handleCreateStudent = () => {
+    if (!newStudentName.trim()) {
+      toast({
+        title: 'Elevnamn krävs',
+        description: 'Ange elevens namn för att fortsätta.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!selectedClassForCreation) {
+      toast({
+        title: 'Klass krävs',
+        description: 'Välj en klass för eleven.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    createStudentMutation.mutate({
+      classId: selectedClassForCreation,
+      studentName: newStudentName.trim()
+    });
+  };
+
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId);
+      } else {
+        newSet.add(studentId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllStudents = (select: boolean) => {
+    if (select) {
+      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
+    } else {
+      setSelectedStudents(new Set());
+    }
+  };
+
+  const bulkPasswordResetMutation = useMutation({
+    mutationFn: async (studentIds: string[]) => {
+      const promises = studentIds.map(id => 
+        apiRequest(`/api/license/students/${id}/reset-password`, 'POST')
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: (results) => {
+      // Cache all new passwords
+      results.forEach((data, index) => {
+        const studentId = Array.from(selectedStudents)[index];
+        if (data.student?.newPassword) {
+          setStudentPasswords(prev => ({
+            ...prev,
+            [studentId]: data.student.newPassword
+          }));
+          setShowPasswords(prev => ({
+            ...prev,
+            [studentId]: true
+          }));
+        }
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] });
+      setSelectedStudents(new Set());
+      setBulkAction('none');
+      
+      toast({
+        title: 'Lösenord återställda',
+        description: `${results.length} elever fick nya lösenord.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Fel vid bulk-återställning',
+        description: error.message || 'Några lösenord kunde inte återställas.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleBulkAction = () => {
+    if (selectedStudents.size === 0) {
+      toast({
+        title: 'Inga elever valda',
+        description: 'Välj minst en elev för att utföra massaktioner.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (bulkAction === 'password-reset') {
+      bulkPasswordResetMutation.mutate(Array.from(selectedStudents));
+    }
+  };
+
+  const studentToolSettingsMutation = useMutation({
+    mutationFn: async ({ studentId, settings }: { studentId: string; settings: any }) => {
+      return apiRequest(`/api/license/students/${studentId}/tool-settings`, 'PUT', settings);
+    },
+    onSuccess: () => {
+      setShowToolSettings(false);
+      setSelectedStudentForSettings(null);
+      toast({
+        title: 'Inställningar sparade',
+        description: 'Tillgänglighetsinställningar har uppdaterats.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Fel vid sparande',
+        description: error.message || 'Kunde inte spara inställningarna.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   if (isLoadingClasses) {
     return (
@@ -272,6 +583,127 @@ function StudentManagementSection() {
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
+              <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    data-testid="button-create-student"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Skapa ny elev
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Skapa ny elev</DialogTitle>
+                    <DialogDescription>
+                      Ange elevens namn och välj klass. Användarnamn och lösenord genereras automatiskt.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <label htmlFor="student-name" className="text-sm font-medium">
+                        Elevnamn
+                      </label>
+                      <Input
+                        id="student-name"
+                        value={newStudentName}
+                        onChange={(e) => setNewStudentName(e.target.value)}
+                        placeholder="Ange elevens fullständiga namn"
+                        data-testid="input-new-student-name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label htmlFor="student-class" className="text-sm font-medium">
+                        Klass
+                      </label>
+                      <select
+                        id="student-class"
+                        value={selectedClassForCreation}
+                        onChange={(e) => setSelectedClassForCreation(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        data-testid="select-new-student-class"
+                      >
+                        <option value="">Välj klass...</option>
+                        {classesData?.classes?.map((cls: ClassData) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        setNewStudentName('');
+                        setSelectedClassForCreation('');
+                      }}
+                      data-testid="button-cancel-create-student"
+                    >
+                      Avbryt
+                    </Button>
+                    <Button
+                      onClick={handleCreateStudent}
+                      disabled={createStudentMutation.isPending}
+                      data-testid="button-confirm-create-student"
+                    >
+                      {createStudentMutation.isPending ? 'Skapar...' : 'Skapa elev'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              {selectedStudents.size > 0 && (
+                <>
+                  <select
+                    value={bulkAction}
+                    onChange={(e) => setBulkAction(e.target.value as any)}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="select-bulk-action"
+                  >
+                    <option value="none">Välj massfåtänd...</option>
+                    <option value="password-reset">Lösenordsåterställning</option>
+                    <option value="settings">Tillgänglighetsinställningar</option>
+                  </select>
+                  
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleBulkAction}
+                    disabled={bulkAction === 'none' || bulkPasswordResetMutation.isPending}
+                    data-testid="button-execute-bulk-action"
+                  >
+                    {bulkPasswordResetMutation.isPending ? 'Utför...' : `Utför (${selectedStudents.size})`}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedStudents(new Set());
+                      setBulkAction('none');
+                    }}
+                    data-testid="button-clear-selection"
+                  >
+                    Avmarkera alla
+                  </Button>
+                </>
+              )}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={printStudentCredentials}
+                data-testid="button-print-credentials"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Skriv ut
+              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -328,6 +760,15 @@ function StudentManagementSection() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.size === filteredStudents.length && filteredStudents.length > 0}
+                        onChange={(e) => selectAllStudents(e.target.checked)}
+                        className="rounded border-gray-300 focus:ring-blue-500"
+                        data-testid="checkbox-select-all-students"
+                      />
+                    </TableHead>
                     <TableHead>Elevnamn</TableHead>
                     <TableHead>Användarnamn</TableHead>
                     <TableHead>Lösenord</TableHead>
@@ -339,7 +780,20 @@ function StudentManagementSection() {
                 </TableHeader>
                 <TableBody>
                   {filteredStudents.map((student) => (
-                    <TableRow key={student.id} data-testid={`row-student-${student.username}`}>
+                    <TableRow 
+                      key={student.id} 
+                      data-testid={`row-student-${student.username}`}
+                      className={selectedStudents.has(student.id) ? 'bg-blue-50' : ''}
+                    >
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.has(student.id)}
+                          onChange={() => toggleStudentSelection(student.id)}
+                          className="rounded border-gray-300 focus:ring-blue-500"
+                          data-testid={`checkbox-select-${student.username}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <User className="h-4 w-4 mr-2 text-gray-400" />
@@ -362,7 +816,10 @@ function StudentManagementSection() {
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <span className="font-mono text-sm">
-                            {showPasswords[student.id] ? '********' : '••••••••'}
+                            {showPasswords[student.id] ? 
+                              (studentPasswords[student.id] || 'Laddar...') : 
+                              '••••••••'
+                            }
                           </span>
                           <Button
                             variant="ghost"
@@ -379,7 +836,11 @@ function StudentManagementSection() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => copyToClipboard('********', 'Lösenord')}
+                            onClick={() => copyToClipboard(
+                              studentPasswords[student.id] || 'Ej tillgängligt', 
+                              'Lösenord'
+                            )}
+                            disabled={!studentPasswords[student.id]}
                             data-testid={`button-copy-password-${student.username}`}
                           >
                             <Copy className="h-3 w-3" />
@@ -409,16 +870,67 @@ function StudentManagementSection() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => resetPasswordMutation.mutate(student.id)}
-                          disabled={resetPasswordMutation.isPending}
-                          data-testid={`button-reset-password-${student.username}`}
-                        >
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          Återställ
-                        </Button>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => resetPasswordMutation.mutate(student.id)}
+                            disabled={resetPasswordMutation.isPending}
+                            data-testid={`button-reset-password-${student.username}`}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Återställ
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStudentForSettings(student.id);
+                              setShowToolSettings(true);
+                            }}
+                            data-testid={`button-tool-settings-${student.username}`}
+                          >
+                            <Settings className="h-3 w-3" />
+                          </Button>
+                          
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                data-testid={`button-delete-student-${student.username}`}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Ta bort elev</DialogTitle>
+                                <DialogDescription>
+                                  Är du säker på att du vill ta bort <strong>{student.studentName}</strong>?
+                                  <br /><br />
+                                  Denna åtgärd kan inte ångras och eleven kommer att förlora all progress.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="flex justify-end space-x-2 pt-4">
+                                <DialogTrigger asChild>
+                                  <Button variant="outline">
+                                    Avbryt
+                                  </Button>
+                                </DialogTrigger>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => deleteStudentMutation.mutate(student.id)}
+                                  disabled={deleteStudentMutation.isPending}
+                                  data-testid={`button-confirm-delete-${student.username}`}
+                                >
+                                  {deleteStudentMutation.isPending ? 'Tar bort...' : 'Ta bort elev'}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -441,6 +953,195 @@ function StudentManagementSection() {
           )}
         </CardContent>
       </Card>
+
+      {/* Tool Settings Dialog */}
+      <Dialog open={showToolSettings} onOpenChange={setShowToolSettings}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Tillgänglighetsinställningar</DialogTitle>
+            <DialogDescription>
+              Konfigurera verktyg och tillgänglighetsinställningar för eleven.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedStudentForSettings && (
+            <div className="space-y-6 py-4">
+              {(() => {
+                const student = allStudents.find(s => s.id === selectedStudentForSettings);
+                return student ? (
+                  <>
+                    <div className="bg-blue-50 p-3 rounded-lg border">
+                      <div className="font-medium text-blue-900">{student.studentName}</div>
+                      <div className="text-sm text-blue-700">@{student.username} • {student.className}</div>
+                    </div>
+
+                    <div className="grid gap-6">
+                      {/* Support Tools */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Stödverktyg</h4>
+                        
+                        <div className="grid gap-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="text-to-speech">Text-till-tal</Label>
+                              <div className="text-sm text-gray-500">Läs upp text högt</div>
+                            </div>
+                            <Switch id="text-to-speech" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="speech-to-text">Tal-till-text</Label>
+                              <div className="text-sm text-gray-500">Diktera istället för att skriva</div>
+                            </div>
+                            <Switch id="speech-to-text" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="ai-assistant">AI-assistent</Label>
+                              <div className="text-sm text-gray-500">Extra hjälp och vägledning</div>
+                            </div>
+                            <Switch id="ai-assistant" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="dictionary">Ordbok</Label>
+                              <div className="text-sm text-gray-500">Slå upp ord</div>
+                            </div>
+                            <Switch id="dictionary" defaultChecked />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Visual Settings */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Visuella inställningar</h4>
+                        
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="font-size">Textstorlek</Label>
+                            <Select defaultValue="medium">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Välj textstorlek" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="small">Liten</SelectItem>
+                                <SelectItem value="medium">Normal</SelectItem>
+                                <SelectItem value="large">Stor</SelectItem>
+                                <SelectItem value="extra_large">Extra stor</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="font-family">Typsnitt</Label>
+                            <Select defaultValue="default">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Välj typsnitt" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">Standard</SelectItem>
+                                <SelectItem value="dyslexia_friendly">Dyslexi-vänligt</SelectItem>
+                                <SelectItem value="sans_serif">Sans Serif</SelectItem>
+                                <SelectItem value="serif">Serif</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="high-contrast">Hög kontrast</Label>
+                              <div className="text-sm text-gray-500">Förbättrad synlighet</div>
+                            </div>
+                            <Switch id="high-contrast" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="reduced-animations">Reducerade animationer</Label>
+                              <div className="text-sm text-gray-500">Mindre rörelse</div>
+                            </div>
+                            <Switch id="reduced-animations" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Learning Support */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Lärstöd</h4>
+                        
+                        <div className="grid gap-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="show-hints">Visa tips</Label>
+                              <div className="text-sm text-gray-500">Hjälpande ledtrådar</div>
+                            </div>
+                            <Switch id="show-hints" defaultChecked />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="extended-time">Förlängd tid</Label>
+                              <div className="text-sm text-gray-500">Extra tid på uppgifter</div>
+                            </div>
+                            <Switch id="extended-time" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="immediate-correction">Direkt korrigering</Label>
+                              <div className="text-sm text-gray-500">Visa fel omedelbart</div>
+                            </div>
+                            <Switch id="immediate-correction" defaultChecked />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-2 pt-4 border-t">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowToolSettings(false)}
+                      >
+                        Avbryt
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Here we would collect all the form data and submit
+                          const mockSettings = {
+                            textToSpeechEnabled: false,
+                            speechToTextEnabled: false,
+                            aiAssistantEnabled: false,
+                            dictionaryLookupEnabled: true,
+                            fontSize: 'medium',
+                            fontFamily: 'default',
+                            highContrastMode: false,
+                            reducedAnimations: false,
+                            showHints: true,
+                            extendedTimeAllowed: false,
+                            immediateCorrection: true
+                          };
+                          
+                          studentToolSettingsMutation.mutate({
+                            studentId: selectedStudentForSettings,
+                            settings: mockSettings
+                          });
+                        }}
+                        disabled={studentToolSettingsMutation.isPending}
+                        data-testid="button-save-tool-settings"
+                      >
+                        {studentToolSettingsMutation.isPending ? 'Sparar...' : 'Spara inställningar'}
+                      </Button>
+                    </div>
+                  </>
+                ) : null;
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Quick Actions */}
       <Card>

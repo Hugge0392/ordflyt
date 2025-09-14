@@ -994,6 +994,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register migration routes
   registerMigrationRoutes(app);
 
+  // Teacher dashboard endpoints
+  app.get("/api/teacher/dashboard-stats", requireAuth, requireRole('LARARE', 'ADMIN'), async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // This would normally come from license system, but let's provide basic stats
+      const stats = {
+        totalStudents: 0,
+        totalClasses: 0,
+        activeAssignments: 0,
+        completedLessons: 0,
+        averageProgress: 0,
+        totalSchoolHours: 0,
+      };
+
+      // Get basic game progress stats if available
+      const gameProgress = await storage.getGameProgress();
+      if (gameProgress) {
+        stats.completedLessons = gameProgress.completedLevels ? Object.keys(gameProgress.completedLevels).length : 0;
+        stats.totalSchoolHours = Math.floor((stats.completedLessons * 10) / 60); // Estimate hours
+        stats.averageProgress = gameProgress.score || 0;
+      }
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
+      res.status(500).json({ error: 'Kunde inte hämta statistik' });
+    }
+  });
+
+  app.get("/api/teacher/recent-activity", requireAuth, requireRole('LARARE', 'ADMIN'), async (req: any, res) => {
+    try {
+      // This would normally come from student activity logs
+      const recentActivity = [
+        {
+          id: '1',
+          type: 'lesson_completed',
+          studentName: 'Exempel Elev',
+          activity: 'Slutförde Substantiv Nivå 1',
+          timestamp: new Date().toISOString(),
+          score: 85
+        }
+      ];
+
+      res.json(recentActivity);
+    } catch (error) {
+      console.error('Recent activity error:', error);
+      res.status(500).json({ error: 'Kunde inte hämta aktivitet' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Initialize KlassKamp WebSocket server

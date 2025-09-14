@@ -45,6 +45,18 @@ export function generateLicenseKey(): string {
   return generateSecureId(32);
 }
 
+export function generateSecurePassword(): string {
+  // Generate secure password with readable characters (no confusing 0/O, 1/l)
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let password = '';
+  
+  for (let i = 0; i < 8; i++) {
+    password += chars.charAt(crypto.randomInt(0, chars.length));
+  }
+  
+  return password;
+}
+
 // Database operations for license system
 
 // One-time codes
@@ -190,6 +202,49 @@ export async function createStudentAccounts(
   }));
 
   return await licenseDb.insert(schema.studentAccounts).values(studentData).returning();
+}
+
+// Store password temporarily for teacher access
+export async function storePasswordForAccess(
+  studentId: string,
+  clearPassword: string,
+  accessedBy: string
+): Promise<void> {
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 1); // Expire after 1 hour
+
+  // Delete any existing password access for this student
+  await licenseDb
+    .delete(schema.studentPasswordAccess)
+    .where(eq(schema.studentPasswordAccess.studentId, studentId));
+
+  // Insert new password access
+  await licenseDb.insert(schema.studentPasswordAccess).values({
+    studentId,
+    clearPassword,
+    accessedBy,
+    expiresAt,
+  });
+}
+
+// Get stored password for teacher access
+export async function getPasswordForAccess(
+  studentId: string,
+  accessedBy: string
+): Promise<string | null> {
+  const [passwordAccess] = await licenseDb
+    .select()
+    .from(schema.studentPasswordAccess)
+    .where(
+      and(
+        eq(schema.studentPasswordAccess.studentId, studentId),
+        eq(schema.studentPasswordAccess.accessedBy, accessedBy),
+        gt(schema.studentPasswordAccess.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  return passwordAccess?.clearPassword || null;
 }
 
 export async function getStudentByUsername(username: string) {

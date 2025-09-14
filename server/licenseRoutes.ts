@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { hashPassword } from './auth';
 import { 
   findOneTimeCode,
   redeemOneTimeCode,
@@ -14,6 +15,9 @@ import {
   updateStudentPassword,
   logLicenseActivity,
   createOneTimeCode,
+  generateSecurePassword,
+  storePasswordForAccess,
+  getPasswordForAccess,
   licenseDb
 } from './licenseDb';
 import { emailService } from './emailService';
@@ -238,7 +242,7 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
     const teacherClass = await createTeacherClass(name, userId, license.id, term, description);
 
     // Generera användarnamn och lösenord för elever
-    const students = studentNames.map((studentName: string, index: number) => {
+    const students = await Promise.all(studentNames.map(async (studentName: string, index: number) => {
       const baseUsername = studentName.toLowerCase()
         .replace(/[åä]/g, 'a')
         .replace(/ö/g, 'o')
@@ -247,7 +251,7 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
       
       const username = `${baseUsername}${String(index + 1).padStart(2, '0')}`;
       const password = generateSecurePassword();
-      const passwordHash = bcrypt.hashSync(password, 12);
+      const passwordHash = await hashPassword(password);
 
       return {
         name: studentName,
@@ -255,7 +259,7 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
         password, // Sparas tillfälligt för CSV-export
         passwordHash
       };
-    });
+    }));
 
     // Skapa elevkonton i databasen
     const createdStudents = await createStudentAccounts(
@@ -559,7 +563,7 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
     const studentCount = existingStudents[0]?.count || 0;
     const username = `${baseUsername}${String(studentCount + 1).padStart(2, '0')}`;
     const password = generateSecurePassword();
-    const passwordHash = bcrypt.hashSync(password, 12);
+    const passwordHash = await hashPassword(password);
     
     // Create student account
     const [newStudent] = await licenseDb.insert(studentAccounts).values({
@@ -615,10 +619,13 @@ router.put('/students/:studentId/reset-password', requireAuth, requireTeacherLic
     
     // Generate new password
     const newPassword = generateSecurePassword();
-    const newPasswordHash = bcrypt.hashSync(newPassword, 12);
+    const newPasswordHash = await hashPassword(newPassword);
     
     // Update student password
     await updateStudentPassword(studentId, newPasswordHash);
+    
+    // Store password temporarily for teacher access
+    await storePasswordForAccess(studentId, newPassword, userId);
     
     res.json({
       success: true,
@@ -680,16 +687,391 @@ router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requir
   }
 });
 
-// Hjälpfunktion för att generera säkra lösenord
-function generateSecurePassword(length: number = 8): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  let password = '';
-  
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+// GET /api/license/students/:studentId/password - Hämta elevs lösenord för visning
+router.get('/students/:studentId/password', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class this student belongs to
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
+    }
+    
+    // Get stored password
+    const clearPassword = await getPasswordForAccess(studentId, userId);
+    
+    if (!clearPassword) {
+      return res.status(404).json({ 
+        error: 'Inget lösenord tillgängligt',
+        message: 'Lösenordet har gått ut eller inte genererats. Återställ lösenordet för att se det.'
+      });
+    }
+    
+    // Log password access
+    await logLicenseActivity(
+      req.license.id, 
+      'password_viewed', 
+      { 
+        student_id: studentId,
+        student_username: student.username,
+        student_name: student.studentName
+      }, 
+      userId, 
+      req.ip || 'unknown'
+    );
+    
+    res.json({ 
+      password: clearPassword,
+      studentId: student.id,
+      username: student.username 
+    });
+    
+  } catch (error) {
+    console.error('Get student password error:', error);
+    res.status(500).json({ error: 'Serverfel' });
   }
-  
-  return password;
-}
+});
+
+// POST /api/license/classes/:classId/students - Lägg till ny elev i klass
+router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const { studentName } = z.object({ studentName: z.string().min(1) }).parse(req.body);
+    const userId = req.user.id;
+    
+    // Verify teacher owns this class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna klass' });
+    }
+    
+    // Generate unique username
+    const baseUsername = studentName.toLowerCase()
+      .replace(/[åä]/g, 'a')
+      .replace(/ö/g, 'o')
+      .replace(/[^a-z]/g, '')
+      .substring(0, 8);
+    
+    let username = baseUsername;
+    let counter = 1;
+    
+    // Ensure unique username
+    while (await getStudentByUsername(username)) {
+      username = `${baseUsername}${String(counter).padStart(2, '0')}`;
+      counter++;
+    }
+    
+    // Generate secure password
+    const clearPassword = generateSecurePassword();
+    const passwordHash = await hashPassword(clearPassword);
+    
+    // Create student account
+    const [student] = await createStudentAccounts(
+      [{ name: studentName, username, passwordHash }],
+      classId
+    );
+    
+    // Store password temporarily for teacher access
+    await storePasswordForAccess(student.id, clearPassword, userId);
+    
+    res.json({
+      success: true,
+      message: 'Elev skapad',
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName,
+        clearPassword // Return clear password for teacher
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('Add student error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga data',
+        details: error.errors.map(e => e.message)
+      });
+    }
+    
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// PUT /api/license/students/:studentId/tool-settings - Uppdatera tillgänglighetsinställningar för elev
+router.put('/students/:studentId/tool-settings', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+    const toolSettings = req.body;
+    
+    // Get student and verify teacher has access
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class this student belongs to
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
+    }
+    
+    // Log settings update
+    await logLicenseActivity(
+      req.license.id, 
+      'tool_settings_updated', 
+      { 
+        student_id: studentId,
+        student_username: student.username,
+        student_name: student.studentName,
+        settings_updated: Object.keys(toolSettings)
+      }, 
+      userId, 
+      req.ip || 'unknown'
+    );
+    
+    res.json({
+      success: true,
+      message: 'Inställningar uppdaterade',
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName
+      }
+    });
+    
+  } catch (error) {
+    console.error('Update tool settings error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// CRITICAL MISSING ENDPOINTS - Required by frontend with exact specifications
+
+// GET /api/license/students/:id/password - Hämta elevs lösenord för visning (med :id parameter)
+router.get('/students/:id/password', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
+  try {
+    const { id: studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class this student belongs to
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
+    }
+    
+    // Get temporarily stored password
+    const clearPassword = await getPasswordForAccess(studentId, userId);
+    
+    if (!clearPassword) {
+      return res.status(404).json({ 
+        error: 'Inget lösenord tillgängligt',
+        message: 'Lösenordet har gått ut eller inte genererats. Återställ lösenordet för att se det.'
+      });
+    }
+    
+    // Log password access
+    await logLicenseActivity(
+      req.license.id, 
+      'password_viewed', 
+      { 
+        student_id: studentId,
+        student_username: student.username,
+        student_name: student.studentName
+      }, 
+      userId, 
+      req.ip || 'unknown'
+    );
+    
+    res.json({ 
+      password: clearPassword,
+      studentId: student.id,
+      username: student.username 
+    });
+    
+  } catch (error) {
+    console.error('Get student password error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/students/:id/reset-password - Återställ elevlösenord (med POST och :id parameter)
+router.post('/students/:id/reset-password', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { id: studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access to this student's class
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class this student belongs to
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
+    }
+    
+    // Generate new password
+    const newPassword = generateSecurePassword();
+    const newPasswordHash = await hashPassword(newPassword);
+    
+    // Update student password
+    await updateStudentPassword(studentId, newPasswordHash);
+    
+    // Store password temporarily for teacher access
+    await storePasswordForAccess(studentId, newPassword, userId);
+    
+    // Log password reset activity
+    await logLicenseActivity(
+      req.license.id, 
+      'password_reset', 
+      { 
+        student_id: studentId,
+        student_username: student.username,
+        student_name: student.studentName
+      }, 
+      userId, 
+      req.ip || 'unknown'
+    );
+    
+    res.json({
+      success: true,
+      message: 'Lösenord återställt',
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName,
+        newPassword // Only for display to teacher
+      }
+    });
+  } catch (error) {
+    console.error('Reset student password error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// DELETE /api/license/students/:id - Ta bort elev (med :id parameter)
+router.delete('/students/:id', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { id: studentId } = req.params;
+    const userId = req.user.id;
+    
+    // Get student and verify teacher has access
+    const [student] = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        classId: studentAccounts.classId,
+        studentName: studentAccounts.studentName,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+    
+    if (!student) {
+      return res.status(404).json({ error: 'Elev hittades inte' });
+    }
+    
+    // Verify teacher owns the class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet att ta bort denna elev' });
+    }
+    
+    // Log deletion activity before actually deleting
+    await logLicenseActivity(
+      req.license.id, 
+      'student_deleted', 
+      { 
+        student_id: studentId,
+        student_name: student.studentName
+      }, 
+      userId, 
+      req.ip || 'unknown'
+    );
+    
+    // Delete student account
+    await licenseDb
+      .delete(studentAccounts)
+      .where(eq(studentAccounts.id, studentId));
+    
+    res.json({
+      success: true,
+      message: 'Elev borttagen'
+    });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
 
 export default router;
