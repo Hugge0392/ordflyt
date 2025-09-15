@@ -192,17 +192,50 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
   }
 });
 
-// Teacher registration endpoint
-router.post("/api/auth/register", async (req, res) => {
-  const { username, email, password, code, oneTimeCode } = req.body;
+// Teacher registration endpoint - WITH SECURITY HARDENING AND TEACHER PROFILE SUPPORT
+router.post("/api/auth/register", loginRateLimit, async (req, res) => {
+  const { 
+    username, 
+    email, 
+    password, 
+    code, 
+    oneTimeCode, 
+    firstName, 
+    lastName, 
+    schoolName, 
+    subject, 
+    phoneNumber 
+  } = req.body;
   const actualCode = code || oneTimeCode; // Support both field names
   const ipAddress = req.ip || 'unknown';
   const userAgent = req.headers['user-agent'];
   
   try {
     // Validate input
-    if (!username || !email || !password || !actualCode) {
-      return res.status(400).json({ error: 'Alla fält krävs' });
+    if (!username || !email || !password || !actualCode || !firstName || !lastName || !schoolName) {
+      return res.status(400).json({ error: 'Alla obligatoriska fält krävs (användarnamn, email, lösenord, kod, förnamn, efternamn, skolnamn)' });
+    }
+
+    // Validate teacher profile data using schema
+    try {
+      const teacherProfileData = {
+        email,
+        firstName,
+        lastName,
+        schoolName,
+        subject: subject || null,
+        phoneNumber: phoneNumber || null,
+        emailVerified: true,
+        status: 'account_created' as const
+      };
+      
+      // Validate using insertTeacherRegistrationSchema
+      insertTeacherRegistrationSchema.parse(teacherProfileData);
+    } catch (validationError: any) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga profiluppgifter', 
+        details: validationError.message 
+      });
     }
 
     // Validate username format
@@ -292,6 +325,19 @@ router.post("/api/auth/register", async (req, res) => {
       isActive: true,
       emailVerified: true,
       mustChangePassword: false
+    }).returning();
+
+    // CRITICAL FIX: Create teacher profile record with all profile data
+    const [teacherProfile] = await db.insert(teacherRegistrations).values({
+      email,
+      firstName,
+      lastName,
+      schoolName,
+      subject: subject || null,
+      phoneNumber: phoneNumber || null,
+      emailVerified: true,
+      userId: newUser.id,
+      status: 'account_created'
     }).returning();
 
     // Redeem the code and create license
@@ -881,8 +927,8 @@ router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, logi
 
     // Check user role authorization
     if (!userId || !userRole || !['LÄRARE', 'ADMIN'].includes(userRole)) {
-      await logAuditEvent('LICENSE_ACTIVATION_UNAUTHORIZED', userId, false, ipAddress, userAgent, {
-        userRole: userRole,
+      await logAuditEvent('LICENSE_ACTIVATION_UNAUTHORIZED', userId || null, false, ipAddress, userAgent, {
+        userRole: userRole || null,
         reason: 'Invalid role for license activation'
       });
       return res.status(403).json({ error: 'Otillräcklig behörighet för licensaktivering' });
@@ -890,7 +936,7 @@ router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, logi
 
     // Validate license code
     if (!req.body.licenseCode || typeof req.body.licenseCode !== 'string') {
-      await logAuditEvent('LICENSE_ACTIVATION_VALIDATION_FAILED', userId, false, ipAddress, userAgent, {
+      await logAuditEvent('LICENSE_ACTIVATION_VALIDATION_FAILED', userId || null, false, ipAddress, userAgent, {
         error: 'Missing or invalid license code'
       });
       return res.status(400).json({ error: 'Licenskod krävs' });

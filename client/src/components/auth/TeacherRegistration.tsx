@@ -10,16 +10,30 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, Mail, User, School, BookOpen, Phone } from 'lucide-react';
+import { AlertCircle, CheckCircle, Mail, User, School, BookOpen, Phone, Eye, EyeOff, Key, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const teacherRegistrationSchema = z.object({
+  username: z.string()
+    .min(3, 'Användarnamnet måste vara minst 3 tecken')
+    .max(50, 'Användarnamnet får inte vara längre än 50 tecken')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Användarnamnet får bara innehålla bokstäver, siffror, _ och -'),
+  password: z.string()
+    .min(8, 'Lösenordet måste vara minst 8 tecken')
+    .regex(/[a-z]/, 'Lösenordet måste innehålla minst en liten bokstav')
+    .regex(/[A-Z]/, 'Lösenordet måste innehålla minst en stor bokstav')
+    .regex(/[0-9]/, 'Lösenordet måste innehålla minst en siffra'),
+  confirmPassword: z.string(),
+  oneTimeCode: z.string().min(1, 'Engångskod krävs'),
   email: z.string().email('Ogiltig email-adress'),
   firstName: z.string().min(1, 'Förnamn krävs').max(255, 'Förnamn för långt'),
   lastName: z.string().min(1, 'Efternamn krävs').max(255, 'Efternamn för långt'),
   schoolName: z.string().min(1, 'Skolnamn krävs').max(255, 'Skolnamn för långt'),
   subject: z.string().optional(),
   phoneNumber: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Lösenorden måste matcha',
+  path: ['confirmPassword'],
 });
 
 type TeacherRegistrationData = z.infer<typeof teacherRegistrationSchema>;
@@ -51,11 +65,17 @@ const COMMON_SUBJECTS = [
 export default function TeacherRegistration({ onSuccess }: TeacherRegistrationProps) {
   const [registrationStatus, setRegistrationStatus] = useState<'form' | 'success' | 'error'>('form');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<TeacherRegistrationData>({
     resolver: zodResolver(teacherRegistrationSchema),
     defaultValues: {
+      username: '',
+      password: '',
+      confirmPassword: '',
+      oneTimeCode: '',
       email: '',
       firstName: '',
       lastName: '',
@@ -67,7 +87,7 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
 
   const registrationMutation = useMutation({
     mutationFn: async (data: TeacherRegistrationData) => {
-      return apiRequest('POST', '/api/auth/teacher/register', data);
+      return apiRequest('POST', '/api/auth/register', data);
     },
     onSuccess: (response: any) => {
       if (response.success) {
@@ -76,8 +96,8 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
         onSuccess?.();
         
         toast({
-          title: 'Registrering skickad',
-          description: 'Kolla din email för verifieringslänk.',
+          title: 'Konto skapat!',
+          description: 'Du kan nu logga in med dina nya uppgifter.',
           duration: 5000,
         });
       }
@@ -105,8 +125,8 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
           <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
-          <CardTitle className="text-green-800">Registrering mottagen!</CardTitle>
-          <CardDescription>Din lärarregistrering har skickats.</CardDescription>
+          <CardTitle className="text-green-800">Konto skapat!</CardTitle>
+          <CardDescription>Ditt lärarkonto har skapats framgångsrikt.</CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <Alert>
@@ -119,10 +139,9 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
           <div className="text-sm text-gray-600 space-y-2">
             <p><strong>Nästa steg:</strong></p>
             <ol className="list-decimal list-inside text-left space-y-1">
-              <li>Kolla din email för verifieringslänk</li>
-              <li>Klicka på länken för att verifiera din email</li>
-              <li>Få dina inloggningsuppgifter via email</li>
-              <li>Logga in och aktivera din licens</li>
+              <li>Logga in med ditt användarnamn och lösenord</li>
+              <li>Aktivera din licens i inställningarna</li>
+              <li>Börja skapa lektioner och använda plattformen</li>
             </ol>
           </div>
 
@@ -161,6 +180,132 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* One Time Code */}
+            <FormField
+              control={form.control}
+              name="oneTimeCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Engångskod *
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Kod från administratör"
+                      data-testid="input-one-time-code"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Ange engångskoden du fått från din administratör
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Username */}
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Användarnamn *
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="annaandersson"
+                      data-testid="input-username"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    3-50 tecken, endast bokstäver, siffror, _ och -
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Password */}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    Lösenord *
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        {...field} 
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Minst 8 tecken"
+                        data-testid="input-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Minst 8 tecken med stor bokstav, liten bokstav och siffra
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Confirm Password */}
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bekräfta lösenord *</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        {...field} 
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Upprepa lösenordet"
+                        data-testid="input-confirm-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Email */}
             <FormField
               control={form.control}
