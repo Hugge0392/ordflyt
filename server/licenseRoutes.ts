@@ -357,7 +357,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, a
     const baseUrl = process.env.NODE_ENV === 'production' 
       ? `https://${req.get('host')}` 
       : `http://${req.get('host')}`;
-    const registrationLink = `${baseUrl}/auth/register?code=${result.clearTextCode}`;
+    const registrationLink = `${baseUrl}/registrera-larare?code=${result.clearTextCode}`;
     
     // Send email with registration code
     let emailSent = false;
