@@ -79,7 +79,7 @@ interface LicenseStats {
 // Form schema
 const generateCodeSchema = z.object({
   recipientEmail: z.string().email('Ange en giltig e-postadress'),
-  validityDays: z.number().min(1, 'Minst 1 dag').max(365, 'Högst 365 dagar').default(30),
+  validityDays: z.coerce.number().min(1, 'Minst 1 dag').max(365, 'Högst 365 dagar').default(30),
 });
 
 type GenerateCodeFormData = z.infer<typeof generateCodeSchema>;

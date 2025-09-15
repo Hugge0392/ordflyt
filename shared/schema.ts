@@ -162,7 +162,7 @@ export const oneTimeCodes = pgTable("one_time_codes", {
 export const emailVerificationTokens = pgTable("email_verification_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email", { length: 255 }).notNull(),
-  token: varchar("token", { length: 64 }).notNull().unique(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
   type: varchar("type", { length: 50 }).notNull(), // 'registration_verify', 'password_reset'
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
