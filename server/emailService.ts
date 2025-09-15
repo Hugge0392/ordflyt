@@ -354,6 +354,196 @@ Om du inte begärde en lösenordsåterställning kan du ignorera detta e-postmed
     }
   }
 
+  // Send email verification for teacher registration
+  async sendEmailVerification(
+    toEmail: string, 
+    verificationToken: string, 
+    verificationLink: string
+  ): Promise<void> {
+    const subject = "Verifiera din email - Ordflyt.se";
+    
+    const htmlBody = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .token { background-color: #e5e7eb; padding: 10px; font-family: monospace; border-radius: 5px; margin: 15px 0; word-break: break-all; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Verifiera din email</h1>
+            </div>
+            <div class="content">
+              <h2>Hej och välkommen!</h2>
+              <p>Tack för att du registrerar dig som lärare på Ordflyt.se. För att slutföra registreringen behöver du verifiera din email-adress.</p>
+              
+              <p>Klicka på knappen nedan för att verifiera din email:</p>
+              <a href="${verificationLink}" class="button">Verifiera Email</a>
+              
+              <p>Om länken inte fungerar kan du kopiera och klistra in följande URL i din webbläsare:</p>
+              <div class="token">${verificationLink}</div>
+              
+              <p><strong>Viktigt:</strong></p>
+              <ul>
+                <li>Denna verifieringslänk är giltig i 24 timmar</li>
+                <li>Efter verifiering skapas ditt lärarkonto automatiskt</li>
+                <li>Du kommer att få dina inloggningsuppgifter via email</li>
+              </ul>
+              
+              <p>Vi ser fram emot att ha dig som en del av Ordflyt.se!</p>
+            </div>
+            <div class="footer">
+              <p>Detta meddelande skickades från Ordflyt.se<br>
+              Om du inte registrerade dig kan du ignorera detta e-postmeddelande.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textBody = `
+Verifiera din email - Ordflyt.se
+===============================
+
+Hej och välkommen!
+
+Tack för att du registrerar dig som lärare på Ordflyt.se. För att slutföra registreringen behöver du verifiera din email-adress.
+
+Klicka på följande länk för att verifiera din email:
+${verificationLink}
+
+VIKTIGT:
+- Denna verifieringslänk är giltig i 24 timmar
+- Efter verifiering skapas ditt lärarkonto automatiskt
+- Du kommer att få dina inloggningsuppgifter via email
+
+Vi ser fram emot att ha dig som en del av Ordflyt.se!
+
+---
+Detta meddelande skickades från Ordflyt.se
+Om du inte registrerade dig kan du ignorera detta e-postmeddelande.
+    `;
+
+    await this.sendEmail(toEmail, subject, htmlBody, textBody);
+  }
+
+  // Send welcome email with login credentials
+  async sendWelcomeEmail(
+    toEmail: string, 
+    teacherName: string, 
+    username: string, 
+    temporaryPassword: string
+  ): Promise<void> {
+    const subject = "Välkommen till Ordflyt.se - Ditt konto är klart!";
+    
+    const htmlBody = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+            .credentials { background-color: #1f2937; color: white; padding: 20px; border-radius: 5px; margin: 20px 0; }
+            .credential-item { margin: 10px 0; }
+            .credential-label { font-weight: bold; color: #10b981; }
+            .credential-value { font-family: monospace; font-size: 16px; background-color: #374151; padding: 5px 10px; border-radius: 3px; margin-left: 10px; }
+            .button { display: inline-block; background-color: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Välkommen till Ordflyt.se!</h1>
+            </div>
+            <div class="content">
+              <h2>Hej ${teacherName}!</h2>
+              <p>Fantastiskt! Din email är verifierad och ditt lärarkonto har skapats. Du har nu tillgång till alla verktyg på Ordflyt.se.</p>
+              
+              <h3>Dina inloggningsuppgifter:</h3>
+              <div class="credentials">
+                <div class="credential-item">
+                  <span class="credential-label">Användarnamn:</span>
+                  <span class="credential-value">${username}</span>
+                </div>
+                <div class="credential-item">
+                  <span class="credential-label">Lösenord:</span>
+                  <span class="credential-value">${temporaryPassword}</span>
+                </div>
+              </div>
+              
+              <a href="${process.env.FRONTEND_URL || 'https://ordflyt.se'}/login" class="button">Logga in nu</a>
+              
+              <div class="warning">
+                <p><strong>Viktigt:</strong> Detta är ett tillfälligt lösenord. Du kommer att bli ombedd att ändra det vid första inloggningen.</p>
+              </div>
+              
+              <h3>Vad kan du göra nu?</h3>
+              <ul>
+                <li>Utforska alla lektioner och övningar</li>
+                <li>Skapa klasser och lägga till elever</li>
+                <li>Tilldela lektioner till dina elever</li>
+                <li>Följa upp elevernas framsteg</li>
+                <li>Aktivera din licens för full funktionalitet</li>
+              </ul>
+              
+              <p>För att få full tillgång till alla funktioner, aktivera din licenskod i lärardashboard när du har köpt en licens.</p>
+              
+              <p>Vi ser fram emot att ha dig som en del av Ordflyt.se-familjen!</p>
+            </div>
+            <div class="footer">
+              <p>Detta meddelande skickades från Ordflyt.se<br>
+              Vid frågor, kontakta oss genom att svara på detta meddelande.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textBody = `
+Välkommen till Ordflyt.se!
+==========================
+
+Hej ${teacherName}!
+
+Fantastiskt! Din email är verifierad och ditt lärarkonto har skapats. Du har nu tillgång till alla verktyg på Ordflyt.se.
+
+DINA INLOGGNINGSUPPGIFTER:
+Användarnamn: ${username}
+Lösenord: ${temporaryPassword}
+
+Logga in på: ${process.env.FRONTEND_URL || 'https://ordflyt.se'}/login
+
+VIKTIGT: Detta är ett tillfälligt lösenord. Du kommer att bli ombedd att ändra det vid första inloggningen.
+
+VAD KAN DU GÖRA NU?
+- Utforska alla lektioner och övningar
+- Skapa klasser och lägga till elever
+- Tilldela lektioner till dina elever
+- Följa upp elevernas framsteg
+- Aktivera din licens för full funktionalitet
+
+För att få full tillgång till alla funktioner, aktivera din licenskod i lärardashboard när du har köpt en licens.
+
+Vi ser fram emot att ha dig som en del av Ordflyt.se-familjen!
+
+---
+Detta meddelande skickades från Ordflyt.se
+Vid frågor, kontakta oss genom att svara på detta meddelande.
+    `;
+
+    await this.sendEmail(toEmail, subject, htmlBody, textBody);
+  }
+
   // Test email configuration
   async testEmailConfig(): Promise<boolean> {
     try {

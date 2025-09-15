@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins } from "@shared/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema } from "@shared/schema";
+import { eq, and, gte, isNull } from "drizzle-orm";
 import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
 import argon2 from "argon2";
 import {
@@ -21,6 +21,7 @@ import {
 } from "./auth";
 import { logRequestInfo } from "./productionCheck";
 import { emailService } from "./emailService";
+import crypto from "crypto";
 
 const router = Router();
 
@@ -504,6 +505,507 @@ router.get("/api/auth/rate-limit-status", async (req, res) => {
   } catch (error) {
     console.error('Error checking rate limit status:', error);
     res.status(500).json({ error: 'Failed to check rate limit status' });
+  }
+});
+
+// TEACHER REGISTRATION SYSTEM  
+// Step 1: Teacher Registration with Email Verification
+router.post("/api/auth/teacher/register", loginRateLimit, async (req, res) => {
+  try {
+    const ipAddress = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+
+    // Validate request body with Zod schema
+    const validationResult = insertTeacherRegistrationSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      await logAuditEvent('TEACHER_REGISTRATION_VALIDATION_FAILED', null, false, ipAddress, userAgent, {
+        errors: validationResult.error.issues
+      });
+      return res.status(400).json({ 
+        error: 'Ogiltiga uppgifter',
+        details: validationResult.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`)
+      });
+    }
+
+    const { email, firstName, lastName, schoolName, subject, phoneNumber } = validationResult.data;
+
+    // Check if email already exists in users or teacher registrations
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'Ett konto med denna email finns redan' });
+    }
+
+    const [existingRegistration] = await db
+      .select()
+      .from(teacherRegistrations)
+      .where(eq(teacherRegistrations.email, email.toLowerCase()))
+      .limit(1);
+
+    if (existingRegistration) {
+      // If email not verified, resend verification
+      if (!existingRegistration.emailVerified) {
+        // Invalidate old tokens for this email
+        await db
+          .update(emailVerificationTokens)
+          .set({ usedAt: new Date() })
+          .where(
+            and(
+              eq(emailVerificationTokens.email, email.toLowerCase()),
+              eq(emailVerificationTokens.type, 'registration_verify'),
+              isNull(emailVerificationTokens.usedAt)
+            )
+          );
+
+        // Create new hashed token
+        const clearTextToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = await argon2.hash(clearTextToken);
+        
+        await db.insert(emailVerificationTokens).values({
+          email: email.toLowerCase(),
+          token: hashedToken,
+          type: 'registration_verify',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          userId: null
+        });
+
+        // Update registration timestamp
+        await db
+          .update(teacherRegistrations)
+          .set({ 
+            createdAt: new Date() // Reset timestamp for new verification
+          })
+          .where(eq(teacherRegistrations.id, existingRegistration.id));
+
+        // Send verification email with error handling
+        try {
+          const verificationLink = `${req.protocol}://${req.get('host')}/verifiera-email/${clearTextToken}`;
+          await emailService.sendEmailVerification(email.toLowerCase(), clearTextToken, verificationLink);
+
+          return res.json({ 
+            success: true, 
+            message: 'Verifieringslänk skickad till din email igen',
+            needsVerification: true
+          });
+        } catch (emailError) {
+          console.error('Email resend failed:', emailError);
+          
+          // In development, allow test emails to proceed
+          const isDevelopment = process.env.NODE_ENV === 'development';
+          const isTestEmail = email.includes('example.com') || email.includes('test');
+          
+          if (isDevelopment && isTestEmail) {
+            return res.json({ 
+              success: true, 
+              message: `[DEV MODE] Verifieringslänk skulle ha skickats till ${email}. Token: ${clearTextToken}`,
+              needsVerification: true,
+              devToken: clearTextToken
+            });
+          }
+          
+          return res.status(500).json({ 
+            error: 'Det uppstod ett problem med att skicka email. Försök igen senare.' 
+          });
+        }
+      } else {
+        return res.status(409).json({ error: 'En registrering med denna email är redan verifierad' });
+      }
+    }
+
+    // Create teacher registration record (without token)
+    const registrationData = {
+      email: email.toLowerCase(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      schoolName: schoolName.trim(),
+      subject: subject?.trim() || null,
+      phoneNumber: phoneNumber?.trim() || null,
+      status: 'pending_verification' as const
+    };
+
+    const [registration] = await db
+      .insert(teacherRegistrations)
+      .values(registrationData)
+      .returning();
+
+    // Create email verification token (hashed)
+    const clearTextToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = await argon2.hash(clearTextToken);
+    
+    await db.insert(emailVerificationTokens).values({
+      email: email.toLowerCase(),
+      token: hashedToken,
+      type: 'registration_verify',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      userId: null // Not set until account created
+    });
+
+    // Send verification email with error handling
+    try {
+      const verificationLink = `${req.protocol}://${req.get('host')}/verifiera-email/${clearTextToken}`;
+      await emailService.sendEmailVerification(email.toLowerCase(), clearTextToken, verificationLink);
+
+      // Log audit event
+      await logAuditEvent('TEACHER_REGISTRATION_REQUESTED', null, true, ipAddress, userAgent, {
+        email: email.toLowerCase(),
+        schoolName: schoolName.trim()
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Registrering mottagen! Kolla din email för verifieringslänk.',
+        needsVerification: true
+      });
+    } catch (emailError) {
+      console.error('Email verification sending failed:', emailError);
+      
+      // Handle email delivery errors gracefully
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const isTestEmail = email.includes('example.com') || email.includes('test');
+      
+      // Log audit event even if email fails
+      await logAuditEvent('TEACHER_REGISTRATION_EMAIL_FAILED', null, false, ipAddress, userAgent, {
+        email: email.toLowerCase(),
+        schoolName: schoolName.trim(),
+        error: emailError instanceof Error ? emailError.message : 'Unknown email error',
+        isDevelopment,
+        isTestEmail
+      });
+
+      // In development with test emails, show success but note email issue
+      if (isDevelopment && isTestEmail) {
+        console.log(`[DEV MODE] Simulating email send to test address: ${email}`);
+        return res.json({
+          success: true,
+          message: `Registrering mottagen! [DEV MODE] Email skulle ha skickats till ${email}. Token: ${clearTextToken}`,
+          needsVerification: true,
+          devToken: clearTextToken
+        });
+      }
+      
+      // Handle specific email provider errors
+      if (emailError instanceof Error && emailError.message.includes('InactiveRecipientsError')) {
+        return res.status(400).json({ 
+          error: 'Email-adressen verkar vara inaktiv eller blockerad. Försök med en annan email-adress.' 
+        });
+      } else if (emailError instanceof Error && emailError.message.includes('422')) {
+        return res.status(400).json({ 
+          error: 'Email-adressen kunde inte verifieras. Kontrollera att den är korrekt och försök igen.' 
+        });
+      } else {
+        return res.status(500).json({ 
+          error: 'Det uppstod ett problem med att skicka email. Kontakta support om problemet kvarstår.' 
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('Teacher registration error:', error);
+    res.status(500).json({ error: 'Serverfel vid registrering' });
+  }
+});
+
+// Step 2: Verify Email and Create Teacher Account
+router.post("/api/auth/teacher/verify-email", loginRateLimit, async (req, res) => {
+  try {
+    const ipAddress = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+
+    // Validate request body
+    if (!req.body.token || typeof req.body.token !== 'string') {
+      await logAuditEvent('EMAIL_VERIFICATION_VALIDATION_FAILED', null, false, ipAddress, userAgent, {
+        error: 'Missing or invalid token'
+      });
+      return res.status(400).json({ error: 'Verifieringstoken krävs' });
+    }
+
+    const { token } = req.body;
+
+    // Find all active verification tokens for registration_verify type
+    const verificationTokens = await db
+      .select()
+      .from(emailVerificationTokens)
+      .where(
+        and(
+          eq(emailVerificationTokens.type, 'registration_verify'),
+          gte(emailVerificationTokens.expiresAt, new Date()),
+          isNull(emailVerificationTokens.usedAt)
+        )
+      );
+
+    // Find matching token by comparing hashes
+    let matchingToken = null;
+    for (const dbToken of verificationTokens) {
+      try {
+        if (await argon2.verify(dbToken.token, token)) {
+          matchingToken = dbToken;
+          break;
+        }
+      } catch (error) {
+        // Invalid hash format, continue to next token
+        continue;
+      }
+    }
+
+    if (!matchingToken) {
+      await logAuditEvent('EMAIL_VERIFICATION_FAILED', null, false, ipAddress, userAgent, {
+        error: 'Invalid or expired token'
+      });
+      return res.status(404).json({ error: 'Ogiltig eller utgången verifieringslänk' });
+    }
+
+    // Find registration by email
+    const [registration] = await db
+      .select()
+      .from(teacherRegistrations)
+      .where(eq(teacherRegistrations.email, matchingToken.email))
+      .limit(1);
+
+    if (!registration) {
+      await logAuditEvent('EMAIL_VERIFICATION_FAILED', null, false, ipAddress, userAgent, {
+        error: 'Registration not found for email',
+        email: matchingToken.email
+      });
+      return res.status(404).json({ error: 'Registrering hittades inte' });
+    }
+
+    // Check if already verified
+    if (registration.emailVerified) {
+      return res.status(400).json({ error: 'Email redan verifierad' });
+    }
+
+    // Create teacher account
+    const username = `larare_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const tempPassword = crypto.randomBytes(12).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substr(0, 10);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        username,
+        passwordHash: hashedPassword,
+        role: 'LARARE',
+        email: registration.email,
+        emailVerified: true,
+        isActive: true,
+        mustChangePassword: true
+      })
+      .returning();
+
+    // Find or create school
+    let [school] = await db
+      .select()
+      .from(schools)
+      .where(eq(schools.name, registration.schoolName))
+      .limit(1);
+
+    if (!school) {
+      [school] = await db
+        .insert(schools)
+        .values({
+          name: registration.schoolName,
+          isActive: true
+        })
+        .returning();
+    }
+
+    // Create teacher-school membership
+    await db
+      .insert(teacherSchoolMemberships)
+      .values({
+        teacherId: newUser.id,
+        schoolId: school.id,
+        role: 'LARARE',
+        isActive: true
+      });
+
+    // Mark email verification token as used
+    await db
+      .update(emailVerificationTokens)
+      .set({
+        usedAt: new Date(),
+        userId: newUser.id
+      })
+      .where(eq(emailVerificationTokens.id, matchingToken.id));
+
+    // Update registration record
+    await db
+      .update(teacherRegistrations)
+      .set({
+        emailVerified: true,
+        verifiedAt: new Date(),
+        userId: newUser.id,
+        status: 'account_created'
+      })
+      .where(eq(teacherRegistrations.id, registration.id));
+
+    // Send welcome email with login credentials
+    await emailService.sendWelcomeEmail(
+      registration.email,
+      `${registration.firstName} ${registration.lastName}`,
+      username,
+      tempPassword
+    );
+
+    // Log audit event
+    await logAuditEvent('TEACHER_ACCOUNT_CREATED', newUser.id, true, ipAddress, userAgent, {
+      email: registration.email,
+      schoolName: registration.schoolName,
+      registrationId: registration.id
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Email verifierad! Ditt konto har skapats. Kolla din email för inloggningsuppgifter.',
+      accountCreated: true,
+      username
+    });
+
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({ error: 'Serverfel vid email-verifiering' });
+  }
+});
+
+// Step 3: Activate License Code
+router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, loginRateLimit, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const ipAddress = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+
+    // Check user role authorization
+    if (!userId || !userRole || !['LÄRARE', 'ADMIN'].includes(userRole)) {
+      await logAuditEvent('LICENSE_ACTIVATION_UNAUTHORIZED', userId, false, ipAddress, userAgent, {
+        userRole: userRole,
+        reason: 'Invalid role for license activation'
+      });
+      return res.status(403).json({ error: 'Otillräcklig behörighet för licensaktivering' });
+    }
+
+    // Validate license code
+    if (!req.body.licenseCode || typeof req.body.licenseCode !== 'string') {
+      await logAuditEvent('LICENSE_ACTIVATION_VALIDATION_FAILED', userId, false, ipAddress, userAgent, {
+        error: 'Missing or invalid license code'
+      });
+      return res.status(400).json({ error: 'Licenskod krävs' });
+    }
+
+    const { licenseCode } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Inloggning krävs' });
+    }
+
+    // Verify user is a teacher
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.role, 'LARARE')))
+      .limit(1);
+
+    if (!user) {
+      return res.status(403).json({ error: 'Endast lärare kan aktivera licenser' });
+    }
+
+    // Check if user already has an active license
+    const [existingLicense] = await db
+      .select()
+      .from(teacherLicenses)
+      .where(and(
+        eq(teacherLicenses.teacherId, userId),
+        eq(teacherLicenses.isActive, true)
+      ))
+      .limit(1);
+
+    if (existingLicense && existingLicense.expiresAt && new Date() < new Date(existingLicense.expiresAt)) {
+      return res.status(400).json({ 
+        error: 'Du har redan en aktiv licens',
+        expiresAt: existingLicense.expiresAt
+      });
+    }
+
+    // Try to find and redeem license code
+    try {
+      const codeHash = hashCode(licenseCode);
+      const code = await findOneTimeCode(codeHash);
+      
+      if (!code) {
+        await logAuditEvent('LICENSE_ACTIVATION_FAILED', userId, false, ipAddress, userAgent, {
+          licenseCode: licenseCode.substring(0, 4) + '****',
+          error: 'Code not found'
+        });
+        return res.status(404).json({ error: 'Ogiltig licenskod' });
+      }
+
+      // Check if already redeemed
+      if (code.redeemedAt) {
+        await logAuditEvent('LICENSE_ACTIVATION_FAILED', userId, false, ipAddress, userAgent, {
+          licenseCode: licenseCode.substring(0, 4) + '****',
+          error: 'Code already redeemed'
+        });
+        return res.status(400).json({ error: 'Denna licenskod har redan använts' });
+      }
+
+      // Check if expired
+      if (code.expiresAt && new Date() > new Date(code.expiresAt)) {
+        await logAuditEvent('LICENSE_ACTIVATION_FAILED', userId, false, ipAddress, userAgent, {
+          licenseCode: licenseCode.substring(0, 4) + '****',
+          error: 'Code expired'
+        });
+        return res.status(400).json({ error: 'Licenskoden har gått ut' });
+      }
+
+      // Check if email matches (optional validation)
+      if (code.recipientEmail && code.recipientEmail.toLowerCase() !== user.email?.toLowerCase()) {
+        await logAuditEvent('LICENSE_ACTIVATION_FAILED', userId, false, ipAddress, userAgent, {
+          licenseCode: licenseCode.substring(0, 4) + '****',
+          error: 'Email mismatch'
+        });
+        return res.status(400).json({ error: 'Denna licens tillhör en annan email-adress' });
+      }
+
+      // Create teacher license (valid for 1 year by default)
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      
+      const license = await createTeacherLicense(userId, code.id, expiresAt);
+      
+      // Mark code as redeemed
+      await redeemOneTimeCode(code.id, userId);
+      
+      await logAuditEvent('LICENSE_ACTIVATED', userId, true, ipAddress, userAgent, {
+        licenseCode: licenseCode.substring(0, 4) + '****',
+        expiresAt: license.expiresAt
+      });
+
+      res.json({
+        success: true,
+        message: 'Licens aktiverad framgångsrikt!',
+        license: {
+          expiresAt: license.expiresAt,
+          isActive: license.isActive
+        }
+      });
+
+    } catch (error) {
+      console.error('License activation error:', error);
+      await logAuditEvent('LICENSE_ACTIVATION_FAILED', userId, false, ipAddress, userAgent, {
+        licenseCode: licenseCode.substring(0, 4) + '****',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
+      res.status(500).json({ error: 'Serverfel vid licensaktivering' });
+    }
+
+  } catch (error) {
+    console.error('License activation error:', error);
+    res.status(500).json({ error: 'Serverfel vid licensaktivering' });
   }
 });
 

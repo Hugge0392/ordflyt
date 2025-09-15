@@ -46,6 +46,9 @@ import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RichEditorTest from "@/pages/rich-editor-test";
+import TeacherRegistrationPage from "@/pages/TeacherRegistrationPage";
+import EmailVerificationPage from "@/pages/EmailVerificationPage";
+import LicenseActivationPage from "@/pages/LicenseActivationPage";
 
 function Router() {
   return (
@@ -54,6 +57,15 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={LoginPage} />
       <Route path="/registrera" component={RegisterPage} />
+      
+      {/* Teacher registration system */}
+      <Route path="/registrera-larare" component={TeacherRegistrationPage} />
+      <Route path="/verifiera-email/:token" component={EmailVerificationPage} />
+      <Route path="/aktivera-licens">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <LicenseActivationPage />
+        </ProtectedRoute>
+      </Route>
       
       {/* Student routes - now public for exploration */}
       <Route path="/menu" component={Menu} />

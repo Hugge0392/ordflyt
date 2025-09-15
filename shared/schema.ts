@@ -158,6 +158,35 @@ export const oneTimeCodes = pgTable("one_time_codes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Email verification tokens for teacher registration
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  type: varchar("type", { length: 50 }).notNull(), // 'registration_verify', 'password_reset'
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  userId: varchar("user_id").references(() => users.id), // null for registration, set for password reset
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Teacher registration requests before account creation
+export const teacherRegistrations = pgTable("teacher_registrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  firstName: varchar("first_name", { length: 255 }).notNull(),
+  lastName: varchar("last_name", { length: 255 }).notNull(),
+  schoolName: varchar("school_name", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 255 }),
+  phoneNumber: varchar("phone_number", { length: 50 }),
+  emailVerified: boolean("email_verified").default(false),
+  userId: varchar("user_id").references(() => users.id), // Set after account creation
+  status: varchar("status", { length: 50 }).default('pending_verification'), // 'pending_verification', 'verified', 'account_created'
+  verificationToken: varchar("verification_token", { length: 64 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  verifiedAt: timestamp("verified_at"),
+});
+
 // Teacher licenses
 export const teacherLicenses = pgTable("teacher_licenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -291,6 +320,18 @@ export const insertTeacherLicenseSchema = createInsertSchema(teacherLicenses).om
   createdAt: true,
 });
 
+// Insert schemas for email verification and teacher registration
+export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTeacherRegistrationSchema = createInsertSchema(teacherRegistrations).omit({
+  id: true,
+  createdAt: true,
+  verifiedAt: true,
+});
+
 export const insertTeacherClassSchema = createInsertSchema(teacherClasses).omit({
   id: true,
   createdAt: true,
@@ -317,6 +358,13 @@ export type OneTimeCode = typeof oneTimeCodes.$inferSelect;
 export type InsertOneTimeCode = z.infer<typeof insertOneTimeCodeSchema>;
 export type TeacherLicense = typeof teacherLicenses.$inferSelect;
 export type InsertTeacherLicense = z.infer<typeof insertTeacherLicenseSchema>;
+
+// Types for email verification and teacher registration
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
+export type TeacherRegistration = typeof teacherRegistrations.$inferSelect;
+export type InsertTeacherRegistration = z.infer<typeof insertTeacherRegistrationSchema>;
+
 export type TeacherClass = typeof teacherClasses.$inferSelect;
 export type InsertTeacherClass = z.infer<typeof insertTeacherClassSchema>;
 export type StudentAccount = typeof studentAccounts.$inferSelect;
@@ -1328,15 +1376,6 @@ export type LessonAssignment = typeof lessonAssignments.$inferSelect;
 export type InsertLessonAssignment = z.infer<typeof insertLessonAssignmentSchema>;
 export type StudentLessonProgress = typeof studentLessonProgress.$inferSelect;
 export type InsertStudentLessonProgress = z.infer<typeof insertStudentLessonProgressSchema>;
-export type TeacherFeedback = typeof teacherFeedback.$inferSelect;
-export type InsertTeacherFeedback = z.infer<typeof insertTeacherFeedbackSchema>;
-
-export type LessonAssignment = typeof lessonAssignments.$inferSelect;
-export type InsertLessonAssignment = z.infer<typeof insertLessonAssignmentSchema>;
-
-export type StudentLessonProgress = typeof studentLessonProgress.$inferSelect;
-export type InsertStudentLessonProgress = z.infer<typeof insertStudentLessonProgressSchema>;
-
 export type TeacherFeedback = typeof teacherFeedback.$inferSelect;
 export type InsertTeacherFeedback = z.infer<typeof insertTeacherFeedbackSchema>;
 
