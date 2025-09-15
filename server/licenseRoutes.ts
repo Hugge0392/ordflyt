@@ -360,12 +360,16 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, a
     const registrationLink = `${baseUrl}/auth/register?code=${result.clearTextCode}`;
     
     // Send email with registration code
+    let emailSent = false;
+    let emailError = null;
+    
     try {
       await emailService.sendTeacherRegistrationCode(
         recipientEmail,
         result.clearTextCode,
         registrationLink
       );
+      emailSent = true;
       
       // Log successful email send
       await logLicenseActivity(null, 'email_sent', {
@@ -374,20 +378,30 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, a
         email_type: 'registration_code'
       }, userId, req.ip || 'unknown');
       
-    } catch (emailError: any) {
-      console.error('Failed to send registration email:', emailError);
+    } catch (error: any) {
+      console.error('Failed to send registration email:', error);
+      emailError = error.message;
       
       // Log email failure but don't fail the code generation
       await logLicenseActivity(null, 'email_failed', {
         recipient_email: recipientEmail,
         code_id: result.id,
-        error: emailError.message
+        error: error.message
       }, userId, req.ip || 'unknown');
+    }
+
+    // Create appropriate response message
+    let message;
+    if (emailSent) {
+      message = 'Engångskod genererad och e-post skickad!';
+    } else {
+      message = `Engångskod genererad, men e-post kunde inte skickas (${emailError}). Koden visas nedan:`;
     }
 
     res.json({
       success: true,
-      message: 'Engångskod genererad och e-post skickad!',
+      message,
+      emailSent,
       code: {
         id: result.id,
         code: result.clearTextCode,

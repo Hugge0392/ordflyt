@@ -1241,22 +1241,13 @@ export default function TeacherDashboard() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': localStorage.getItem('csrfToken') || '',
-        },
+      await apiRequest('POST', '/api/auth/logout');
+      localStorage.removeItem('csrfToken');
+      toast({
+        title: 'Utloggad',
+        description: 'Du har loggats ut från systemet',
       });
-
-      if (response.ok) {
-        localStorage.removeItem('csrfToken');
-        toast({
-          title: 'Utloggad',
-          description: 'Du har loggats ut från systemet',
-        });
-        setLocation('/login');
-      }
+      setLocation('/login');
     } catch (error) {
       console.error('Logout error:', error);
       toast({

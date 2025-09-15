@@ -12,9 +12,26 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
+  // Build headers
+  const headers: Record<string, string> = {};
+  
+  // Add Content-Type for requests with data
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // Add CSRF token for mutating operations
+  const mutatingMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  if (mutatingMethods.includes(method.toUpperCase())) {
+    const csrfToken = localStorage.getItem('csrfToken');
+    if (csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
