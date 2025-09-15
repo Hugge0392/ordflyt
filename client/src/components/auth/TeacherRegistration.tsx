@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, Mail, User, School, BookOpen, Phone, Eye, EyeOff, Key, Shield } from 'lucide-react';
+import { AlertCircle, CheckCircle, Mail, User, School, Eye, EyeOff, Key, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const teacherRegistrationSchema = z.object({
@@ -29,8 +28,6 @@ const teacherRegistrationSchema = z.object({
   firstName: z.string().min(1, 'Förnamn krävs').max(255, 'Förnamn för långt'),
   lastName: z.string().min(1, 'Efternamn krävs').max(255, 'Efternamn för långt'),
   schoolName: z.string().min(1, 'Skolnamn krävs').max(255, 'Skolnamn för långt'),
-  subject: z.string().optional(),
-  phoneNumber: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Lösenorden måste matcha',
   path: ['confirmPassword'],
@@ -40,29 +37,11 @@ type TeacherRegistrationData = z.infer<typeof teacherRegistrationSchema>;
 
 interface TeacherRegistrationProps {
   onSuccess?: () => void;
+  initialCode?: string;
 }
 
-const COMMON_SUBJECTS = [
-  'Svenska',
-  'Matematik',
-  'Engelska',
-  'Historia',
-  'Geografi',
-  'Naturkunskap',
-  'Biologi',
-  'Kemi',
-  'Fysik',
-  'Idrott och hälsa',
-  'Musik',
-  'Bild',
-  'Slöjd',
-  'Hemkunskap',
-  'Teknik',
-  'Specialpedagogik',
-  'Annet'
-];
 
-export default function TeacherRegistration({ onSuccess }: TeacherRegistrationProps) {
+export default function TeacherRegistration({ onSuccess, initialCode }: TeacherRegistrationProps) {
   const [registrationStatus, setRegistrationStatus] = useState<'form' | 'success' | 'error'>('form');
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -75,15 +54,20 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
       username: '',
       password: '',
       confirmPassword: '',
-      oneTimeCode: '',
+      oneTimeCode: initialCode || '',
       email: '',
       firstName: '',
       lastName: '',
       schoolName: '',
-      subject: '',
-      phoneNumber: '',
     }
   });
+
+  // Auto-fill code when initialCode prop changes
+  useEffect(() => {
+    if (initialCode) {
+      form.setValue('oneTimeCode', initialCode);
+    }
+  }, [initialCode, form]);
 
   const registrationMutation = useMutation({
     mutationFn: async (data: TeacherRegistrationData) => {
@@ -193,8 +177,9 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                   <FormControl>
                     <Input 
                       {...field} 
-                      placeholder="Kod från administratör"
                       data-testid="input-one-time-code"
+                      readOnly={!!initialCode}
+                      className={initialCode ? 'bg-gray-50' : ''}
                     />
                   </FormControl>
                   <FormDescription>
@@ -218,7 +203,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                   <FormControl>
                     <Input 
                       {...field} 
-                      placeholder="annaandersson"
                       data-testid="input-username"
                     />
                   </FormControl>
@@ -245,7 +229,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                       <Input 
                         {...field} 
                         type={showPassword ? "text" : "password"}
-                        placeholder="Minst 8 tecken"
                         data-testid="input-password"
                       />
                       <Button
@@ -317,7 +300,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                     <Input 
                       {...field} 
                       type="email" 
-                      placeholder="din.email@skola.se"
                       data-testid="input-email"
                     />
                   </FormControl>
@@ -340,7 +322,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                     <FormControl>
                       <Input 
                         {...field} 
-                        placeholder="Anna"
                         data-testid="input-first-name"
                       />
                     </FormControl>
@@ -358,7 +339,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                     <FormControl>
                       <Input 
                         {...field} 
-                        placeholder="Andersson"
                         data-testid="input-last-name"
                       />
                     </FormControl>
@@ -381,7 +361,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
                   <FormControl>
                     <Input 
                       {...field} 
-                      placeholder="Skolans namn"
                       data-testid="input-school-name"
                     />
                   </FormControl>
@@ -393,57 +372,6 @@ export default function TeacherRegistration({ onSuccess }: TeacherRegistrationPr
               )}
             />
 
-            {/* Subject */}
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" />
-                    Ämne (valfritt)
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-subject">
-                        <SelectValue placeholder="Välj ditt huvudämne" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {COMMON_SUBJECTS.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Phone */}
-            <FormField
-              control={form.control}
-              name="phoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    Telefonnummer (valfritt)
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      type="tel" 
-                      placeholder="070-123 45 67"
-                      data-testid="input-phone-number"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="pt-4">
               <Button 

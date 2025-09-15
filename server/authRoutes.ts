@@ -202,9 +202,7 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
     oneTimeCode, 
     firstName, 
     lastName, 
-    schoolName, 
-    subject, 
-    phoneNumber 
+    schoolName 
   } = req.body;
   const actualCode = code || oneTimeCode; // Support both field names
   const ipAddress = req.ip || 'unknown';
@@ -223,8 +221,6 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
         firstName,
         lastName,
         schoolName,
-        subject: subject || null,
-        phoneNumber: phoneNumber || null,
         emailVerified: true,
         status: 'account_created' as const
       };
@@ -333,8 +329,6 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       firstName,
       lastName,
       schoolName,
-      subject: subject || null,
-      phoneNumber: phoneNumber || null,
       emailVerified: true,
       userId: newUser.id,
       status: 'account_created'
