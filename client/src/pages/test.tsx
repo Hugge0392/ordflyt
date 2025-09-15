@@ -7,6 +7,8 @@ import GameHeader from "@/components/ui/game-header";
 import SentenceDisplay from "@/components/ui/sentence-display";
 import TimerDisplay from "@/components/ui/timer-display";
 import WordClassGuide from "@/components/ui/word-class-guide";
+import { usePreviewToastListener } from "@/hooks/usePreviewToastListener";
+import { guardMutation } from "@/lib/preview-protection";
 
 export default function Test() {
   const [match, params] = useRoute("/test/:testType");
@@ -30,6 +32,8 @@ export default function Test() {
   const [testScore, setTestScore] = useState(0);
   
   const timerRef = useRef<NodeJS.Timeout>();
+  // Listen for preview toast events
+  usePreviewToastListener();
 
   // Fetch game data
   const { data: allSentences = [], isLoading: sentencesLoading } = useQuery<Sentence[]>({
@@ -53,8 +57,7 @@ export default function Test() {
 
   const updateProgressMutation = useMutation({
     mutationFn: async (updates: Partial<GameProgress>) => {
-      const response = await apiRequest("PATCH", "/api/game-progress", updates);
-      return response.json();
+      return await apiRequest("PATCH", "/api/game-progress", updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/game-progress"] });
@@ -172,11 +175,18 @@ export default function Test() {
       
       // Update game progress
       if (gameProgress) {
-        updateProgressMutation.mutate({
-          score: gameProgress.score + finalScore,
-          correctAnswers: gameProgress.correctAnswers + correctAnswers,
-          wrongAnswers: gameProgress.wrongAnswers + wrongAnswers,
+        const shouldBlock = guardMutation({
+          action: 'testresultat',
+          showToast: true
         });
+        
+        if (!shouldBlock) {
+          updateProgressMutation.mutate({
+            score: gameProgress.score + finalScore,
+            correctAnswers: gameProgress.correctAnswers + correctAnswers,
+            wrongAnswers: gameProgress.wrongAnswers + wrongAnswers,
+          });
+        }
       }
     }
   };

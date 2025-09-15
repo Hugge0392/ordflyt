@@ -54,6 +54,7 @@ import StudentWorkReview from '@/components/StudentWorkReview';
 import FeedbackList from '@/components/FeedbackList';
 import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
 import ExportDashboard from '@/components/export/ExportDashboard';
+import { usePreview } from '@/contexts/PreviewContext';
 
 // Dashboard section types
 type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export';
@@ -138,7 +139,7 @@ function StudentManagementSection() {
 
   const fetchStudentPassword = async (studentId: string) => {
     try {
-      const response = await apiRequest(`/api/license/students/${studentId}/password`, 'GET');
+      const response = await apiRequest('GET', `/api/license/students/${studentId}/password`);
       setStudentPasswords(prev => ({
         ...prev,
         [studentId]: response.password
@@ -175,7 +176,7 @@ function StudentManagementSection() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      return apiRequest(`/api/license/students/${studentId}/reset-password`, 'POST');
+      return apiRequest('POST', `/api/license/students/${studentId}/reset-password`);
     },
     onSuccess: (data, studentId) => {
       // Cache the new password for immediate display
@@ -206,7 +207,7 @@ function StudentManagementSection() {
 
   const createStudentMutation = useMutation({
     mutationFn: async ({ classId, studentName }: { classId: string; studentName: string }) => {
-      return apiRequest(`/api/license/classes/${classId}/students`, 'POST', { studentName });
+      return apiRequest('POST', `/api/license/classes/${classId}/students`, { studentName });
     },
     onSuccess: (data) => {
       // Cache the new password for immediate display
@@ -240,7 +241,7 @@ function StudentManagementSection() {
 
   const deleteStudentMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      return apiRequest(`/api/license/students/${studentId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/license/students/${studentId}`);
     },
     onSuccess: (data, studentId) => {
       // Remove password from cache
@@ -436,7 +437,7 @@ function StudentManagementSection() {
   const bulkPasswordResetMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
       const promises = studentIds.map(id => 
-        apiRequest(`/api/license/students/${id}/reset-password`, 'POST')
+        apiRequest('POST', `/api/license/students/${id}/reset-password`)
       );
       return Promise.all(promises);
     },
@@ -491,7 +492,7 @@ function StudentManagementSection() {
 
   const studentToolSettingsMutation = useMutation({
     mutationFn: async ({ studentId, settings }: { studentId: string; settings: any }) => {
-      return apiRequest(`/api/license/students/${studentId}/tool-settings`, 'PUT', settings);
+      return apiRequest('PUT', `/api/license/students/${studentId}/tool-settings`, settings);
     },
     onSuccess: () => {
       setShowToolSettings(false);
@@ -1198,6 +1199,7 @@ export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading, teacherContext, school, hasSchoolAccess } = useAuth();
   const { toast } = useToast();
+  const { isPreviewMode, previewStudent, setPreviewMode, exitPreviewMode } = usePreview();
 
   // Fetch dashboard statistics
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
@@ -1218,6 +1220,13 @@ export default function TeacherDashboard() {
     queryKey: ['/api/teacher/recent-activity'],
     enabled: isAuthenticated && teacherContext?.isTeacher,
     initialData: []
+  });
+
+  // Fetch teacher's classes and students for preview dropdown
+  const { data: dashboardClassesData } = useQuery<ClassesResponse>({
+    queryKey: ['/api/license/classes'],
+    enabled: isAuthenticated && teacherContext?.isTeacher,
+    initialData: { classes: [] },
   });
 
   // Check authentication and redirect if needed
@@ -1614,6 +1623,88 @@ export default function TeacherDashboard() {
                 <span className="font-medium">{user.username}</span>
                 {school && (
                   <span className="ml-2 text-gray-400">• {school.name}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Student Preview Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Preview Mode Indicator */}
+              {isPreviewMode && previewStudent && (
+                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-lg border border-orange-200 text-sm font-medium">
+                  <Eye className="h-4 w-4 inline mr-1" />
+                  Tittar som: {previewStudent.studentName}
+                </div>
+              )}
+
+              {/* Student Preview Dropdown */}
+              <div className="flex items-center space-x-2">
+                <Select
+                  value={isPreviewMode ? previewStudent?.id || '' : ''}
+                  onValueChange={(studentId) => {
+                    if (!studentId) {
+                      exitPreviewMode();
+                      return;
+                    }
+                    // Find student from all classes
+                    const allStudents = (dashboardClassesData?.classes || []).flatMap((c: ClassData) => 
+                      c.students.map((s: StudentData) => ({
+                        ...s,
+                        className: c.name
+                      }))
+                    );
+                    const selectedStudent = allStudents.find(s => s.id === studentId);
+                    if (selectedStudent) {
+                      setPreviewMode(true, selectedStudent);
+                      toast({
+                        title: "Elevperspektiv aktiverat",
+                        description: `Du ser nu systemet som ${selectedStudent.studentName}`,
+                      });
+                    }
+                  }}
+                  data-testid="select-student-preview"
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Välj elev att förhandsgranska" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Ingen förhandsgranskning</SelectItem>
+                    {(dashboardClassesData?.classes || []).map((classItem: ClassData) => (
+                      <div key={classItem.id}>
+                        <div className="font-semibold text-xs text-gray-500 px-2 py-1">
+                          {classItem.name}
+                        </div>
+                        {classItem.students.map((student: StudentData) => (
+                          <SelectItem 
+                            key={student.id} 
+                            value={student.id}
+                            className="pl-4"
+                          >
+                            {student.studentName}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Quick Exit Preview Button */}
+                {isPreviewMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      exitPreviewMode();
+                      toast({
+                        title: "Elevperspektiv inaktiverat",
+                        description: "Du är nu tillbaka i lärarvyn",
+                      });
+                    }}
+                    data-testid="button-exit-preview"
+                  >
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    Avsluta
+                  </Button>
                 )}
               </div>
             </div>

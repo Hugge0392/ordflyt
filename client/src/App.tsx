@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StudentClassroomProvider } from "@/components/classroom/StudentClassroomClient";
+import { PreviewProvider } from "@/contexts/PreviewContext";
+import PreviewModeBanner from "@/components/PreviewModeBanner";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Menu from "@/pages/menu";
@@ -209,10 +211,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <StudentClassroomProvider>
-          <Toaster />
-          <Router />
-        </StudentClassroomProvider>
+        <PreviewProvider>
+          <StudentClassroomProvider>
+            <PreviewModeBanner />
+            <Toaster />
+            <Router />
+          </StudentClassroomProvider>
+        </PreviewProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

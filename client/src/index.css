@@ -1673,3 +1673,79 @@ html, body {
   background-color: rgba(59, 130, 246, 0.1);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
+/* Preview Mode Styles */
+.preview-mode {
+  --preview-banner-height: 4rem; /* Increased from 60px to accommodate larger banner */
+}
+
+.preview-mode body {
+  padding-top: var(--preview-banner-height);
+  margin-top: 0; /* Reset any existing margin */
+}
+
+/* Ensure main content areas are properly positioned */
+.preview-mode .main-content,
+.preview-mode main,
+.preview-mode [role="main"],
+.preview-mode .container {
+  margin-top: var(--preview-banner-height);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 640px) {
+  .preview-mode {
+    --preview-banner-height: 5rem; /* Extra height for mobile layout */
+  }
+}
+
+.preview-mode .preview-indicator {
+  @apply bg-orange-100 border-orange-200 text-orange-800;
+  animation: preview-pulse 2s infinite;
+}
+
+.preview-mode .preview-disabled {
+  @apply opacity-50 pointer-events-none;
+}
+
+.preview-mode .preview-warning {
+  @apply border-l-4 border-l-orange-500 bg-orange-50 text-orange-800;
+}
+
+@keyframes preview-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Preview Mode Button Styles */
+.preview-mode .btn-save {
+  @apply bg-gray-300 text-gray-500 cursor-not-allowed;
+}
+
+.preview-mode .btn-save:hover {
+  @apply bg-gray-300 text-gray-500;
+}
+
+/* Preview Mode Visual Indicators */
+.preview-mode-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 165, 0, 0.05);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.preview-toast {
+  @apply bg-orange-500 border-orange-600 text-white;
+}
+
+.preview-toast .toast-close {
+  @apply text-white hover:text-orange-100;
+}

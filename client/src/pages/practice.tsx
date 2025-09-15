@@ -9,6 +9,8 @@ import ErrorReportModal from "@/components/ui/error-report-modal";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { usePreviewToastListener } from "@/hooks/usePreviewToastListener";
+import { guardMutation } from "@/lib/preview-protection";
 
 export default function Practice() {
   const [matchLevel, paramsLevel] = useRoute("/practice/:wordClass/level/:level");
@@ -33,6 +35,8 @@ export default function Practice() {
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated, user } = useAuth();
+  // Listen for preview toast events
+  usePreviewToastListener();
 
   // Fetch appropriate sentences based on level (public access)
   const { data: sentences = [], isLoading: sentencesLoading, error: sentencesError } = useQuery<Sentence[]>({
@@ -99,8 +103,7 @@ export default function Practice() {
   const updateProgressMutation = useMutation({
     mutationFn: async (updates: Partial<GameProgress>) => {
       if (!isAuthenticated) return null;
-      const response = await apiRequest("PATCH", "/api/game-progress", updates);
-      return response.json();
+      return await apiRequest("PATCH", "/api/game-progress", updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/game-progress"] });
@@ -216,12 +219,19 @@ export default function Practice() {
       // Level completed
       setLevelCompleted(true);
       if (practiceLevel && specificWordClass) {
-        updateProgressMutation.mutate({
-          completedLevels: {
-            ...gameProgress?.completedLevels,
-            [specificWordClass]: Math.max(gameProgress?.completedLevels?.[specificWordClass] || 0, practiceLevel)
-          }
+        const shouldBlock = guardMutation({
+          action: 'nivåframsteg',
+          showToast: true
         });
+        
+        if (!shouldBlock) {
+          updateProgressMutation.mutate({
+            completedLevels: {
+              ...gameProgress?.completedLevels,
+              [specificWordClass]: Math.max(gameProgress?.completedLevels?.[specificWordClass] || 0, practiceLevel)
+            }
+          });
+        }
       }
     }
   };
@@ -330,17 +340,24 @@ export default function Practice() {
 
     // Update progress
     if (gameProgress && specificWordClass) {
-      const currentWordClassCorrectAnswers = gameProgress.correctAnswersByWordClass?.[specificWordClass] || 0;
-      
-      updateProgressMutation.mutate({
-        score: gameProgress.score + (isCorrect ? 10 : 0),
-        correctAnswers: gameProgress.correctAnswers + (isCorrect ? 1 : 0),
-        wrongAnswers: gameProgress.wrongAnswers + (isCorrect ? 0 : 1),
-        correctAnswersByWordClass: {
-          ...gameProgress.correctAnswersByWordClass,
-          [specificWordClass]: currentWordClassCorrectAnswers + (isCorrect ? 1 : 0)
-        }
+      const shouldBlock = guardMutation({
+        action: 'poängframsteg',
+        showToast: true
       });
+      
+      if (!shouldBlock) {
+        const currentWordClassCorrectAnswers = gameProgress.correctAnswersByWordClass?.[specificWordClass] || 0;
+        
+        updateProgressMutation.mutate({
+          score: gameProgress.score + (isCorrect ? 10 : 0),
+          correctAnswers: gameProgress.correctAnswers + (isCorrect ? 1 : 0),
+          wrongAnswers: gameProgress.wrongAnswers + (isCorrect ? 0 : 1),
+          correctAnswersByWordClass: {
+            ...gameProgress.correctAnswersByWordClass,
+            [specificWordClass]: currentWordClassCorrectAnswers + (isCorrect ? 1 : 0)
+          }
+        });
+      }
     }
   };
 
@@ -356,9 +373,16 @@ export default function Practice() {
           newCompletedLevels[specificWordClass] = practiceLevel;
           console.log(`🎯 DEBUG: Level completed! ${specificWordClass} level ${practiceLevel}. Previous: ${currentLevel}, New: ${practiceLevel}`);
           
-          updateProgressMutation.mutate({
-            completedLevels: newCompletedLevels
+          const shouldBlockLevel = guardMutation({
+            action: 'nivåuppdatering',
+            showToast: true
           });
+          
+          if (!shouldBlockLevel) {
+            updateProgressMutation.mutate({
+              completedLevels: newCompletedLevels
+            });
+          }
         } else {
           console.log(`🎯 DEBUG: Level ${practiceLevel} already completed for ${specificWordClass} (current: ${currentLevel})`);
         }
