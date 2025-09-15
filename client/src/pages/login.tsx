@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, LogIn } from "lucide-react";
-import { useLocation } from "wouter";
+import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
@@ -173,6 +173,28 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+
+          {/* Registration Links */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              Har du inget konto än?
+            </p>
+            <div className="space-y-2">
+              <Link href="/registrera-larare">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  data-testid="button-register-teacher"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Skapa lärarkonto
+                </Button>
+              </Link>
+              <p className="text-xs text-muted-foreground">
+                För lärare som vill använda Ordflyt i undervisningen
+              </p>
+            </div>
+          </div>
 
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
