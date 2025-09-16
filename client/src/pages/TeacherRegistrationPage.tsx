@@ -5,10 +5,6 @@ import { ArrowLeft, Home } from 'lucide-react';
 
 export default function TeacherRegistrationPage() {
   const [, navigate] = useLocation();
-  
-  // Get code from URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const codeFromUrl = urlParams.get('code');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -44,7 +40,6 @@ export default function TeacherRegistrationPage() {
 
         {/* Registration Form */}
         <TeacherRegistration 
-          initialCode={codeFromUrl || undefined}
           onSuccess={() => {
             // Optional: Navigate somewhere after successful registration
           }} 

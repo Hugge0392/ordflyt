@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, Mail, User, School, Eye, EyeOff, Key, Shield } from 'lucide-react';
+import { AlertCircle, CheckCircle, Mail, User, School, Eye, EyeOff, Key } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const teacherRegistrationSchema = z.object({
@@ -23,7 +23,6 @@ const teacherRegistrationSchema = z.object({
     .regex(/[A-Z]/, 'Lösenordet måste innehålla minst en stor bokstav')
     .regex(/[0-9]/, 'Lösenordet måste innehålla minst en siffra'),
   confirmPassword: z.string(),
-  oneTimeCode: z.string().optional(),
   email: z.string().email('Ogiltig email-adress'),
   firstName: z.string().min(1, 'Förnamn krävs').max(255, 'Förnamn för långt'),
   lastName: z.string().min(1, 'Efternamn krävs').max(255, 'Efternamn för långt'),
@@ -37,11 +36,10 @@ type TeacherRegistrationData = z.infer<typeof teacherRegistrationSchema>;
 
 interface TeacherRegistrationProps {
   onSuccess?: () => void;
-  initialCode?: string;
 }
 
 
-export default function TeacherRegistration({ onSuccess, initialCode }: TeacherRegistrationProps) {
+export default function TeacherRegistration({ onSuccess }: TeacherRegistrationProps) {
   const [registrationStatus, setRegistrationStatus] = useState<'form' | 'success' | 'error'>('form');
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +52,6 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
       username: '',
       password: '',
       confirmPassword: '',
-      oneTimeCode: initialCode || '',
       email: '',
       firstName: '',
       lastName: '',
@@ -62,12 +59,6 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
     }
   });
 
-  // Auto-fill code when initialCode prop changes
-  useEffect(() => {
-    if (initialCode) {
-      form.setValue('oneTimeCode', initialCode);
-    }
-  }, [initialCode, form]);
 
   const registrationMutation = useMutation({
     mutationFn: async (data: TeacherRegistrationData) => {
@@ -164,32 +155,6 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* One Time Code */}
-            <FormField
-              control={form.control}
-              name="oneTimeCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Engångskod (valfritt)
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      data-testid="input-one-time-code"
-                      readOnly={!!initialCode}
-                      className={initialCode ? 'bg-gray-50' : ''}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Ange engångskoden om du fått en från din administratör. Utan kod kan du registrera dig som testanvändare.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* Username */}
             <FormField
               control={form.control}
