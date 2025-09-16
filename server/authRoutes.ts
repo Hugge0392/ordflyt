@@ -115,14 +115,12 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const, // More lenient in production
       maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 30 * 60 * 1000, // 1h for students, 30min for teachers/admins
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined // Allow subdomain access in production
+      // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
     
     console.log('Setting session cookie for login with options:', {
       ...cookieOptions,
-      domain: cookieOptions.domain || 'default',
-      secure: cookieOptions.secure,
-      sameSite: cookieOptions.sameSite,
+      domain: 'default (current domain)',
       userRole: user.role
     });
     
@@ -181,8 +179,8 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
     
     // Clear cookie with proper domain settings
     res.clearCookie('sessionToken', {
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined
+      path: '/'
+      // Domain omitted to work with any deployment domain
     });
     
     res.json({ success: true });
@@ -301,13 +299,13 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const,
       maxAge: 30 * 60 * 1000, // 30 minutes for teachers
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.ordflyt.se' : undefined
+      path: '/'
+      // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
     
     console.log('Setting session cookie for registration with options:', {
       ...cookieOptions,
-      domain: cookieOptions.domain || 'default'
+      domain: 'default (current domain)'
     });
     
     res.cookie('sessionToken', sessionData.sessionToken, cookieOptions);
