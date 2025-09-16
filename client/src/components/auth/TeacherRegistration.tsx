@@ -23,7 +23,7 @@ const teacherRegistrationSchema = z.object({
     .regex(/[A-Z]/, 'Lösenordet måste innehålla minst en stor bokstav')
     .regex(/[0-9]/, 'Lösenordet måste innehålla minst en siffra'),
   confirmPassword: z.string(),
-  oneTimeCode: z.string().min(1, 'Engångskod krävs'),
+  oneTimeCode: z.string().optional(),
   email: z.string().email('Ogiltig email-adress'),
   firstName: z.string().min(1, 'Förnamn krävs').max(255, 'Förnamn för långt'),
   lastName: z.string().min(1, 'Efternamn krävs').max(255, 'Efternamn för långt'),
@@ -124,7 +124,7 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
             <p><strong>Nästa steg:</strong></p>
             <ol className="list-decimal list-inside text-left space-y-1">
               <li>Logga in med ditt användarnamn och lösenord</li>
-              <li>Aktivera din licens i inställningarna</li>
+              <li>Om du har en licens, aktivera den i inställningarna</li>
               <li>Börja skapa lektioner och använda plattformen</li>
             </ol>
           </div>
@@ -172,7 +172,7 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    Engångskod *
+                    Engångskod (valfritt)
                   </FormLabel>
                   <FormControl>
                     <Input 
@@ -183,7 +183,7 @@ export default function TeacherRegistration({ onSuccess, initialCode }: TeacherR
                     />
                   </FormControl>
                   <FormDescription>
-                    Ange engångskoden du fått från din administratör
+                    Ange engångskoden om du fått en från din administratör. Utan kod kan du registrera dig som testanvändare.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -209,9 +209,9 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
   const userAgent = req.headers['user-agent'];
   
   try {
-    // Validate input
-    if (!username || !email || !password || !actualCode || !firstName || !lastName || !schoolName) {
-      return res.status(400).json({ error: 'Alla obligatoriska fält krävs (användarnamn, email, lösenord, kod, förnamn, efternamn, skolnamn)' });
+    // Validate input (actualCode is now optional)
+    if (!username || !email || !password || !firstName || !lastName || !schoolName) {
+      return res.status(400).json({ error: 'Alla obligatoriska fält krävs (användarnamn, email, lösenord, förnamn, efternamn, skolnamn)' });
     }
 
     // Validate teacher profile data using schema
@@ -260,54 +260,63 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       return res.status(400).json({ error: 'Användarnamnet är redan taget' });
     }
 
-    // Find and validate one-time code
-    const codeHash = hashCode(actualCode);
-    const oneTimeCode = await findOneTimeCode(codeHash);
+    // Handle one-time code validation (optional)
+    let validatedCode = null;
+    let license = null;
+    const hasCode = actualCode && actualCode.trim().length > 0;
+    
+    if (hasCode) {
+      // Find and validate one-time code
+      const codeHash = hashCode(actualCode);
+      const oneTimeCode = await findOneTimeCode(codeHash);
 
-    if (!oneTimeCode) {
-      await logLicenseActivity(null, 'registration_failed', { 
-        reason: 'invalid_code',
-        attempted_username: username,
-        attempted_email: email
-      }, undefined, ipAddress);
-      return res.status(400).json({ error: 'Ogiltig engångskod' });
-    }
+      if (!oneTimeCode) {
+        await logLicenseActivity(null, 'registration_failed', { 
+          reason: 'invalid_code',
+          attempted_username: username,
+          attempted_email: email
+        }, undefined, ipAddress);
+        return res.status(400).json({ error: 'Ogiltig engångskod' });
+      }
 
-    // Check if code is already redeemed
-    if (oneTimeCode.redeemedAt) {
-      await logLicenseActivity(null, 'registration_failed', { 
-        reason: 'code_already_redeemed',
-        attempted_username: username,
-        attempted_email: email,
-        code_id: oneTimeCode.id
-      }, undefined, ipAddress);
-      return res.status(400).json({ error: 'Koden har redan använts' });
-    }
+      // Check if code is already redeemed
+      if (oneTimeCode.redeemedAt) {
+        await logLicenseActivity(null, 'registration_failed', { 
+          reason: 'code_already_redeemed',
+          attempted_username: username,
+          attempted_email: email,
+          code_id: oneTimeCode.id
+        }, undefined, ipAddress);
+        return res.status(400).json({ error: 'Koden har redan använts' });
+      }
 
-    // Check if code has expired
-    if (new Date() > oneTimeCode.expiresAt) {
-      await logLicenseActivity(null, 'registration_failed', { 
-        reason: 'code_expired',
-        attempted_username: username,
-        attempted_email: email,
-        code_id: oneTimeCode.id
-      }, undefined, ipAddress);
-      return res.status(400).json({ error: 'Koden har gått ut' });
-    }
+      // Check if code has expired
+      if (new Date() > oneTimeCode.expiresAt) {
+        await logLicenseActivity(null, 'registration_failed', { 
+          reason: 'code_expired',
+          attempted_username: username,
+          attempted_email: email,
+          code_id: oneTimeCode.id
+        }, undefined, ipAddress);
+        return res.status(400).json({ error: 'Koden har gått ut' });
+      }
 
-    // Validate email matches code
-    if (oneTimeCode.recipientEmail !== email) {
-      await logLicenseActivity(null, 'registration_failed', { 
-        reason: 'email_mismatch',
-        attempted_username: username,
-        attempted_email: email,
-        code_email: oneTimeCode.recipientEmail,
-        code_id: oneTimeCode.id
-      }, undefined, ipAddress);
-      return res.status(400).json({ 
-        error: 'E-postadressen matchar inte koden',
-        message: `Koden är utställd för ${oneTimeCode.recipientEmail}`
-      });
+      // Validate email matches code
+      if (oneTimeCode.recipientEmail !== email) {
+        await logLicenseActivity(null, 'registration_failed', { 
+          reason: 'email_mismatch',
+          attempted_username: username,
+          attempted_email: email,
+          code_email: oneTimeCode.recipientEmail,
+          code_id: oneTimeCode.id
+        }, undefined, ipAddress);
+        return res.status(400).json({ 
+          error: 'E-postadressen matchar inte koden',
+          message: `Koden är utställd för ${oneTimeCode.recipientEmail}`
+        });
+      }
+      
+      validatedCode = oneTimeCode;
     }
 
     // Hash password and create user
@@ -334,16 +343,28 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       status: 'account_created'
     }).returning();
 
-    // Redeem the code and create license
-    await redeemOneTimeCode(oneTimeCode.id, newUser.id);
-    const license = await createTeacherLicense(newUser.id, oneTimeCode.id);
+    // Handle license creation if code was provided
+    if (hasCode && validatedCode) {
+      // Redeem the code and create license
+      await redeemOneTimeCode(validatedCode.id, newUser.id);
+      license = await createTeacherLicense(newUser.id, validatedCode.id);
 
-    // Log successful registration
-    await logLicenseActivity(license.id, 'teacher_registered', { 
-      username,
-      email,
-      code_id: oneTimeCode.id
-    }, newUser.id, ipAddress);
+      // Log successful licensed registration
+      await logLicenseActivity(license.id, 'teacher_registered', { 
+        username,
+        email,
+        code_id: validatedCode.id,
+        registration_type: 'licensed'
+      }, newUser.id, ipAddress);
+    } else {
+      // Log successful free registration (no license)
+      await logLicenseActivity(null, 'free_registration', { 
+        username,
+        email,
+        registration_type: 'free',
+        note: 'Registered without one-time code'
+      }, newUser.id, ipAddress);
+    }
 
     // Create session and log the user in
     const deviceFingerprint = generateDeviceFingerprint(req);
@@ -394,15 +415,21 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       }, newUser.id, ipAddress);
     }
 
+    // Determine success message based on registration type
+    const successMessage = hasCode && validatedCode 
+      ? 'Lärarkonto skapat framgångsrikt med licens! En bekräftelse har skickats till din e-post.'
+      : 'Lärarkonto skapat framgångsrikt! Du registrerades som testanvändare. En bekräftelse har skickats till din e-post.';
+    
     res.json({
       success: true,
-      message: 'Lärarkonto skapat framgångsrikt! En bekräftelse har skickats till din e-post.',
+      message: successMessage,
       user: {
         id: newUser.id,
         username: newUser.username,
         email: newUser.email,
         role: newUser.role
       },
+      hasLicense: hasCode && validatedCode,
       redirectPath: '/teacher'
     });
 
