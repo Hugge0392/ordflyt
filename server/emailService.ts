@@ -13,17 +13,27 @@ export interface EmailTemplate {
 export class EmailService {
   private client: ServerClient;
   private fromEmail: string;
+  private isConfigured: boolean;
 
   constructor() {
-    if (!process.env.POSTMARK_API_TOKEN) {
-      throw new Error("POSTMARK_API_TOKEN environment variable is required");
-    }
-    if (!process.env.FROM_EMAIL) {
-      throw new Error("FROM_EMAIL environment variable is required");
-    }
+    // Make EmailService robust for development environment
+    const postmarkToken = process.env.POSTMARK_API_TOKEN;
+    const emailFrom = process.env.FROM_EMAIL;
     
-    this.client = postmarkClient;
-    this.fromEmail = fromEmail;
+    if (!postmarkToken || !emailFrom) {
+      console.warn(
+        `⚠️  EMAIL SERVICE WARNING: Missing email credentials (POSTMARK_API_TOKEN=${!!postmarkToken}, FROM_EMAIL=${!!emailFrom}). ` +
+        'Email sending will be disabled but app will continue to work in development mode.'
+      );
+      this.isConfigured = false;
+      this.client = new ServerClient(""); // Empty token for development
+      this.fromEmail = emailFrom || "noreply@ordflyt.se";
+    } else {
+      console.log('✅ Email service configured with Postmark');
+      this.isConfigured = true;
+      this.client = postmarkClient;
+      this.fromEmail = emailFrom;
+    }
   }
 
   // Send teacher registration code email
@@ -254,11 +264,11 @@ Ordflyt.se - Språklärande för alla
 
   // Send password reset email
   async sendPasswordReset(
-    toEmail: string,
-    resetLink: string,
-    userName: string
+    toEmail: string, 
+    resetToken: string, 
+    resetLink: string
   ): Promise<void> {
-    const subject = "Återställ ditt lösenord - Ordflyt.se";
+    const subject = "Återställ ditt lösenord för Ordflyt.se";
     
     const htmlBody = `
       <html>
@@ -279,7 +289,7 @@ Ordflyt.se - Språklärande för alla
               <h1>Återställ lösenord</h1>
             </div>
             <div class="content">
-              <p>Hej ${userName},</p>
+              <p>Hej,</p>
               
               <p>Du har begärt att återställa ditt lösenord för Ordflyt.se. Klicka på knappen nedan för att skapa ett nytt lösenord:</p>
               
@@ -310,7 +320,7 @@ Ordflyt.se - Språklärande för alla
 Återställ lösenord
 =================
 
-Hej ${userName},
+Hej,
 
 Du har begärt att återställa ditt lösenord för Ordflyt.se. 
 
@@ -337,6 +347,16 @@ Om du inte begärde en lösenordsåterställning kan du ignorera detta e-postmed
     htmlBody: string, 
     textBody: string
   ): Promise<void> {
+    // Graceful degradation when email service is not properly configured
+    if (!this.isConfigured) {
+      console.log(
+        `📧 EMAIL SIMULATION (development mode): Would send email to ${to}\n` +
+        `   Subject: ${subject}\n` +
+        `   Text preview: ${textBody.substring(0, 200)}...`
+      );
+      return; // Don't actually send email, just log what would have been sent
+    }
+
     try {
       const response = await this.client.sendEmail({
         From: this.fromEmail,
@@ -347,9 +367,17 @@ Om du inte begärde en lösenordsåterställning kan du ignorera detta e-postmed
         MessageStream: "outbound"
       });
 
-      console.log(`Email sent successfully to ${to}:`, response.MessageID);
+      console.log(`✅ Email sent successfully to ${to}:`, response.MessageID);
     } catch (error) {
-      console.error(`Failed to send email to ${to}:`, error);
+      console.error(`❌ Failed to send email to ${to}:`, error);
+      
+      // In development, don't crash the app - just log the failure
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔄 Email sending failed in development mode - continuing without sending');
+        return;
+      }
+      
+      // In production, still throw the error so calling code can handle it
       throw new Error(`Email delivery failed: ${error}`);
     }
   }

@@ -54,11 +54,13 @@ import {
   type BulkExportRequest,
   type ExportProgress,
   type ExportSummary,
+  type PasswordResetToken,
+  type InsertPasswordResetToken,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, isNull, gte, sql } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools } from "@shared/schema";
+import { eq, and, isNull, isNotNull, gte, lte, sql, or } from "drizzle-orm";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -202,6 +204,12 @@ export interface IStorage {
   getExportableStudentData(studentIds: string[], teacherId: string): Promise<any[]>;
   getExportableClassData(classIds: string[], teacherId: string): Promise<any[]>;
   getExportableAssignmentData(assignmentIds: string[], teacherId: string): Promise<any[]>;
+
+  // Password reset token methods
+  createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken>;
+  findPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(tokenId: string): Promise<void>;
+  cleanupExpiredPasswordResetTokens(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -761,6 +769,23 @@ export class MemStorage implements IStorage {
   async getExportableAssignmentData(assignmentIds: string[], teacherId: string): Promise<any[]> {
     return [];
   }
+
+  // Password reset token methods - stub implementations for MemStorage
+  async createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
+    throw new Error("Password reset tokens not implemented in MemStorage");
+  }
+
+  async findPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    return undefined;
+  }
+
+  async markPasswordResetTokenAsUsed(tokenId: string): Promise<void> {
+    // No-op for MemStorage
+  }
+
+  async cleanupExpiredPasswordResetTokens(): Promise<void> {
+    // No-op for MemStorage
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1208,7 +1233,11 @@ export class DatabaseStorage implements IStorage {
 
   // Lesson assignment methods
   async createLessonAssignment(assignment: InsertLessonAssignment): Promise<LessonAssignment> {
-    const [newAssignment] = await db.insert(lessonAssignments).values(assignment).returning();
+    const assignmentData = {
+      ...assignment,
+      settings: assignment.settings as any // Type assertion to handle JSONB type
+    };
+    const [newAssignment] = await db.insert(lessonAssignments).values([assignmentData]).returning();
     return newAssignment;
   }
 
@@ -1230,8 +1259,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment> {
+    const updateData = {
+      ...assignment,
+      updatedAt: new Date(),
+      settings: assignment.settings ? (assignment.settings as any) : undefined
+    };
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key as keyof typeof updateData] === undefined && delete updateData[key as keyof typeof updateData]);
+    
     const [updatedAssignment] = await db.update(lessonAssignments)
-      .set({ ...assignment, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(lessonAssignments.id, id))
       .returning();
     return updatedAssignment;
@@ -1252,7 +1289,11 @@ export class DatabaseStorage implements IStorage {
 
   // Student progress methods
   async createStudentLessonProgress(progress: InsertStudentLessonProgress): Promise<StudentLessonProgress> {
-    const [newProgress] = await db.insert(studentLessonProgress).values(progress).returning();
+    const progressData = {
+      ...progress,
+      progressData: progress.progressData as any // Type assertion to handle JSONB type
+    };
+    const [newProgress] = await db.insert(studentLessonProgress).values([progressData]).returning();
     return newProgress;
   }
 
@@ -1271,8 +1312,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateStudentLessonProgress(id: string, progress: Partial<InsertStudentLessonProgress>): Promise<StudentLessonProgress> {
+    const updateData = {
+      ...progress,
+      updatedAt: new Date(),
+      progressData: progress.progressData ? (progress.progressData as any) : undefined
+    };
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key as keyof typeof updateData] === undefined && delete updateData[key as keyof typeof updateData]);
+    
     const [updatedProgress] = await db.update(studentLessonProgress)
-      .set({ ...progress, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(studentLessonProgress.id, id))
       .returning();
     return updatedProgress;
@@ -1870,7 +1919,7 @@ export class DatabaseStorage implements IStorage {
       const comparisonType = options?.comparisonType || 'class';
       
       // Get teacher's classes for baseline
-      const teacherClasses = await db
+      const classes = await db
         .select()
         .from(teacherClasses)
         .where(and(
@@ -1878,12 +1927,12 @@ export class DatabaseStorage implements IStorage {
           isNull(teacherClasses.archivedAt)
         ));
 
-      if (teacherClasses.length === 0) {
+      if (classes.length === 0) {
         throw new Error('No classes found for teacher');
       }
 
       // Use first class as baseline or specified class
-      const baselineClass = teacherClasses[0];
+      const baselineClass = classes[0];
       const baselineAnalytics = await this.getClassAnalytics(baselineClass.id);
 
       const baseline = {
@@ -1897,7 +1946,7 @@ export class DatabaseStorage implements IStorage {
 
       if (comparisonType === 'class') {
         // Compare with other classes
-        for (const cls of teacherClasses.slice(1)) {
+        for (const cls of classes.slice(1)) {
           const classAnalytics = await this.getClassAnalytics(cls.id);
           const scoreDiff = classAnalytics.classInfo.averageScore - baseline.averageScore;
           const percentageDifference = baseline.averageScore > 0 
@@ -2427,50 +2476,69 @@ export class DatabaseStorage implements IStorage {
 
   // Export system methods for DatabaseStorage
   async createExportJob(job: InsertExportJob): Promise<ExportJob> {
-    const [newJob] = await db.insert(schema.exportJobs).values(job).returning();
+    const jobData = {
+      ...job,
+      includedFields: job.includedFields as any, // Type assertion for JSONB array field
+      exportSettings: job.exportSettings as any // Type assertion for JSONB field
+    };
+    const [newJob] = await db.insert(exportJobs).values([jobData]).returning();
     return newJob;
   }
 
   async getExportJob(id: string): Promise<ExportJob | undefined> {
-    const result = await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.id, id));
+    const result = await db.select().from(exportJobs).where(eq(exportJobs.id, id));
     return result[0];
   }
 
   async getExportJobsByTeacher(teacherId: string): Promise<ExportJob[]> {
-    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.teacherId, teacherId));
+    return await db.select().from(exportJobs).where(eq(exportJobs.teacherId, teacherId));
   }
 
   async getExportJobsBySchool(schoolId: string): Promise<ExportJob[]> {
-    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.schoolId, schoolId));
+    return await db.select().from(exportJobs).where(eq(exportJobs.schoolId, schoolId));
   }
 
   async updateExportJob(id: string, job: Partial<InsertExportJob>): Promise<ExportJob> {
-    const [updatedJob] = await db.update(schema.exportJobs)
-      .set({ ...job, updatedAt: new Date() })
-      .where(eq(schema.exportJobs.id, id))
+    const updateData = {
+      ...job,
+      updatedAt: new Date(),
+      includedFields: job.includedFields ? (job.includedFields as any) : undefined,
+      exportSettings: job.exportSettings ? (job.exportSettings as any) : undefined
+    };
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key as keyof typeof updateData] === undefined && delete updateData[key as keyof typeof updateData]);
+    
+    const [updatedJob] = await db.update(exportJobs)
+      .set(updateData)
+      .where(eq(exportJobs.id, id))
       .returning();
     return updatedJob;
   }
 
   async deleteExportJob(id: string): Promise<void> {
-    await db.delete(schema.exportJobs).where(eq(schema.exportJobs.id, id));
+    await db.delete(exportJobs).where(eq(exportJobs.id, id));
   }
 
   async getActiveExportJobs(): Promise<ExportJob[]> {
-    return await db.select().from(schema.exportJobs).where(eq(schema.exportJobs.status, 'processing'));
+    return await db.select().from(exportJobs).where(eq(exportJobs.status, 'processing'));
   }
 
   async getExpiredExportJobs(): Promise<ExportJob[]> {
-    return await db.select().from(schema.exportJobs).where(
+    return await db.select().from(exportJobs).where(
       and(
-        eq(schema.exportJobs.status, 'completed'),
-        sql`${schema.exportJobs.expiresAt} < NOW()`
+        eq(exportJobs.status, 'completed'),
+        sql`${exportJobs.expiresAt} < NOW()`
       )
     );
   }
 
   async createExportTemplate(template: InsertExportTemplate): Promise<ExportTemplate> {
-    const [newTemplate] = await db.insert(exportTemplates).values(template).returning();
+    const templateData = {
+      ...template,
+      includedFields: template.includedFields as any, // Type assertion for JSONB array field
+      templateSettings: template.templateSettings as any // Type assertion for JSONB field
+    };
+    const [newTemplate] = await db.insert(exportTemplates).values([templateData]).returning();
     return newTemplate;
   }
 
@@ -2507,8 +2575,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateExportTemplate(id: string, template: Partial<InsertExportTemplate>): Promise<ExportTemplate> {
+    const updateData = {
+      ...template,
+      updatedAt: new Date(),
+      includedFields: template.includedFields ? (template.includedFields as any) : undefined,
+      templateSettings: template.templateSettings ? (template.templateSettings as any) : undefined
+    };
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key as keyof typeof updateData] === undefined && delete updateData[key as keyof typeof updateData]);
+    
     const [updatedTemplate] = await db.update(exportTemplates)
-      .set({ ...template, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(exportTemplates.id, id))
       .returning();
     return updatedTemplate;
@@ -2677,6 +2754,52 @@ export class DatabaseStorage implements IStorage {
     }
 
     return assignmentData;
+  }
+
+  // Password reset token methods
+  // Note: token should already be hashed by the caller (authRoutes.ts)
+  async createPasswordResetToken(userId: string, hashedToken: string, expiresAt: Date): Promise<PasswordResetToken> {
+    const tokenData: InsertPasswordResetToken = {
+      userId,
+      tokenHash: hashedToken, // Store the pre-hashed token
+      expiresAt,
+      usedAt: null
+    };
+    
+    const [newToken] = await db.insert(passwordResetTokens).values(tokenData).returning();
+    return newToken;
+  }
+
+  // Find token using hashed token
+  async findPasswordResetToken(hashedToken: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.tokenHash, hashedToken),
+        isNull(passwordResetTokens.usedAt),
+        gte(passwordResetTokens.expiresAt, new Date())
+      ));
+    
+    return resetToken;
+  }
+
+  async markPasswordResetTokenAsUsed(tokenId: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, tokenId));
+  }
+
+  async cleanupExpiredPasswordResetTokens(): Promise<void> {
+    await db
+      .delete(passwordResetTokens)
+      .where(
+        or(
+          sql`${passwordResetTokens.expiresAt} < NOW()`,
+          isNotNull(passwordResetTokens.usedAt)
+        )
+      );
   }
 }
 

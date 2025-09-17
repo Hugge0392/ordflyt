@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema } from "@shared/schema";
-import { eq, and, gte, isNull } from "drizzle-orm";
+import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema } from "@shared/schema";
+import { eq, and, gte, isNull, isNotNull, or } from "drizzle-orm";
 import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
 import argon2 from "argon2";
 import {
@@ -22,6 +22,11 @@ import {
 import { logRequestInfo } from "./productionCheck";
 import { emailService } from "./emailService";
 import crypto from "crypto";
+
+// Helper function to hash reset tokens for secure storage
+function hashResetToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const router = Router();
 
@@ -1157,6 +1162,277 @@ router.get("/api/auth/verify-admin", async (req, res) => {
   } catch (error) {
     console.error('Admin verification error:', error);
     res.status(500).json({ error: 'Serverfel vid verifiering' });
+  }
+});
+
+// Password reset: Send reset email
+router.post("/api/auth/forgot-password", loginRateLimit, async (req, res) => {
+  const { email } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+
+  try {
+    // Input validation
+    if (!email || typeof email !== 'string') {
+      await logAuditEvent('PASSWORD_RESET_REQUEST', null, false, ipAddress, userAgent, { 
+        reason: 'Missing email' 
+      });
+      // Always return same response regardless of whether email exists (security)
+      return res.json({ 
+        success: true, 
+        message: 'Om den angivna e-postadressen finns i systemet har ett återställningsmeddelande skickats.' 
+      });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      await logAuditEvent('PASSWORD_RESET_REQUEST', null, false, ipAddress, userAgent, { 
+        reason: 'Invalid email format' 
+      });
+      // Always return same response (security)
+      return res.json({ 
+        success: true, 
+        message: 'Om den angivna e-postadressen finns i systemet har ett återställningsmeddelande skickats.' 
+      });
+    }
+
+    // Find user by email (but don't reveal if it exists or not)
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (user && user.isActive) {
+      try {
+        // Generate secure random token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        // Hash the token before storing in database for security
+        const hashedToken = hashResetToken(resetToken);
+        
+        // Token expires in 1 hour
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        // Clean up any existing unused tokens for this user
+        await db
+          .update(passwordResetTokens)
+          .set({ usedAt: new Date() })
+          .where(and(
+            eq(passwordResetTokens.userId, user.id),
+            isNull(passwordResetTokens.usedAt)
+          ));
+
+        // Create new reset token in database with hashed token
+        await db.insert(passwordResetTokens).values({
+          userId: user.id,
+          tokenHash: hashedToken, // Store hashed token, not plaintext
+          expiresAt,
+          usedAt: null
+        });
+
+        // Send reset email
+        const resetLink = `${process.env.FRONTEND_URL || 'https://ordflyt.se'}/reset-password/${resetToken}`;
+        await emailService.sendPasswordReset(
+          user.email || email,
+          resetToken,
+          resetLink
+        );
+
+        // Log successful password reset request
+        await logAuditEvent('PASSWORD_RESET_REQUEST', user.id, true, ipAddress, userAgent, {
+          email: email.toLowerCase()
+        });
+
+      } catch (error) {
+        console.error('Password reset email error:', error);
+        await logAuditEvent('PASSWORD_RESET_EMAIL_FAILED', user.id, false, ipAddress, userAgent, {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    // Always return same response regardless of whether user exists (security)
+    res.json({ 
+      success: true, 
+      message: 'Om den angivna e-postadressen finns i systemet har ett återställningsmeddelande skickats.' 
+    });
+
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    await logAuditEvent('PASSWORD_RESET_ERROR', null, false, ipAddress, userAgent, {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid begäran om lösenordsåterställning' });
+  }
+});
+
+// Password reset: Validate reset token
+router.get("/api/auth/validate-reset-token/:token", loginRateLimit, async (req, res) => {
+  const { token } = req.params;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+
+  try {
+    if (!token || typeof token !== 'string') {
+      await logAuditEvent('PASSWORD_RESET_VALIDATE', null, false, ipAddress, userAgent, { 
+        reason: 'Missing token' 
+      });
+      return res.status(400).json({ error: 'Ogiltig eller saknad token' });
+    }
+
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = hashResetToken(token);
+
+    // Find valid, unused, non-expired token using hashed token
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.tokenHash, hashedToken),
+        isNull(passwordResetTokens.usedAt),
+        gte(passwordResetTokens.expiresAt, new Date())
+      ))
+      .limit(1);
+
+    if (!resetToken) {
+      await logAuditEvent('PASSWORD_RESET_VALIDATE', null, false, ipAddress, userAgent, { 
+        reason: 'Token not found or expired' 
+      });
+      return res.status(400).json({ error: 'Ogiltig eller utgången token' });
+    }
+
+    // Verify user still exists and is active
+    const [user] = await db
+      .select({ id: users.id, username: users.username, isActive: users.isActive })
+      .from(users)
+      .where(eq(users.id, resetToken.userId))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      await logAuditEvent('PASSWORD_RESET_VALIDATE', resetToken.userId, false, ipAddress, userAgent, { 
+        reason: 'User not found or inactive' 
+      });
+      return res.status(400).json({ error: 'Ogiltig token - användare hittades inte' });
+    }
+
+    await logAuditEvent('PASSWORD_RESET_VALIDATE', user.id, true, ipAddress, userAgent);
+
+    res.json({ 
+      valid: true, 
+      username: user.username 
+    });
+
+  } catch (error) {
+    console.error('Token validation error:', error);
+    await logAuditEvent('PASSWORD_RESET_VALIDATE_ERROR', null, false, ipAddress, userAgent, {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid validering av token' });
+  }
+});
+
+// Password reset: Reset password with token
+router.post("/api/auth/reset-password", loginRateLimit, async (req, res) => {
+  const { token, newPassword } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+
+  try {
+    // Input validation
+    if (!token || !newPassword || typeof token !== 'string' || typeof newPassword !== 'string') {
+      await logAuditEvent('PASSWORD_RESET_ATTEMPT', null, false, ipAddress, userAgent, { 
+        reason: 'Missing token or password' 
+      });
+      return res.status(400).json({ error: 'Token och nytt lösenord krävs' });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      await logAuditEvent('PASSWORD_RESET_ATTEMPT', null, false, ipAddress, userAgent, { 
+        reason: 'Weak password' 
+      });
+      return res.status(400).json({ 
+        error: 'Lösenordet måste vara minst 8 tecken långt och innehålla minst en stor bokstav, en liten bokstav och en siffra' 
+      });
+    }
+
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = hashResetToken(token);
+
+    // Find valid, unused, non-expired token using hashed token
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.tokenHash, hashedToken),
+        isNull(passwordResetTokens.usedAt),
+        gte(passwordResetTokens.expiresAt, new Date())
+      ))
+      .limit(1);
+
+    if (!resetToken) {
+      await logAuditEvent('PASSWORD_RESET_ATTEMPT', null, false, ipAddress, userAgent, { 
+        reason: 'Invalid or expired token' 
+      });
+      return res.status(400).json({ error: 'Ogiltig eller utgången token' });
+    }
+
+    // Verify user still exists and is active
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, resetToken.userId))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      await logAuditEvent('PASSWORD_RESET_ATTEMPT', resetToken.userId, false, ipAddress, userAgent, { 
+        reason: 'User not found or inactive' 
+      });
+      return res.status(400).json({ error: 'Ogiltig token - användare hittades inte' });
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(newPassword);
+
+    // Update user password
+    await db
+      .update(users)
+      .set({ 
+        passwordHash: newPasswordHash,
+        mustChangePassword: false
+      })
+      .where(eq(users.id, user.id));
+
+    // Mark token as used
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, resetToken.id));
+
+    // Clean up all expired/used tokens
+    await db
+      .delete(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.userId, user.id),
+          isNotNull(passwordResetTokens.usedAt)
+        )
+      );
+
+    // Log successful password reset
+    await logAuditEvent('PASSWORD_RESET_SUCCESS', user.id, true, ipAddress, userAgent);
+
+    res.json({ 
+      success: true, 
+      message: 'Lösenordet har återställts framgångsrikt. Du kan nu logga in med ditt nya lösenord.' 
+    });
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    await logAuditEvent('PASSWORD_RESET_ERROR', null, false, ipAddress, userAgent, {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid återställning av lösenord' });
   }
 });
 

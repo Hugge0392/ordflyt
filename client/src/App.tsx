@@ -37,6 +37,8 @@ import ReadingLessonSelector from "@/pages/reading-lesson-selector";
 
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
 import TeacherPage from "@/pages/teacher";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import AssignLessonsPage from "@/pages/assign-lessons";
@@ -59,6 +61,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={LoginPage} />
       <Route path="/registrera" component={RegisterPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       
       {/* Teacher registration system */}
       <Route path="/registrera-larare" component={TeacherRegistrationPage} />
