@@ -1008,4 +1008,59 @@ router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, logi
   }
 });
 
+// Development/debug endpoint to verify admin user setup
+router.get("/api/auth/verify-admin", async (req, res) => {
+  try {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // In production, require explicit debug token
+    if (!isDevelopment) {
+      const debugToken = String(req.query.debug || req.headers['x-debug-token'] || '');
+      const expectedToken = process.env.ADMIN_DEBUG_TOKEN;
+      
+      if (!expectedToken || debugToken !== expectedToken) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+    }
+    
+    // Check if admin user exists
+    const [admin] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, 'admin'))
+      .limit(1);
+    
+    if (!admin) {
+      return res.json({
+        adminExists: false,
+        message: 'Admin-användare hittades inte i databasen'
+      });
+    }
+    
+    // Try to verify the password with 'admin' (development default)
+    let passwordValid = false;
+    try {
+      passwordValid = await verifyPassword('admin', admin.passwordHash);
+    } catch (error) {
+      // Log error but don't expose details
+      passwordValid = false;
+    }
+    
+    res.json({
+      adminExists: true,
+      passwordValid,
+      isActive: admin.isActive,
+      role: admin.role,
+      environment: process.env.NODE_ENV,
+      message: passwordValid ? 
+        'Admin-användare är korrekt konfigurerad' : 
+        'Admin-användare kan inte verifieras med standardlösenord'
+    });
+    
+  } catch (error) {
+    console.error('Admin verification error:', error);
+    res.status(500).json({ error: 'Serverfel vid verifiering' });
+  }
+});
+
 export default router;

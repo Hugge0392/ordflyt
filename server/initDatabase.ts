@@ -21,19 +21,39 @@ export async function initializeDatabase() {
     if (!existingAdmin) {
       console.log('Skapar admin-användare...');
       
-      // Skapa admin-användare
-      const adminPasswordHash = await hashPassword('admin');
-      
-      await db.insert(users).values({
-        username: 'admin',
-        passwordHash: adminPasswordHash,
-        role: 'ADMIN',
-        isActive: true,
-        emailVerified: false,
-        email: 'admin@ordflyt.se'
-      });
-      
-      console.log('Admin-användare skapad framgångsrikt');
+      // I produktion, kräv explicit lösenord via miljövariabel
+      if (process.env.NODE_ENV === 'production') {
+        const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+        if (!adminPassword) {
+          console.error('⚠️  ADMIN_BOOTSTRAP_PASSWORD krävs i produktion för att skapa admin-användare');
+          return;
+        }
+        
+        const adminPasswordHash = await hashPassword(adminPassword);
+        await db.insert(users).values({
+          username: 'admin',
+          passwordHash: adminPasswordHash,
+          role: 'ADMIN',
+          isActive: true,
+          emailVerified: false,
+          email: 'admin@ordflyt.se'
+        });
+        
+        console.log('✅ Admin-användare skapad med säkert lösenord från miljövariabel');
+      } else {
+        // Endast i utveckling använd standardlösenord
+        const adminPasswordHash = await hashPassword('admin');
+        await db.insert(users).values({
+          username: 'admin',
+          passwordHash: adminPasswordHash,
+          role: 'ADMIN',
+          isActive: true,
+          emailVerified: false,
+          email: 'admin@ordflyt.se'
+        });
+        
+        console.log('✅ Utvecklings-admin skapad (admin/admin)');
+      }
     } else {
       console.log('Admin-användare finns redan');
     }
