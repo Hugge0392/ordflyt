@@ -67,6 +67,14 @@ app.use((req, res, next) => {
   // Kontrollera produktionsmiljö
   checkProductionEnvironment();
   
+  // Logga viktig bootstrap-information
+  console.log('🔧 Bootstrap info:', {
+    nodeEnv: process.env.NODE_ENV,
+    replitDeployment: process.env.REPLIT_DEPLOYMENT,
+    adminPasswordPresent: !!process.env.ADMIN_PASSWORD,
+    isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1'
+  });
+  
   // Initialisera databasen med nödvändiga användare
   await initializeDatabase();
   
