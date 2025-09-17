@@ -123,38 +123,56 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       }
     }
     
-    // Special case: On-demand admin bootstrap for production
-    if (!user && username === 'admin') {
+    // Special case: On-demand admin bootstrap/password update for production
+    if (username === 'admin') {
       const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
       const adminPassword = process.env.ADMIN_PASSWORD;
       
       if (isProduction && adminPassword && password === adminPassword) {
-        console.log('🔧 On-demand admin bootstrap triggered - creating admin user');
-        
-        try {
-          // Create admin user with the provided password
-          const adminPasswordHash = await hashPassword(adminPassword);
-          const [newAdmin] = await db.insert(users).values({
-            username: 'admin',
-            passwordHash: adminPasswordHash,
-            role: 'ADMIN',
-            isActive: true,
-            emailVerified: false,
-            email: 'admin@ordflyt.se'
-          }).returning();
+        if (!user) {
+          // Create admin user if it doesn't exist
+          console.log('🔧 On-demand admin bootstrap triggered - creating admin user');
           
-          // Log this important event
-          await logAuditEvent('ADMIN_BOOTSTRAP_LOGIN', newAdmin.id, true, ipAddress, userAgent, { 
-            reason: 'On-demand admin creation during login' 
-          });
+          try {
+            const adminPasswordHash = await hashPassword(adminPassword);
+            const [newAdmin] = await db.insert(users).values({
+              username: 'admin',
+              passwordHash: adminPasswordHash,
+              role: 'ADMIN',
+              isActive: true,
+              emailVerified: false,
+              email: 'admin@ordflyt.se'
+            }).returning();
+            
+            await logAuditEvent('ADMIN_BOOTSTRAP_LOGIN', newAdmin.id, true, ipAddress, userAgent, { 
+              reason: 'On-demand admin creation during login' 
+            });
+            
+            console.log('✅ Admin user created successfully via on-demand bootstrap');
+            user = newAdmin;
+            validPassword = true;
+          } catch (error) {
+            console.error('❌ Failed to create admin user via bootstrap:', error);
+          }
+        } else if (!validPassword) {
+          // Admin user exists but password doesn't match - update it
+          console.log('🔧 Admin password mismatch - updating to ADMIN_PASSWORD');
           
-          console.log('✅ Admin user created successfully via on-demand bootstrap');
-          
-          // Set user for the rest of the login flow
-          user = newAdmin;
-          validPassword = true;
-        } catch (error) {
-          console.error('❌ Failed to create admin user via bootstrap:', error);
+          try {
+            const adminPasswordHash = await hashPassword(adminPassword);
+            await db.update(users)
+              .set({ passwordHash: adminPasswordHash })
+              .where(eq(users.username, 'admin'));
+            
+            await logAuditEvent('ADMIN_PASSWORD_UPDATE', user.id, true, ipAddress, userAgent, { 
+              reason: 'Admin password updated to match ADMIN_PASSWORD' 
+            });
+            
+            console.log('✅ Admin password updated successfully');
+            validPassword = true;
+          } catch (error) {
+            console.error('❌ Failed to update admin password:', error);
+          }
         }
       }
     }
