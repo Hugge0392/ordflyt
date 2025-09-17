@@ -21,37 +21,29 @@ export async function initializeDatabase() {
     if (!existingAdmin) {
       console.log('Skapar admin-användare...');
       
-      // I produktion, kräv explicit lösenord via miljövariabel
-      if (process.env.NODE_ENV === 'production') {
-        const adminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-        if (!adminPassword) {
-          console.error('⚠️  ADMIN_BOOTSTRAP_PASSWORD krävs i produktion för att skapa admin-användare');
-          return;
-        }
-        
-        const adminPasswordHash = await hashPassword(adminPassword);
-        await db.insert(users).values({
-          username: 'admin',
-          passwordHash: adminPasswordHash,
-          role: 'ADMIN',
-          isActive: true,
-          emailVerified: false,
-          email: 'admin@ordflyt.se'
-        });
-        
-        console.log('✅ Admin-användare skapad med säkert lösenord från miljövariabel');
+      // Använd miljövariabel för lösenord, fallback till 'admin' i utveckling
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+      const adminPassword = process.env.ADMIN_PASSWORD || (isProduction ? null : 'admin');
+      
+      if (!adminPassword) {
+        console.error('⚠️  ADMIN_PASSWORD miljövariabel krävs i produktion för att skapa admin-användare');
+        console.log('🔧  Sätt ADMIN_PASSWORD i dina "Published app secrets" och publicera igen');
+        return;
+      }
+      
+      const adminPasswordHash = await hashPassword(adminPassword);
+      await db.insert(users).values({
+        username: 'admin',
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: false,
+        email: 'admin@ordflyt.se'
+      });
+      
+      if (isProduction) {
+        console.log('✅ Produktions-admin skapad med säkert lösenord');
       } else {
-        // Endast i utveckling använd standardlösenord
-        const adminPasswordHash = await hashPassword('admin');
-        await db.insert(users).values({
-          username: 'admin',
-          passwordHash: adminPasswordHash,
-          role: 'ADMIN',
-          isActive: true,
-          emailVerified: false,
-          email: 'admin@ordflyt.se'
-        });
-        
         console.log('✅ Utvecklings-admin skapad (admin/admin)');
       }
     } else {
