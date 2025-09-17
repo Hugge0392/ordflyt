@@ -25,12 +25,55 @@ import crypto from "crypto";
 
 const router = Router();
 
+// Temporary debug endpoint for production troubleshooting
+router.get("/api/debug/environment", async (req, res) => {
+  const debugInfo = {
+    nodeEnv: process.env.NODE_ENV,
+    replitDeployment: process.env.REPLIT_DEPLOYMENT,
+    isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
+    adminPasswordPresent: !!process.env.ADMIN_PASSWORD,
+    databaseUrlPresent: !!process.env.DATABASE_URL,
+    timestamp: new Date().toISOString(),
+    hasAdminUser: false
+  };
+  
+  try {
+    // Check if admin user exists in database
+    const [adminUser] = await db
+      .select({ id: users.id, username: users.username })
+      .from(users)
+      .where(eq(users.username, 'admin'))
+      .limit(1);
+    
+    debugInfo.hasAdminUser = !!adminUser;
+    
+    console.log('🔧 DEBUG ENDPOINT CALLED:', debugInfo);
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+  }
+  
+  res.json(debugInfo);
+});
+
 // Login endpoint
 router.post("/api/auth/login", loginRateLimit, async (req, res) => {
   const { username, password } = req.body;
   const ipAddress = req.ip || 'unknown';
   const userAgent = req.headers['user-agent'];
   const deviceFingerprint = generateDeviceFingerprint(req);
+  
+  // Enhanced debugging for production
+  const debugInfo = {
+    username,
+    passwordLength: password?.length || 0,
+    nodeEnv: process.env.NODE_ENV,
+    replitDeployment: process.env.REPLIT_DEPLOYMENT,
+    isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
+    adminPasswordPresent: !!process.env.ADMIN_PASSWORD,
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log('🔐 PRODUCTION LOGIN DEBUG:', debugInfo);
   
   // Log request info for debugging in production
   logRequestInfo(req);
