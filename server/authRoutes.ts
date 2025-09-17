@@ -255,6 +255,17 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       return res.status(400).json({ error: 'Användarnamnet är redan taget' });
     }
 
+    // Check if email already exists
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingEmail) {
+      return res.status(400).json({ error: 'E-postadressen är redan registrerad' });
+    }
+
     // Free registration - no code validation needed
 
     // Hash password and create user
