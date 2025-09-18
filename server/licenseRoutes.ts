@@ -236,10 +236,10 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
   try {
     const { name, term, description, studentNames } = createClassSchema.parse(req.body);
     const userId = req.user.id;
-    const license = req.license;
+    const licenseId = req.teacherContext.licenseId;
 
     // Skapa klass
-    const teacherClass = await createTeacherClass(name, userId, license.id, term, description);
+    const teacherClass = await createTeacherClass(name, userId, licenseId, term, description);
 
     // Generera användarnamn och lösenord för elever
     const students = await Promise.all(studentNames.map(async (studentName: string, index: number) => {
