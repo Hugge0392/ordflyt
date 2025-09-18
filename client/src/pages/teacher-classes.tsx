@@ -22,7 +22,6 @@ const createClassSchema = z.object({
   name: z.string().min(1, 'Klassnamn krävs').max(255, 'Klassnamn för långt'),
   term: z.string().optional(),
   description: z.string().optional(),
-  studentNames: z.array(z.string().min(1)).min(1, 'Minst en elev krävs'),
 });
 
 type CreateClassForm = z.infer<typeof createClassSchema>;
@@ -52,7 +51,6 @@ export default function TeacherClassesPage() {
       name: '',
       term: '',
       description: '',
-      studentNames: [],
     },
   });
 
