@@ -144,13 +144,13 @@ export default function FeedbackList({
   // Fetch feedback
   const { data: feedback = [], isLoading, refetch } = useQuery<TeacherFeedback[]>({
     queryKey: getQueryKey(),
-    queryFn: () => apiRequest(getEndpoint())
+    queryFn: () => apiRequest('GET', getEndpoint())
   });
 
   // Delete feedback mutation
   const deleteFeedbackMutation = useMutation({
     mutationFn: async (feedbackId: string) => {
-      return apiRequest(`/api/feedback/${feedbackId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/feedback/${feedbackId}`);
     },
     onSuccess: () => {
       // Invalidate all feedback-related queries
@@ -173,7 +173,7 @@ export default function FeedbackList({
   // Mark follow-up as completed
   const markFollowUpMutation = useMutation({
     mutationFn: async ({ feedbackId, notes }: { feedbackId: string; notes: string }) => {
-      return apiRequest(`/api/feedback/${feedbackId}`, 'PUT', {
+      return apiRequest('PUT', `/api/feedback/${feedbackId}`, {
         followedUpAt: new Date().toISOString(),
         followUpNotes: notes
       });

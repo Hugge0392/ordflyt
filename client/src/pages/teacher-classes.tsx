@@ -58,7 +58,7 @@ export default function TeacherClassesPage() {
 
   const createClassMutation = useMutation({
     mutationFn: async (data: CreateClassForm) => {
-      return apiRequest('/api/license/classes', 'POST', data);
+      return apiRequest('POST', '/api/license/classes', data);
     },
     onSuccess: (data) => {
       setCreatedClass(data);

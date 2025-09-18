@@ -108,10 +108,10 @@ export default function StudentFeedbackView({
     queryKey: assignmentId ? [`/api/feedback/assignment/${assignmentId}`] : ['/api/feedback/student/me'],
     queryFn: () => {
       if (assignmentId) {
-        return apiRequest(`/api/feedback/assignment/${assignmentId}`);
+        return apiRequest('GET', `/api/feedback/assignment/${assignmentId}`);
       } else {
         // This would need to be implemented to get current student's feedback
-        return apiRequest('/api/feedback/student/me');
+        return apiRequest('GET', '/api/feedback/student/me');
       }
     },
     enabled: !!user
@@ -120,14 +120,14 @@ export default function StudentFeedbackView({
   // Fetch unread count
   const { data: unreadData } = useQuery({
     queryKey: ['/api/feedback/student/unread-count'],
-    queryFn: () => apiRequest('/api/feedback/student/unread-count'),
+    queryFn: () => apiRequest('GET', '/api/feedback/student/unread-count'),
     enabled: showUnreadCount && !!user
   });
 
   // Mark feedback as read
   const markAsReadMutation = useMutation({
     mutationFn: async (feedbackId: string) => {
-      return apiRequest(`/api/feedback/${feedbackId}/mark-read`, 'POST');
+      return apiRequest('POST', `/api/feedback/${feedbackId}/mark-read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/feedback'] });
@@ -145,7 +145,7 @@ export default function StudentFeedbackView({
   // Submit response
   const submitResponseMutation = useMutation({
     mutationFn: async ({ feedbackId, response }: { feedbackId: string; response: string }) => {
-      return apiRequest(`/api/feedback/${feedbackId}`, 'PUT', {
+      return apiRequest('PUT', `/api/feedback/${feedbackId}`, {
         studentResponse: response,
         studentRespondedAt: new Date().toISOString()
       });

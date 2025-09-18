@@ -119,9 +119,9 @@ export default function TeacherFeedbackForm({
   const createFeedbackMutation = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
       if (editingFeedback) {
-        return apiRequest(`/api/feedback/${editingFeedback.id}`, 'PUT', data);
+        return apiRequest('PUT', `/api/feedback/${editingFeedback.id}`, data);
       } else {
-        return apiRequest('/api/feedback', 'POST', data);
+        return apiRequest('POST', '/api/feedback', data);
       }
     },
     onSuccess: () => {
