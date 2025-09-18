@@ -216,10 +216,11 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
     await logAuditEvent('LOGIN_SUCCESS', user.id, true, ipAddress, userAgent, { role: user.role });
     
     // Set secure cookie with production-safe settings
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const, // More lenient in production
+      secure: isProduction, // HTTPS only in production
+      sameSite: isProduction ? 'lax' as const : 'strict' as const, // More lenient in production
       maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 30 * 60 * 1000, // 1h for students, 30min for teachers/admins
       path: '/',
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
@@ -412,10 +413,11 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
     const sessionData = await createSession(newUser.id, ipAddress, userAgent, deviceFingerprint, 'LARARE');
 
     // Set session cookie with production-safe settings  
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'strict' as const,
+      secure: isProduction,
+      sameSite: isProduction ? 'lax' as const : 'strict' as const,
       maxAge: 30 * 60 * 1000, // 30 minutes for teachers
       path: '/'
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
