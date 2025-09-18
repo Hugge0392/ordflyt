@@ -43,7 +43,7 @@ export default function LicensePage() {
 
   const redeemMutation = useMutation({
     mutationFn: async (data: RedeemCodeForm) => {
-      return apiRequest('/api/license/redeem', 'POST', data);
+      return apiRequest('POST', '/api/license/redeem', data);
     },
     onSuccess: (data) => {
       setRedeemSuccess(data);
