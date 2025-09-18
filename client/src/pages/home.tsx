@@ -181,8 +181,9 @@ export default function Home() {
           right: 20px;
           z-index: 10;
           display: flex;
-          gap: 12px;
+          gap: 8px;
           align-items: center;
+          flex-wrap: wrap;
         }
 
         /* Login button */
@@ -243,7 +244,36 @@ export default function Home() {
           box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
         }
         
-        .login-icon, .register-icon {
+        /* Student login button */
+        .student-login-btn {
+          background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 25px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+          transition: all 0.3s ease;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .student-login-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+          background: linear-gradient(135deg, #059669 0%, #065f46 100%);
+        }
+        
+        .student-login-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .login-icon, .register-icon, .student-icon {
           font-size: 18px;
         }
 
@@ -323,9 +353,13 @@ export default function Home() {
             <span className="register-icon">👥</span>
             Registrera
           </Link>
+          <Link href="/elev/login" className="student-login-btn" data-testid="button-student-login">
+            <span className="student-icon">🎓</span>
+            Elev
+          </Link>
           <Link href="/login" className="login-btn" data-testid="button-login">
             <span className="login-icon">👤</span>
-            Logga in
+            Lärare
           </Link>
         </div>
         

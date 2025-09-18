@@ -53,6 +53,8 @@ import RichEditorTest from "@/pages/rich-editor-test";
 import TeacherRegistrationPage from "@/pages/TeacherRegistrationPage";
 import EmailVerificationPage from "@/pages/EmailVerificationPage";
 import LicenseActivationPage from "@/pages/LicenseActivationPage";
+import StudentLoginPage from "@/pages/student-login";
+import StudentPasswordChangePage from "@/pages/student-password-change";
 
 function Router() {
   return (
@@ -72,6 +74,10 @@ function Router() {
           <LicenseActivationPage />
         </ProtectedRoute>
       </Route>
+      
+      {/* Student authentication routes */}
+      <Route path="/elev/login" component={StudentLoginPage} />
+      <Route path="/elev/password" component={StudentPasswordChangePage} />
       
       {/* Student routes - now public for exploration */}
       <Route path="/menu" component={Menu} />

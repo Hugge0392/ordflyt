@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema } from "@shared/schema";
+import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema, studentAccounts, studentSessions, teacherClasses } from "@shared/schema";
 import { eq, and, gte, isNull, isNotNull, or } from "drizzle-orm";
 import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
 import argon2 from "argon2";
@@ -14,10 +14,15 @@ import {
   recordFailedLogin,
   loginRateLimit,
   requireAuth,
+  requireRole,
   requireCsrf,
   generateDeviceFingerprint,
   hashIpAddress,
-  rotateSession
+  rotateSession,
+  createStudentSession,
+  validateStudentSession,
+  checkStudentLoginAttempts,
+  requireStudentAuth
 } from "./auth";
 import { logRequestInfo } from "./productionCheck";
 import { emailService } from "./emailService";
@@ -30,16 +35,23 @@ function hashResetToken(token: string): string {
 
 const router = Router();
 
-// Temporary debug endpoint for production troubleshooting
-router.get("/api/debug/environment", async (req, res) => {
+// Debug endpoint - SECURED for admin access only and blocked in production
+router.get("/api/debug/environment", requireAuth, requireRole('ADMIN'), async (req, res) => {
+  // Block in production for security
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+  if (isProduction) {
+    return res.status(404).json({ error: 'Endpoint not available in production' });
+  }
+
   const debugInfo = {
     nodeEnv: process.env.NODE_ENV,
     replitDeployment: process.env.REPLIT_DEPLOYMENT,
-    isProduction: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1',
+    isProduction,
     adminPasswordPresent: !!process.env.ADMIN_PASSWORD,
     databaseUrlPresent: !!process.env.DATABASE_URL,
     timestamp: new Date().toISOString(),
-    hasAdminUser: false
+    hasAdminUser: false,
+    requestedBy: req.user?.username
   };
   
   try {
@@ -52,7 +64,11 @@ router.get("/api/debug/environment", async (req, res) => {
     
     debugInfo.hasAdminUser = !!adminUser;
     
-    console.log('🔧 DEBUG ENDPOINT CALLED:', debugInfo);
+    console.log('🔧 SECURED DEBUG ENDPOINT CALLED by:', req.user?.username, debugInfo);
+    
+    // Log audit event for debug access
+    await logAuditEvent('DEBUG_ACCESS', req.user?.id || null, true, req.ip || 'unknown', req.headers['user-agent'], { endpoint: '/api/debug/environment' });
+    
   } catch (error) {
     console.error('Debug endpoint error:', error);
   }
@@ -1440,6 +1456,284 @@ router.post("/api/auth/reset-password", loginRateLimit, async (req, res) => {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
     res.status(500).json({ error: 'Ett fel uppstod vid återställning av lösenord' });
+  }
+});
+
+// ============================================================================
+// STUDENT AUTHENTICATION ENDPOINTS
+// ============================================================================
+
+// POST /api/student/login - Student login endpoint
+router.post("/api/student/login", loginRateLimit, async (req, res) => {
+  const { username, password } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+  const deviceFingerprint = generateDeviceFingerprint(req);
+  
+  try {
+    // Input validation
+    if (!username || !password) {
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { reason: 'Missing credentials' });
+      return res.status(400).json({ error: 'Användarnamn och lösenord krävs' });
+    }
+
+    // Check login attempts
+    const canLogin = await checkStudentLoginAttempts(username, ipAddress, deviceFingerprint);
+    if (!canLogin) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Rate limited');
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { reason: 'Rate limited' });
+      return res.status(429).json({ error: 'För många inloggningsförsök. Försök igen senare.' });
+    }
+
+    // Find student by username
+    const [student] = await db
+      .select()
+      .from(studentAccounts)
+      .where(eq(studentAccounts.username, username))
+      .limit(1);
+
+    if (!student) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Student not found');
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { username, reason: 'Student not found' });
+      return res.status(401).json({ error: 'Felaktigt användarnamn eller lösenord' });
+    }
+
+    // Check if account is locked
+    if (student.lockedUntil && new Date() < student.lockedUntil) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Account locked');
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
+      return res.status(423).json({ 
+        error: 'Kontot är låst. Försök igen senare.', 
+        lockedUntil: student.lockedUntil.toISOString() 
+      });
+    }
+
+    // Verify password
+    const passwordValid = await verifyPassword(password, student.passwordHash);
+    if (!passwordValid) {
+      // Increment failed login attempts
+      const newFailedAttempts = (student.failedLoginAttempts || 0) + 1;
+      const shouldLockAccount = newFailedAttempts >= 5; // Lock after 5 failed attempts
+      
+      const updateData: any = {
+        failedLoginAttempts: newFailedAttempts
+      };
+      
+      if (shouldLockAccount) {
+        updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
+      }
+      
+      await db
+        .update(studentAccounts)
+        .set(updateData)
+        .where(eq(studentAccounts.id, student.id));
+
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Invalid password');
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Invalid password', failedAttempts: newFailedAttempts });
+      
+      const errorMessage = shouldLockAccount 
+        ? 'För många misslyckade inloggningsförsök. Kontot har låsts i 30 minuter.'
+        : 'Felaktigt användarnamn eller lösenord';
+      
+      return res.status(401).json({ error: errorMessage });
+    }
+
+    // Reset failed login attempts on successful login
+    await db
+      .update(studentAccounts)
+      .set({ 
+        failedLoginAttempts: 0, 
+        lockedUntil: null,
+        lastLogin: new Date() 
+      })
+      .where(eq(studentAccounts.id, student.id));
+
+    // Create student session
+    const session = await createStudentSession(
+      student.id,
+      ipAddress,
+      userAgent,
+      deviceFingerprint
+    );
+
+    // Set secure cookie
+    const cookieOptions: any = {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 45 * 60 * 1000 // 45 minutes
+    };
+
+    // Add secure flag in production
+    if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
+      cookieOptions.secure = true;
+    }
+
+    res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
+
+    // Log successful login
+    await logAuditEvent('STUDENT_LOGIN_SUCCESS', student.id, true, ipAddress, userAgent, { 
+      sessionId: session.id,
+      mustChangePassword: student.mustChangePassword 
+    });
+
+    res.json({
+      success: true,
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName,
+        classId: student.classId,
+        mustChangePassword: student.mustChangePassword,
+        lastLogin: student.lastLogin
+      }
+    });
+
+  } catch (error) {
+    console.error('Student login error:', error);
+    await logAuditEvent('STUDENT_LOGIN_ERROR', null, false, ipAddress, userAgent, { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid inloggning' });
+  }
+});
+
+// POST /api/student/logout - Student logout endpoint
+router.post("/api/student/logout", requireStudentAuth, async (req, res) => {
+  try {
+    if (req.studentSession) {
+      // Delete session from database
+      await db.delete(studentSessions).where(eq(studentSessions.id, req.studentSession.id));
+      
+      // Log logout event
+      await logAuditEvent(
+        'STUDENT_LOGOUT',
+        req.student?.id || null,
+        true,
+        req.ip || 'unknown',
+        req.headers['user-agent']
+      );
+    }
+    
+    // Clear cookie
+    res.clearCookie('studentSessionToken', { path: '/' });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Student logout error:', error);
+    res.status(500).json({ error: 'Ett fel uppstod vid utloggning' });
+  }
+});
+
+// GET /api/student/me - Get current student profile
+router.get("/api/student/me", requireStudentAuth, async (req, res) => {
+  try {
+    if (!req.student) {
+      return res.status(401).json({ error: 'Ej inloggad som elev' });
+    }
+
+    // Get class information (optional, don't fail if class not found)
+    let classInfo = null;
+    try {
+      const [foundClass] = await db
+        .select({
+          id: teacherClasses.id,
+          name: teacherClasses.name
+        })
+        .from(teacherClasses)
+        .where(eq(teacherClasses.id, req.student.classId))
+        .limit(1);
+      classInfo = foundClass;
+    } catch (error) {
+      console.warn('Could not fetch class info:', error);
+    }
+
+    res.json({
+      student: {
+        id: req.student.id,
+        username: req.student.username,
+        studentName: req.student.studentName,
+        classId: req.student.classId,
+        mustChangePassword: req.student.mustChangePassword,
+        lastLogin: req.student.lastLogin,
+        createdAt: req.student.createdAt
+      },
+      session: {
+        id: req.studentSession?.id,
+        expiresAt: req.studentSession?.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error('Student profile error:', error);
+    res.status(500).json({ error: 'Ett fel uppstod vid hämtning av elevprofil' });
+  }
+});
+
+// POST /api/student/password - Change student password
+router.post("/api/student/password", requireStudentAuth, requireCsrf, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!req.student) {
+      return res.status(401).json({ error: 'Ej inloggad som elev' });
+    }
+
+    // Input validation
+    if (!newPassword) {
+      return res.status(400).json({ error: 'Nytt lösenord krävs' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Lösenordet måste vara minst 6 tecken långt' });
+    }
+
+    // If student must change password, don't require current password
+    if (!req.student.mustChangePassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Nuvarande lösenord krävs' });
+      }
+
+      // Verify current password
+      const currentPasswordValid = await verifyPassword(currentPassword, req.student.passwordHash);
+      if (!currentPasswordValid) {
+        await logAuditEvent('STUDENT_PASSWORD_CHANGE_FAILED', req.student.id, false, req.ip || 'unknown', req.headers['user-agent'], { reason: 'Invalid current password' });
+        return res.status(401).json({ error: 'Felaktigt nuvarande lösenord' });
+      }
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(newPassword);
+
+    // Update password and clear mustChangePassword flag
+    await db
+      .update(studentAccounts)
+      .set({ 
+        passwordHash: newPasswordHash,
+        mustChangePassword: false
+      })
+      .where(eq(studentAccounts.id, req.student.id));
+
+    // Log password change
+    await logAuditEvent(
+      'STUDENT_PASSWORD_CHANGED',
+      req.student.id,
+      true,
+      req.ip || 'unknown',
+      req.headers['user-agent'],
+      { wasForced: req.student.mustChangePassword }
+    );
+
+    res.json({ 
+      success: true,
+      message: 'Lösenordet har ändrats'
+    });
+
+  } catch (error) {
+    console.error('Student password change error:', error);
+    await logAuditEvent('STUDENT_PASSWORD_CHANGE_ERROR', req.student?.id || null, false, req.ip || 'unknown', req.headers['user-agent'], { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid lösenordsändring' });
   }
 });
 

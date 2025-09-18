@@ -56,11 +56,15 @@ import {
   type ExportSummary,
   type PasswordResetToken,
   type InsertPasswordResetToken,
+  type StudentProgress,
+  type InsertStudentProgress,
+  type StudentActivity,
+  type InsertStudentActivity,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, gte, lte, sql, or } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -210,6 +214,34 @@ export interface IStorage {
   findPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenAsUsed(tokenId: string): Promise<void>;
   cleanupExpiredPasswordResetTokens(): Promise<void>;
+
+  // Student progress tracking methods
+  createStudentProgress(progress: InsertStudentProgress): Promise<StudentProgress>;
+  getStudentProgress(studentId: string): Promise<StudentProgress[]>;
+  getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]>;
+  getClassProgress(classId: string): Promise<StudentProgress[]>;
+  
+  // Student activity tracking methods
+  logStudentActivity(activity: InsertStudentActivity): Promise<StudentActivity>;
+  getStudentActivities(studentId: string, limit?: number): Promise<StudentActivity[]>;
+  getClassActivities(classId: string, limit?: number): Promise<StudentActivity[]>;
+  
+  // Analytics methods for progress tracking
+  getStudentProgressAnalytics(studentId: string): Promise<{
+    totalActivities: number;
+    averageScore: number;
+    totalTimeSpent: number;
+    activityBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentProgress: StudentProgress[];
+  }>;
+  getClassProgressAnalytics(classId: string): Promise<{
+    totalStudents: number;
+    averageScore: number;
+    totalActivitiesCompleted: number;
+    studentBreakdown: { studentId: string; studentName: string; averageScore: number; activitiesCount: number }[];
+    activityTypeBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentActivities: StudentActivity[];
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -785,6 +817,71 @@ export class MemStorage implements IStorage {
 
   async cleanupExpiredPasswordResetTokens(): Promise<void> {
     // No-op for MemStorage
+  }
+
+  // Student progress tracking methods (not implemented in MemStorage - use DatabaseStorage)
+  async createStudentProgress(progress: InsertStudentProgress): Promise<StudentProgress> {
+    throw new Error("Student progress tracking not implemented in MemStorage - use DatabaseStorage");
+  }
+
+  async getStudentProgress(studentId: string): Promise<StudentProgress[]> {
+    return [];
+  }
+
+  async getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]> {
+    return [];
+  }
+
+  async getClassProgress(classId: string): Promise<StudentProgress[]> {
+    return [];
+  }
+
+  // Student activity tracking methods (not implemented in MemStorage - use DatabaseStorage)
+  async logStudentActivity(activity: InsertStudentActivity): Promise<StudentActivity> {
+    throw new Error("Student activity tracking not implemented in MemStorage - use DatabaseStorage");
+  }
+
+  async getStudentActivities(studentId: string, limit?: number): Promise<StudentActivity[]> {
+    return [];
+  }
+
+  async getClassActivities(classId: string, limit?: number): Promise<StudentActivity[]> {
+    return [];
+  }
+
+  // Analytics methods for progress tracking (not implemented in MemStorage - use DatabaseStorage)
+  async getStudentProgressAnalytics(studentId: string): Promise<{
+    totalActivities: number;
+    averageScore: number;
+    totalTimeSpent: number;
+    activityBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentProgress: StudentProgress[];
+  }> {
+    return {
+      totalActivities: 0,
+      averageScore: 0,
+      totalTimeSpent: 0,
+      activityBreakdown: [],
+      recentProgress: [],
+    };
+  }
+
+  async getClassProgressAnalytics(classId: string): Promise<{
+    totalStudents: number;
+    averageScore: number;
+    totalActivitiesCompleted: number;
+    studentBreakdown: { studentId: string; studentName: string; averageScore: number; activitiesCount: number }[];
+    activityTypeBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentActivities: StudentActivity[];
+  }> {
+    return {
+      totalStudents: 0,
+      averageScore: 0,
+      totalActivitiesCompleted: 0,
+      studentBreakdown: [],
+      activityTypeBreakdown: [],
+      recentActivities: [],
+    };
   }
 }
 
@@ -2800,6 +2897,205 @@ export class DatabaseStorage implements IStorage {
           isNotNull(passwordResetTokens.usedAt)
         )
       );
+  }
+
+  // Student progress tracking methods
+  async createStudentProgress(progress: InsertStudentProgress): Promise<StudentProgress> {
+    const [newProgress] = await db.insert(studentProgress).values(progress).returning();
+    return newProgress;
+  }
+
+  async getStudentProgress(studentId: string): Promise<StudentProgress[]> {
+    return await db
+      .select()
+      .from(studentProgress)
+      .where(eq(studentProgress.studentId, studentId))
+      .orderBy(sql`${studentProgress.completedAt} DESC`);
+  }
+
+  async getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]> {
+    return await db
+      .select()
+      .from(studentProgress)
+      .where(and(
+        eq(studentProgress.studentId, studentId),
+        eq(studentProgress.lessonId, lessonId)
+      ))
+      .orderBy(sql`${studentProgress.completedAt} DESC`);
+  }
+
+  async getClassProgress(classId: string): Promise<StudentProgress[]> {
+    return await db
+      .select({
+        id: studentProgress.id,
+        studentId: studentProgress.studentId,
+        lessonId: studentProgress.lessonId,
+        activityType: studentProgress.activityType,
+        score: studentProgress.score,
+        maxScore: studentProgress.maxScore,
+        timeSpent: studentProgress.timeSpent,
+        completedAt: studentProgress.completedAt,
+        metadata: studentProgress.metadata,
+      })
+      .from(studentProgress)
+      .innerJoin(studentAccounts, eq(studentProgress.studentId, studentAccounts.id))
+      .where(eq(studentAccounts.classId, classId))
+      .orderBy(sql`${studentProgress.completedAt} DESC`);
+  }
+
+  // Student activity tracking methods
+  async logStudentActivity(activity: InsertStudentActivity): Promise<StudentActivity> {
+    const [newActivity] = await db.insert(studentActivity).values(activity).returning();
+    return newActivity;
+  }
+
+  async getStudentActivities(studentId: string, limit: number = 50): Promise<StudentActivity[]> {
+    return await db
+      .select()
+      .from(studentActivity)
+      .where(eq(studentActivity.studentId, studentId))
+      .orderBy(sql`${studentActivity.createdAt} DESC`)
+      .limit(limit);
+  }
+
+  async getClassActivities(classId: string, limit: number = 100): Promise<StudentActivity[]> {
+    return await db
+      .select({
+        id: studentActivity.id,
+        studentId: studentActivity.studentId,
+        type: studentActivity.type,
+        payload: studentActivity.payload,
+        createdAt: studentActivity.createdAt,
+      })
+      .from(studentActivity)
+      .innerJoin(studentAccounts, eq(studentActivity.studentId, studentAccounts.id))
+      .where(eq(studentAccounts.classId, classId))
+      .orderBy(sql`${studentActivity.createdAt} DESC`)
+      .limit(limit);
+  }
+
+  // Analytics methods for progress tracking
+  async getStudentProgressAnalytics(studentId: string): Promise<{
+    totalActivities: number;
+    averageScore: number;
+    totalTimeSpent: number;
+    activityBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentProgress: StudentProgress[];
+  }> {
+    const progressData = await this.getStudentProgress(studentId);
+    const recentProgress = progressData.slice(0, 10);
+    
+    const totalActivities = progressData.length;
+    const totalTimeSpent = progressData.reduce((sum, p) => sum + (p.timeSpent || 0), 0);
+    const averageScore = totalActivities > 0 
+      ? progressData.reduce((sum, p) => sum + (p.score || 0) / (p.maxScore || 1) * 100, 0) / totalActivities 
+      : 0;
+
+    // Create activity breakdown
+    const activityMap = new Map<string, { count: number; totalScore: number; totalMaxScore: number }>();
+    progressData.forEach(p => {
+      const key = p.activityType || 'unknown';
+      const existing = activityMap.get(key) || { count: 0, totalScore: 0, totalMaxScore: 0 };
+      activityMap.set(key, {
+        count: existing.count + 1,
+        totalScore: existing.totalScore + (p.score || 0),
+        totalMaxScore: existing.totalMaxScore + (p.maxScore || 1)
+      });
+    });
+
+    const activityBreakdown = Array.from(activityMap.entries()).map(([activityType, data]) => ({
+      activityType,
+      count: data.count,
+      averageScore: data.totalMaxScore > 0 ? (data.totalScore / data.totalMaxScore * 100) : 0
+    }));
+
+    return {
+      totalActivities,
+      averageScore,
+      totalTimeSpent,
+      activityBreakdown,
+      recentProgress
+    };
+  }
+
+  async getClassProgressAnalytics(classId: string): Promise<{
+    totalStudents: number;
+    averageScore: number;
+    totalActivitiesCompleted: number;
+    studentBreakdown: { studentId: string; studentName: string; averageScore: number; activitiesCount: number }[];
+    activityTypeBreakdown: { activityType: string; count: number; averageScore: number }[];
+    recentActivities: StudentActivity[];
+  }> {
+    const classProgress = await this.getClassProgress(classId);
+    const classActivities = await this.getClassActivities(classId, 20);
+    
+    // Get all students in the class for breakdown
+    const students = await db
+      .select()
+      .from(studentAccounts)
+      .where(eq(studentAccounts.classId, classId));
+    
+    const totalStudents = students.length;
+    const totalActivitiesCompleted = classProgress.length;
+    
+    // Calculate average score
+    const averageScore = totalActivitiesCompleted > 0
+      ? classProgress.reduce((sum, p) => sum + (p.score || 0) / (p.maxScore || 1) * 100, 0) / totalActivitiesCompleted
+      : 0;
+
+    // Student breakdown
+    const studentMap = new Map<string, { count: number; totalScore: number; totalMaxScore: number; name: string }>();
+    students.forEach(student => {
+      studentMap.set(student.id, { 
+        count: 0, 
+        totalScore: 0, 
+        totalMaxScore: 0, 
+        name: student.studentName 
+      });
+    });
+
+    classProgress.forEach(p => {
+      const existing = studentMap.get(p.studentId);
+      if (existing) {
+        existing.count += 1;
+        existing.totalScore += (p.score || 0);
+        existing.totalMaxScore += (p.maxScore || 1);
+      }
+    });
+
+    const studentBreakdown = Array.from(studentMap.entries()).map(([studentId, data]) => ({
+      studentId,
+      studentName: data.name,
+      averageScore: data.totalMaxScore > 0 ? (data.totalScore / data.totalMaxScore * 100) : 0,
+      activitiesCount: data.count
+    }));
+
+    // Activity type breakdown
+    const activityTypeMap = new Map<string, { count: number; totalScore: number; totalMaxScore: number }>();
+    classProgress.forEach(p => {
+      const key = p.activityType || 'unknown';
+      const existing = activityTypeMap.get(key) || { count: 0, totalScore: 0, totalMaxScore: 0 };
+      activityTypeMap.set(key, {
+        count: existing.count + 1,
+        totalScore: existing.totalScore + (p.score || 0),
+        totalMaxScore: existing.totalMaxScore + (p.maxScore || 1)
+      });
+    });
+
+    const activityTypeBreakdown = Array.from(activityTypeMap.entries()).map(([activityType, data]) => ({
+      activityType,
+      count: data.count,
+      averageScore: data.totalMaxScore > 0 ? (data.totalScore / data.totalMaxScore * 100) : 0
+    }));
+
+    return {
+      totalStudents,
+      averageScore,
+      totalActivitiesCompleted,
+      studentBreakdown,
+      activityTypeBreakdown,
+      recentActivities: classActivities
+    };
   }
 }
 

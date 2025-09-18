@@ -4,9 +4,9 @@ import crypto from "crypto";
 import { createHmac } from "crypto";
 import rateLimit from "express-rate-limit";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins, csrfTokens, schools, teacherSchoolMemberships, teacherLicenses } from "@shared/schema";
+import { users, sessions, auditLog, failedLogins, csrfTokens, schools, teacherSchoolMemberships, teacherLicenses, studentAccounts, studentSessions } from "@shared/schema";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
-import type { User, Session, School } from "@shared/schema";
+import type { User, Session, School, StudentAccount, StudentSession } from "@shared/schema";
 
 // Extend Express Request type
 declare global {
@@ -14,6 +14,8 @@ declare global {
     interface Request {
       user?: User;
       session?: Session;
+      student?: StudentAccount;
+      studentSession?: StudentSession;
       csrfToken?: string;
       deviceFingerprint?: string;
       school?: School;
@@ -30,6 +32,7 @@ declare global {
 // Constants for security
 const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
 const TEACHER_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for teachers/admins
+const STUDENT_SESSION_DURATION = 45 * 60 * 1000; // 45 minutes for students
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
 const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 10 : 100; // Very lenient in development
 const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1 * 60 * 1000; // 1 minute in dev, 5 in production
@@ -221,8 +224,8 @@ export async function createSession(
   deviceFingerprint: string,
   role: string
 ): Promise<Session> {
-  // Delete any existing sessions for this user first
-  await db.delete(sessions).where(eq(sessions.userId, userId));
+  // Allow multiple concurrent sessions - don't delete existing ones
+  // Users can now log in from multiple devices simultaneously
   
   const sessionToken = generateSecureToken();
   const duration = (role === 'LARARE' || role === 'ADMIN') ? TEACHER_SESSION_DURATION : SESSION_DURATION;
@@ -330,6 +333,109 @@ export async function validateCsrfToken(token: string, sessionId: string): Promi
   }
   
   return false;
+}
+
+// Student Session Management Functions
+// Create student session
+export async function createStudentSession(
+  studentId: string,
+  ipAddress: string,
+  userAgent: string | undefined,
+  deviceFingerprint: string
+): Promise<StudentSession> {
+  // Allow multiple concurrent sessions - don't delete existing ones
+  // Students can now log in from multiple devices simultaneously
+  
+  const sessionToken = generateSecureToken();
+  
+  const [session] = await db.insert(studentSessions).values({
+    studentId,
+    sessionToken,
+    ipAddress,
+    userAgent,
+    deviceFingerprint,
+    expiresAt: new Date(Date.now() + STUDENT_SESSION_DURATION),
+  }).returning();
+  
+  return session;
+}
+
+// Validate student session
+export async function validateStudentSession(sessionToken: string): Promise<StudentSession | null> {
+  const [session] = await db
+    .select()
+    .from(studentSessions)
+    .where(
+      and(
+        eq(studentSessions.sessionToken, sessionToken),
+        gte(studentSessions.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+    
+  return session || null;
+}
+
+// Check student login attempts (similar to regular users)
+export async function checkStudentLoginAttempts(
+  username: string,
+  ipAddress: string,
+  deviceFingerprint: string
+): Promise<boolean> {
+  const recentAttempts = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(failedLogins)
+    .where(
+      and(
+        eq(failedLogins.username, username),
+        eq(failedLogins.ipAddress, ipAddress),
+        gte(failedLogins.attemptTime, new Date(Date.now() - LOGIN_COOLDOWN))
+      )
+    );
+
+  const attemptCount = recentAttempts[0]?.count || 0;
+  return attemptCount < MAX_LOGIN_ATTEMPTS;
+}
+
+// Student authentication middleware
+export async function requireStudentAuth(req: Request, res: Response, next: NextFunction) {
+  const studentSessionToken = req.cookies?.studentSessionToken;
+  
+  if (!studentSessionToken) {
+    return res.status(401).json({ error: 'Ej inloggad som elev' });
+  }
+  
+  const studentSession = await validateStudentSession(studentSessionToken);
+  
+  if (!studentSession) {
+    res.clearCookie('studentSessionToken');
+    return res.status(401).json({ error: 'Elevsessionen har upphört' });
+  }
+  
+  // Get student account
+  const [student] = await db
+    .select()
+    .from(studentAccounts)
+    .where(eq(studentAccounts.id, studentSession.studentId))
+    .limit(1);
+    
+  if (!student) {
+    return res.status(401).json({ error: 'Elevkontot finns inte' });
+  }
+  
+  // Check if account is locked
+  if (student.lockedUntil && new Date() < student.lockedUntil) {
+    return res.status(423).json({ 
+      error: 'Kontot är låst. Försök igen senare.', 
+      lockedUntil: student.lockedUntil.toISOString() 
+    });
+  }
+  
+  req.student = student;
+  req.studentSession = studentSession;
+  req.deviceFingerprint = generateDeviceFingerprint(req);
+  
+  next();
 }
 
 // Authentication middleware

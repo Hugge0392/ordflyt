@@ -18,6 +18,13 @@ import {
   generateSecurePassword,
   storePasswordForAccess,
   getPasswordForAccess,
+  getStudentsByClassId,
+  updateStudent,
+  updateTeacherClass,
+  deleteStudent,
+  resetStudentPassword,
+  verifyClassOwnership,
+  verifyStudentOwnership,
   licenseDb
 } from './licenseDb';
 import { emailService } from './emailService';
@@ -52,6 +59,21 @@ const changePasswordSchema = z.object({
 const generateCodeSchema = z.object({
   recipientEmail: z.string().email('Ogiltig e-postadress'),
   validityDays: z.number().min(1).max(365).default(30),
+});
+
+// Additional validation schemas for new endpoints
+const addStudentsSchema = z.object({
+  studentNames: z.array(z.string().min(1, 'Elevnamn krävs')).min(1, 'Minst en elev krävs'),
+});
+
+const updateStudentSchema = z.object({
+  name: z.string().min(1, 'Namn krävs').max(255, 'Namn för långt').optional(),
+  isActive: z.boolean().optional(),
+});
+
+const updateClassSchema = z.object({
+  name: z.string().min(1, 'Klassnamn krävs').max(255, 'Klassnamn för långt').optional(),
+  isArchived: z.boolean().optional(),
 });
 
 // Middleware för att kontrollera aktiv licens
@@ -290,6 +312,237 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
       });
     }
 
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// GET /api/license/classes/:classId/students - Hämta elever för en specifik klass
+router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger klassen
+    const ownsClass = await verifyClassOwnership(classId, userId);
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Du har inte behörighet att komma åt denna klass' });
+    }
+
+    const students = await getStudentsByClassId(classId);
+    res.json({ students });
+
+  } catch (error) {
+    console.error('Get students error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/classes/:classId/students - Lägg till nya elever till befintlig klass
+router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const { studentNames } = addStudentsSchema.parse(req.body);
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger klassen
+    const ownsClass = await verifyClassOwnership(classId, userId);
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Du har inte behörighet att lägga till elever i denna klass' });
+    }
+
+    // Generera användarnamn och lösenord för nya elever
+    const students = await Promise.all(studentNames.map(async (studentName: string, index: number) => {
+      const baseUsername = studentName.toLowerCase()
+        .replace(/[åä]/g, 'a')
+        .replace(/ö/g, 'o')
+        .replace(/[^a-z]/g, '')
+        .substring(0, 8);
+      
+      // Hitta nästa tillgängliga nummer för användarnamn
+      const existingStudents = await getStudentsByClassId(classId);
+      const existingCount = existingStudents.length;
+      const username = `${baseUsername}${String(existingCount + index + 1).padStart(2, '0')}`;
+      const password = generateSecurePassword();
+      const passwordHash = await hashPassword(password);
+
+      return {
+        name: studentName,
+        username,
+        password,
+        passwordHash
+      };
+    }));
+
+    // Skapa elevkonton i databasen
+    const createdStudents = await createStudentAccounts(
+      students.map(s => ({ name: s.name, username: s.username, passwordHash: s.passwordHash })),
+      classId
+    );
+
+    // Kombinera data för response
+    const studentsWithPasswords = createdStudents.map((student, index) => ({
+      ...student,
+      clearPassword: students[index].password
+    }));
+
+    res.json({
+      success: true,
+      message: `${students.length} elever tillagda!`,
+      students: studentsWithPasswords
+    });
+
+  } catch (error: any) {
+    console.error('Add students error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga data',
+        details: error.errors.map(e => e.message)
+      });
+    }
+
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// PATCH /api/license/students/:studentId - Uppdatera elevinformation
+router.patch('/students/:studentId', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const updates = updateStudentSchema.parse(req.body);
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger eleven
+    const ownsStudent = await verifyStudentOwnership(studentId, userId);
+    if (!ownsStudent) {
+      return res.status(403).json({ error: 'Du har inte behörighet att uppdatera denna elev' });
+    }
+
+    // Skapa uppdateringsobjekt med rätt fältnamn
+    const updateData: { studentName?: string; isActive?: boolean } = {};
+    if (updates.name !== undefined) {
+      updateData.studentName = updates.name;
+    }
+    if (updates.isActive !== undefined) {
+      updateData.isActive = updates.isActive;
+    }
+
+    const updatedStudent = await updateStudent(studentId, updateData);
+
+    res.json({
+      success: true,
+      message: 'Elev uppdaterad!',
+      student: updatedStudent
+    });
+
+  } catch (error: any) {
+    console.error('Update student error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga data',
+        details: error.errors.map(e => e.message)
+      });
+    }
+
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/students/:studentId/reset-password - Återställ elevlösenord
+router.post('/students/:studentId/reset-password', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger eleven
+    const ownsStudent = await verifyStudentOwnership(studentId, userId);
+    if (!ownsStudent) {
+      return res.status(403).json({ error: 'Du har inte behörighet att återställa lösenordet för denna elev' });
+    }
+
+    const newPassword = await resetStudentPassword(studentId);
+
+    // Spara lösenordet tillfälligt för lärarens åtkomst
+    await storePasswordForAccess(studentId, newPassword, userId);
+
+    res.json({
+      success: true,
+      message: 'Lösenord återställt!',
+      newPassword: newPassword
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// PATCH /api/license/classes/:classId - Uppdatera klassinformation
+router.patch('/classes/:classId', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { classId } = req.params;
+    const updates = updateClassSchema.parse(req.body);
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger klassen
+    const ownsClass = await verifyClassOwnership(classId, userId);
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Du har inte behörighet att uppdatera denna klass' });
+    }
+
+    // Skapa uppdateringsobjekt
+    const updateData: { name?: string; archivedAt?: Date | null } = {};
+    if (updates.name !== undefined) {
+      updateData.name = updates.name;
+    }
+    if (updates.isArchived !== undefined) {
+      updateData.archivedAt = updates.isArchived ? new Date() : null;
+    }
+
+    const updatedClass = await updateTeacherClass(classId, updateData);
+
+    res.json({
+      success: true,
+      message: 'Klass uppdaterad!',
+      class: updatedClass
+    });
+
+  } catch (error: any) {
+    console.error('Update class error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Ogiltiga data',
+        details: error.errors.map(e => e.message)
+      });
+    }
+
+    res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// DELETE /api/license/students/:studentId - Ta bort elev från klass
+router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+
+    // Kontrollera att läraren äger eleven
+    const ownsStudent = await verifyStudentOwnership(studentId, userId);
+    if (!ownsStudent) {
+      return res.status(403).json({ error: 'Du har inte behörighet att ta bort denna elev' });
+    }
+
+    await deleteStudent(studentId);
+
+    res.json({
+      success: true,
+      message: 'Elev borttagen!'
+    });
+
+  } catch (error) {
+    console.error('Delete student error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });

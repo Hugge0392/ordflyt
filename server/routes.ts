@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
 import emailTestRoutes from "./emailTestRoutes";
-import { requireAuth, requireRole, requireCsrf, requireTeacherLicense } from "./auth";
+import { requireAuth, requireRole, requireCsrf, requireTeacherLicense, requireStudentAuth } from "./auth";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -1987,6 +1987,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to export analytics:", error);
       res.status(500).json({ message: "Failed to export analytics" });
+    }
+  });
+
+  // ===== STUDENT PROGRESS TRACKING API ROUTES =====
+  
+  // Student progress endpoints (for students to save their progress)
+  app.post("/api/student/progress", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.student?.id;
+      if (!studentId) {
+        return res.status(401).json({ message: "Student ID required" });
+      }
+      
+      const validatedData = insertStudentProgressSchema.parse({
+        ...req.body,
+        studentId
+      });
+      
+      const progress = await storage.createStudentProgress(validatedData);
+      res.status(201).json(progress);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid progress data", errors: error.errors });
+      }
+      console.error("Failed to save student progress:", error);
+      res.status(500).json({ message: "Failed to save student progress" });
+    }
+  });
+
+  // Student activity logging (for students to log activities)
+  app.post("/api/student/activity", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.student?.id;
+      if (!studentId) {
+        return res.status(401).json({ message: "Student ID required" });
+      }
+      
+      const validatedData = insertStudentActivitySchema.parse({
+        ...req.body,
+        studentId
+      });
+      
+      const activity = await storage.logStudentActivity(validatedData);
+      res.status(201).json(activity);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid activity data", errors: error.errors });
+      }
+      console.error("Failed to log student activity:", error);
+      res.status(500).json({ message: "Failed to log student activity" });
+    }
+  });
+
+  // Teacher endpoints for accessing progress data
+  
+  // Get class progress (for teachers to see progress of all students in a class)
+  app.get("/api/teacher/classes/:classId/progress", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher has access to this class
+      const teacherClasses = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(eq(schema.teacherClasses.teacherId, teacherId));
+      
+      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied: You do not have access to this class" });
+      }
+      
+      const progress = await storage.getClassProgress(classId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Failed to fetch class progress:", error);
+      res.status(500).json({ message: "Failed to fetch class progress" });
+    }
+  });
+
+  // Get class progress analytics (detailed analytics for a class)
+  app.get("/api/teacher/classes/:classId/analytics", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher has access to this class
+      const teacherClasses = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(eq(schema.teacherClasses.teacherId, teacherId));
+      
+      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied: You do not have access to this class" });
+      }
+      
+      const analytics = await storage.getClassProgressAnalytics(classId);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Failed to fetch class progress analytics:", error);
+      res.status(500).json({ message: "Failed to fetch class progress analytics" });
+    }
+  });
+
+  // Get individual student progress (for teachers to see detailed progress of one student)
+  app.get("/api/teacher/students/:studentId/progress", requireAuth, requireTeacherLicense, async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const teacherId = req.user?.id;
+      
+      // Verify teacher has access to this student
+      const studentAccount = await db
+        .select()
+        .from(schema.studentAccounts)
+        .where(eq(schema.studentAccounts.id, studentId))
+        .limit(1);
+      
+      if (studentAccount.length === 0) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const teacherClasses = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(and(
+          eq(schema.teacherClasses.teacherId, teacherId),
+          eq(schema.teacherClasses.classId, studentAccount[0].classId)
+        ));
+      
+      if (teacherClasses.length === 0) {
+        return res.status(403).json({ message: "Access denied: You do not have access to this student" });
+      }
+      
+      const progress = await storage.getStudentProgress(studentId);
+      const analytics = await storage.getStudentProgressAnalytics(studentId);
+      
+      res.json({ progress, analytics });
+    } catch (error) {
+      console.error("Failed to fetch student progress:", error);
+      res.status(500).json({ message: "Failed to fetch student progress" });
     }
   });
 

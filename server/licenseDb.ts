@@ -4,6 +4,7 @@ import ws from "ws";
 import crypto from 'crypto';
 import * as schema from "@shared/schema";
 import { eq, and, gt, isNull, or } from 'drizzle-orm';
+import { hashPassword } from './auth';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -269,6 +270,122 @@ export async function updateStudentPassword(
       mustChangePassword: false,
     })
     .where(eq(schema.studentAccounts.id, studentId));
+}
+
+// Get students by class ID
+export async function getStudentsByClassId(classId: string) {
+  return await licenseDb
+    .select()
+    .from(schema.studentAccounts)
+    .where(eq(schema.studentAccounts.classId, classId));
+}
+
+// Update student information (name, isActive)
+export async function updateStudent(
+  studentId: string,
+  updates: {
+    studentName?: string;
+    isActive?: boolean;
+  }
+): Promise<schema.StudentAccount> {
+  const [updatedStudent] = await licenseDb
+    .update(schema.studentAccounts)
+    .set(updates)
+    .where(eq(schema.studentAccounts.id, studentId))
+    .returning();
+
+  return updatedStudent;
+}
+
+// Update class information (name, archived status)
+export async function updateTeacherClass(
+  classId: string,
+  updates: {
+    name?: string;
+    description?: string;
+    archivedAt?: Date | null;
+  }
+): Promise<schema.TeacherClass> {
+  const [updatedClass] = await licenseDb
+    .update(schema.teacherClasses)
+    .set(updates)
+    .where(eq(schema.teacherClasses.id, classId))
+    .returning();
+
+  return updatedClass;
+}
+
+// Delete student account
+export async function deleteStudent(studentId: string): Promise<void> {
+  // Delete associated password access records first
+  await licenseDb
+    .delete(schema.studentPasswordAccess)
+    .where(eq(schema.studentPasswordAccess.studentId, studentId));
+
+  // Delete student account
+  await licenseDb
+    .delete(schema.studentAccounts)
+    .where(eq(schema.studentAccounts.id, studentId));
+}
+
+// Reset student password and return new password
+export async function resetStudentPassword(studentId: string): Promise<string> {
+  const newPassword = generateSecurePassword();
+  const passwordHash = await hashPassword(newPassword);
+
+  await licenseDb
+    .update(schema.studentAccounts)
+    .set({
+      passwordHash,
+      mustChangePassword: true,
+    })
+    .where(eq(schema.studentAccounts.id, studentId));
+
+  return newPassword;
+}
+
+// Get teacher classes including archived ones (for admin purposes)
+export async function getAllTeacherClasses(teacherId: string) {
+  return await licenseDb
+    .select()
+    .from(schema.teacherClasses)
+    .where(eq(schema.teacherClasses.teacherId, teacherId));
+}
+
+// Check if teacher owns a class
+export async function verifyClassOwnership(classId: string, teacherId: string): Promise<boolean> {
+  const [classRecord] = await licenseDb
+    .select()
+    .from(schema.teacherClasses)
+    .where(
+      and(
+        eq(schema.teacherClasses.id, classId),
+        eq(schema.teacherClasses.teacherId, teacherId)
+      )
+    )
+    .limit(1);
+
+  return !!classRecord;
+}
+
+// Check if teacher owns a student
+export async function verifyStudentOwnership(studentId: string, teacherId: string): Promise<boolean> {
+  const [studentRecord] = await licenseDb
+    .select()
+    .from(schema.studentAccounts)
+    .innerJoin(
+      schema.teacherClasses,
+      eq(schema.studentAccounts.classId, schema.teacherClasses.id)
+    )
+    .where(
+      and(
+        eq(schema.studentAccounts.id, studentId),
+        eq(schema.teacherClasses.teacherId, teacherId)
+      )
+    )
+    .limit(1);
+
+  return !!studentRecord;
 }
 
 // License logging

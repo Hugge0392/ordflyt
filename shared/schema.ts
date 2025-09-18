@@ -47,6 +47,23 @@ export const errorReportTypeEnum = pgEnum('error_report_type', [
   'other'
 ]);
 
+// Activity type enum for student progress tracking
+export const activityTypeEnum = pgEnum('activity_type', [
+  'grammar',
+  'wordclass', 
+  'reading',
+  'test'
+]);
+
+// Student activity type enum
+export const studentActivityTypeEnum = pgEnum('student_activity_type', [
+  'login',
+  'logout',
+  'start_lesson',
+  'complete_lesson',
+  'answer_question'
+]);
+
 // Users table - core authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -79,7 +96,7 @@ export const sessions = pgTable("sessions", {
   lastActivityAt: timestamp("last_activity_at").defaultNow(),
 }, (table) => ({
   sessionTokenIdx: uniqueIndex("session_token_idx").on(table.sessionToken),
-  userIdIdx: uniqueIndex("user_sessions_idx").on(table.userId),
+  userIdIdx: index("user_sessions_idx").on(table.userId), // Changed from uniqueIndex to index to allow multiple concurrent sessions
 }));
 
 // Failed login attempts for rate limiting
@@ -219,6 +236,7 @@ export const studentAccounts = pgTable("student_accounts", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   studentName: varchar("student_name", { length: 255 }).notNull(),
   classId: varchar("class_id").notNull().references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  isActive: boolean("is_active").default(true),
   mustChangePassword: boolean("must_change_password").default(true),
   failedLoginAttempts: integer("failed_login_attempts").default(0),
   lockedUntil: timestamp("locked_until"),
@@ -235,6 +253,21 @@ export const studentPasswordAccess = pgTable("student_password_access", {
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
 });
+
+// Student sessions table - separate authentication for students
+export const studentSessions = pgTable("student_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  sessionToken: varchar("session_token", { length: 512 }).notNull().unique(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  deviceFingerprint: varchar("device_fingerprint", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+}, (table) => ({
+  sessionTokenIdx: uniqueIndex("student_session_token_idx").on(table.sessionToken),
+  studentIdIdx: index("student_sessions_student_id_idx").on(table.studentId),
+}));
 
 // License activity log
 export const licenseLog = pgTable("license_log", {
@@ -347,6 +380,11 @@ export const insertStudentAccountSchema = createInsertSchema(studentAccounts).om
   createdAt: true,
 });
 
+export const insertStudentSessionSchema = createInsertSchema(studentSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertLicenseLogSchema = createInsertSchema(licenseLog).omit({
   id: true,
   createdAt: true,
@@ -374,6 +412,8 @@ export type TeacherClass = typeof teacherClasses.$inferSelect;
 export type InsertTeacherClass = z.infer<typeof insertTeacherClassSchema>;
 export type StudentAccount = typeof studentAccounts.$inferSelect;
 export type InsertStudentAccount = z.infer<typeof insertStudentAccountSchema>;
+export type StudentSession = typeof studentSessions.$inferSelect;
+export type InsertStudentSession = z.infer<typeof insertStudentSessionSchema>;
 export type LicenseLog = typeof licenseLog.$inferSelect;
 export type InsertLicenseLog = z.infer<typeof insertLicenseLogSchema>;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
@@ -2048,3 +2088,85 @@ export type ExportTemplate = typeof exportTemplates.$inferSelect;
 export type InsertExportTemplate = z.infer<typeof insertExportTemplateSchema>;
 export type ExportHistoryEntry = typeof exportHistory.$inferSelect;
 export type InsertExportHistoryEntry = z.infer<typeof insertExportHistorySchema>;
+
+// Student progress tracking table
+export const studentProgress = pgTable("student_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  lessonId: varchar("lesson_id").notNull(), // identifies which lesson/activity
+  activityType: activityTypeEnum("activity_type").notNull(),
+  score: integer("score").notNull(),
+  maxScore: integer("max_score").notNull(),
+  timeSpent: integer("time_spent").notNull(), // time in seconds
+  completedAt: timestamp("completed_at").defaultNow(),
+  metadata: jsonb("metadata").$type<ProgressMetadata>().default({}), // extra data like attempts, difficulty level etc.
+}, (table) => ({
+  studentIdx: index("progress_tracking_student_idx").on(table.studentId),
+  lessonIdx: index("progress_tracking_lesson_idx").on(table.lessonId),
+  activityTypeIdx: index("progress_tracking_activity_type_idx").on(table.activityType),
+  completedAtIdx: index("progress_tracking_completed_at_idx").on(table.completedAt),
+}));
+
+// Student activity logging table  
+export const studentActivity = pgTable("student_activity", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  type: studentActivityTypeEnum("type").notNull(),
+  payload: jsonb("payload").$type<ActivityPayload>().default({}), // extra data
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  studentIdx: index("student_activity_student_idx").on(table.studentId),
+  typeIdx: index("student_activity_type_idx").on(table.type),
+  createdAtIdx: index("student_activity_created_at_idx").on(table.createdAt),
+}));
+
+// Metadata interfaces for the progress tracking
+export interface ProgressMetadata {
+  attempts?: number;
+  difficultyLevel?: 'easy' | 'medium' | 'hard';
+  hintsUsed?: number;
+  completionType?: 'full' | 'partial' | 'skip';
+  errorCount?: number;
+  toolsUsed?: string[];
+  sessionData?: {
+    startedAt?: string;
+    pausedTimes?: number;
+    deviceType?: string;
+  };
+}
+
+export interface ActivityPayload {
+  lessonId?: string;
+  lessonTitle?: string;
+  questionId?: string;
+  answer?: any;
+  score?: number;
+  timeSpent?: number;
+  sessionId?: string;
+  deviceInfo?: {
+    type?: string;
+    browser?: string;
+    screenSize?: string;
+  };
+  location?: {
+    page?: string;
+    component?: string;
+  };
+}
+
+// Insert schemas for new tables
+export const insertStudentProgressSchema = createInsertSchema(studentProgress).omit({
+  id: true,
+  completedAt: true,
+});
+
+export const insertStudentActivitySchema = createInsertSchema(studentActivity).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new tables
+export type StudentProgress = typeof studentProgress.$inferSelect;
+export type InsertStudentProgress = z.infer<typeof insertStudentProgressSchema>;
+export type StudentActivity = typeof studentActivity.$inferSelect;
+export type InsertStudentActivity = z.infer<typeof insertStudentActivitySchema>;
