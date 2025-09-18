@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import crypto from 'crypto';
 import * as schema from "@shared/schema";
-import { eq, and, gt, isNull } from 'drizzle-orm';
+import { eq, and, gt, isNull, or } from 'drizzle-orm';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -135,9 +135,10 @@ export async function getActiveLicense(teacherId: string) {
         eq(schema.teacherLicenses.teacherId, teacherId),
         eq(schema.teacherLicenses.isActive, true),
         // License is active (either no expiration or not yet expired)
-        schema.teacherLicenses.expiresAt ? 
-          gt(schema.teacherLicenses.expiresAt, new Date()) :
-          isNull(schema.teacherLicenses.expiresAt)
+        or(
+          isNull(schema.teacherLicenses.expiresAt),  // No expiration date
+          gt(schema.teacherLicenses.expiresAt, new Date())  // Not yet expired
+        )
       )
     )
     .limit(1);
