@@ -149,6 +149,18 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      {/* Swedish teacher route aliases */}
+      <Route path="/larare">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <TeacherPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/larare/klasser">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <TeacherClassesPage />
+        </ProtectedRoute>
+      </Route>
+      
       {/* Admin routes (requires ADMIN role) */}
       <Route path="/admin">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
