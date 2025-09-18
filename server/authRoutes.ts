@@ -97,11 +97,16 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       return res.status(429).json({ error: 'För många inloggningsförsök, försök igen senare' });
     }
     
-    // Get user - but don't reveal if user exists or not
+    // Get user by username OR email - but don't reveal if user exists or not
     let [user] = await db
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(
+        or(
+          eq(users.username, username),
+          eq(users.email, username)
+        )
+      )
       .limit(1);
     
     // Verify password with constant time to prevent timing attacks

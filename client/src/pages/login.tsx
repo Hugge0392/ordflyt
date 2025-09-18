@@ -12,7 +12,7 @@ import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Användarnamn krävs"),
+  username: z.string().min(1, "Användarnamn eller e-post krävs"),
   password: z.string().min(1, "Lösenord krävs"),
 });
 
@@ -94,12 +94,12 @@ export default function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Användarnamn</FormLabel>
+                    <FormLabel>Användarnamn eller e-post</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="text"
-                        placeholder="Ange ditt användarnamn"
+                        placeholder="Ange användarnamn eller e-post"
                         autoComplete="username"
                         disabled={isLoading}
                         data-testid="input-username"
