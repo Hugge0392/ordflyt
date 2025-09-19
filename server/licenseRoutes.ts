@@ -12,6 +12,7 @@ import {
   createTeacherClass,
   createStudentAccounts,
   getStudentByUsername,
+  getStudentById,
   updateStudentPassword,
   logLicenseActivity,
   createOneTimeCode,
@@ -898,17 +899,19 @@ router.put('/students/:studentId/reset-password', requireAuth, requireTeacherLic
     // Update student password
     await updateStudentPassword(studentId, newPasswordHash);
     
-    // Store password temporarily for teacher access
-    await storePasswordForAccess(studentId, newPassword, userId);
+    // Generate new setup code for secure login instead of storing password
+    const { id: setupCodeId, clearCode: setupCode } = await createStudentSetupCode(studentId, userId);
     
     res.json({
       success: true,
-      message: 'Lösenord återställt',
+      message: 'Elevens inloggning återställd! Ny engångskod genererad.',
       student: {
         id: student.id,
         username: student.username,
         studentName: student.studentName,
-        newPassword // Only for display to teacher
+        setupCode: setupCode, // Secure setup code instead of password
+        setupCodeId,
+        expiresIn: '24 timmar'
       }
     });
   } catch (error) {
@@ -961,34 +964,6 @@ router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requir
   }
 });
 
-// POST /api/license/students/:studentId/generate-setup-code - Generera ny engångskod för elev
-router.post('/students/:studentId/generate-setup-code', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
-  try {
-    const { studentId } = req.params;
-    const userId = req.user.id;
-    
-    // Kontrollera att läraren äger eleven
-    const ownsStudent = await verifyStudentOwnership(studentId, userId);
-    if (!ownsStudent) {
-      return res.status(403).json({ error: 'Du har inte behörighet att generera kod för denna elev' });
-    }
-
-    // Generera ny engångskod
-    const { id: setupCodeId, clearCode } = await createStudentSetupCode(studentId, userId);
-    
-    res.json({
-      success: true,
-      message: 'Engångskod genererad!',
-      setupCode: clearCode, // Visa koden EN gång
-      setupCodeId,
-      expiresIn: '24 timmar'
-    });
-    
-  } catch (error) {
-    console.error('Generate setup code error:', error);
-    res.status(500).json({ error: 'Serverfel' });
-  }
-});
 
 // POST /api/license/classes/:classId/students - Lägg till ny elev i klass
 router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
@@ -1031,8 +1006,8 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
       classId
     );
     
-    // Store password temporarily for teacher access
-    await storePasswordForAccess(student.id, clearPassword, userId);
+    // Generate setup code for secure first-time login instead of storing password
+    const { id: setupCodeId, clearCode: setupCode } = await createStudentSetupCode(student.id, userId);
     
     res.json({
       success: true,
@@ -1041,7 +1016,9 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
         id: student.id,
         username: student.username,
         studentName: student.studentName,
-        clearPassword // Return clear password for teacher
+        setupCode: setupCode, // Return secure setup code instead of password
+        setupCodeId,
+        expiresIn: '24 timmar'
       }
     });
     
@@ -1152,20 +1129,20 @@ router.get('/students/:id/password', requireAuth, requireTeacherLicense, require
       return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
     }
     
-    // Get temporarily stored password
-    const clearPassword = await getPasswordForAccess(studentId, userId);
+    // Check if there's an active setup code instead of stored password
+    const activeSetupCode = await getActiveSetupCode(studentId, userId);
     
-    if (!clearPassword) {
+    if (!activeSetupCode.exists) {
       return res.status(404).json({ 
-        error: 'Inget lösenord tillgängligt',
-        message: 'Lösenordet har gått ut eller inte genererats. Återställ lösenordet för att se det.'
+        error: 'Ingen aktiv engångskod',
+        message: 'Det finns ingen aktiv engångskod för eleven. Generera en ny kod för säker inloggning.'
       });
     }
     
-    // Log password access
+    // Log setup code access
     await logLicenseActivity(
       req.license.id, 
-      'password_viewed', 
+      'setup_code_info_viewed', 
       { 
         student_id: studentId,
         student_username: student.username,
@@ -1176,9 +1153,12 @@ router.get('/students/:id/password', requireAuth, requireTeacherLicense, require
     );
     
     res.json({ 
-      password: clearPassword,
+      hasActiveSetupCode: true,
       studentId: student.id,
-      username: student.username 
+      username: student.username,
+      expiresAt: activeSetupCode.expiresAt,
+      createdAt: activeSetupCode.createdAt,
+      message: 'Engångskod är aktiv - generera ny kod för att visa den'
     });
     
   } catch (error) {
@@ -1224,17 +1204,18 @@ router.post('/students/:id/reset-password', requireAuth, requireTeacherLicense, 
     // Update student password
     await updateStudentPassword(studentId, newPasswordHash);
     
-    // Store password temporarily for teacher access
-    await storePasswordForAccess(studentId, newPassword, userId);
+    // Generate new setup code for secure login instead of storing password
+    const { id: setupCodeId, clearCode: setupCode } = await createStudentSetupCode(studentId, userId);
     
     // Log password reset activity
     await logLicenseActivity(
       req.license.id, 
-      'password_reset', 
+      'password_reset_with_setup_code', 
       { 
         student_id: studentId,
         student_username: student.username,
-        student_name: student.studentName
+        student_name: student.studentName,
+        setup_code_id: setupCodeId
       }, 
       userId, 
       req.ip || 'unknown'
@@ -1242,12 +1223,14 @@ router.post('/students/:id/reset-password', requireAuth, requireTeacherLicense, 
     
     res.json({
       success: true,
-      message: 'Lösenord återställt',
+      message: 'Elevens inloggning återställd! Ny engångskod genererad.',
       student: {
         id: student.id,
         username: student.username,
         studentName: student.studentName,
-        newPassword // Only for display to teacher
+        setupCode: setupCode, // Secure setup code instead of password
+        setupCodeId,
+        expiresIn: '24 timmar'
       }
     });
   } catch (error) {

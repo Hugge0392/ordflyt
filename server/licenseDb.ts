@@ -345,8 +345,8 @@ export async function getActiveSetupCode(
 
   return {
     exists: true,
-    expiresAt: setupCode.expiresAt,
-    createdAt: setupCode.createdAt,
+    expiresAt: setupCode.expiresAt ?? undefined,
+    createdAt: setupCode.createdAt ?? undefined,
   };
 }
 
@@ -428,12 +428,7 @@ export async function updateTeacherClass(
 
 // Delete student account
 export async function deleteStudent(studentId: string): Promise<void> {
-  // Delete associated password access records first
-  await licenseDb
-    .delete(schema.studentPasswordAccess)
-    .where(eq(schema.studentPasswordAccess.studentId, studentId));
-
-  // Delete student account
+  // Delete student account directly (no more password access records to clean up)
   await licenseDb
     .delete(schema.studentAccounts)
     .where(eq(schema.studentAccounts.id, studentId));
