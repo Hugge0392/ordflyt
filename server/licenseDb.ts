@@ -206,47 +206,148 @@ export async function createStudentAccounts(
   return await licenseDb.insert(schema.studentAccounts).values(studentData).returning();
 }
 
-// Store password temporarily for teacher access
-export async function storePasswordForAccess(
-  studentId: string,
-  clearPassword: string,
-  accessedBy: string
-): Promise<void> {
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 1); // Expire after 1 hour
+// Secure setup code functions for student first-time login
 
-  // Delete any existing password access for this student
-  await licenseDb
-    .delete(schema.studentPasswordAccess)
-    .where(eq(schema.studentPasswordAccess.studentId, studentId));
-
-  // Insert new password access
-  await licenseDb.insert(schema.studentPasswordAccess).values({
-    studentId,
-    clearPassword,
-    accessedBy,
-    expiresAt,
-  });
+export function generateSetupCode(): string {
+  // Generate 6-character readable setup code (no confusing characters)
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(crypto.randomInt(0, chars.length));
+  }
+  
+  return code;
 }
 
-// Get stored password for teacher access
-export async function getPasswordForAccess(
+export function hashSetupCode(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+// Create setup code for student
+export async function createStudentSetupCode(
   studentId: string,
-  accessedBy: string
-): Promise<string | null> {
-  const [passwordAccess] = await licenseDb
-    .select()
-    .from(schema.studentPasswordAccess)
+  createdBy: string
+): Promise<{ id: string, clearCode: string }> {
+  const clearCode = generateSetupCode();
+  const codeHash = hashSetupCode(clearCode);
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24); // Expire after 24 hours
+
+  // Deactivate any existing active codes for this student
+  await licenseDb
+    .update(schema.studentSetupCodes)
+    .set({ isActive: false })
     .where(
       and(
-        eq(schema.studentPasswordAccess.studentId, studentId),
-        eq(schema.studentPasswordAccess.accessedBy, accessedBy),
-        gt(schema.studentPasswordAccess.expiresAt, new Date())
+        eq(schema.studentSetupCodes.studentId, studentId),
+        eq(schema.studentSetupCodes.isActive, true)
+      )
+    );
+
+  // Insert new setup code
+  const [setupCode] = await licenseDb.insert(schema.studentSetupCodes).values({
+    studentId,
+    codeHash,
+    createdBy,
+    expiresAt,
+    isActive: true,
+  }).returning();
+
+  // Log setup code generation
+  await logLicenseActivity(null, 'setup_code_generated', {
+    studentId,
+    setupCodeId: setupCode.id,
+    expiresAt,
+  }, createdBy);
+
+  return { id: setupCode.id, clearCode };
+}
+
+// Validate and use setup code
+export async function validateAndUseSetupCode(
+  studentId: string,
+  clearCode: string
+): Promise<{ valid: boolean, setupCodeId?: string }> {
+  const codeHash = hashSetupCode(clearCode);
+  
+  const [setupCode] = await licenseDb
+    .select()
+    .from(schema.studentSetupCodes)
+    .where(
+      and(
+        eq(schema.studentSetupCodes.studentId, studentId),
+        eq(schema.studentSetupCodes.codeHash, codeHash),
+        eq(schema.studentSetupCodes.isActive, true),
+        isNull(schema.studentSetupCodes.usedAt),
+        gt(schema.studentSetupCodes.expiresAt, new Date())
       )
     )
     .limit(1);
 
-  return passwordAccess?.clearPassword || null;
+  if (!setupCode) {
+    // Log failed validation attempt
+    await logLicenseActivity(null, 'setup_code_validation_failed', {
+      studentId,
+      reason: 'invalid_or_expired',
+    });
+    return { valid: false };
+  }
+
+  // Mark code as used
+  await licenseDb
+    .update(schema.studentSetupCodes)
+    .set({
+      usedAt: new Date(),
+      isActive: false,
+    })
+    .where(eq(schema.studentSetupCodes.id, setupCode.id));
+
+  // Log successful validation
+  await logLicenseActivity(null, 'setup_code_used', {
+    studentId,
+    setupCodeId: setupCode.id,
+  });
+
+  return { valid: true, setupCodeId: setupCode.id };
+}
+
+// Get active setup code for student (for teacher display)
+export async function getActiveSetupCode(
+  studentId: string,
+  accessedBy: string
+): Promise<{ exists: boolean, expiresAt?: Date, createdAt?: Date }> {
+  const [setupCode] = await licenseDb
+    .select({
+      expiresAt: schema.studentSetupCodes.expiresAt,
+      createdAt: schema.studentSetupCodes.createdAt,
+    })
+    .from(schema.studentSetupCodes)
+    .where(
+      and(
+        eq(schema.studentSetupCodes.studentId, studentId),
+        eq(schema.studentSetupCodes.isActive, true),
+        isNull(schema.studentSetupCodes.usedAt),
+        gt(schema.studentSetupCodes.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
+  if (!setupCode) {
+    return { exists: false };
+  }
+
+  // Log access to setup code info (for audit purposes)
+  await logLicenseActivity(null, 'setup_code_info_accessed', {
+    studentId,
+    accessedBy,
+  }, accessedBy);
+
+  return {
+    exists: true,
+    expiresAt: setupCode.expiresAt,
+    createdAt: setupCode.createdAt,
+  };
 }
 
 export async function getStudentByUsername(username: string) {
@@ -254,6 +355,16 @@ export async function getStudentByUsername(username: string) {
     .select()
     .from(schema.studentAccounts)
     .where(eq(schema.studentAccounts.username, username))
+    .limit(1);
+  
+  return student;
+}
+
+export async function getStudentById(studentId: string) {
+  const [student] = await licenseDb
+    .select()
+    .from(schema.studentAccounts)
+    .where(eq(schema.studentAccounts.id, studentId))
     .limit(1);
   
   return student;

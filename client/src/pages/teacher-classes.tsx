@@ -52,7 +52,7 @@ export default function TeacherClassesPage() {
   const [isAddStudentsDialogOpen, setIsAddStudentsDialogOpen] = useState(false);
   const [isEditStudentDialogOpen, setIsEditStudentDialogOpen] = useState(false);
   const [isEditClassDialogOpen, setIsEditClassDialogOpen] = useState(false);
-  const [resetPasswordDialog, setResetPasswordDialog] = useState<string | null>(null);
+  const [generateCodeDialog, setGenerateCodeDialog] = useState<string | null>(null);
   const [createdClass, setCreatedClass] = useState<any>(null);
   
   // Form states
@@ -193,22 +193,22 @@ export default function TeacherClassesPage() {
     },
   });
 
-  const resetPasswordMutation = useMutation({
+  const generateSetupCodeMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      return apiRequest('POST', `/api/license/students/${studentId}/reset-password`);
+      return apiRequest('POST', `/api/license/students/${studentId}/generate-setup-code`);
     },
     onSuccess: (data, studentId) => {
-      setResetPasswordDialog(null);
+      setGenerateCodeDialog(null);
       toast({
-        title: 'Lösenord återställt!',
-        description: `Nytt lösenord: ${(data as any).newPassword}`,
+        title: 'Ny engångskod genererad!',
+        description: `Engångskod för eleven: ${(data as any).setupCode}`,
         duration: 10000,
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Fel vid återställning',
-        description: error.message || 'Kunde inte återställa lösenordet. Försök igen.',
+        title: 'Fel vid kodgenerering',
+        description: error.message || 'Kunde inte generera ny engångskod. Försök igen.',
         variant: 'destructive',
       });
     },
@@ -314,11 +314,11 @@ export default function TeacherClassesPage() {
 
   const downloadStudentCredentials = (classData: any) => {
     const csvContent = [
-      ['Elevnamn', 'Användarnamn', 'Lösenord'],
+      ['Elevnamn', 'Användarnamn', 'Engångskod'],
       ...classData.students.map((student: any) => [
         student.studentName,
         student.username,
-        student.clearPassword,
+        student.setupCode,
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -433,7 +433,7 @@ export default function TeacherClassesPage() {
                 <DialogHeader>
                   <DialogTitle>Skapa ny klass</DialogTitle>
                   <DialogDescription>
-                    Ange klassens information och lägg till eleverna. Användarnamn och lösenord genereras automatiskt.
+                    Ange klassens information och lägg till eleverna. Användarnamn och engångskoder genereras automatiskt.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -508,7 +508,7 @@ export default function TeacherClassesPage() {
                         data-testid="input-student-names"
                       />
                       <FormDescription>
-                        Ange ett elevnamn per rad. Användarnamn och lösenord genereras automatiskt.
+                        Ange ett elevnamn per rad. Användarnamn och engångskoder genereras automatiskt.
                       </FormDescription>
                       {studentNamesText && (
                         <p className="text-sm text-gray-600">
@@ -778,10 +778,10 @@ export default function TeacherClassesPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => setResetPasswordDialog(student.id)}
-                                      data-testid={`button-reset-password-${student.id}`}
+                                      onClick={() => setGenerateCodeDialog(student.id)}
+                                      data-testid={`button-generate-code-${student.id}`}
                                     >
-                                      <RotateCcw className="h-4 w-4" />
+                                      <Key className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -874,7 +874,7 @@ export default function TeacherClassesPage() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Viktigt:</strong> Elevernas lösenord visas bara här en gång. 
+                    <strong>Viktigt:</strong> Elevernas engångskoder visas bara här en gång. 
                     Ladda ner eller kopiera uppgifterna innan du stänger fönstret.
                   </AlertDescription>
                 </Alert>
@@ -896,7 +896,7 @@ export default function TeacherClassesPage() {
                       <TableRow>
                         <TableHead>Elevnamn</TableHead>
                         <TableHead>Användarnamn</TableHead>
-                        <TableHead>Lösenord</TableHead>
+                        <TableHead>Engångskod</TableHead>
                         <TableHead className="w-24">Kopiera</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -905,12 +905,12 @@ export default function TeacherClassesPage() {
                         <TableRow key={student.id}>
                           <TableCell className="font-medium">{student.studentName}</TableCell>
                           <TableCell className="font-mono">{student.username}</TableCell>
-                          <TableCell className="font-mono">{student.clearPassword}</TableCell>
+                          <TableCell className="font-mono">{student.setupCode}</TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyToClipboard(`${student.username} / ${student.clearPassword}`)}
+                              onClick={() => copyToClipboard(`${student.username} / ${student.setupCode}`)}
                               data-testid={`button-copy-${student.username}`}
                             >
                               <Copy className="h-3 w-3" />
@@ -938,7 +938,7 @@ export default function TeacherClassesPage() {
             <DialogHeader>
               <DialogTitle>Lägg till elever</DialogTitle>
               <DialogDescription>
-                Lägg till nya elever till klassen. Användarnamn och lösenord genereras automatiskt.
+                Lägg till nya elever till klassen. Användarnamn och engångskoder genereras automatiskt.
               </DialogDescription>
             </DialogHeader>
             
@@ -954,7 +954,7 @@ export default function TeacherClassesPage() {
                   data-testid="input-add-student-names"
                 />
                 <p className="text-sm text-gray-600">
-                  Ange ett elevnamn per rad. Användarnamn och lösenord genereras automatiskt.
+                  Ange ett elevnamn per rad. Användarnamn och engångskoder genereras automatiskt.
                 </p>
                 {addStudentNamesText && (
                   <p className="text-sm text-gray-600">
@@ -1153,24 +1153,24 @@ export default function TeacherClassesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Reset Password Confirmation Dialog */}
-        {resetPasswordDialog && (
-          <AlertDialog open={!!resetPasswordDialog} onOpenChange={() => setResetPasswordDialog(null)}>
+        {/* Generate Setup Code Confirmation Dialog */}
+        {generateCodeDialog && (
+          <AlertDialog open={!!generateCodeDialog} onOpenChange={() => setGenerateCodeDialog(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Återställ elevlösenord</AlertDialogTitle>
+                <AlertDialogTitle>Generera ny engångskod</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Är du säker på att du vill återställa lösenordet för denna elev? 
-                  Ett nytt tillfälligt lösenord kommer att genereras och eleven måste ändra det vid nästa inloggning.
+                  Är du säker på att du vill generera en ny engångskod för denna elev? 
+                  Den gamla koden kommer att bli ogiltig och eleven kan använda den nya koden för att logga in och sätta ett nytt lösenord.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Avbryt</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => resetPasswordMutation.mutate(resetPasswordDialog)}
-                  data-testid="button-confirm-reset-password"
+                  onClick={() => generateSetupCodeMutation.mutate(generateCodeDialog)}
+                  data-testid="button-confirm-generate-code"
                 >
-                  Återställ lösenord
+                  Generera ny kod
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

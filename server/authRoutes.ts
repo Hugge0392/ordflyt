@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "./db";
 import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema, studentAccounts, studentSessions, teacherClasses } from "@shared/schema";
 import { eq, and, gte, isNull, isNotNull, or } from "drizzle-orm";
-import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity } from "./licenseDb";
+import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity, validateAndUseSetupCode, getStudentByUsername, updateStudentPassword } from "./licenseDb";
 import argon2 from "argon2";
 import {
   hashPassword,
@@ -1592,6 +1592,139 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
   } catch (error) {
     console.error('Student login error:', error);
     await logAuditEvent('STUDENT_LOGIN_ERROR', null, false, ipAddress, userAgent, { 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+    res.status(500).json({ error: 'Ett fel uppstod vid inloggning' });
+  }
+});
+
+// POST /api/student/login-with-code - Student first-time login with setup code
+router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => {
+  const { username, setupCode } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+  const deviceFingerprint = generateDeviceFingerprint(req);
+  
+  try {
+    // Input validation
+    if (!username || !setupCode) {
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { reason: 'Missing credentials' });
+      return res.status(400).json({ error: 'Användarnamn och engångskod krävs' });
+    }
+
+    // Check login attempts
+    const canLogin = await checkStudentLoginAttempts(username, ipAddress, deviceFingerprint);
+    if (!canLogin) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Rate limited');
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { reason: 'Rate limited' });
+      return res.status(429).json({ error: 'För många inloggningsförsök. Försök igen senare.' });
+    }
+
+    // Find student by username
+    const student = await getStudentByUsername(username);
+    if (!student) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Student not found');
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { username, reason: 'Student not found' });
+      return res.status(401).json({ error: 'Felaktigt användarnamn eller engångskod' });
+    }
+
+    // Check if account is locked
+    if (student.lockedUntil && new Date() < student.lockedUntil) {
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Account locked');
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
+      return res.status(423).json({ 
+        error: 'Kontot är låst. Försök igen senare.', 
+        lockedUntil: student.lockedUntil.toISOString() 
+      });
+    }
+
+    // Validate and use setup code
+    const { valid, setupCodeId } = await validateAndUseSetupCode(student.id, setupCode);
+    if (!valid) {
+      // Increment failed login attempts
+      const newFailedAttempts = (student.failedLoginAttempts || 0) + 1;
+      const shouldLockAccount = newFailedAttempts >= 5;
+      
+      const updateData: any = {
+        failedLoginAttempts: newFailedAttempts
+      };
+      
+      if (shouldLockAccount) {
+        updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
+      }
+      
+      await db
+        .update(studentAccounts)
+        .set(updateData)
+        .where(eq(studentAccounts.id, student.id));
+
+      await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Invalid setup code');
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Invalid setup code', failedAttempts: newFailedAttempts });
+      
+      const errorMessage = shouldLockAccount 
+        ? 'För många misslyckade inloggningsförsök. Kontot har låsts i 30 minuter.'
+        : 'Felaktigt användarnamn eller engångskod';
+      
+      return res.status(401).json({ error: errorMessage });
+    }
+
+    // Reset failed login attempts on successful login
+    await db
+      .update(studentAccounts)
+      .set({ 
+        failedLoginAttempts: 0, 
+        lockedUntil: null,
+        lastLogin: new Date() 
+      })
+      .where(eq(studentAccounts.id, student.id));
+
+    // Create student session
+    const session = await createStudentSession(
+      student.id,
+      ipAddress,
+      userAgent,
+      deviceFingerprint
+    );
+
+    // Set secure cookie
+    const cookieOptions: any = {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 45 * 60 * 1000 // 45 minutes
+    };
+
+    // Add secure flag in production
+    if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
+      cookieOptions.secure = true;
+    }
+
+    res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
+
+    // Log successful setup code login
+    await logAuditEvent('STUDENT_SETUP_LOGIN_SUCCESS', student.id, true, ipAddress, userAgent, { 
+      sessionId: session.id,
+      setupCodeId,
+      mustChangePassword: student.mustChangePassword 
+    });
+
+    res.json({
+      success: true,
+      message: 'Inloggning lyckades! Du måste nu ändra ditt lösenord.',
+      student: {
+        id: student.id,
+        username: student.username,
+        studentName: student.studentName,
+        classId: student.classId,
+        mustChangePassword: true, // Always require password change after setup code login
+        lastLogin: student.lastLogin
+      },
+      requirePasswordChange: true
+    });
+
+  } catch (error) {
+    console.error('Student setup code login error:', error);
+    await logAuditEvent('STUDENT_SETUP_LOGIN_ERROR', null, false, ipAddress, userAgent, { 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
     res.status(500).json({ error: 'Ett fel uppstod vid inloggning' });

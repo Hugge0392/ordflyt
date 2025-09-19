@@ -16,8 +16,9 @@ import {
   logLicenseActivity,
   createOneTimeCode,
   generateSecurePassword,
-  storePasswordForAccess,
-  getPasswordForAccess,
+  createStudentSetupCode,
+  validateAndUseSetupCode,
+  getActiveSetupCode,
   getStudentsByClassId,
   updateStudent,
   updateTeacherClass,
@@ -263,7 +264,7 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
     // Skapa klass
     const teacherClass = await createTeacherClass(name, userId, licenseId, term, description);
 
-    // Generera användarnamn och lösenord för elever
+    // Generera användarnamn och temporärt lösenord för elever
     const students = await Promise.all(studentNames.map(async (studentName: string, index: number) => {
       const baseUsername = studentName.toLowerCase()
         .replace(/[åä]/g, 'a')
@@ -272,13 +273,12 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
         .substring(0, 8);
       
       const username = `${baseUsername}${String(index + 1).padStart(2, '0')}`;
-      const password = generateSecurePassword();
-      const passwordHash = await hashPassword(password);
+      const tempPassword = generateSecurePassword(); // Temporärt lösenord som måste ändras
+      const passwordHash = await hashPassword(tempPassword);
 
       return {
         name: studentName,
         username,
-        password, // Sparas tillfälligt för CSV-export
         passwordHash
       };
     }));
@@ -289,17 +289,21 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
       teacherClass.id
     );
 
-    // Kombinera data för response
-    const studentsWithPasswords = createdStudents.map((student, index) => ({
-      ...student,
-      clearPassword: students[index].password // Bara för att visa i UI
+    // Generera engångskoder för alla nya elever
+    const studentsWithSetupCodes = await Promise.all(createdStudents.map(async (student) => {
+      const { id: setupCodeId, clearCode } = await createStudentSetupCode(student.id, userId);
+      return {
+        ...student,
+        setupCode: clearCode, // Visa engångskoden EN gång
+        setupCodeId
+      };
     }));
 
     res.json({
       success: true,
       message: 'Klass skapad!',
       class: teacherClass,
-      students: studentsWithPasswords
+      students: studentsWithSetupCodes
     });
 
   } catch (error: any) {
@@ -449,7 +453,7 @@ router.patch('/students/:studentId', requireAuth, requireTeacherLicense, require
   }
 });
 
-// POST /api/license/students/:studentId/reset-password - Återställ elevlösenord
+// POST /api/license/students/:studentId/reset-password - Återställ elevlösenord (genererar ny engångskod)
 router.post('/students/:studentId/reset-password', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
   try {
     const { studentId } = req.params;
@@ -458,18 +462,21 @@ router.post('/students/:studentId/reset-password', requireAuth, requireTeacherLi
     // Kontrollera att läraren äger eleven
     const ownsStudent = await verifyStudentOwnership(studentId, userId);
     if (!ownsStudent) {
-      return res.status(403).json({ error: 'Du har inte behörighet att återställa lösenordet för denna elev' });
+      return res.status(403).json({ error: 'Du har inte behörighet att återställa inloggningen för denna elev' });
     }
 
-    const newPassword = await resetStudentPassword(studentId);
-
-    // Spara lösenordet tillfälligt för lärarens åtkomst
-    await storePasswordForAccess(studentId, newPassword, userId);
+    // Återställ lösenord till system-genererat (elev måste ändra vid nästa login)
+    await resetStudentPassword(studentId);
+    
+    // Generera ny engångskod för inloggning
+    const { id: setupCodeId, clearCode } = await createStudentSetupCode(studentId, userId);
 
     res.json({
       success: true,
-      message: 'Lösenord återställt!',
-      newPassword: newPassword
+      message: 'Elevens inloggning återställd! Ny engångskod genererad.',
+      setupCode: clearCode, // Visa koden EN gång
+      setupCodeId,
+      expiresIn: '24 timmar'
     });
 
   } catch (error) {
@@ -954,67 +961,31 @@ router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requir
   }
 });
 
-// GET /api/license/students/:studentId/password - Hämta elevs lösenord för visning
-router.get('/students/:studentId/password', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
+// POST /api/license/students/:studentId/generate-setup-code - Generera ny engångskod för elev
+router.post('/students/:studentId/generate-setup-code', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
   try {
     const { studentId } = req.params;
     const userId = req.user.id;
     
-    // Get student and verify teacher has access
-    const [student] = await licenseDb
-      .select({
-        id: studentAccounts.id,
-        classId: studentAccounts.classId,
-        studentName: studentAccounts.studentName,
-        username: studentAccounts.username,
-      })
-      .from(studentAccounts)
-      .where(eq(studentAccounts.id, studentId))
-      .limit(1);
-    
-    if (!student) {
-      return res.status(404).json({ error: 'Elev hittades inte' });
+    // Kontrollera att läraren äger eleven
+    const ownsStudent = await verifyStudentOwnership(studentId, userId);
+    if (!ownsStudent) {
+      return res.status(403).json({ error: 'Du har inte behörighet att generera kod för denna elev' });
     }
+
+    // Generera ny engångskod
+    const { id: setupCodeId, clearCode } = await createStudentSetupCode(studentId, userId);
     
-    // Verify teacher owns the class this student belongs to
-    const teacherClasses = await getTeacherClasses(userId);
-    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
-    
-    if (!ownsClass) {
-      return res.status(403).json({ error: 'Ingen behörighet till denna elev' });
-    }
-    
-    // Get stored password
-    const clearPassword = await getPasswordForAccess(studentId, userId);
-    
-    if (!clearPassword) {
-      return res.status(404).json({ 
-        error: 'Inget lösenord tillgängligt',
-        message: 'Lösenordet har gått ut eller inte genererats. Återställ lösenordet för att se det.'
-      });
-    }
-    
-    // Log password access
-    await logLicenseActivity(
-      req.license.id, 
-      'password_viewed', 
-      { 
-        student_id: studentId,
-        student_username: student.username,
-        student_name: student.studentName
-      }, 
-      userId, 
-      req.ip || 'unknown'
-    );
-    
-    res.json({ 
-      password: clearPassword,
-      studentId: student.id,
-      username: student.username 
+    res.json({
+      success: true,
+      message: 'Engångskod genererad!',
+      setupCode: clearCode, // Visa koden EN gång
+      setupCodeId,
+      expiresIn: '24 timmar'
     });
     
   } catch (error) {
-    console.error('Get student password error:', error);
+    console.error('Generate setup code error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1338,6 +1309,57 @@ router.delete('/students/:id', requireAuth, requireTeacherLicense, requireSchool
   } catch (error) {
     console.error('Delete student error:', error);
     res.status(500).json({ error: 'Serverfel' });
+  }
+});
+
+// POST /api/license/students/:id/generate-setup-code - Generate new setup code for student
+router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { id: studentId } = req.params;
+    const userId = req.user.id;
+    const ipAddress = req.ip || 'unknown';
+
+    // Get student details and verify access
+    const student = await getStudentById(studentId);
+    if (!student) {
+      return res.status(404).json({ error: 'Eleven hittades inte' });
+    }
+
+    // Verify teacher owns the class
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
+    
+    if (!ownsClass) {
+      return res.status(403).json({ error: 'Ingen behörighet för denna elev' });
+    }
+
+    // Generate new setup code (this will deactivate any existing codes)
+    const { id: setupCodeId, clearCode } = await createStudentSetupCode(studentId, userId);
+
+    // Log the action
+    await logLicenseActivity(
+      req.license.id, 
+      'generate_setup_code', 
+      { 
+        student_id: studentId,
+        student_name: student.studentName,
+        setup_code_id: setupCodeId
+      }, 
+      userId, 
+      ipAddress
+    );
+
+    res.json({
+      success: true,
+      message: 'Ny engångskod genererad framgångsrikt',
+      setupCode: clearCode,
+      studentName: student.studentName,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+    });
+
+  } catch (error) {
+    console.error('Generate setup code error:', error);
+    res.status(500).json({ error: 'Serverfel vid generering av engångskod' });
   }
 });
 

@@ -244,15 +244,20 @@ export const studentAccounts = pgTable("student_accounts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Temporary password storage for teacher access (expires after 1 hour)
-export const studentPasswordAccess = pgTable("student_password_access", {
+// Secure setup codes for student first-time login (expires after 24 hours)
+export const studentSetupCodes = pgTable("student_setup_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
-  clearPassword: varchar("clear_password", { length: 255 }).notNull(),
-  accessedBy: varchar("accessed_by").notNull().references(() => users.id),
+  codeHash: varchar("code_hash", { length: 255 }).notNull(), // hashed setup code
+  createdBy: varchar("created_by").notNull().references(() => users.id), // teacher who created the code
   createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-});
+  expiresAt: timestamp("expires_at").notNull(), // 24 hours from creation
+  usedAt: timestamp("used_at"), // null until used
+  isActive: boolean("is_active").default(true),
+}, (table) => ({
+  studentIdIdx: index("student_setup_codes_student_id_idx").on(table.studentId),
+  createdByIdx: index("student_setup_codes_created_by_idx").on(table.createdBy),
+}));
 
 // Student sessions table - separate authentication for students
 export const studentSessions = pgTable("student_sessions", {
