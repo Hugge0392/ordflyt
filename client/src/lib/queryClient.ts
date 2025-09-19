@@ -7,6 +7,32 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Function to refresh CSRF token from /api/auth/me
+export async function refreshCsrfToken(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/auth/me', {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.warn('Failed to refresh CSRF token:', res.status, res.statusText);
+      return null;
+    }
+
+    const data = await res.json();
+    if (data.csrfToken) {
+      // Update localStorage with the new token
+      localStorage.setItem('csrfToken', data.csrfToken);
+      return data.csrfToken;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Error refreshing CSRF token:', error);
+    return null;
+  }
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -20,12 +46,19 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  // Add CSRF token for mutating operations
+  // Add CSRF token for mutating operations with automatic refresh
   const mutatingMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
   if (mutatingMethods.includes(method.toUpperCase())) {
-    const csrfToken = localStorage.getItem('csrfToken');
+    // Always refresh CSRF token before mutating operations to ensure it's valid
+    const csrfToken = await refreshCsrfToken();
     if (csrfToken) {
       headers["X-CSRF-Token"] = csrfToken;
+    } else {
+      // Fallback to stored token if refresh fails
+      const storedToken = localStorage.getItem('csrfToken');
+      if (storedToken) {
+        headers["X-CSRF-Token"] = storedToken;
+      }
     }
   }
 
