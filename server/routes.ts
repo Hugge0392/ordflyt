@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema, vocabularyStatsResponseSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -61,6 +61,14 @@ const progressTrendsSchema = z.object({
 
 const completionRatesSchema = z.object({
   groupBy: z.enum(['class', 'assignment', 'student']).default('class')
+});
+
+// Vocabulary stats validation schema
+const vocabularyStatsQuerySchema = z.object({
+  ids: z.string().optional().transform((str) => {
+    if (!str) return [];
+    return str.split(',').filter(Boolean);
+  })
 });
 
 // CSV conversion helper functions
@@ -3731,6 +3739,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching published vocabulary sets:", error);
       res.status(500).json({ error: "Failed to fetch published vocabulary sets" });
+    }
+  });
+
+  // GET /api/vocabulary/sets/stats - Get vocabulary stats for multiple sets (efficient bulk fetching)
+  app.get("/api/vocabulary/sets/stats", async (req, res) => {
+    try {
+      const validatedQuery = vocabularyStatsQuerySchema.parse(req.query);
+      const setIds = validatedQuery.ids;
+
+      // If no ids provided, return empty array
+      if (setIds.length === 0) {
+        return res.json([]);
+      }
+
+      // Fetch stats for all requested sets efficiently
+      const statsPromises = setIds.map(async (setId) => {
+        try {
+          const [words, exercises] = await Promise.all([
+            storage.getVocabularyWordsForSet(setId),
+            storage.getVocabularyExercisesForSet(setId)
+          ]);
+          return {
+            setId,
+            wordCount: words.length,
+            exerciseCount: exercises.length
+          };
+        } catch (error) {
+          console.error(`Error fetching stats for set ${setId}:`, error);
+          return {
+            setId,
+            wordCount: 0,
+            exerciseCount: 0
+          };
+        }
+      });
+
+      const stats = await Promise.all(statsPromises);
+      const validatedResponse = vocabularyStatsResponseSchema.parse(stats);
+      res.json(validatedResponse);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Error fetching vocabulary stats:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary stats" });
     }
   });
 

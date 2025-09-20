@@ -2928,3 +2928,19 @@ export type HandRaising = typeof handRaisings.$inferSelect;
 export type InsertHandRaising = z.infer<typeof insertHandRaisingSchema>;
 export type CurrencyTransaction = typeof currencyTransactions.$inferSelect;
 export type InsertCurrencyTransaction = z.infer<typeof insertCurrencyTransactionSchema>;
+
+// Vocabulary stats types for efficient bulk fetching
+export interface VocabularySetStats {
+  setId: string;
+  wordCount: number;
+  exerciseCount: number;
+}
+
+// Response schema for vocabulary stats endpoint
+export const vocabularyStatsResponseSchema = z.array(z.object({
+  setId: z.string(),
+  wordCount: z.number().int().min(0),
+  exerciseCount: z.number().int().min(0)
+}));
+
+export type VocabularyStatsResponse = z.infer<typeof vocabularyStatsResponseSchema>;

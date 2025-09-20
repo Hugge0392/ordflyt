@@ -38,7 +38,8 @@ import StudentNavigation from "@/components/StudentNavigation";
 import { 
   type LessonCategory, 
   type LessonTemplate, 
-  type StudentCurrency 
+  type StudentCurrency,
+  type VocabularySet
 } from "@shared/schema";
 
 // Mock student data - denna kommer senare från auth context
@@ -84,6 +85,11 @@ export default function StudentHome() {
     queryKey: ["/api/lesson-templates"],
   });
 
+  // Fetch vocabulary sets
+  const { data: vocabularySets = [], isLoading: vocabularySetsLoading } = useQuery<VocabularySet[]>({
+    queryKey: ["/api/vocabulary/sets/published"],
+  });
+
   // Get icon component from string
   const getIconComponent = (iconName: string, className: string = "w-6 h-6") => {
     const iconMap = {
@@ -98,6 +104,18 @@ export default function StudentHome() {
 
   const getLessonsForCategory = (categoryId: string) => {
     return lessons.filter(lesson => lesson.categoryId === categoryId);
+  };
+
+  const getVocabularySetsForCategory = (categoryId: string) => {
+    const vocabularyCategory = categories.find(c => c.name === 'vocabulary');
+    if (categoryId === vocabularyCategory?.id) {
+      return vocabularySets;
+    }
+    return [];
+  };
+
+  const getTotalLessonsForCategory = (categoryId: string) => {
+    return getLessonsForCategory(categoryId).length + getVocabularySetsForCategory(categoryId).length;
   };
 
   const getCompletedLessonsCount = (categoryId: string) => {
@@ -144,7 +162,7 @@ export default function StudentHome() {
     }
   }, []);
 
-  if (categoriesLoading || lessonsLoading) {
+  if (categoriesLoading || lessonsLoading || vocabularySetsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-950 to-purple-100 dark:to-purple-900">
         <div className="text-center">
@@ -429,14 +447,21 @@ export default function StudentHome() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {categories.map(category => {
               const lessonsInCategory = getLessonsForCategory(category.id);
+              const vocabularySetsInCategory = getVocabularySetsForCategory(category.id);
               const completedCount = getCompletedLessonsCount(category.id);
-              const totalLessons = lessonsInCategory.length;
+              const totalLessons = getTotalLessonsForCategory(category.id);
               
               return (
                 <Card 
                   key={category.id}
                   className="group hover:shadow-lg dark:hover:shadow-gray-800/50 transition-all duration-300 cursor-pointer bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/20"
-                  onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
+                  onClick={() => {
+                    if (category.name === 'vocabulary') {
+                      setLocation('/vocabulary-lessons');
+                    } else {
+                      setSelectedCategory(selectedCategory === category.id ? null : category.id);
+                    }
+                  }}
                   data-testid={`card-category-${category.name}`}
                 >
                   <CardHeader className="pb-3">
@@ -461,7 +486,12 @@ export default function StudentHome() {
                   
                   <CardContent>
                     <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>{totalLessons} lektioner</span>
+                      <span>
+                        {lessonsInCategory.length > 0 && `${lessonsInCategory.length} mallar`}
+                        {lessonsInCategory.length > 0 && vocabularySetsInCategory.length > 0 && ', '}
+                        {vocabularySetsInCategory.length > 0 && `${vocabularySetsInCategory.length} ordkunskap`}
+                        {totalLessons === 0 && 'Inga lektioner'}
+                      </span>
                       {totalLessons > 0 && (
                         <span>{Math.min(100, Math.round((completedCount / totalLessons) * 100))}% klar</span>
                       )}
@@ -474,9 +504,14 @@ export default function StudentHome() {
                     {/* Show lessons when category is selected */}
                     {selectedCategory === category.id && (
                       <div className="mt-4 space-y-3 border-t dark:border-gray-700 pt-4">
-                        {lessonsInCategory.slice(0, 3).map(lesson => (
+                        {/* Regular Lesson Templates */}
+                        {lessonsInCategory.slice(0, 2).map(lesson => (
                           <div key={lesson.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <BookOpen className="h-3 w-3 text-blue-500" />
+                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">MALL</span>
+                              </div>
                               <div className="font-medium text-sm text-gray-800 dark:text-gray-200">{lesson.title}</div>
                               <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                 {lesson.estimatedDuration} min • {lesson.rewardCoins || 0} mynt
@@ -502,7 +537,37 @@ export default function StudentHome() {
                           </div>
                         ))}
                         
-                        {lessonsInCategory.length > 3 && (
+                        {/* Vocabulary Sets */}
+                        {vocabularySetsInCategory.slice(0, 2).map(vocabularySet => (
+                          <div key={vocabularySet.id} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Hash className="h-3 w-3 text-purple-500" />
+                                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">ORDKUNSKAP</span>
+                              </div>
+                              <div className="font-medium text-sm text-gray-800 dark:text-gray-200">{vocabularySet.title}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                15 min • Ordförråd
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-200">
+                                Ordkunskap
+                              </Badge>
+                              <Link href={`/vocabulary-exercise/${vocabularySet.id}`}>
+                                <Button 
+                                  size="sm" 
+                                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                                  data-testid={`button-start-vocabulary-${vocabularySet.id}`}
+                                >
+                                  Starta
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {(lessonsInCategory.length + vocabularySetsInCategory.length) > 4 && (
                           <Button variant="outline" size="sm" className="w-full mt-2 dark:border-gray-600 dark:hover:bg-gray-700">
                             Visa alla {lessonsInCategory.length} lektioner
                           </Button>

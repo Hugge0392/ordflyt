@@ -30,11 +30,23 @@ import {
   Download,
   Plus
 } from 'lucide-react';
-import type { LessonTemplate, LessonCategory, TeacherLessonCustomization } from '@shared/schema';
+import type { LessonTemplate, LessonCategory, TeacherLessonCustomization, VocabularySet, VocabularyStatsResponse } from '@shared/schema';
 
 interface SelectedTemplate {
   template: LessonTemplate;
   customizations?: Partial<TeacherLessonCustomization>;
+}
+
+interface SelectedVocabularySet {
+  vocabularySet: VocabularySet;
+  wordCount?: number;
+  exerciseCount?: number;
+}
+
+type SelectedItem = SelectedTemplate | SelectedVocabularySet;
+
+function isVocabularySet(item: SelectedItem): item is SelectedVocabularySet {
+  return 'vocabularySet' in item;
 }
 
 export default function TeacherLessonBank() {
@@ -47,6 +59,7 @@ export default function TeacherLessonBank() {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [selectedTemplates, setSelectedTemplates] = useState<SelectedTemplate[]>([]);
+  const [selectedVocabularySets, setSelectedVocabularySets] = useState<SelectedVocabularySet[]>([]);
   const [previewTemplate, setPreviewTemplate] = useState<LessonTemplate | null>(null);
   const [customizeTemplate, setCustomizeTemplate] = useState<LessonTemplate | null>(null);
   
@@ -60,10 +73,41 @@ export default function TeacherLessonBank() {
     queryKey: ['/api/lesson-templates'],
   });
 
+  // Fetch vocabulary sets
+  const { data: vocabularySets = [], isLoading: vocabularySetsLoading } = useQuery<VocabularySet[]>({
+    queryKey: ['/api/vocabulary/sets/published'],
+  });
+
+  // Efficiently fetch vocabulary stats using the new bulk stats endpoint and default fetcher
+  const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
+  const { data: vocabularyStats = [], isLoading: vocabularyStatsLoading } = useQuery<VocabularyStatsResponse>({
+    queryKey: ['/api/vocabulary/sets/stats', { ids: vocabularySetIds }],
+    enabled: vocabularySets.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Transform stats array into convenient lookup objects
+  const vocabularyWordCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
+    acc[stat.setId] = stat.wordCount;
+    return acc;
+  }, {});
+
+  const vocabularyExerciseCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
+    acc[stat.setId] = stat.exerciseCount;
+    return acc;
+  }, {});
+
+  // Combined loading state
+  const wordCountsLoading = vocabularyStatsLoading;
+  const exerciseCountsLoading = vocabularyStatsLoading;
+
   // Fetch teacher's existing customizations
   const { data: teacherCustomizations = [], isLoading: customizationsLoading } = useQuery<TeacherLessonCustomization[]>({
     queryKey: ['/api/teacher-lesson-customizations'],
   });
+
+  // Get the vocabulary category ID
+  const vocabularyCategoryId = categories.find(c => c.name === 'vocabulary')?.id;
 
   // Filter templates based on search and filters
   const filteredTemplates = templates.filter((template) => {
@@ -76,6 +120,23 @@ export default function TeacherLessonBank() {
     
     return matchesCategory && matchesSearch && matchesDifficulty && isPublished;
   });
+
+  // Filter vocabulary sets based on search and filters  
+  const filteredVocabularySets = vocabularySets.filter((set) => {
+    const matchesCategory = selectedCategory === 'all' || selectedCategory === vocabularyCategoryId;
+    const matchesSearch = searchQuery === '' || 
+      set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const isPublished = set.isPublished;
+    
+    return matchesCategory && matchesSearch && isPublished;
+  });
+
+  // Combine both types for unified display
+  const allFilteredItems = [
+    ...filteredTemplates,
+    ...filteredVocabularySets
+  ];
 
   // Get category name helper
   const getCategoryName = (categoryId: string) => {
@@ -114,6 +175,21 @@ export default function TeacherLessonBank() {
     }
   };
 
+  // Handle vocabulary set selection
+  const handleVocabularySetSelect = (vocabularySet: VocabularySet) => {
+    const isSelected = selectedVocabularySets.some(item => item.vocabularySet.id === vocabularySet.id);
+    
+    if (isSelected) {
+      setSelectedVocabularySets(prev => prev.filter(item => item.vocabularySet.id !== vocabularySet.id));
+    } else {
+      setSelectedVocabularySets(prev => [...prev, { 
+        vocabularySet, 
+        wordCount: vocabularyWordCounts[vocabularySet.id] || 0,
+        exerciseCount: vocabularyExerciseCounts[vocabularySet.id] || 0
+      }]);
+    }
+  };
+
   // Handle template customization
   const handleCustomizeTemplate = (template: LessonTemplate) => {
     setCustomizeTemplate(template);
@@ -145,13 +221,18 @@ export default function TeacherLessonBank() {
   // Clear selection
   const clearSelection = () => {
     setSelectedTemplates([]);
+    setSelectedVocabularySets([]);
   };
 
   // Calculate total estimated time
-  const totalEstimatedTime = selectedTemplates.reduce((sum, item) => sum + (item.template.estimatedDuration || 0), 0);
+  const totalEstimatedTime = selectedTemplates.reduce((sum, item) => sum + (item.template.estimatedDuration || 0), 0) +
+    selectedVocabularySets.reduce((sum, item) => sum + 15, 0); // Assume 15 min per vocabulary set
 
   // Get unique difficulties
   const availableDifficulties = Array.from(new Set(templates.map((t) => t.difficulty).filter(Boolean)));
+
+  // Get total selected items count
+  const totalSelectedItems = selectedTemplates.length + selectedVocabularySets.length;
 
   if (!user || (user.role !== 'LÄRARE' && user.role !== 'ADMIN')) {
     return (
@@ -186,8 +267,8 @@ export default function TeacherLessonBank() {
             <div className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm text-muted-foreground">Valda mallar</p>
-                <p className="text-2xl font-bold">{selectedTemplates.length}</p>
+                <p className="text-sm text-muted-foreground">Valda lektioner</p>
+                <p className="text-2xl font-bold">{totalSelectedItems}</p>
               </div>
             </div>
           </CardContent>
@@ -210,8 +291,8 @@ export default function TeacherLessonBank() {
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-sm text-muted-foreground">Tillgängliga mallar</p>
-                <p className="text-2xl font-bold">{filteredTemplates.length}</p>
+                <p className="text-sm text-muted-foreground">Tillgängliga lektioner</p>
+                <p className="text-2xl font-bold">{filteredTemplates.length + filteredVocabularySets.length}</p>
               </div>
             </div>
           </CardContent>
@@ -325,8 +406,8 @@ export default function TeacherLessonBank() {
             </CardContent>
           </Card>
 
-          {/* Selected Templates Bar */}
-          {selectedTemplates.length > 0 && (
+          {/* Selected Items Bar */}
+          {totalSelectedItems > 0 && (
             <Card className="border-primary bg-primary/5">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -334,12 +415,24 @@ export default function TeacherLessonBank() {
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-5 w-5 text-primary" />
                       <span className="font-medium">
-                        {selectedTemplates.length} mall{selectedTemplates.length !== 1 ? 'ar' : ''} valda
+                        {totalSelectedItems} lektion{totalSelectedItems !== 1 ? 'er' : ''} valda
                       </span>
                     </div>
-                    <Badge variant="secondary">
-                      {totalEstimatedTime} min total
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {selectedTemplates.length > 0 && (
+                        <Badge variant="secondary">
+                          {selectedTemplates.length} mall{selectedTemplates.length !== 1 ? 'ar' : ''}
+                        </Badge>
+                      )}
+                      {selectedVocabularySets.length > 0 && (
+                        <Badge variant="secondary">
+                          {selectedVocabularySets.length} ordkunskap{selectedVocabularySets.length !== 1 ? 'sset' : 'sset'}
+                        </Badge>
+                      )}
+                      <Badge variant="secondary">
+                        {totalEstimatedTime} min total
+                      </Badge>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -354,7 +447,7 @@ export default function TeacherLessonBank() {
                       size="sm"
                       data-testid="button-create-from-templates"
                     >
-                      Skapa lektioner
+                      Tilldela lektioner
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
@@ -363,16 +456,16 @@ export default function TeacherLessonBank() {
             </Card>
           )}
 
-          {/* Templates Grid */}
-          {templatesLoading ? (
+          {/* Lesson Items Grid */}
+          {(templatesLoading || vocabularySetsLoading) ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Laddar mallar...</p>
+              <p className="text-muted-foreground">Laddar lektioner...</p>
             </div>
-          ) : filteredTemplates.length === 0 ? (
+          ) : (filteredTemplates.length === 0 && filteredVocabularySets.length === 0) ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Inga mallar hittades</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Inga lektioner hittades</h3>
                 <p className="text-gray-600">
                   Prova att justera dina filter eller sök efter något annat.
                 </p>
@@ -380,6 +473,7 @@ export default function TeacherLessonBank() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Lesson Templates */}
               {filteredTemplates.map((template) => {
                 const isSelected = selectedTemplates.some(item => item.template.id === template.id);
                 const hasCustomization = teacherCustomizations.some(
@@ -388,7 +482,7 @@ export default function TeacherLessonBank() {
 
                 return (
                   <Card 
-                    key={template.id} 
+                    key={`template-${template.id}`} 
                     className={`relative cursor-pointer transition-all hover:shadow-md ${
                       isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
                     }`}
@@ -398,6 +492,10 @@ export default function TeacherLessonBank() {
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                            <span className="text-xs text-muted-foreground font-medium">LEKTIONSMALL</span>
+                          </div>
                           <CardTitle className="text-lg line-clamp-2">
                             {template.title}
                           </CardTitle>
@@ -457,6 +555,96 @@ export default function TeacherLessonBank() {
                             handleCustomizeTemplate(template);
                           }}
                           data-testid={`button-customize-${template.id}`}
+                        >
+                          <Settings className="h-4 w-4 mr-1" />
+                          Anpassa
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              
+              {/* Vocabulary Sets */}
+              {filteredVocabularySets.map((vocabularySet) => {
+                const isSelected = selectedVocabularySets.some(item => item.vocabularySet.id === vocabularySet.id);
+                const wordCount = vocabularyWordCounts[vocabularySet.id] || 0;
+                const exerciseCount = vocabularyExerciseCounts[vocabularySet.id] || 0;
+
+                return (
+                  <Card 
+                    key={`vocabulary-${vocabularySet.id}`} 
+                    className={`relative cursor-pointer transition-all hover:shadow-md ${
+                      isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => handleVocabularySetSelect(vocabularySet)}
+                    data-testid={`card-vocabulary-${vocabularySet.id}`}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Hash className="h-4 w-4 text-purple-600" />
+                            <span className="text-xs text-muted-foreground font-medium">ORDKUNSKAP</span>
+                          </div>
+                          <CardTitle className="text-lg line-clamp-2">
+                            {vocabularySet.title}
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {vocabularySet.description || 'Ordkunskapsset'}
+                          </CardDescription>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
+                        )}
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                          Ordkunskap
+                        </Badge>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          {wordCount} ord
+                        </Badge>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          {exerciseCount} övningar
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          15 min
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Target className="h-4 w-4" />
+                          Nivå 1-3
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add vocabulary set preview
+                          }}
+                          data-testid={`button-preview-vocabulary-${vocabularySet.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Förhandsgranska
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add vocabulary customization
+                          }}
+                          data-testid={`button-customize-vocabulary-${vocabularySet.id}`}
                         >
                           <Settings className="h-4 w-4 mr-1" />
                           Anpassa
