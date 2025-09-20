@@ -1,6 +1,15 @@
 # Overview
 
-This project is a comprehensive Swedish grammar learning game application focused on teaching word classes (ordklasser) through interactive sentence exercises. It features an educational system with multiple game modes, including individual practice, timed tests, and a comprehensive exam. Users can identify grammatical categories within sentences, receive guidance from an animated character, and track their progress. The application is a full-stack web application with a React frontend and an Express backend, designed to provide an engaging and effective learning experience. It also includes a robust system for creating and publishing reading comprehension lessons and managing content.
+This project has been transformed from a simple Swedish grammar learning application into a comprehensive lesson platform designed for students aged 9-12. The platform now features admin-created lesson templates, teacher customization capabilities, a substantial student shop system with avatar/room personalization, and pedagogical tools focused on engaging, non-stressful learning experiences.
+
+**Core Features:**
+- **Admin Interface**: Create reusable lesson templates with categories and rich content
+- **Teacher Tools**: Browse, preview, and customize admin-created lesson templates  
+- **Student Experience**: Engaging home screen, comprehensive shop with 32+ items, avatar customization, room decoration
+- **Shop System**: Currency management, purchases, avatar items, room decorations, themes
+- **Personalization**: Avatar builder with categories (hair, face, outfit, accessories) and room decorator with furniture placement
+
+The application maintains its original grammar learning foundation while adding a complete educational ecosystem with role-based access control, engaging visuals, and comprehensive content management.
 
 # User Preferences
 
