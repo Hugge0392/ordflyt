@@ -54,6 +54,13 @@ import {
   Key,
   Users,
   Activity,
+  BookOpen,
+  Target,
+  FileText,
+  Brain,
+  MessageSquare,
+  Settings2,
+  ExternalLink,
   Plus,
   Trash2,
   Mail,
@@ -64,7 +71,6 @@ import {
   LogOut,
   Settings,
   BarChart3,
-  FileText,
 } from 'lucide-react';
 
 // Types
@@ -750,6 +756,143 @@ export default function Admin() {
           <div className="mt-6">
             <TabsContent value="overview" className="space-y-6">
               <LicenseOverview codes={codes} setActiveTab={setActiveTab} />
+              
+              {/* Quick Access Admin Tools */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings2 className="h-5 w-5 text-blue-600" />
+                    Snabbåtkomst - Admin verktyg
+                  </CardTitle>
+                  <CardDescription>
+                    Hantera innehåll och systemfunktioner
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Vocabulary Builder */}
+                    <Link href="/admin/vocabulary">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-purple-200 hover:border-purple-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                              <Brain className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Ordförråd</h3>
+                            <p className="text-xs text-gray-500">Skapa ordförrådsset</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Lesson Builder */}
+                    <Link href="/admin/lessons">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-orange-200 hover:border-orange-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                              <Target className="w-6 h-6 text-orange-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Lektioner</h3>
+                            <p className="text-xs text-gray-500">Skapa lektioner</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Reading Admin */}
+                    <Link href="/admin/reading">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-blue-200 hover:border-blue-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                              <BookOpen className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Läsförståelse</h3>
+                            <p className="text-xs text-gray-500">Hantera texter</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Lesson Templates */}
+                    <Link href="/admin/lesson-templates">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-green-200 hover:border-green-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                              <FileText className="w-6 h-6 text-green-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Mallar</h3>
+                            <p className="text-xs text-gray-500">Lektionsmallar</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Sentences */}
+                    <Link href="/admin/sentences">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-teal-200 hover:border-teal-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center group-hover:bg-teal-200 transition-colors">
+                              <MessageSquare className="w-6 h-6 text-teal-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Meningar</h3>
+                            <p className="text-xs text-gray-500">Hantera meningar</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Accounts */}
+                    <Link href="/admin/accounts">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-indigo-200 hover:border-indigo-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                              <Users className="w-6 h-6 text-indigo-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Konton</h3>
+                            <p className="text-xs text-gray-500">Hantera användare</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Grammar */}
+                    <Link href="/admin/grammatik">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-pink-200 hover:border-pink-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                              <BookOpen className="w-6 h-6 text-pink-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Grammatik</h3>
+                            <p className="text-xs text-gray-500">Ordklasser</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    {/* Email Test */}
+                    <Link href="/admin/email-test">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-gray-200 hover:border-gray-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                              <ExternalLink className="w-6 h-6 text-gray-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">E-post</h3>
+                            <p className="text-xs text-gray-500">Testa e-post</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="grid gap-6 lg:grid-cols-2">
                 <ManageCodes codes={codes.slice(0, 5)} isLoading={isLoading} />
                 <ActivityFeed codes={codes} />
