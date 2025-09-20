@@ -2175,3 +2175,401 @@ export type StudentProgress = typeof studentProgress.$inferSelect;
 export type InsertStudentProgress = z.infer<typeof insertStudentProgressSchema>;
 export type StudentActivity = typeof studentActivity.$inferSelect;
 export type InsertStudentActivity = z.infer<typeof insertStudentActivitySchema>;
+
+// =============================================================================
+// NEW LESSON TEMPLATES & SHOP SYSTEM
+// =============================================================================
+
+// Lesson categories for organizing templates and lessons
+export const lessonCategories = pgTable("lesson_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(), // e.g. "Ordklasser", "Grammatik"
+  swedishName: varchar("swedish_name", { length: 255 }).notNull(), // Swedish display name
+  description: text("description"),
+  color: varchar("color", { length: 20 }).default('#3B82F6'), // Hex color for UI
+  icon: varchar("icon", { length: 50 }), // Lucide icon name
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  nameIdx: uniqueIndex("lesson_categories_name_idx").on(table.name),
+  sortIdx: index("lesson_categories_sort_idx").on(table.sortOrder),
+}));
+
+// Lesson templates - Admin creates these as base templates for teachers
+export const lessonTemplates = pgTable("lesson_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  categoryId: varchar("category_id").notNull().references(() => lessonCategories.id),
+  difficulty: varchar("difficulty").default("medium"), // easy, medium, hard
+  estimatedDuration: integer("estimated_duration"), // minutes
+  
+  // Template structure and content
+  templateData: jsonb("template_data").$type<LessonTemplateData>().notNull(),
+  
+  // Teacher guidance and preview content  
+  teacherGuide: jsonb("teacher_guide").$type<TeacherGuideContent>().notNull(),
+  previewImages: jsonb("preview_images").$type<string[]>().default([]),
+  
+  // Reward settings (how much money student earns)
+  rewardCoins: integer("reward_coins").default(50),
+  bonusCoins: integer("bonus_coins").default(10), // extra for perfect score
+  
+  // Template settings
+  isPublished: boolean("is_published").default(false),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  categoryIdx: index("lesson_templates_category_idx").on(table.categoryId),
+  createdByIdx: index("lesson_templates_created_by_idx").on(table.createdBy),
+  publishedIdx: index("lesson_templates_published_idx").on(table.isPublished),
+}));
+
+// Teacher lesson customizations - Teachers customize templates
+export const teacherLessonCustomizations = pgTable("teacher_lesson_customizations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  templateId: varchar("template_id").notNull().references(() => lessonTemplates.id, { onDelete: 'cascade' }),
+  
+  // Customization settings
+  title: varchar("title", { length: 255 }), // override template title
+  customInstructions: text("custom_instructions"),
+  enabledComponents: jsonb("enabled_components").$type<string[]>(), // which parts are enabled
+  customSettings: jsonb("custom_settings").$type<Record<string, any>>().default({}),
+  
+  // Publishing status
+  isActive: boolean("is_active").default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  teacherTemplateIdx: uniqueIndex("teacher_lesson_customizations_idx").on(table.teacherId, table.templateId),
+  teacherIdx: index("teacher_customizations_teacher_idx").on(table.teacherId),
+}));
+
+// Student currency system
+export const studentCurrency = pgTable("student_currency", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  currentCoins: integer("current_coins").default(0),
+  totalEarned: integer("total_earned").default(0),
+  totalSpent: integer("total_spent").default(0),
+  lastEarned: timestamp("last_earned"),
+  lastSpent: timestamp("last_spent"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentCurrencyIdx: uniqueIndex("student_currency_idx").on(table.studentId),
+}));
+
+// Shop items that students can purchase
+export const shopItems = pgTable("shop_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }).notNull(), // 'avatar', 'room', 'theme'
+  subcategory: varchar("subcategory", { length: 100 }), // 'hair', 'clothes', 'furniture', etc.
+  
+  price: integer("price").notNull(),
+  rarity: varchar("rarity").default("common"), // common, rare, epic, legendary
+  
+  // Item visual data
+  iconUrl: varchar("icon_url"), // URL to item icon
+  previewUrl: varchar("preview_url"), // URL to preview image
+  itemData: jsonb("item_data").$type<ShopItemData>().notNull(),
+  
+  // Availability
+  isAvailable: boolean("is_available").default(true),
+  isPremium: boolean("is_premium").default(false),
+  requiresLevel: integer("requires_level").default(1),
+  
+  // Metadata
+  sortOrder: integer("sort_order").default(0),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  categoryIdx: index("shop_items_category_idx").on(table.category),
+  priceIdx: index("shop_items_price_idx").on(table.price),
+  availableIdx: index("shop_items_available_idx").on(table.isAvailable),
+}));
+
+// Student purchases
+export const studentPurchases = pgTable("student_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  itemId: varchar("item_id").notNull().references(() => shopItems.id, { onDelete: 'cascade' }),
+  pricePaid: integer("price_paid").notNull(),
+  purchasedAt: timestamp("purchased_at").defaultNow(),
+}, (table) => ({
+  studentPurchaseIdx: uniqueIndex("student_purchases_idx").on(table.studentId, table.itemId),
+  studentIdx: index("student_purchases_student_idx").on(table.studentId),
+  purchasedAtIdx: index("student_purchases_date_idx").on(table.purchasedAt),
+}));
+
+// Student avatar customization
+export const studentAvatars = pgTable("student_avatars", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // Avatar configuration
+  avatarData: jsonb("avatar_data").$type<AvatarConfiguration>().notNull().default({}),
+  currentOutfit: varchar("current_outfit"), // current outfit/combination ID
+  savedOutfits: jsonb("saved_outfits").$type<SavedOutfit[]>().default([]),
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentAvatarIdx: uniqueIndex("student_avatars_idx").on(table.studentId),
+}));
+
+// Student room decorations
+export const studentRooms = pgTable("student_rooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // Room configuration
+  roomData: jsonb("room_data").$type<RoomConfiguration>().notNull().default({}),
+  currentTheme: varchar("current_theme").default("default"),
+  roomLayout: varchar("room_layout").default("standard"), // different room layouts
+  
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentRoomIdx: uniqueIndex("student_rooms_idx").on(table.studentId),
+}));
+
+// Hand raising system for classroom interaction
+export const handRaisings = pgTable("hand_raisings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  classId: varchar("class_id").notNull().references(() => teacherClasses.id, { onDelete: 'cascade' }),
+  
+  // Hand raising details
+  question: text("question"), // optional question from student
+  priority: varchar("priority").default("normal"), // normal, urgent
+  status: varchar("status").default("raised"), // raised, acknowledged, resolved
+  
+  // Teacher response
+  acknowledgedBy: varchar("acknowledged_by").references(() => users.id),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedAt: timestamp("resolved_at"),
+  teacherNotes: text("teacher_notes"),
+  
+  raisedAt: timestamp("raised_at").defaultNow(),
+}, (table) => ({
+  classStatusIdx: index("hand_raisings_class_status_idx").on(table.classId, table.status),
+  studentIdx: index("hand_raisings_student_idx").on(table.studentId),
+  raisedAtIdx: index("hand_raisings_raised_at_idx").on(table.raisedAt),
+}));
+
+// Currency transactions log
+export const currencyTransactions = pgTable("currency_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  type: varchar("type").notNull(), // 'earned', 'spent', 'bonus', 'admin_adjustment'
+  amount: integer("amount").notNull(), // positive for earning, negative for spending
+  description: varchar("description", { length: 255 }).notNull(),
+  
+  // Context
+  sourceType: varchar("source_type"), // 'lesson_completion', 'shop_purchase', 'admin', etc.
+  sourceId: varchar("source_id"), // ID of lesson, item, etc.
+  
+  balanceBefore: integer("balance_before").notNull(),
+  balanceAfter: integer("balance_after").notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  studentIdx: index("currency_transactions_student_idx").on(table.studentId),
+  typeIdx: index("currency_transactions_type_idx").on(table.type),
+  createdAtIdx: index("currency_transactions_date_idx").on(table.createdAt),
+}));
+
+// Interface definitions for JSONB fields
+export interface LessonTemplateData {
+  components: LessonComponent[];
+  settings: LessonSettings;
+  structure: LessonStructure;
+}
+
+export interface LessonComponent {
+  id: string;
+  type: 'instruction' | 'exercise' | 'quiz' | 'reading' | 'practice';
+  title: string;
+  content: any;
+  isRequired: boolean;
+  estimatedMinutes: number;
+  canDisable: boolean;
+}
+
+export interface LessonSettings {
+  allowSkip: boolean;
+  showProgress: boolean;
+  timeLimit?: number;
+  attemptsAllowed: number;
+  minPassScore: number;
+}
+
+export interface LessonStructure {
+  introduction: string;
+  objectives: string[];
+  prerequisites: string[];
+  conclusion: string;
+}
+
+export interface TeacherGuideContent {
+  overview: string;
+  objectives: string[];
+  preparation: string[];
+  tips: string[];
+  expectedDuration: number;
+  troubleshooting: string[];
+  extensions: string[];
+  assessment: string;
+}
+
+export interface ShopItemData {
+  // For avatar items
+  avatarConfig?: {
+    category: string; // 'hair', 'clothes', 'accessories'
+    style: string;
+    colors: string[];
+    layerOrder: number;
+  };
+  // For room items
+  roomConfig?: {
+    type: string; // 'furniture', 'decoration', 'lighting'
+    position: { x: number; y: number };
+    size: { width: number; height: number };
+    zIndex: number;
+  };
+  // For themes
+  themeConfig?: {
+    primaryColor: string;
+    secondaryColor: string;
+    backgroundUrl?: string;
+    fontStyle?: string;
+  };
+}
+
+export interface AvatarConfiguration {
+  hair: { style: string; color: string };
+  face: { eyes: string; expression: string };
+  clothing: {
+    top: string;
+    bottom: string;
+    shoes: string;
+    accessories: string[];
+  };
+  colors: {
+    skinTone: string;
+    hairColor: string;
+    eyeColor: string;
+  };
+}
+
+export interface SavedOutfit {
+  id: string;
+  name: string;
+  config: AvatarConfiguration;
+  createdAt: string;
+}
+
+export interface RoomConfiguration {
+  furniture: PlacedItem[];
+  decorations: PlacedItem[];
+  lighting: PlacedItem[];
+  background: {
+    wallColor: string;
+    floorColor: string;
+    wallTexture?: string;
+    floorTexture?: string;
+  };
+}
+
+export interface PlacedItem {
+  itemId: string;
+  position: { x: number; y: number };
+  rotation: number;
+  scale: number;
+}
+
+// Insert schemas for new tables
+export const insertLessonCategorySchema = createInsertSchema(lessonCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLessonTemplateSchema = createInsertSchema(lessonTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTeacherLessonCustomizationSchema = createInsertSchema(teacherLessonCustomizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentCurrencySchema = createInsertSchema(studentCurrency).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertShopItemSchema = createInsertSchema(shopItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStudentPurchaseSchema = createInsertSchema(studentPurchases).omit({
+  id: true,
+  purchasedAt: true,
+});
+
+export const insertStudentAvatarSchema = createInsertSchema(studentAvatars).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertStudentRoomSchema = createInsertSchema(studentRooms).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertHandRaisingSchema = createInsertSchema(handRaisings).omit({
+  id: true,
+  raisedAt: true,
+});
+
+export const insertCurrencyTransactionSchema = createInsertSchema(currencyTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for new tables
+export type LessonCategory = typeof lessonCategories.$inferSelect;
+export type InsertLessonCategory = z.infer<typeof insertLessonCategorySchema>;
+export type LessonTemplate = typeof lessonTemplates.$inferSelect;
+export type InsertLessonTemplate = z.infer<typeof insertLessonTemplateSchema>;
+export type TeacherLessonCustomization = typeof teacherLessonCustomizations.$inferSelect;
+export type InsertTeacherLessonCustomization = z.infer<typeof insertTeacherLessonCustomizationSchema>;
+export type StudentCurrency = typeof studentCurrency.$inferSelect;
+export type InsertStudentCurrency = z.infer<typeof insertStudentCurrencySchema>;
+export type ShopItem = typeof shopItems.$inferSelect;
+export type InsertShopItem = z.infer<typeof insertShopItemSchema>;
+export type StudentPurchase = typeof studentPurchases.$inferSelect;
+export type InsertStudentPurchase = z.infer<typeof insertStudentPurchaseSchema>;
+export type StudentAvatar = typeof studentAvatars.$inferSelect;
+export type InsertStudentAvatar = z.infer<typeof insertStudentAvatarSchema>;
+export type StudentRoom = typeof studentRooms.$inferSelect;
+export type InsertStudentRoom = z.infer<typeof insertStudentRoomSchema>;
+export type HandRaising = typeof handRaisings.$inferSelect;
+export type InsertHandRaising = z.infer<typeof insertHandRaisingSchema>;
+export type CurrencyTransaction = typeof currencyTransactions.$inferSelect;
+export type InsertCurrencyTransaction = z.infer<typeof insertCurrencyTransactionSchema>;
