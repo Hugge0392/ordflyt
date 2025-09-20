@@ -37,6 +37,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
+
 // Validation schemas
 const redeemCodeSchema = z.object({
   code: z.string().regex(/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/, 'Ogiltig kodformat'),
@@ -1297,43 +1298,29 @@ router.delete('/students/:id', requireAuth, requireTeacherLicense, requireSchool
 
 // POST /api/license/students/:id/generate-setup-code - Generate new setup code for student
 router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
-  console.log('🔍 Generate setup code endpoint called for student:', req.params.id);
   try {
     const { id: studentId } = req.params;
     const userId = req.user.id;
     const ipAddress = req.ip || 'unknown';
 
-    console.log('📝 Request details:', { studentId, userId, ipAddress });
-
     // Get student details and verify access
-    console.log('🔎 Getting student by ID...');
     const student = await getStudentById(studentId);
-    console.log('👤 Student found:', student ? 'YES' : 'NO', student?.studentName);
-    
     if (!student) {
-      console.log('❌ Student not found');
       return res.status(404).json({ error: 'Eleven hittades inte' });
     }
 
     // Verify teacher owns the class
-    console.log('🏫 Verifying teacher class ownership...');
     const teacherClasses = await getTeacherClasses(userId);
-    console.log('📚 Teacher classes:', teacherClasses.map(c => c.id));
     const ownsClass = teacherClasses.some(cls => cls.id === student.classId);
-    console.log('🔐 Owns class:', ownsClass, 'Student class ID:', student.classId);
     
     if (!ownsClass) {
-      console.log('❌ No permission for this student');
       return res.status(403).json({ error: 'Ingen behörighet för denna elev' });
     }
 
     // Generate new setup code (this will deactivate any existing codes)
-    console.log('🔑 Generating setup code...');
     const { id: setupCodeId, clearCode } = await createStudentSetupCode(studentId, userId);
-    console.log('✅ Setup code generated:', setupCodeId, 'Clear code length:', clearCode.length);
 
     // Log the action
-    console.log('📖 Logging activity...');
     await logLicenseActivity(
       req.license.id, 
       'generate_setup_code', 
@@ -1346,8 +1333,6 @@ router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLice
       ipAddress
     );
 
-    console.log('🎉 Setup code generation completed successfully');
-
     res.json({
       success: true,
       message: 'Ny engångskod genererad framgångsrikt',
@@ -1357,8 +1342,7 @@ router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLice
     });
 
   } catch (error: any) {
-    console.error('💥 Generate setup code error:', error);
-    console.error('📋 Error stack:', error.stack);
+    console.error('Generate setup code error:', error);
     res.status(500).json({ error: 'Serverfel vid generering av engångskod' });
   }
 });
