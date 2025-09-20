@@ -1297,7 +1297,32 @@ router.delete('/students/:id', requireAuth, requireTeacherLicense, requireSchool
 });
 
 // POST /api/license/students/:id/generate-setup-code - Generate new setup code for student
-router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+router.post('/students/:id/generate-setup-code', 
+  (req, res, next) => {
+    console.log('🔵 Setup code endpoint hit, user:', req.user?.username || 'none');
+    next();
+  },
+  requireAuth, 
+  (req, res, next) => {
+    console.log('🟢 Auth passed, user role:', req.user?.role);
+    next();
+  },
+  requireTeacherLicense,
+  (req, res, next) => {
+    console.log('🟡 Teacher license passed');
+    next();
+  },
+  requireSchoolAccess(),
+  (req, res, next) => {
+    console.log('🟠 School access passed');
+    next();
+  },
+  requireCsrf,
+  (req, res, next) => {
+    console.log('🔴 CSRF passed - starting main logic');
+    next();
+  },
+  async (req: any, res: Response) => {
   try {
     const { id: studentId } = req.params;
     const userId = req.user.id;
