@@ -1,0 +1,65 @@
+ 
+
+Det som behöver skapas är ett övningsverktyg för eleverna och ett skaparverktyg för admin, för läraren så är detta en ny kategori i lektionsbanken som heter “Ordkunskap”.  
+
+ 
+
+ 
+
+Skaparvertygen ska se ut så att man kan som admin lägga till vilka ord som är ordkunskapsorden. Presenteras högst upp för eleven.   
+
+ 
+
+Då varje lektion har ett tema med ord så vore det bra ifall man kan välja vilken färg ramen och uppgiftsnumrerna.  
+
+Det ska gå att lägga till bilder efter och före uppgiften.  
+
+ 
+
+Man ska kunna lägga till följande uppgifter för eleven att jobba med: 
+
+ 
+
+Sant eller falskt. Admin skapar en mening där eleven får välja ifall meningen använder ordet som finns med i veckans ordkunskap rätt. Då det är flera ord finns det fler a meningar 
+
+Ett korsordsskaparverktyg  
+
+Lucktextövning där eleven får fylla i vilket ord det är som saknas i menignen 
+
+Skriv rätt ord vid rätt förklaring - alltså en förklaring och därefter en ruta där man kan dra rätt ord till rätt ruta – snyggt designad. 
+
+Förklara liknelsen → En färdig liknelse (t.ex. “tyst som en mus”) ska tolkas.. Detta löser vi med en klassik frågeövning med en fråga som kan vesvara  
+
+Drag och släpp → Dra rätt ord till rätt bild, mening eller kategori. 
+
+Använd ordet i en mening  
+
+ 
+
+ 
+
+Det är väldigt viktigt att allt får samma form och enhetlighet så att det känns som att allt hör samman oavsett vilka övningar admin väljer att använda för den specifika lektionen 
+
+ 
+
+ 
+
+Det är också viktigt att jag kan som admin exportera övningen som pdf. Detta ska även vara tillgängligt för läraren som kanske behöver för att kunna skriva ut till läxa. PDF:en ska vara i princip identiskt som webbövningen, men inte bara en utrskriftsversion utan anpassad för det nya formatet 
+
+ 
+
+ 
+
+Eleverna ska därefter få tillgängligt uppgifter som de kan öva på under veckan tex: 
+
+Där ska man kunna - Öva på orden med flashcards som är snyggt grafiskt designade med animation när man vänder på dem, där ordet är på ena sidan och svaret på den andra.  
+
+Det ska vara möjligt för läraren att ställa in ifall man ska få pengar ifall man håller igång en streak, får visst antal rätt på sitt prov, osv  
+
+ 
+
+ 
+
+ 
+
+Jag vill att det i princip ska vara som den boken fast digitalt som jag bifogade 

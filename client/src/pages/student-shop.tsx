@@ -24,30 +24,48 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   type ShopItem, 
   type StudentCurrency,
   type StudentPurchase
 } from "@shared/schema";
 
-// Mock student data - kommer från auth context senare
-const mockStudent = {
-  id: "student123",
-  name: "Anna Andersson"
-};
-
 export default function StudentShop() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>("avatar");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Fetch student currency - enabled for exploration  
+  // Get current student data
+  const { data: studentData, isLoading: studentLoading } = useQuery<{
+    student: {
+      id: string;
+      username: string;
+      studentName: string;
+      classId: string;
+      mustChangePassword: boolean;
+      lastLogin: string | null;
+      createdAt: string;
+    };
+    session: {
+      id: string;
+      expiresAt: string;
+    };
+  }>({
+    queryKey: ["/api/student/me"],
+    enabled: isAuthenticated && user?.role === "ELEV",
+  });
+
+  const currentStudent = studentData?.student;
+
+  // Fetch student currency
   const { data: currency, isLoading: currencyLoading, error: currencyError } = useQuery<StudentCurrency>({
-    queryKey: [`/api/students/${mockStudent.id}/currency`],
-    enabled: true, // Enabled for exploration - will be controlled by auth context later
+    queryKey: [`/api/students/${currentStudent?.id}/currency`],
+    enabled: !!currentStudent?.id,
   });
 
   // Fetch shop items
@@ -68,6 +86,27 @@ export default function StudentShop() {
     retry: 2,
   });
 
+
+  // Set page title and meta description
+  useEffect(() => {
+    document.title = "Butiken | KlassKamp";
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'Köp avatar-kläder, rumsdekoration och teman med mynt du tjänat från lektioner. Anpassa din spelupplevelse!');
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'description';
+      meta.content = 'Köp avatar-kläder, rumsdekoration och teman med mynt du tjänat från lektioner. Anpassa din spelupplevelse!';
+      document.head.appendChild(meta);
+    }
+  }, []);
+
+  // Fetch student purchases
+  const { data: purchases = [], error: purchasesError } = useQuery<StudentPurchase[]>({
+    queryKey: [`/api/students/${currentStudent?.id}/purchases`],
+    enabled: !!currentStudent?.id,
+  });
+
   // Display currency/purchase errors if present
   useEffect(() => {
     if (currencyError) {
@@ -84,36 +123,19 @@ export default function StudentShop() {
         variant: "destructive",
       });
     }
-  }, [currencyError, purchasesError]);
-
-  // Set page title and meta description
-  useEffect(() => {
-    document.title = "Butiken | KlassKamp";
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      metaDesc.setAttribute('content', 'Köp avatar-kläder, rumsdekoration och teman med mynt du tjänat från lektioner. Anpassa din spelupplevelse!');
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'description';
-      meta.content = 'Köp avatar-kläder, rumsdekoration och teman med mynt du tjänat från lektioner. Anpassa din spelupplevelse!';
-      document.head.appendChild(meta);
-    }
-  }, []);
-
-  // Fetch student purchases - enabled for exploration
-  const { data: purchases = [], error: purchasesError } = useQuery<StudentPurchase[]>({
-    queryKey: [`/api/students/${mockStudent.id}/purchases`],
-    enabled: true, // Enabled for exploration - will be controlled by auth context later
-  });
+  }, [currencyError, purchasesError, toast]);
 
   // Purchase mutation
   const purchaseMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      return apiRequest(`/api/students/${mockStudent.id}/purchases`, 'POST', { itemId });
+      if (!currentStudent?.id) throw new Error("Ingen student inloggad");
+      return apiRequest(`/api/students/${currentStudent.id}/purchases`, 'POST', { itemId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/students/${mockStudent.id}/currency`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/students/${mockStudent.id}/purchases`] });
+      if (currentStudent?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/students/${currentStudent.id}/currency`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/students/${currentStudent.id}/purchases`] });
+      }
       toast({
         title: "Köp genomfört! 🎉",
         description: "Varan har lagts till i din samling.",
@@ -195,6 +217,24 @@ export default function StudentShop() {
   const filteredItems = shopItems.filter(item => 
     !selectedSubcategory || item.subcategory === selectedSubcategory
   );
+
+  // Show loading while auth or student data is loading
+  if (authLoading || studentLoading || (isAuthenticated && !currentStudent)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 dark:from-pink-950 to-purple-100 dark:to-purple-900">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">🔄</div>
+          <div className="text-lg text-gray-600 dark:text-gray-300">Laddar elevprofil...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated as student
+  if (!isAuthenticated || user?.role !== "ELEV") {
+    window.location.href = "/login";
+    return null;
+  }
 
   if (itemsLoading) {
     return (
