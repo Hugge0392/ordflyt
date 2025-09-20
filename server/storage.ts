@@ -60,11 +60,19 @@ import {
   type InsertStudentProgress,
   type StudentActivity,
   type InsertStudentActivity,
+  type VocabularySet,
+  type InsertVocabularySet,
+  type VocabularyWord,
+  type InsertVocabularyWord,
+  type VocabularyExercise,
+  type InsertVocabularyExercise,
+  type VocabularyAttempt,
+  type InsertVocabularyAttempt,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, gte, lte, sql, or } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity, vocabularySets, vocabularyWords, vocabularyExercises, vocabularyAttempts } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -242,6 +250,36 @@ export interface IStorage {
     activityTypeBreakdown: { activityType: string; count: number; averageScore: number }[];
     recentActivities: StudentActivity[];
   }>;
+
+  // Vocabulary sets methods
+  createVocabularySet(set: InsertVocabularySet): Promise<VocabularySet>;
+  getVocabularySets(): Promise<VocabularySet[]>;
+  getVocabularySet(id: string): Promise<VocabularySet | undefined>;
+  updateVocabularySet(id: string, set: Partial<InsertVocabularySet>): Promise<VocabularySet>;
+  deleteVocabularySet(id: string): Promise<void>;
+  getPublishedVocabularySets(): Promise<VocabularySet[]>;
+
+  // Vocabulary words methods
+  createVocabularyWord(word: InsertVocabularyWord): Promise<VocabularyWord>;
+  getVocabularyWords(setId: string): Promise<VocabularyWord[]>;
+  getVocabularyWord(id: string): Promise<VocabularyWord | undefined>;
+  updateVocabularyWord(id: string, word: Partial<InsertVocabularyWord>): Promise<VocabularyWord>;
+  deleteVocabularyWord(id: string): Promise<void>;
+
+  // Vocabulary exercises methods
+  createVocabularyExercise(exercise: InsertVocabularyExercise): Promise<VocabularyExercise>;
+  getVocabularyExercises(setId: string): Promise<VocabularyExercise[]>;
+  getVocabularyExercise(id: string): Promise<VocabularyExercise | undefined>;
+  updateVocabularyExercise(id: string, exercise: Partial<InsertVocabularyExercise>): Promise<VocabularyExercise>;
+  deleteVocabularyExercise(id: string): Promise<void>;
+  getActiveVocabularyExercises(setId: string): Promise<VocabularyExercise[]>;
+
+  // Vocabulary attempts methods
+  createVocabularyAttempt(attempt: InsertVocabularyAttempt): Promise<VocabularyAttempt>;
+  getVocabularyAttempts(exerciseId: string): Promise<VocabularyAttempt[]>;
+  getStudentVocabularyAttempts(studentId: string, exerciseId: string): Promise<VocabularyAttempt[]>;
+  getVocabularyAttempt(id: string): Promise<VocabularyAttempt | undefined>;
+  updateVocabularyAttempt(id: string, attempt: Partial<InsertVocabularyAttempt>): Promise<VocabularyAttempt>;
 }
 
 export class MemStorage implements IStorage {
@@ -255,6 +293,19 @@ export class MemStorage implements IStorage {
   private klassKampGames: Map<string, KlassKampGame> = new Map();
   private klassKampPlayers: Map<string, KlassKampPlayer> = new Map();
   private klassKampAnswers: Map<string, KlassKampAnswer> = new Map();
+  private lessonAssignments: Map<string, LessonAssignment> = new Map();
+  private studentLessonProgress: Map<string, StudentLessonProgress> = new Map();
+  private teacherFeedback: Map<string, TeacherFeedback> = new Map();
+  private exportJobs: Map<string, ExportJob> = new Map();
+  private exportTemplates: Map<string, ExportTemplate> = new Map();
+  private exportHistory: Map<string, ExportHistoryEntry> = new Map();
+  private passwordResetTokens: Map<string, PasswordResetToken> = new Map();
+  private studentProgress: Map<string, StudentProgress> = new Map();
+  private studentActivity: Map<string, StudentActivity> = new Map();
+  private vocabularySets: Map<string, VocabularySet> = new Map();
+  private vocabularyWords: Map<string, VocabularyWord> = new Map();
+  private vocabularyExercises: Map<string, VocabularyExercise> = new Map();
+  private vocabularyAttempts: Map<string, VocabularyAttempt> = new Map();
 
   constructor() {
     this.gameProgress = this.createEmptyProgress();
@@ -882,6 +933,201 @@ export class MemStorage implements IStorage {
       activityTypeBreakdown: [],
       recentActivities: [],
     };
+  }
+
+  // Vocabulary sets methods
+  async createVocabularySet(set: InsertVocabularySet): Promise<VocabularySet> {
+    const id = randomUUID();
+    const newSet: VocabularySet = {
+      id,
+      ...set,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.vocabularySets.set(id, newSet);
+    return newSet;
+  }
+
+  async getVocabularySets(): Promise<VocabularySet[]> {
+    return Array.from(this.vocabularySets.values());
+  }
+
+  async getVocabularySet(id: string): Promise<VocabularySet | undefined> {
+    return this.vocabularySets.get(id);
+  }
+
+  async updateVocabularySet(id: string, set: Partial<InsertVocabularySet>): Promise<VocabularySet> {
+    const existing = this.vocabularySets.get(id);
+    if (!existing) {
+      throw new Error(`Vocabulary set with id ${id} not found`);
+    }
+    const updated: VocabularySet = {
+      ...existing,
+      ...set,
+      updatedAt: new Date(),
+    };
+    this.vocabularySets.set(id, updated);
+    return updated;
+  }
+
+  async deleteVocabularySet(id: string): Promise<void> {
+    this.vocabularySets.delete(id);
+    // Get exercises for this set first (needed for deleting attempts)
+    const exercisesToDelete = Array.from(this.vocabularyExercises.values())
+      .filter(exercise => exercise.setId === id);
+    
+    // Delete associated words
+    Array.from(this.vocabularyWords.values())
+      .filter(word => word.setId === id)
+      .forEach(word => this.vocabularyWords.delete(word.id));
+    
+    // Delete associated exercises and their attempts
+    exercisesToDelete.forEach(exercise => {
+      // Delete attempts for this exercise
+      Array.from(this.vocabularyAttempts.values())
+        .filter(attempt => attempt.exerciseId === exercise.id)
+        .forEach(attempt => this.vocabularyAttempts.delete(attempt.id));
+      // Delete the exercise
+      this.vocabularyExercises.delete(exercise.id);
+    });
+  }
+
+  async getPublishedVocabularySets(): Promise<VocabularySet[]> {
+    return Array.from(this.vocabularySets.values()).filter(set => set.isPublished);
+  }
+
+  // Vocabulary words methods
+  async createVocabularyWord(word: InsertVocabularyWord): Promise<VocabularyWord> {
+    const id = randomUUID();
+    const newWord: VocabularyWord = {
+      id,
+      ...word,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.vocabularyWords.set(id, newWord);
+    return newWord;
+  }
+
+  async getVocabularyWords(setId: string): Promise<VocabularyWord[]> {
+    return Array.from(this.vocabularyWords.values())
+      .filter(word => word.setId === setId)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  async getVocabularyWord(id: string): Promise<VocabularyWord | undefined> {
+    return this.vocabularyWords.get(id);
+  }
+
+  async updateVocabularyWord(id: string, word: Partial<InsertVocabularyWord>): Promise<VocabularyWord> {
+    const existing = this.vocabularyWords.get(id);
+    if (!existing) {
+      throw new Error(`Vocabulary word with id ${id} not found`);
+    }
+    const updated: VocabularyWord = {
+      ...existing,
+      ...word,
+      updatedAt: new Date(),
+    };
+    this.vocabularyWords.set(id, updated);
+    return updated;
+  }
+
+  async deleteVocabularyWord(id: string): Promise<void> {
+    this.vocabularyWords.delete(id);
+  }
+
+  // Vocabulary exercises methods
+  async createVocabularyExercise(exercise: InsertVocabularyExercise): Promise<VocabularyExercise> {
+    const id = randomUUID();
+    const newExercise: VocabularyExercise = {
+      id,
+      ...exercise,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.vocabularyExercises.set(id, newExercise);
+    return newExercise;
+  }
+
+  async getVocabularyExercises(setId: string): Promise<VocabularyExercise[]> {
+    return Array.from(this.vocabularyExercises.values())
+      .filter(exercise => exercise.setId === setId)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  async getVocabularyExercise(id: string): Promise<VocabularyExercise | undefined> {
+    return this.vocabularyExercises.get(id);
+  }
+
+  async updateVocabularyExercise(id: string, exercise: Partial<InsertVocabularyExercise>): Promise<VocabularyExercise> {
+    const existing = this.vocabularyExercises.get(id);
+    if (!existing) {
+      throw new Error(`Vocabulary exercise with id ${id} not found`);
+    }
+    const updated: VocabularyExercise = {
+      ...existing,
+      ...exercise,
+      updatedAt: new Date(),
+    };
+    this.vocabularyExercises.set(id, updated);
+    return updated;
+  }
+
+  async deleteVocabularyExercise(id: string): Promise<void> {
+    this.vocabularyExercises.delete(id);
+    // Also delete associated attempts
+    Array.from(this.vocabularyAttempts.values())
+      .filter(attempt => attempt.exerciseId === id)
+      .forEach(attempt => this.vocabularyAttempts.delete(attempt.id));
+  }
+
+  async getActiveVocabularyExercises(setId: string): Promise<VocabularyExercise[]> {
+    return Array.from(this.vocabularyExercises.values())
+      .filter(exercise => exercise.setId === setId && exercise.isActive)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  // Vocabulary attempts methods
+  async createVocabularyAttempt(attempt: InsertVocabularyAttempt): Promise<VocabularyAttempt> {
+    const id = randomUUID();
+    const newAttempt: VocabularyAttempt = {
+      id,
+      ...attempt,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.vocabularyAttempts.set(id, newAttempt);
+    return newAttempt;
+  }
+
+  async getVocabularyAttempts(exerciseId: string): Promise<VocabularyAttempt[]> {
+    return Array.from(this.vocabularyAttempts.values())
+      .filter(attempt => attempt.exerciseId === exerciseId);
+  }
+
+  async getStudentVocabularyAttempts(studentId: string, exerciseId: string): Promise<VocabularyAttempt[]> {
+    return Array.from(this.vocabularyAttempts.values())
+      .filter(attempt => attempt.studentId === studentId && attempt.exerciseId === exerciseId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getVocabularyAttempt(id: string): Promise<VocabularyAttempt | undefined> {
+    return this.vocabularyAttempts.get(id);
+  }
+
+  async updateVocabularyAttempt(id: string, attempt: Partial<InsertVocabularyAttempt>): Promise<VocabularyAttempt> {
+    const existing = this.vocabularyAttempts.get(id);
+    if (!existing) {
+      throw new Error(`Vocabulary attempt with id ${id} not found`);
+    }
+    const updated: VocabularyAttempt = {
+      ...existing,
+      ...attempt,
+      updatedAt: new Date(),
+    };
+    this.vocabularyAttempts.set(id, updated);
+    return updated;
   }
 }
 
@@ -3096,6 +3342,145 @@ export class DatabaseStorage implements IStorage {
       activityTypeBreakdown,
       recentActivities: classActivities
     };
+  }
+
+  // Vocabulary sets methods
+  async createVocabularySet(set: InsertVocabularySet): Promise<VocabularySet> {
+    const [newSet] = await db.insert(vocabularySets).values(set).returning();
+    return newSet;
+  }
+
+  async getVocabularySets(): Promise<VocabularySet[]> {
+    return await db.select().from(vocabularySets);
+  }
+
+  async getVocabularySet(id: string): Promise<VocabularySet | undefined> {
+    const [result] = await db.select().from(vocabularySets).where(eq(vocabularySets.id, id));
+    return result;
+  }
+
+  async updateVocabularySet(id: string, set: Partial<InsertVocabularySet>): Promise<VocabularySet> {
+    const [updated] = await db
+      .update(vocabularySets)
+      .set({ ...set, updatedAt: new Date() })
+      .where(eq(vocabularySets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVocabularySet(id: string): Promise<void> {
+    await db.delete(vocabularySets).where(eq(vocabularySets.id, id));
+  }
+
+  async getPublishedVocabularySets(): Promise<VocabularySet[]> {
+    return await db.select().from(vocabularySets).where(eq(vocabularySets.isPublished, true));
+  }
+
+  // Vocabulary words methods
+  async createVocabularyWord(word: InsertVocabularyWord): Promise<VocabularyWord> {
+    const [newWord] = await db.insert(vocabularyWords).values(word).returning();
+    return newWord;
+  }
+
+  async getVocabularyWords(setId: string): Promise<VocabularyWord[]> {
+    return await db
+      .select()
+      .from(vocabularyWords)
+      .where(eq(vocabularyWords.setId, setId))
+      .orderBy(vocabularyWords.orderIndex);
+  }
+
+  async getVocabularyWord(id: string): Promise<VocabularyWord | undefined> {
+    const [result] = await db.select().from(vocabularyWords).where(eq(vocabularyWords.id, id));
+    return result;
+  }
+
+  async updateVocabularyWord(id: string, word: Partial<InsertVocabularyWord>): Promise<VocabularyWord> {
+    const [updated] = await db
+      .update(vocabularyWords)
+      .set({ ...word, updatedAt: new Date() })
+      .where(eq(vocabularyWords.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVocabularyWord(id: string): Promise<void> {
+    await db.delete(vocabularyWords).where(eq(vocabularyWords.id, id));
+  }
+
+  // Vocabulary exercises methods
+  async createVocabularyExercise(exercise: InsertVocabularyExercise): Promise<VocabularyExercise> {
+    const [newExercise] = await db.insert(vocabularyExercises).values(exercise).returning();
+    return newExercise;
+  }
+
+  async getVocabularyExercises(setId: string): Promise<VocabularyExercise[]> {
+    return await db
+      .select()
+      .from(vocabularyExercises)
+      .where(eq(vocabularyExercises.setId, setId))
+      .orderBy(vocabularyExercises.orderIndex);
+  }
+
+  async getVocabularyExercise(id: string): Promise<VocabularyExercise | undefined> {
+    const [result] = await db.select().from(vocabularyExercises).where(eq(vocabularyExercises.id, id));
+    return result;
+  }
+
+  async updateVocabularyExercise(id: string, exercise: Partial<InsertVocabularyExercise>): Promise<VocabularyExercise> {
+    const [updated] = await db
+      .update(vocabularyExercises)
+      .set({ ...exercise, updatedAt: new Date() })
+      .where(eq(vocabularyExercises.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVocabularyExercise(id: string): Promise<void> {
+    await db.delete(vocabularyExercises).where(eq(vocabularyExercises.id, id));
+  }
+
+  async getActiveVocabularyExercises(setId: string): Promise<VocabularyExercise[]> {
+    return await db
+      .select()
+      .from(vocabularyExercises)
+      .where(and(eq(vocabularyExercises.setId, setId), eq(vocabularyExercises.isActive, true)))
+      .orderBy(vocabularyExercises.orderIndex);
+  }
+
+  // Vocabulary attempts methods
+  async createVocabularyAttempt(attempt: InsertVocabularyAttempt): Promise<VocabularyAttempt> {
+    const [newAttempt] = await db.insert(vocabularyAttempts).values(attempt).returning();
+    return newAttempt;
+  }
+
+  async getVocabularyAttempts(exerciseId: string): Promise<VocabularyAttempt[]> {
+    return await db
+      .select()
+      .from(vocabularyAttempts)
+      .where(eq(vocabularyAttempts.exerciseId, exerciseId));
+  }
+
+  async getStudentVocabularyAttempts(studentId: string, exerciseId: string): Promise<VocabularyAttempt[]> {
+    return await db
+      .select()
+      .from(vocabularyAttempts)
+      .where(and(eq(vocabularyAttempts.studentId, studentId), eq(vocabularyAttempts.exerciseId, exerciseId)))
+      .orderBy(sql`${vocabularyAttempts.createdAt} DESC`);
+  }
+
+  async getVocabularyAttempt(id: string): Promise<VocabularyAttempt | undefined> {
+    const [result] = await db.select().from(vocabularyAttempts).where(eq(vocabularyAttempts.id, id));
+    return result;
+  }
+
+  async updateVocabularyAttempt(id: string, attempt: Partial<InsertVocabularyAttempt>): Promise<VocabularyAttempt> {
+    const [updated] = await db
+      .update(vocabularyAttempts)
+      .set({ ...attempt, updatedAt: new Date() })
+      .where(eq(vocabularyAttempts.id, id))
+      .returning();
+    return updated;
   }
 }
 

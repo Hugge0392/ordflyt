@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -3705,6 +3705,354 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Store reference to ClassroomWebSocket for classroom APIs
   (app as any).classroomWebSocket = classroomWebSocket;
+
+  // ========================================
+  // VOCABULARY SYSTEM API ROUTES
+  // ========================================
+
+  // Vocabulary Sets Routes
+  
+  // GET /api/vocabulary/sets - Get all vocabulary sets
+  app.get("/api/vocabulary/sets", requireAuth, async (req, res) => {
+    try {
+      const sets = await storage.getVocabularySets();
+      res.json(sets);
+    } catch (error) {
+      console.error("Error fetching vocabulary sets:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary sets" });
+    }
+  });
+
+  // GET /api/vocabulary/sets/published - Get published vocabulary sets
+  app.get("/api/vocabulary/sets/published", async (req, res) => {
+    try {
+      const sets = await storage.getPublishedVocabularySets();
+      res.json(sets);
+    } catch (error) {
+      console.error("Error fetching published vocabulary sets:", error);
+      res.status(500).json({ error: "Failed to fetch published vocabulary sets" });
+    }
+  });
+
+  // GET /api/vocabulary/sets/:id - Get specific vocabulary set
+  app.get("/api/vocabulary/sets/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const set = await storage.getVocabularySet(id);
+      if (!set) {
+        return res.status(404).json({ error: "Vocabulary set not found" });
+      }
+      res.json(set);
+    } catch (error) {
+      console.error("Error fetching vocabulary set:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary set" });
+    }
+  });
+
+  // POST /api/vocabulary/sets - Create new vocabulary set (Admin only)
+  app.post("/api/vocabulary/sets", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = insertVocabularySetSchema.strict().parse(req.body);
+      const newSet = await storage.createVocabularySet(validatedData);
+      res.status(201).json(newSet);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating vocabulary set:", error);
+      res.status(500).json({ error: "Failed to create vocabulary set" });
+    }
+  });
+
+  // PUT /api/vocabulary/sets/:id - Update vocabulary set (Admin only)
+  app.put("/api/vocabulary/sets/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertVocabularySetSchema.partial().strict().parse(req.body);
+      const updatedSet = await storage.updateVocabularySet(id, validatedData);
+      res.json(updatedSet);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error updating vocabulary set:", error);
+      res.status(500).json({ error: "Failed to update vocabulary set" });
+    }
+  });
+
+  // DELETE /api/vocabulary/sets/:id - Delete vocabulary set (Admin only)
+  app.delete("/api/vocabulary/sets/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteVocabularySet(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vocabulary set:", error);
+      res.status(500).json({ error: "Failed to delete vocabulary set" });
+    }
+  });
+
+  // Vocabulary Words Routes
+
+  // GET /api/vocabulary/sets/:setId/words - Get words for a set
+  app.get("/api/vocabulary/sets/:setId/words", requireAuth, async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const words = await storage.getVocabularyWords(setId);
+      res.json(words);
+    } catch (error) {
+      console.error("Error fetching vocabulary words:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary words" });
+    }
+  });
+
+  // GET /api/vocabulary/words/:id - Get specific vocabulary word
+  app.get("/api/vocabulary/words/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const word = await storage.getVocabularyWord(id);
+      if (!word) {
+        return res.status(404).json({ error: "Vocabulary word not found" });
+      }
+      res.json(word);
+    } catch (error) {
+      console.error("Error fetching vocabulary word:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary word" });
+    }
+  });
+
+  // POST /api/vocabulary/sets/:setId/words - Create new vocabulary word (Admin only)
+  app.post("/api/vocabulary/sets/:setId/words", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const validatedData = insertVocabularyWordSchema.strict().parse({ ...req.body, setId });
+      const newWord = await storage.createVocabularyWord(validatedData);
+      res.status(201).json(newWord);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating vocabulary word:", error);
+      res.status(500).json({ error: "Failed to create vocabulary word" });
+    }
+  });
+
+  // PUT /api/vocabulary/words/:id - Update vocabulary word (Admin only)
+  app.put("/api/vocabulary/words/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertVocabularyWordSchema.partial().strict().parse(req.body);
+      const updatedWord = await storage.updateVocabularyWord(id, validatedData);
+      res.json(updatedWord);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error updating vocabulary word:", error);
+      res.status(500).json({ error: "Failed to update vocabulary word" });
+    }
+  });
+
+  // DELETE /api/vocabulary/words/:id - Delete vocabulary word (Admin only)
+  app.delete("/api/vocabulary/words/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteVocabularyWord(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vocabulary word:", error);
+      res.status(500).json({ error: "Failed to delete vocabulary word" });
+    }
+  });
+
+  // Vocabulary Exercises Routes
+
+  // GET /api/vocabulary/sets/:setId/exercises - Get exercises for a set
+  app.get("/api/vocabulary/sets/:setId/exercises", requireAuth, async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const exercises = await storage.getVocabularyExercises(setId);
+      res.json(exercises);
+    } catch (error) {
+      console.error("Error fetching vocabulary exercises:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary exercises" });
+    }
+  });
+
+  // GET /api/vocabulary/sets/:setId/exercises/active - Get active exercises for a set
+  app.get("/api/vocabulary/sets/:setId/exercises/active", requireAuth, async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const exercises = await storage.getActiveVocabularyExercises(setId);
+      res.json(exercises);
+    } catch (error) {
+      console.error("Error fetching active vocabulary exercises:", error);
+      res.status(500).json({ error: "Failed to fetch active vocabulary exercises" });
+    }
+  });
+
+  // GET /api/vocabulary/exercises/:id - Get specific vocabulary exercise
+  app.get("/api/vocabulary/exercises/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exercise = await storage.getVocabularyExercise(id);
+      if (!exercise) {
+        return res.status(404).json({ error: "Vocabulary exercise not found" });
+      }
+      res.json(exercise);
+    } catch (error) {
+      console.error("Error fetching vocabulary exercise:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary exercise" });
+    }
+  });
+
+  // POST /api/vocabulary/sets/:setId/exercises - Create new vocabulary exercise (Admin only)
+  app.post("/api/vocabulary/sets/:setId/exercises", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { setId } = req.params;
+      const validatedData = insertVocabularyExerciseSchema.strict().parse({ ...req.body, setId });
+      const newExercise = await storage.createVocabularyExercise(validatedData);
+      res.status(201).json(newExercise);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating vocabulary exercise:", error);
+      res.status(500).json({ error: "Failed to create vocabulary exercise" });
+    }
+  });
+
+  // PUT /api/vocabulary/exercises/:id - Update vocabulary exercise (Admin only)
+  app.put("/api/vocabulary/exercises/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertVocabularyExerciseSchema.partial().strict().parse(req.body);
+      const updatedExercise = await storage.updateVocabularyExercise(id, validatedData);
+      res.json(updatedExercise);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error updating vocabulary exercise:", error);
+      res.status(500).json({ error: "Failed to update vocabulary exercise" });
+    }
+  });
+
+  // DELETE /api/vocabulary/exercises/:id - Delete vocabulary exercise (Admin only)
+  app.delete("/api/vocabulary/exercises/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteVocabularyExercise(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vocabulary exercise:", error);
+      res.status(500).json({ error: "Failed to delete vocabulary exercise" });
+    }
+  });
+
+  // Vocabulary Attempts Routes
+
+  // GET /api/vocabulary/exercises/:exerciseId/attempts - Get attempts for an exercise (Admin only)
+  app.get("/api/vocabulary/exercises/:exerciseId/attempts", requireAuth, requireRole("ADMIN"), async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const attempts = await storage.getVocabularyAttempts(exerciseId);
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching vocabulary attempts:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary attempts" });
+    }
+  });
+
+  // GET /api/vocabulary/exercises/:exerciseId/attempts/student - Get student's attempts for an exercise
+  app.get("/api/vocabulary/exercises/:exerciseId/attempts/student", requireStudentAuth, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const studentId = (req.user as any)?.id;
+      if (!studentId) {
+        return res.status(401).json({ error: "Student authentication required" });
+      }
+      const attempts = await storage.getStudentVocabularyAttempts(studentId, exerciseId);
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching student vocabulary attempts:", error);
+      res.status(500).json({ error: "Failed to fetch student vocabulary attempts" });
+    }
+  });
+
+  // GET /api/vocabulary/attempts/:id - Get specific vocabulary attempt
+  app.get("/api/vocabulary/attempts/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const attempt = await storage.getVocabularyAttempt(id);
+      if (!attempt) {
+        return res.status(404).json({ error: "Vocabulary attempt not found" });
+      }
+      
+      // Students can only access their own attempts
+      if (req.user?.role === 'ELEV' && attempt.studentId !== req.user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json(attempt);
+    } catch (error) {
+      console.error("Error fetching vocabulary attempt:", error);
+      res.status(500).json({ error: "Failed to fetch vocabulary attempt" });
+    }
+  });
+
+  // POST /api/vocabulary/exercises/:exerciseId/attempts - Create new vocabulary attempt (Student only)
+  app.post("/api/vocabulary/exercises/:exerciseId/attempts", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const { exerciseId } = req.params;
+      const studentId = (req.user as any)?.id;
+      if (!studentId) {
+        return res.status(401).json({ error: "Student authentication required" });
+      }
+      
+      const validatedData = insertVocabularyAttemptSchema.strict().parse({ 
+        ...req.body, 
+        exerciseId, 
+        studentId 
+      });
+      const newAttempt = await storage.createVocabularyAttempt(validatedData);
+      res.status(201).json(newAttempt);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error creating vocabulary attempt:", error);
+      res.status(500).json({ error: "Failed to create vocabulary attempt" });
+    }
+  });
+
+  // PUT /api/vocabulary/attempts/:id - Update vocabulary attempt (Student only for their own attempts)
+  app.put("/api/vocabulary/attempts/:id", requireAuth, requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // First, get the existing attempt to check permissions
+      const existingAttempt = await storage.getVocabularyAttempt(id);
+      if (!existingAttempt) {
+        return res.status(404).json({ error: "Vocabulary attempt not found" });
+      }
+      
+      // Students can only update their own attempts
+      if (req.user?.role === 'ELEV' && existingAttempt.studentId !== req.user?.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const validatedData = insertVocabularyAttemptSchema.partial().strict().parse(req.body);
+      const updatedAttempt = await storage.updateVocabularyAttempt(id, validatedData);
+      res.json(updatedAttempt);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Error updating vocabulary attempt:", error);
+      res.status(500).json({ error: "Failed to update vocabulary attempt" });
+    }
+  });
   
   return httpServer;
 }
