@@ -44,6 +44,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { WelcomeGuide } from '@/components/ui/welcome-guide';
+import { HelpTooltip, InfoTooltip } from '@/components/ui/help-tooltip';
+import { HelpMenu, commonGuides } from '@/components/ui/help-menu';
+import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from 'wouter';
 import {
   Shield,
   Key,
@@ -57,6 +62,9 @@ import {
   XCircle,
   AlertCircle,
   LogOut,
+  Settings,
+  BarChart3,
+  FileText,
 } from 'lucide-react';
 
 // Types
@@ -134,14 +142,39 @@ const getLicenseStats = (codes: OneTimeCode[]): LicenseStats => {
 };
 
 // Components
-function LicenseOverview({ codes }: { codes: OneTimeCode[] }) {
+function LicenseOverview({ codes, setActiveTab }: { codes: OneTimeCode[], setActiveTab: (tab: string) => void }) {
   const stats = getLicenseStats(codes);
+
+  // Empty state when no codes exist
+  if (codes.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          Inga licenskoder än
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+          Börja med att skapa din första licenskod för lärare. De kan sedan aktivera sina konton och börja använda KlassKamp.
+        </p>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setActiveTab('generate')} data-testid="button-create-first-license">
+          <Key className="h-4 w-4 mr-2" />
+          Skapa första licenskoden
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Totala koder</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">Totala koder</CardTitle>
+            <InfoTooltip 
+              content="Det totala antalet licenskoder som har genererats i systemet, oavsett status."
+              testId="help-total-codes"
+            />
+          </div>
           <Shield className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -154,7 +187,13 @@ function LicenseOverview({ codes }: { codes: OneTimeCode[] }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Aktiva koder</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">Aktiva koder</CardTitle>
+            <InfoTooltip 
+              content="Licenskoder som är giltiga och kan aktiveras av lärare. Dessa har inte använts än och har inte gått ut."
+              testId="help-active-codes"
+            />
+          </div>
           <CheckCircle className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
@@ -167,7 +206,13 @@ function LicenseOverview({ codes }: { codes: OneTimeCode[] }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Använda koder</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">Använda koder</CardTitle>
+            <InfoTooltip 
+              content="Licenskoder som redan har aktiverats av lärare. Dessa koder har fullgjort sitt syfte och kan inte användas igen."
+              testId="help-redeemed-codes"
+            />
+          </div>
           <Key className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
@@ -180,7 +225,13 @@ function LicenseOverview({ codes }: { codes: OneTimeCode[] }) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Utgångna koder</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">Utgångna koder</CardTitle>
+            <InfoTooltip 
+              content="Licenskoder som har passerat sitt utgångsdatum och inte längre kan aktiveras. Dessa behöver ersättas med nya koder."
+              testId="help-expired-codes"
+            />
+          </div>
           <XCircle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
@@ -232,13 +283,21 @@ function GenerateCodeForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Generera ny licenskod
-        </CardTitle>
-        <CardDescription>
-          Skapa en ny licenskod som skickas via e-post till läraren
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Generera ny licenskod
+            </CardTitle>
+            <CardDescription>
+              Skapa en ny licenskod som skickas via e-post till läraren
+            </CardDescription>
+          </div>
+          <HelpTooltip 
+            content="Här skapar du en ny licenskod som automatiskt skickas via e-post till den angivna läraren. Läraren kan sedan använda koden för att aktivera sitt konto."
+            testId="help-generate-form"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -248,7 +307,13 @@ function GenerateCodeForm() {
               name="recipientEmail"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>E-postadress</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>E-postadress</FormLabel>
+                    <HelpTooltip 
+                      content="Ange lärarens e-postadress. Licenskoden skickas automatiskt till denna adress med instruktioner för aktivering."
+                      testId="help-email-field"
+                    />
+                  </div>
                   <FormControl>
                     <Input 
                       placeholder="larare@skola.se" 
@@ -269,7 +334,13 @@ function GenerateCodeForm() {
               name="validityDays"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Giltighetsperiod (dagar)</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Giltighetsperiod (dagar)</FormLabel>
+                    <HelpTooltip 
+                      content="Bestäm hur länge licenskoden ska vara giltig. Efter denna period kan koden inte längre aktiveras. Rekommenderat: 30-90 dagar."
+                      testId="help-validity-field"
+                    />
+                  </div>
                   <FormControl>
                     <Input 
                       type="number" 
@@ -532,6 +603,24 @@ function ActivityFeed({ codes }: { codes: OneTimeCode[] }) {
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('overview');
+  const { user, isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setLocation('/login');
+    } catch (error) {
+      toast({
+        title: 'Utloggning misslyckades',
+        description: 'Försök igen eller kontakta support.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Fetch license codes
   const { data: codes = [], isLoading, error } = useQuery({
@@ -553,13 +642,20 @@ export default function Admin() {
                 Administrera licenskoder och användarkonton
               </p>
             </div>
-            <Button 
-              variant="outline" 
+            <HelpMenu
+              availableGuides={commonGuides.admin}
+              userRole="admin"
+              userId={user?.id}
+              testId="admin-help-menu"
+            />
+            <Button
+              onClick={handleLogout}
+              variant="outline"
               size="sm"
-              onClick={() => window.location.href = '/api/auth/logout'}
+              className="flex items-center gap-2 border-red-200 hover:bg-red-50 hover:border-red-300 text-red-700 hover:text-red-800 dark:border-red-800 dark:hover:bg-red-900/20 dark:text-red-400 dark:hover:text-red-300"
               data-testid="button-logout"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-4 w-4" />
               Logga ut
             </Button>
           </div>
@@ -577,6 +673,58 @@ export default function Admin() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Admin Welcome Guide with improved scope and child-friendly copy */}
+        <WelcomeGuide
+          guideId="admin-dashboard"
+          userRole="admin"
+          userId={user?.id}
+          title="Välkommen till Admin Panel"
+          description="Här hanterar du licenser och följer systemet."
+          badge="Administratör"
+          icon={<Settings className="h-5 w-5" />}
+          className="mb-6"
+          steps={[
+            {
+              icon: <BarChart3 className="h-5 w-5 text-blue-600" />,
+              title: "Se översikt",
+              description: "Kolla statistik för alla licenskoder."
+            },
+            {
+              icon: <Plus className="h-5 w-5 text-green-600" />,
+              title: "Skapa koder",
+              description: "Gör nya licenskoder för lärare."
+            },
+            {
+              icon: <Key className="h-5 w-5 text-purple-600" />,
+              title: "Hantera koder",
+              description: "Se alla koder och ta bort dem."
+            },
+            {
+              icon: <Activity className="h-5 w-5 text-orange-600" />,
+              title: "Se aktivitet",
+              description: "Följ vad som händer i systemet."
+            }
+          ]}
+          data-testid="admin-welcome-guide"
+        />
+        
+        {/* Show again button */}
+        <div className="mb-6 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const globalFn = (window as any)[`showGuide_admin-dashboard_admin_${user?.id || 'default'}`];
+              if (globalFn) globalFn();
+            }}
+            className="text-muted-foreground hover:text-foreground"
+            data-testid="show-guide-again"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Visa guiden igen
+          </Button>
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -600,7 +748,7 @@ export default function Admin() {
 
           <div className="mt-6">
             <TabsContent value="overview" className="space-y-6">
-              <LicenseOverview codes={codes} />
+              <LicenseOverview codes={codes} setActiveTab={setActiveTab} />
               <div className="grid gap-6 lg:grid-cols-2">
                 <ManageCodes codes={codes.slice(0, 5)} isLoading={isLoading} />
                 <ActivityFeed codes={codes} />

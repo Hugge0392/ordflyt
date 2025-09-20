@@ -12,6 +12,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { WelcomeGuide } from '@/components/ui/welcome-guide';
+import { HelpTooltip, InfoTooltip } from '@/components/ui/help-tooltip';
+import { HelpMenu, commonGuides } from '@/components/ui/help-menu';
 import {
   Users,
   BookOpen,
@@ -41,7 +44,9 @@ import {
   Plus,
   Printer,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  Lightbulb
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -1375,14 +1380,58 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
+      {/* Teacher Welcome Guide */}
+      <WelcomeGuide
+        guideId="teacher-dashboard"
+        title="Välkommen till din Lärarpanel"
+        description="Här har du kontroll över dina klasser, elever och lektioner. Följ denna guide för att komma igång snabbt och effektivt."
+        badge="Lärare"
+        icon={<GraduationCap className="h-5 w-5" />}
+        className="mb-6"
+        steps={[
+          {
+            icon: <Users className="h-5 w-5 text-blue-600" />,
+            title: "Hantera elever",
+            description: "Skapa klasser, lägg till elever och hantera lösenord. Här kan du också se elevernas inloggningsstatus och aktivitet."
+          },
+          {
+            icon: <BookOpen className="h-5 w-5 text-green-600" />,
+            title: "Tilldela lektioner",
+            description: "Välj lektioner från biblioteket och tilldela dem till dina klasser. Följ elevernas framsteg i realtid."
+          },
+          {
+            icon: <BarChart3 className="h-5 w-5 text-purple-600" />,
+            title: "Analysera resultat",
+            description: "Se detaljerade rapporter över elevernas prestationer och identifiera områden för extra stöd."
+          },
+          {
+            icon: <Monitor className="h-5 w-5 text-orange-600" />,
+            title: "Klassrumskontroll",
+            description: "Använd realtidsövervakning för att se vad eleverna arbetar med och styr deras aktiviteter."
+          },
+          {
+            icon: <MessageSquare className="h-5 w-5 text-indigo-600" />,
+            title: "Ge feedback",
+            description: "Kommunicera med elever genom inbyggd feedback och skapa en positiv inlärningsmiljö."
+          }
+        ]}
+        data-testid="teacher-welcome-guide"
+      />
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Users className="h-4 w-4 mr-2 text-blue-500" />
-              Totalt elever
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                <Users className="h-4 w-4 mr-2 text-blue-500" />
+                Totalt elever
+              </CardTitle>
+              <HelpTooltip 
+                content="Det totala antalet elever du har ansvar för, fördelade över alla dina klasser. Inkluderar både aktiva och inaktiva elever."
+                testId="help-total-students"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900" data-testid="text-total-students">
@@ -1396,10 +1445,16 @@ export default function TeacherDashboard() {
 
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <BookOpen className="h-4 w-4 mr-2 text-green-500" />
-              Aktiva uppgifter
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                <BookOpen className="h-4 w-4 mr-2 text-green-500" />
+                Aktiva uppgifter
+              </CardTitle>
+              <HelpTooltip 
+                content="Antal lektioner och övningar som för närvarande är tilldelade till dina klasser och som eleverna kan arbeta med."
+                testId="help-active-assignments"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900" data-testid="text-active-assignments">
@@ -1413,10 +1468,16 @@ export default function TeacherDashboard() {
 
         <Card className="border-l-4 border-l-purple-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <Award className="h-4 w-4 mr-2 text-purple-500" />
-              Slutförda lektioner
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                <Award className="h-4 w-4 mr-2 text-purple-500" />
+                Slutförda lektioner
+              </CardTitle>
+              <HelpTooltip 
+                content="Antal lektioner som dina elever har slutfört framgångsrikt under den aktuella veckan. Visar aktivitetsnivån."
+                testId="help-completed-lessons"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900" data-testid="text-completed-lessons">
@@ -1430,10 +1491,16 @@ export default function TeacherDashboard() {
 
         <Card className="border-l-4 border-l-orange-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
-              <TrendingUp className="h-4 w-4 mr-2 text-orange-500" />
-              Genomsnitt framsteg
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                <TrendingUp className="h-4 w-4 mr-2 text-orange-500" />
+                Genomsnitt framsteg
+              </CardTitle>
+              <HelpTooltip 
+                content="Genomsnittlig framstegsnivå för alla dina elever baserat på slutförda uppgifter och prestationer. Hjälper dig identifiera klassens övergripande prestanda."
+                testId="help-average-progress"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900" data-testid="text-average-progress">
@@ -1523,9 +1590,22 @@ export default function TeacherDashboard() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">Ingen aktivitet att visa ännu</p>
-                <p className="text-xs mt-1">Aktiviteter visas här när elever börjar använda systemet</p>
+                <Activity className="h-12 w-12 mx-auto mb-3 text-blue-300" />
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Ingen aktivitet ännu 📊</h4>
+                <p className="text-xs text-gray-600 mb-3">
+                  Aktiviteter kommer att visas här när dina elever:
+                </p>
+                <div className="bg-blue-50 p-3 rounded-lg text-left max-w-sm mx-auto">
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Loggar in och börjar lektioner</li>
+                    <li>• Slutför uppgifter och övningar</li>
+                    <li>• Tjänar mynt och nivåer upp</li>
+                    <li>• Interagerar med materialet</li>
+                  </ul>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Tilldela lektioner till dina klasser för att komma igång!
+                </p>
               </div>
             )}
           </CardContent>
@@ -1707,13 +1787,21 @@ export default function TeacherDashboard() {
                 <div className="text-gray-900 font-medium">{user.username}</div>
                 <div className="text-gray-500">Lärare</div>
               </div>
+              <HelpMenu
+                availableGuides={commonGuides.teacher}
+                userRole="teacher"
+                userId={user?.id}
+                testId="teacher-help-menu"
+              />
               <Button
-                variant="ghost"
-                size="sm"
                 onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-red-200 hover:bg-red-50 hover:border-red-300 text-red-700 hover:text-red-800 dark:border-red-800 dark:hover:bg-red-900/20 dark:text-red-400 dark:hover:text-red-300"
                 data-testid="button-logout"
               >
                 <LogOut className="h-4 w-4" />
+                Logga ut
               </Button>
             </div>
           </div>

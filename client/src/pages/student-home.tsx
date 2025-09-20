@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { WelcomeGuide } from "@/components/ui/welcome-guide";
+import { KidsHelpTooltip } from "@/components/ui/help-tooltip";
+import { HelpMenu, commonGuides } from "@/components/ui/help-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 import { 
   BookOpen, 
   Type, 
@@ -22,7 +27,11 @@ import {
   Sparkles,
   Store,
   Home,
-  Gem
+  Gem,
+  Heart,
+  Zap,
+  GamepadIcon,
+  Gift
 } from "lucide-react";
 import StudentNavigation from "@/components/StudentNavigation";
 import { 
@@ -43,6 +52,20 @@ const mockStudent = {
 
 export default function StudentHome() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setLocation('/elev/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   // Fetch lesson categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<LessonCategory[]>({
@@ -162,8 +185,15 @@ export default function StudentHome() {
               </div>
             </div>
 
-            {/* Navigation buttons */}
+            {/* Navigation buttons with help and logout */}
             <div className="flex items-center gap-3">
+              <HelpMenu
+                availableGuides={commonGuides.student}
+                userRole="student"
+                userId={user?.id || mockStudent.id}
+                forChildren={true}
+                testId="student-help-menu"
+              />
               <Link href="/elev/butik">
                 <Button 
                   variant="outline" 
@@ -186,6 +216,16 @@ export default function StudentHome() {
                   Min Profil
                 </Button>
               </Link>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-red-200 hover:bg-red-50 hover:border-red-300 text-red-700 hover:text-red-800"
+                data-testid="button-logout"
+              >
+                <User className="w-4 h-4" />
+                Logga ut
+              </Button>
             </div>
           </div>
 
@@ -216,16 +256,71 @@ export default function StudentHome() {
           </p>
         </div>
 
+        {/* Kids Welcome Guide */}
+        <WelcomeGuide
+          guideId="student-home"
+          userRole="student"
+          userId={user?.id || mockStudent.id}
+          title="Hej! 🌟"
+          description="Här gör du roliga lektioner. Du kan också tjäna mynt!"
+          badge="Superelev"
+          icon={<Sparkles className="h-5 w-5" />}
+          forChildren={true}
+          className="mb-8"
+          steps={[
+            {
+              icon: <BookOpen className="h-5 w-5" />,
+              title: "Kul lektioner väntar! 📚",
+              description: "Välj roliga lektioner som hjälper dig bli duktigare på svenska. Det är som att spela spel fast du lär dig massa!"
+            },
+            {
+              icon: <Coins className="h-5 w-5" />,
+              title: "Samla glänsande mynt! 💰",
+              description: "När du klarar uppgifter får du coola mynt som du kan använda i butiken för att köpa häftiga saker!"
+            },
+            {
+              icon: <ShoppingCart className="h-5 w-5" />,
+              title: "Shoppa i butiken! 🛍️",
+              description: "Använd dina mynt för att köpa nya kläder och accessoarer till din avatar. Gör dig unik och cool!"
+            },
+            {
+              icon: <User className="h-5 w-5" />,
+              title: "Piffa upp din avatar! 👤",
+              description: "Gå till din profil och ändra hur din avatar ser ut. Välj kläder, frisyr och allt möjligt kul!"
+            },
+            {
+              icon: <Trophy className="h-5 w-5" />,
+              title: "Bli en stjärna! 🏆",
+              description: "Ju mer du lär dig, desto fler nivåer klarar du! Visa alla hur duktig du är!"
+            }
+          ]}
+          data-testid="student-welcome-guide"
+        />
+
         {/* Quick stats */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <Card className="bg-gradient-to-br from-blue-100 dark:from-blue-900 to-blue-200 dark:to-blue-800 border-blue-200 dark:border-blue-700">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-4 text-center relative">
+              <div className="absolute top-2 right-2">
+                <KidsHelpTooltip 
+                  content="Det här visar hur många lektioner du har klarat! Varje gång du slutför en lektion räknas den här. Ju fler du gör, desto smartare blir du! 🧠"
+                  type="info"
+                  testId="help-completed-lessons"
+                />
+              </div>
               <div className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-completed-lessons">12</div>
               <div className="text-sm text-blue-600 dark:text-blue-400">Genomförda lektioner</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-100 dark:from-purple-900 to-purple-200 dark:to-purple-800 border-purple-200 dark:border-purple-700">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-4 text-center relative">
+              <div className="absolute top-2 right-2">
+                <KidsHelpTooltip 
+                  content="Wow! Det här är alla mynt du har tjänat genom att vara duktig! Du kan använda mynten för att köpa coola saker i butiken! 🛍️"
+                  type="tip"
+                  testId="help-earned-coins"
+                />
+              </div>
               <div className="text-2xl font-bold text-purple-700 dark:text-purple-300" data-testid="text-earned-coins">
                 {currency?.totalEarned || 580}
               </div>
@@ -233,7 +328,14 @@ export default function StudentHome() {
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-green-100 dark:from-green-900 to-green-200 dark:to-green-800 border-green-200 dark:border-green-700">
-            <CardContent className="p-4 text-center">
+            <CardContent className="p-4 text-center relative">
+              <div className="absolute top-2 right-2">
+                <KidsHelpTooltip 
+                  content="En streak betyder att du har gjort lektioner flera dagar i rad! Det är som att hålla elden brinnande - ju längre streak, desto mer fantastisk är du! 🔥"
+                  type="help"
+                  testId="help-active-streak"
+                />
+              </div>
               <div className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-active-streak">7</div>
               <div className="text-sm text-green-600 dark:text-green-400">Dagars streak</div>
             </CardContent>
@@ -247,8 +349,35 @@ export default function StudentHome() {
             Välj en kategori
           </h2>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map(category => {
+          {categories.length === 0 ? (
+            <Card className="border-2 border-dashed border-purple-200 bg-purple-50/50 col-span-full">
+              <CardContent className="p-12 text-center">
+                <BookOpen className="h-20 w-20 text-purple-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-purple-700 mb-3">Inga lektioner ännu! 📚</h3>
+                <div className="max-w-md mx-auto">
+                  <p className="text-purple-600 mb-4">
+                    Oj då! Det verkar som att dina lärare inte har lagt till några roliga lektioner än.
+                  </p>
+                  <div className="bg-white p-4 rounded-lg border border-purple-200 mb-4">
+                    <h4 className="font-medium text-purple-800 mb-2 flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Medan du väntar kan du:
+                    </h4>
+                    <ul className="text-sm text-purple-700 space-y-1">
+                      <li>🛍️ Kolla in butiken och se vad som finns</li>
+                      <li>👤 Fixa till din profil och avatar</li>
+                      <li>⭐ Utforska dina framsteg och achievements</li>
+                    </ul>
+                  </div>
+                  <p className="text-sm text-purple-500">
+                    Kom tillbaka snart så kanske det finns nya äventyr att upptäcka! ✨
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map(category => {
               const lessonsInCategory = getLessonsForCategory(category.id);
               const completedCount = getCompletedLessonsCount(category.id);
               const totalLessons = lessonsInCategory.length;
@@ -332,16 +461,20 @@ export default function StudentHome() {
                     )}
 
                     {totalLessons === 0 && (
-                      <div className="text-center text-gray-500 dark:text-gray-400 text-sm py-4">
-                        <Sparkles className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
-                        Lektioner kommer snart!
+                      <div className="text-center text-purple-500 text-sm py-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-400" />
+                        <h4 className="font-medium text-purple-700 mb-1">Inga äventyr här än! 🎈</h4>
+                        <p className="text-xs text-purple-600">
+                          Dina lärare jobbar säkert på att lägga till roliga lektioner här!
+                        </p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Call-to-action section */}

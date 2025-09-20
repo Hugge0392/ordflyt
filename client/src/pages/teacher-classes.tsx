@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, Plus, Users, Download, Eye, Calendar, Key, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Loader2, Edit2, Trash2, RotateCcw, Archive, Filter, Settings, UserPlus } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Download, Eye, Calendar, Key, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Loader2, Edit2, Trash2, RotateCcw, Archive, Filter, Settings, UserPlus, BookOpen } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 const createClassSchema = z.object({
@@ -557,12 +557,26 @@ export default function TeacherClassesPage() {
               </CardContent>
             </Card>
           ) : (classesData as any)?.classes?.length === 0 ? (
-            <Card>
+            <Card className="border-2 border-dashed border-blue-200 bg-blue-50/30">
               <CardContent className="p-12 text-center">
-                <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Inga klasser än</h3>
-                <p className="text-gray-600 mb-6">Skapa din första klass för att komma igång med att hantera elever.</p>
-                <Button onClick={() => setIsCreateDialogOpen(true)} data-testid="button-create-first-class">
+                <Users className="h-16 w-16 text-blue-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Välkommen! Skapa din första klass 🎓</h3>
+                <p className="text-gray-600 mb-4">
+                  För att komma igång behöver du skapa en klass där du kan lägga till dina elever.
+                </p>
+                <div className="bg-white p-4 rounded-lg border mb-6 text-left max-w-md mx-auto">
+                  <h4 className="font-medium text-gray-900 mb-2 flex items-center">
+                    <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
+                    Nästa steg:
+                  </h4>
+                  <ol className="text-sm text-gray-600 space-y-1">
+                    <li>1. Skapa en klass med namn och termin</li>
+                    <li>2. Lägg till elever i klassen</li>
+                    <li>3. Tilldela lektioner till eleverna</li>
+                    <li>4. Följ deras framsteg i realtid</li>
+                  </ol>
+                </div>
+                <Button onClick={() => setIsCreateDialogOpen(true)} data-testid="button-create-first-class" className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Skapa din första klass
                 </Button>
