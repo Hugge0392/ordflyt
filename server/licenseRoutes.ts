@@ -1356,7 +1356,7 @@ router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLice
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 Generate setup code error:', error);
     console.error('📋 Error stack:', error.stack);
     res.status(500).json({ error: 'Serverfel vid generering av engångskod' });
