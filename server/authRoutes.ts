@@ -1501,7 +1501,7 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
     // Check if account is locked
     if (student.lockedUntil && new Date() < student.lockedUntil) {
       await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Account locked');
-      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { studentId: student.id, studentUsername: student.username, reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
       return res.status(423).json({ 
         error: 'Kontot är låst. Försök igen senare.', 
         lockedUntil: student.lockedUntil.toISOString() 
@@ -1529,7 +1529,7 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
         .where(eq(studentAccounts.id, student.id));
 
       await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Invalid password');
-      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Invalid password', failedAttempts: newFailedAttempts });
+      await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { studentId: student.id, studentUsername: student.username, reason: 'Invalid password', failedAttempts: newFailedAttempts });
       
       const errorMessage = shouldLockAccount 
         ? 'För många misslyckade inloggningsförsök. Kontot har låsts i 30 minuter.'
@@ -1571,8 +1571,10 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
 
     res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
 
-    // Log successful login
-    await logAuditEvent('STUDENT_LOGIN_SUCCESS', student.id, true, ipAddress, userAgent, { 
+    // Log successful login (use null for user_id since students are not in users table)
+    await logAuditEvent('STUDENT_LOGIN_SUCCESS', null, true, ipAddress, userAgent, { 
+      studentId: student.id,
+      studentUsername: student.username,
       sessionId: session.id,
       mustChangePassword: student.mustChangePassword 
     });
@@ -1631,7 +1633,7 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
     // Check if account is locked
     if (student.lockedUntil && new Date() < student.lockedUntil) {
       await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Account locked');
-      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { studentId: student.id, studentUsername: student.username, reason: 'Account locked', lockedUntil: student.lockedUntil.toISOString() });
       return res.status(423).json({ 
         error: 'Kontot är låst. Försök igen senare.', 
         lockedUntil: student.lockedUntil.toISOString() 
@@ -1659,7 +1661,7 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
         .where(eq(studentAccounts.id, student.id));
 
       await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Invalid setup code');
-      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', student.id, false, ipAddress, userAgent, { reason: 'Invalid setup code', failedAttempts: newFailedAttempts });
+      await logAuditEvent('STUDENT_SETUP_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { studentId: student.id, studentUsername: student.username, reason: 'Invalid setup code', failedAttempts: newFailedAttempts });
       
       const errorMessage = shouldLockAccount 
         ? 'För många misslyckade inloggningsförsök. Kontot har låsts i 30 minuter.'
@@ -1701,8 +1703,10 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
 
     res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
 
-    // Log successful setup code login
-    await logAuditEvent('STUDENT_SETUP_LOGIN_SUCCESS', student.id, true, ipAddress, userAgent, { 
+    // Log successful setup code login (use null for user_id since students are not in users table)
+    await logAuditEvent('STUDENT_SETUP_LOGIN_SUCCESS', null, true, ipAddress, userAgent, { 
+      studentId: student.id,
+      studentUsername: student.username,
       sessionId: session.id,
       setupCodeId,
       mustChangePassword: student.mustChangePassword 
@@ -1738,13 +1742,14 @@ router.post("/api/student/logout", requireStudentAuth, async (req, res) => {
       // Delete session from database
       await db.delete(studentSessions).where(eq(studentSessions.id, req.studentSession.id));
       
-      // Log logout event
+      // Log logout event (use null for user_id since students are not in users table)
       await logAuditEvent(
         'STUDENT_LOGOUT',
-        req.student?.id || null,
+        null,
         true,
         req.ip || 'unknown',
-        req.headers['user-agent']
+        req.headers['user-agent'],
+        { studentId: req.student?.id, studentUsername: req.student?.username }
       );
     }
     
@@ -1829,7 +1834,7 @@ router.post("/api/student/password", requireStudentAuth, requireCsrf, async (req
       // Verify current password
       const currentPasswordValid = await verifyPassword(currentPassword, req.student.passwordHash);
       if (!currentPasswordValid) {
-        await logAuditEvent('STUDENT_PASSWORD_CHANGE_FAILED', req.student.id, false, req.ip || 'unknown', req.headers['user-agent'], { reason: 'Invalid current password' });
+        await logAuditEvent('STUDENT_PASSWORD_CHANGE_FAILED', null, false, req.ip || 'unknown', req.headers['user-agent'], { studentId: req.student.id, studentUsername: req.student.username, reason: 'Invalid current password' });
         return res.status(401).json({ error: 'Felaktigt nuvarande lösenord' });
       }
     }
@@ -1846,14 +1851,14 @@ router.post("/api/student/password", requireStudentAuth, requireCsrf, async (req
       })
       .where(eq(studentAccounts.id, req.student.id));
 
-    // Log password change
+    // Log password change (use null for user_id since students are not in users table)
     await logAuditEvent(
       'STUDENT_PASSWORD_CHANGED',
-      req.student.id,
+      null,
       true,
       req.ip || 'unknown',
       req.headers['user-agent'],
-      { wasForced: req.student.mustChangePassword }
+      { studentId: req.student.id, studentUsername: req.student.username, wasForced: req.student.mustChangePassword }
     );
 
     res.json({ 
@@ -1863,7 +1868,9 @@ router.post("/api/student/password", requireStudentAuth, requireCsrf, async (req
 
   } catch (error) {
     console.error('Student password change error:', error);
-    await logAuditEvent('STUDENT_PASSWORD_CHANGE_ERROR', req.student?.id || null, false, req.ip || 'unknown', req.headers['user-agent'], { 
+    await logAuditEvent('STUDENT_PASSWORD_CHANGE_ERROR', null, false, req.ip || 'unknown', req.headers['user-agent'], { 
+      studentId: req.student?.id,
+      studentUsername: req.student?.username,
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
     res.status(500).json({ error: 'Ett fel uppstod vid lösenordsändring' });

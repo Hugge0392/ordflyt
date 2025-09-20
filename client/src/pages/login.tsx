@@ -38,12 +38,27 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      // Detect if password is a 6-character setup code (uppercase letters and numbers)
+      const isSetupCode = /^[A-Z0-9]{6}$/.test(data.password);
+      
+      let endpoint = "/api/auth/login";
+      let requestBody: any = data;
+      
+      if (isSetupCode) {
+        // Use setup code endpoint for students
+        endpoint = "/api/student/login-with-code";
+        requestBody = {
+          username: data.username,
+          setupCode: data.password
+        };
+      }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -60,10 +75,10 @@ export default function LoginPage() {
 
       toast({
         title: "Inloggning lyckades",
-        description: `Välkommen ${result.user.username}!`,
+        description: `Välkommen ${result.user?.username || result.student?.username}!`,
       });
 
-      // Redirect based on role
+      // Redirect based on role or response
       setTimeout(() => {
         setLocation(result.redirectPath || "/");
       }, 500);
