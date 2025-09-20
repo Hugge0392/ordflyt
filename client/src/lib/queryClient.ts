@@ -2,6 +2,20 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // Handle 401 Unauthorized - clear auth state and redirect to login
+    if (res.status === 401) {
+      // Clear stored CSRF token
+      localStorage.removeItem('csrfToken');
+      
+      // Clear any cached auth state in query client
+      queryClient.setQueryData(["/api/auth/me"], null);
+      
+      // Redirect to login page if not already there
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }

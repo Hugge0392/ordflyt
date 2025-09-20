@@ -34,7 +34,7 @@ const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
 const TEACHER_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for teachers/admins
 const STUDENT_SESSION_DURATION = 45 * 60 * 1000; // 45 minutes for students
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
-const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 10 : 100; // Very lenient in development
+const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 20 : 100; // Increased to 20 attempts in production
 const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1 * 60 * 1000; // 1 minute in dev, 5 in production
 
 // Environment variables for security - use fixed values for development

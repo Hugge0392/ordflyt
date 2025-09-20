@@ -1241,13 +1241,14 @@ export default function TeacherDashboard() {
 
   const handleLogout = async () => {
     try {
-      await apiRequest('POST', '/api/auth/logout');
+      const result = await apiRequest('POST', '/api/auth/logout');
       localStorage.removeItem('csrfToken');
       toast({
         title: 'Utloggad',
         description: 'Du har loggats ut från systemet',
       });
-      setLocation('/login');
+      // Use redirectPath from backend response, fallback to home page
+      setLocation(result.redirectPath || '/');
     } catch (error) {
       console.error('Logout error:', error);
       toast({

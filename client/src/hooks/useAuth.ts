@@ -58,7 +58,10 @@ export function useAuth() {
       }
     },
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes - matches backend session duration
+    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache longer
+    refetchOnWindowFocus: false, // Don't refetch on every window focus
+    refetchOnMount: false, // Only refetch if data is stale
   });
 
   return {

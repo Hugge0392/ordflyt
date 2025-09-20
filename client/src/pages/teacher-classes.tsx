@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, Plus, Users, Download, Eye, Calendar, Key, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Loader2, Edit2, Trash2, RotateCcw, Archive, Filter, Settings, UserPlus } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -373,7 +374,8 @@ export default function TeacherClassesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center justify-between">
@@ -763,54 +765,82 @@ export default function TeacherClassesPage() {
                                     )}
                                   </div>
                                   <div className="flex items-center space-x-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedStudent(student);
-                                        editStudentForm.setValue('name', student.studentName);
-                                        setIsEditStudentDialogOpen(true);
-                                      }}
-                                      data-testid={`button-edit-student-${student.id}`}
-                                    >
-                                      <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setGenerateCodeDialog(student.id)}
-                                      data-testid={`button-generate-code-${student.id}`}
-                                    >
-                                      <Key className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => updateStudentMutation.mutate({
-                                        studentId: student.id,
-                                        updates: { isActive: !student.isActive }
-                                      })}
-                                      disabled={updateStudentMutation.isPending}
-                                      data-testid={`button-toggle-active-${student.id}`}
-                                    >
-                                      {updateStudentMutation.isPending ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : student.isActive !== false ? (
-                                        <Eye className="h-4 w-4" />
-                                      ) : (
-                                        <Users className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          data-testid={`button-delete-student-${student.id}`}
+                                          onClick={() => {
+                                            setSelectedStudent(student);
+                                            editStudentForm.setValue('name', student.studentName);
+                                            setIsEditStudentDialogOpen(true);
+                                          }}
+                                          data-testid={`button-edit-student-${student.id}`}
                                         >
-                                          <Trash2 className="h-4 w-4 text-red-500" />
+                                          <Edit2 className="h-4 w-4" />
                                         </Button>
-                                      </AlertDialogTrigger>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Redigera elevnamn</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setGenerateCodeDialog(student.id)}
+                                          data-testid={`button-generate-code-${student.id}`}
+                                        >
+                                          <Key className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Generera ny engångskod för inloggning</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => updateStudentMutation.mutate({
+                                            studentId: student.id,
+                                            updates: { isActive: !student.isActive }
+                                          })}
+                                          disabled={updateStudentMutation.isPending}
+                                          data-testid={`button-toggle-active-${student.id}`}
+                                        >
+                                          {updateStudentMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : student.isActive !== false ? (
+                                            <Eye className="h-4 w-4" />
+                                          ) : (
+                                            <Users className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{student.isActive !== false ? 'Deaktivera elev' : 'Aktivera elev'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <AlertDialog>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              data-testid={`button-delete-student-${student.id}`}
+                                            >
+                                              <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Ta bort elev från klassen</p>
+                                        </TooltipContent>
+                                      </Tooltip>
                                       <AlertDialogContent>
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Ta bort elev</AlertDialogTitle>
@@ -1178,5 +1208,6 @@ export default function TeacherClassesPage() {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }

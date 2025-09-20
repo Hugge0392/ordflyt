@@ -260,8 +260,10 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
         redirectPath = '/teacher';
         break;
       case 'ELEV':
+        redirectPath = '/elev';
+        break;
       default:
-        redirectPath = '/menu';
+        redirectPath = '/';
         break;
     }
     
@@ -307,7 +309,10 @@ router.post("/api/auth/logout", requireAuth, async (req, res) => {
       // Domain omitted to work with any deployment domain
     });
     
-    res.json({ success: true });
+    res.json({ 
+      success: true,
+      redirectPath: '/' 
+    });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ error: 'Ett fel uppstod vid utloggning' });

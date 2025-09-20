@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import { Eye, EyeOff, LogIn, UserPlus, AlertTriangle } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<LoginFormData>({
@@ -33,35 +34,73 @@ export default function LoginPage() {
     },
   });
 
+  // Caps Lock detection
+  useEffect(() => {
+    const detectCapsLock = (event: KeyboardEvent) => {
+      setIsCapsLockOn(event.getModifierState('CapsLock'));
+    };
+
+    // Add event listeners for caps lock detection
+    document.addEventListener('keydown', detectCapsLock);
+    document.addEventListener('keyup', detectCapsLock);
+
+    return () => {
+      document.removeEventListener('keydown', detectCapsLock);
+      document.removeEventListener('keyup', detectCapsLock);
+    };
+  }, []);
+
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
     setIsLoading(true);
 
     try {
-      // Detect if password is a 6-character setup code (uppercase letters and numbers)
-      const isSetupCode = /^[A-Z0-9]{6}$/.test(data.password);
+      // Normalize password and detect if it's a 6-character setup code (uppercase letters and numbers)
+      const normalizedPassword = data.password.trim().toUpperCase();
+      const isSetupCode = /^[A-Z0-9]{6}$/.test(normalizedPassword);
       
-      let endpoint = "/api/auth/login";
-      let requestBody: any = data;
+      let result: any;
+      let response: Response;
       
       if (isSetupCode) {
         // Use setup code endpoint for students
-        endpoint = "/api/student/login-with-code";
-        requestBody = {
-          username: data.username,
-          setupCode: data.password
-        };
+        response = await fetch("/api/student/login-with-code", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: data.username,
+            setupCode: normalizedPassword
+          }),
+          credentials: "include",
+        });
+        result = await response.json();
+      } else {
+        // Try regular user login first
+        response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        result = await response.json();
+        
+        // If auth login fails, try student password login as fallback
+        if (!response.ok && (response.status === 401 || response.status === 404)) {
+          response = await fetch("/api/student/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+            credentials: "include",
+          });
+          result = await response.json();
+        }
       }
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const result = await response.json();
 
       if (!response.ok) {
         setError(result.error || "Inloggning misslyckades");
@@ -78,9 +117,34 @@ export default function LoginPage() {
         description: `Välkommen ${result.user?.username || result.student?.username}!`,
       });
 
-      // Redirect based on role or response
+      // Determine redirect path based on role if not provided
+      let redirectPath = result.redirectPath;
+      
+      // Handle must-change-password cases for students
+      if ((result.student?.mustChangePassword || result.requirePasswordChange) && !redirectPath) {
+        redirectPath = '/elev/password';
+      } else if (!redirectPath) {
+        const userRole = result.user?.role || result.student?.role || 'ELEV';
+        switch (userRole.toUpperCase()) {
+          case 'ELEV':
+          case 'STUDENT':
+            redirectPath = '/elev';
+            break;
+          case 'TEACHER':
+          case 'LÄRARE':
+            redirectPath = '/teacher';
+            break;
+          case 'ADMIN':
+            redirectPath = '/admin';
+            break;
+          default:
+            redirectPath = '/';
+        }
+      }
+
+      // Redirect after successful login
       setTimeout(() => {
-        setLocation(result.redirectPath || "/");
+        setLocation(redirectPath);
       }, 500);
     } catch (err) {
       console.error("Login error:", err);
@@ -157,6 +221,12 @@ export default function LoginPage() {
                           )}
                         </Button>
                       </div>
+                      {isCapsLockOn && (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-orange-600">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>Caps Lock är aktiverat</span>
+                        </div>
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
