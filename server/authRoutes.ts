@@ -1562,18 +1562,16 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
       deviceFingerprint
     );
 
-    // Set secure cookie
-    const cookieOptions: any = {
+    // Set secure cookie with consistent production settings
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+    const cookieOptions = {
       httpOnly: true,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'lax' as const : 'strict' as const,
       path: '/',
       maxAge: 45 * 60 * 1000 // 45 minutes
+      // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
-
-    // Add secure flag in production
-    if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
-      cookieOptions.secure = true;
-    }
 
     res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
 
@@ -1694,18 +1692,16 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
       deviceFingerprint
     );
 
-    // Set secure cookie
-    const cookieOptions: any = {
+    // Set secure cookie with consistent production settings
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+    const cookieOptions = {
       httpOnly: true,
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'lax' as const : 'strict' as const,
       path: '/',
       maxAge: 45 * 60 * 1000 // 45 minutes
+      // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
-
-    // Add secure flag in production
-    if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
-      cookieOptions.secure = true;
-    }
 
     res.cookie('studentSessionToken', session.sessionToken, cookieOptions);
 
