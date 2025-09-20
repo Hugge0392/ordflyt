@@ -22,7 +22,7 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -3110,6 +3110,596 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating bulk export:', error);
       res.status(500).json({ error: 'Kunde inte skapa bulkexport' });
+    }
+  });
+
+  // ===== NEW LESSON SYSTEM & SHOP APIs =====
+
+  // LESSON CATEGORIES
+  app.get("/api/lesson-categories", async (req, res) => {
+    try {
+      const categories = await db
+        .select()
+        .from(schema.lessonCategories)
+        .where(eq(schema.lessonCategories.isActive, true))
+        .orderBy(schema.lessonCategories.sortOrder);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching lesson categories:", error);
+      res.status(500).json({ message: "Failed to fetch lesson categories" });
+    }
+  });
+
+  app.post("/api/lesson-categories", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = insertLessonCategorySchema.parse(req.body);
+      const [category] = await db
+        .insert(schema.lessonCategories)
+        .values(validatedData)
+        .returning();
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      console.error("Error creating lesson category:", error);
+      res.status(500).json({ message: "Failed to create lesson category" });
+    }
+  });
+
+  // LESSON TEMPLATES  
+  app.get("/api/lesson-templates", requireAuth, async (req, res) => {
+    try {
+      const templates = await db
+        .select()
+        .from(schema.lessonTemplates)
+        .innerJoin(schema.lessonCategories, eq(schema.lessonTemplates.categoryId, schema.lessonCategories.id))
+        .where(eq(schema.lessonTemplates.isPublished, true))
+        .orderBy(schema.lessonCategories.sortOrder, schema.lessonTemplates.title);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching lesson templates:", error);
+      res.status(500).json({ message: "Failed to fetch lesson templates" });
+    }
+  });
+
+  app.get("/api/lesson-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const [template] = await db
+        .select()
+        .from(schema.lessonTemplates)
+        .innerJoin(schema.lessonCategories, eq(schema.lessonTemplates.categoryId, schema.lessonCategories.id))
+        .where(eq(schema.lessonTemplates.id, req.params.id));
+      
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching lesson template:", error);
+      res.status(500).json({ message: "Failed to fetch lesson template" });
+    }
+  });
+
+  app.post("/api/lesson-templates", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = insertLessonTemplateSchema.parse({
+        ...req.body,
+        createdBy: req.user!.id
+      });
+      const [template] = await db
+        .insert(schema.lessonTemplates)
+        .values(validatedData)
+        .returning();
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      console.error("Error creating lesson template:", error);
+      res.status(500).json({ message: "Failed to create lesson template" });
+    }
+  });
+
+  // TEACHER LESSON CUSTOMIZATIONS
+  app.get("/api/teacher/lesson-customizations", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const teacherId = req.user!.id;
+      const customizations = await db
+        .select()
+        .from(schema.teacherLessonCustomizations)
+        .innerJoin(schema.lessonTemplates, eq(schema.teacherLessonCustomizations.templateId, schema.lessonTemplates.id))
+        .where(and(
+          eq(schema.teacherLessonCustomizations.teacherId, teacherId),
+          eq(schema.teacherLessonCustomizations.isActive, true)
+        ));
+      res.json(customizations);
+    } catch (error) {
+      console.error("Error fetching teacher customizations:", error);
+      res.status(500).json({ message: "Failed to fetch customizations" });
+    }
+  });
+
+  app.post("/api/teacher/lesson-customizations", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = insertTeacherLessonCustomizationSchema.parse({
+        ...req.body,
+        teacherId: req.user!.id
+      });
+      
+      // Upsert - update if exists, insert if not
+      const existing = await db
+        .select()
+        .from(schema.teacherLessonCustomizations)
+        .where(and(
+          eq(schema.teacherLessonCustomizations.teacherId, validatedData.teacherId),
+          eq(schema.teacherLessonCustomizations.templateId, validatedData.templateId)
+        ));
+
+      let result;
+      if (existing.length > 0) {
+        [result] = await db
+          .update(schema.teacherLessonCustomizations)
+          .set({ ...validatedData, updatedAt: new Date() })
+          .where(eq(schema.teacherLessonCustomizations.id, existing[0].id))
+          .returning();
+      } else {
+        [result] = await db
+          .insert(schema.teacherLessonCustomizations)
+          .values(validatedData)
+          .returning();
+      }
+      
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid customization data", errors: error.errors });
+      }
+      console.error("Error saving lesson customization:", error);
+      res.status(500).json({ message: "Failed to save customization" });
+    }
+  });
+
+  // STUDENT CURRENCY
+  app.get("/api/students/:studentId/currency", requireStudentAuth, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      // Ensure student can only access their own currency
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      let [currency] = await db
+        .select()
+        .from(schema.studentCurrency)
+        .where(eq(schema.studentCurrency.studentId, studentId));
+
+      // Initialize currency if doesn't exist
+      if (!currency) {
+        [currency] = await db
+          .insert(schema.studentCurrency)
+          .values({ studentId, currentCoins: 0, totalEarned: 0, totalSpent: 0 })
+          .returning();
+      }
+
+      res.json(currency);
+    } catch (error) {
+      console.error("Error fetching student currency:", error);
+      res.status(500).json({ message: "Failed to fetch currency" });
+    }
+  });
+
+  // SHOP ITEMS
+  app.get("/api/shop/items", requireStudentAuth, async (req, res) => {
+    try {
+      const { category, subcategory } = req.query;
+      let query = db.select().from(schema.shopItems).where(eq(schema.shopItems.isAvailable, true));
+      
+      if (category) {
+        query = query.where(eq(schema.shopItems.category, category as string));
+      }
+      if (subcategory) {
+        query = query.where(eq(schema.shopItems.subcategory, subcategory as string));
+      }
+
+      const items = await query.orderBy(schema.shopItems.sortOrder, schema.shopItems.price);
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching shop items:", error);
+      res.status(500).json({ message: "Failed to fetch shop items" });
+    }
+  });
+
+  app.post("/api/shop/items", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = insertShopItemSchema.parse(req.body);
+      const [item] = await db
+        .insert(schema.shopItems)
+        .values(validatedData)
+        .returning();
+      res.status(201).json(item);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid shop item data", errors: error.errors });
+      }
+      console.error("Error creating shop item:", error);
+      res.status(500).json({ message: "Failed to create shop item" });
+    }
+  });
+
+  // STUDENT PURCHASES
+  app.post("/api/students/:studentId/purchases", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      const { itemId } = req.body;
+
+      // Ensure student can only make purchases for themselves
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Check if student already owns this item
+      const existingPurchase = await db
+        .select()
+        .from(schema.studentPurchases)
+        .where(and(
+          eq(schema.studentPurchases.studentId, studentId),
+          eq(schema.studentPurchases.itemId, itemId)
+        ));
+
+      if (existingPurchase.length > 0) {
+        return res.status(400).json({ message: "Du äger redan denna vara" });
+      }
+
+      // Get item price
+      const [item] = await db
+        .select()
+        .from(schema.shopItems)
+        .where(eq(schema.shopItems.id, itemId));
+
+      if (!item || !item.isAvailable) {
+        return res.status(404).json({ message: "Varan finns inte eller är ej tillgänglig" });
+      }
+
+      // Get student currency
+      const [currency] = await db
+        .select()
+        .from(schema.studentCurrency)
+        .where(eq(schema.studentCurrency.studentId, studentId));
+
+      if (!currency || currency.currentCoins < item.price) {
+        return res.status(400).json({ message: "Inte tillräckligt med mynt" });
+      }
+
+      // Process purchase in transaction
+      const purchase = await db.transaction(async (tx) => {
+        // Create purchase record
+        const [newPurchase] = await tx
+          .insert(schema.studentPurchases)
+          .values({
+            studentId,
+            itemId,
+            pricePaid: item.price
+          })
+          .returning();
+
+        // Update currency
+        const newBalance = currency.currentCoins - item.price;
+        await tx
+          .update(schema.studentCurrency)
+          .set({
+            currentCoins: newBalance,
+            totalSpent: currency.totalSpent + item.price,
+            lastSpent: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(schema.studentCurrency.studentId, studentId));
+
+        // Log transaction
+        await tx
+          .insert(schema.currencyTransactions)
+          .values({
+            studentId,
+            type: 'spent',
+            amount: -item.price,
+            description: `Köpte ${item.name}`,
+            sourceType: 'shop_purchase',
+            sourceId: itemId,
+            balanceBefore: currency.currentCoins,
+            balanceAfter: newBalance
+          });
+
+        return newPurchase;
+      });
+
+      res.status(201).json(purchase);
+    } catch (error) {
+      console.error("Error processing purchase:", error);
+      res.status(500).json({ message: "Köpet misslyckades" });
+    }
+  });
+
+  app.get("/api/students/:studentId/purchases", requireStudentAuth, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      // Ensure student can only access their own purchases
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const purchases = await db
+        .select()
+        .from(schema.studentPurchases)
+        .innerJoin(schema.shopItems, eq(schema.studentPurchases.itemId, schema.shopItems.id))
+        .where(eq(schema.studentPurchases.studentId, studentId))
+        .orderBy(schema.studentPurchases.purchasedAt);
+
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching student purchases:", error);
+      res.status(500).json({ message: "Failed to fetch purchases" });
+    }
+  });
+
+  // STUDENT AVATARS
+  app.get("/api/students/:studentId/avatar", requireStudentAuth, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      let [avatar] = await db
+        .select()
+        .from(schema.studentAvatars)
+        .where(eq(schema.studentAvatars.studentId, studentId));
+
+      // Initialize avatar if doesn't exist
+      if (!avatar) {
+        [avatar] = await db
+          .insert(schema.studentAvatars)
+          .values({ 
+            studentId, 
+            avatarData: {
+              hair: { style: 'default', color: 'brown' },
+              face: { eyes: 'normal', expression: 'happy' },
+              clothing: { top: 'tshirt', bottom: 'jeans', shoes: 'sneakers', accessories: [] },
+              colors: { skinTone: 'medium', hairColor: 'brown', eyeColor: 'brown' }
+            }
+          })
+          .returning();
+      }
+
+      res.json(avatar);
+    } catch (error) {
+      console.error("Error fetching student avatar:", error);
+      res.status(500).json({ message: "Failed to fetch avatar" });
+    }
+  });
+
+  app.put("/api/students/:studentId/avatar", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { avatarData } = req.body;
+      
+      const [updated] = await db
+        .update(schema.studentAvatars)
+        .set({ 
+          avatarData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.studentAvatars.studentId, studentId))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating student avatar:", error);
+      res.status(500).json({ message: "Failed to update avatar" });
+    }
+  });
+
+  // STUDENT ROOMS  
+  app.get("/api/students/:studentId/room", requireStudentAuth, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      let [room] = await db
+        .select()
+        .from(schema.studentRooms)
+        .where(eq(schema.studentRooms.studentId, studentId));
+
+      // Initialize room if doesn't exist
+      if (!room) {
+        [room] = await db
+          .insert(schema.studentRooms)
+          .values({ 
+            studentId,
+            roomData: {
+              furniture: [],
+              decorations: [],
+              lighting: [],
+              background: {
+                wallColor: '#f0f8ff',
+                floorColor: '#d2b48c'
+              }
+            }
+          })
+          .returning();
+      }
+
+      res.json(room);
+    } catch (error) {
+      console.error("Error fetching student room:", error);
+      res.status(500).json({ message: "Failed to fetch room" });
+    }
+  });
+
+  app.put("/api/students/:studentId/room", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { roomData } = req.body;
+      
+      const [updated] = await db
+        .update(schema.studentRooms)
+        .set({ 
+          roomData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.studentRooms.studentId, studentId))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating student room:", error);
+      res.status(500).json({ message: "Failed to update room" });
+    }
+  });
+
+  // HAND RAISING SYSTEM
+  app.post("/api/classes/:classId/raise-hand", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const { classId } = req.params;
+      const studentId = req.student!.id;
+      const { question, priority = 'normal' } = req.body;
+
+      // Verify student belongs to this class
+      const student = await db
+        .select()
+        .from(schema.studentAccounts)
+        .where(and(
+          eq(schema.studentAccounts.id, studentId),
+          eq(schema.studentAccounts.classId, classId)
+        ));
+
+      if (!student.length) {
+        return res.status(403).json({ message: "Du tillhör inte denna klass" });
+      }
+
+      // Check if student already has an active hand raising
+      const existing = await db
+        .select()
+        .from(schema.handRaisings)
+        .where(and(
+          eq(schema.handRaisings.studentId, studentId),
+          eq(schema.handRaisings.classId, classId),
+          eq(schema.handRaisings.status, 'raised')
+        ));
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: "Du har redan räckt upp handen" });
+      }
+
+      const [handRaising] = await db
+        .insert(schema.handRaisings)
+        .values({
+          studentId,
+          classId,
+          question,
+          priority,
+          status: 'raised'
+        })
+        .returning();
+
+      res.status(201).json(handRaising);
+    } catch (error) {
+      console.error("Error raising hand:", error);
+      res.status(500).json({ message: "Kunde inte räcka upp hand" });
+    }
+  });
+
+  app.get("/api/teacher/classes/:classId/raised-hands", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const { classId } = req.params;
+      const teacherId = req.user!.id;
+
+      // Verify teacher owns this class
+      const teacherClass = await db
+        .select()
+        .from(schema.teacherClasses)
+        .where(and(
+          eq(schema.teacherClasses.id, classId),
+          eq(schema.teacherClasses.teacherId, teacherId)
+        ));
+
+      if (!teacherClass.length) {
+        return res.status(403).json({ message: "Du äger inte denna klass" });
+      }
+
+      const raisedHands = await db
+        .select()
+        .from(schema.handRaisings)
+        .innerJoin(schema.studentAccounts, eq(schema.handRaisings.studentId, schema.studentAccounts.id))
+        .where(and(
+          eq(schema.handRaisings.classId, classId),
+          eq(schema.handRaisings.status, 'raised')
+        ))
+        .orderBy(schema.handRaisings.priority, schema.handRaisings.raisedAt);
+
+      res.json(raisedHands);
+    } catch (error) {
+      console.error("Error fetching raised hands:", error);
+      res.status(500).json({ message: "Failed to fetch raised hands" });
+    }
+  });
+
+  app.put("/api/teacher/hand-raisings/:id/acknowledge", requireAuth, requireRole('LARARE'), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const teacherId = req.user!.id;
+
+      const [updated] = await db
+        .update(schema.handRaisings)
+        .set({
+          status: 'acknowledged',
+          acknowledgedBy: teacherId,
+          acknowledgedAt: new Date()
+        })
+        .where(eq(schema.handRaisings.id, id))
+        .returning();
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error acknowledging hand raising:", error);
+      res.status(500).json({ message: "Failed to acknowledge hand raising" });
+    }
+  });
+
+  // CURRENCY TRANSACTIONS
+  app.get("/api/students/:studentId/transactions", requireStudentAuth, async (req, res) => {
+    try {
+      const studentId = req.params.studentId;
+      
+      if (req.student?.id !== studentId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const transactions = await db
+        .select()
+        .from(schema.currencyTransactions)
+        .where(eq(schema.currencyTransactions.studentId, studentId))
+        .orderBy(schema.currencyTransactions.createdAt);
+
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching currency transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
 
