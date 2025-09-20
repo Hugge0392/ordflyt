@@ -30,6 +30,7 @@ import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ClassroomWebSocket } from "./classroom-websocket";
 import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
+import { pdfExportService } from "./pdfExportService";
 
 // Analytics validation schemas
 const analyticsExportSchema = z.object({
@@ -69,6 +70,60 @@ const vocabularyStatsQuerySchema = z.object({
     if (!str) return [];
     return str.split(',').filter(Boolean);
   })
+});
+
+// Vocabulary PDF export validation schemas
+const vocabularyPDFExportSchema = z.object({
+  exportType: z.enum(['teacher', 'student', 'answer_key', 'complete']).default('teacher'),
+  format: z.enum(['A4', 'Letter']).default('A4'),
+  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
+  colorScheme: z.enum(['default', 'professional', 'colorful', 'monochrome']).default('professional'),
+  language: z.enum(['sv', 'en']).default('sv'),
+  includeExercises: z.boolean().default(true),
+  includeImages: z.boolean().default(true),
+  includePhonetics: z.boolean().default(true),
+  includeSynonymsAntonyms: z.boolean().default(true),
+  exerciseTypes: z.array(z.string()).optional(),
+  customHeader: z.object({
+    schoolName: z.string().optional(),
+    className: z.string().optional(),
+    teacherName: z.string().optional(),
+    date: z.string().optional()
+  }).optional()
+});
+
+const batchVocabularyPDFExportSchema = z.object({
+  setIds: z.array(z.string()).min(1, "At least one vocabulary set ID is required"),
+  exportType: z.enum(['teacher', 'student', 'answer_key', 'complete']).default('teacher'),
+  format: z.enum(['A4', 'Letter']).default('A4'),
+  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
+  colorScheme: z.enum(['default', 'professional', 'colorful', 'monochrome']).default('professional'),
+  language: z.enum(['sv', 'en']).default('sv'),
+  includeExercises: z.boolean().default(true),
+  includeImages: z.boolean().default(true),
+  includePhonetics: z.boolean().default(true),
+  includeSynonymsAntonyms: z.boolean().default(true),
+  customHeader: z.object({
+    schoolName: z.string().optional(),
+    className: z.string().optional(),
+    teacherName: z.string().optional(),
+    date: z.string().optional()
+  }).optional()
+});
+
+const exerciseWorksheetPDFExportSchema = z.object({
+  exerciseId: z.string(),
+  exportType: z.enum(['teacher', 'student', 'answer_key']).default('student'),
+  format: z.enum(['A4', 'Letter']).default('A4'),
+  orientation: z.enum(['portrait', 'landscape']).default('portrait'),
+  colorScheme: z.enum(['default', 'professional', 'colorful', 'monochrome']).default('professional'),
+  language: z.enum(['sv', 'en']).default('sv'),
+  customHeader: z.object({
+    schoolName: z.string().optional(),
+    className: z.string().optional(),
+    teacherName: z.string().optional(),
+    date: z.string().optional()
+  }).optional()
 });
 
 // CSV conversion helper functions
@@ -4104,6 +4159,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error updating vocabulary attempt:", error);
       res.status(500).json({ error: "Failed to update vocabulary attempt" });
+    }
+  });
+
+  // ============================================================================
+  // VOCABULARY PDF EXPORT ENDPOINTS
+  // ============================================================================
+
+  // POST /api/vocabulary/sets/:id/export/pdf - Export vocabulary set as PDF
+  app.post("/api/vocabulary/sets/:id/export/pdf", requireAuth, requireRole("LARARE"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = vocabularyPDFExportSchema.parse(req.body);
+      const teacherId = req.user!.id;
+      
+      // Fetch vocabulary set and related data
+      const [vocabularySet, words, exercises] = await Promise.all([
+        storage.getVocabularySet(id),
+        storage.getVocabularyWordsForSet(id),
+        storage.getVocabularyExercisesForSet(id)
+      ]);
+
+      if (!vocabularySet) {
+        return res.status(404).json({ error: "Vocabulary set not found" });
+      }
+
+      // Security check: Ensure teacher has access to this vocabulary set
+      if (vocabularySet.teacherId !== teacherId) {
+        return res.status(403).json({ error: "Access denied: You do not have permission to export this vocabulary set" });
+      }
+
+      // Filter exercises by type if specified
+      let filteredExercises = exercises;
+      if (validatedData.exerciseTypes && validatedData.exerciseTypes.length > 0) {
+        filteredExercises = exercises.filter(ex => validatedData.exerciseTypes!.includes(ex.type));
+      }
+
+      // Generate PDF
+      const pdfBuffer = await pdfExportService.generateVocabularySetPDF(
+        vocabularySet,
+        words,
+        filteredExercises,
+        validatedData
+      );
+
+      // Set response headers for PDF download
+      const filename = `${vocabularySet.title.replace(/[^a-zA-Z0-9-_]/g, '_')}_${validatedData.exportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid export parameters", details: error.errors });
+      }
+      console.error("Error generating vocabulary set PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF export" });
+    }
+  });
+
+  // POST /api/vocabulary/exercises/:id/export/pdf - Export exercise worksheet as PDF
+  app.post("/api/vocabulary/exercises/:id/export/pdf", requireAuth, requireRole("LARARE"), requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = exerciseWorksheetPDFExportSchema.parse(req.body);
+      const teacherId = req.user!.id;
+      
+      // Fetch exercise and related data
+      const exercise = await storage.getVocabularyExercise(id);
+      if (!exercise) {
+        return res.status(404).json({ error: "Exercise not found" });
+      }
+
+      const [vocabularySet, words] = await Promise.all([
+        storage.getVocabularySet(exercise.setId),
+        storage.getVocabularyWordsForSet(exercise.setId)
+      ]);
+
+      if (!vocabularySet) {
+        return res.status(404).json({ error: "Vocabulary set not found" });
+      }
+
+      // Security check: Ensure teacher has access to this exercise's vocabulary set
+      if (vocabularySet.teacherId !== teacherId) {
+        return res.status(403).json({ error: "Access denied: You do not have permission to export this exercise" });
+      }
+
+      // Generate PDF
+      const pdfBuffer = await pdfExportService.generateExerciseWorksheetPDF(
+        vocabularySet,
+        words,
+        exercise,
+        validatedData
+      );
+
+      // Set response headers for PDF download
+      const filename = `${exercise.title.replace(/[^a-zA-Z0-9-_]/g, '_')}_${validatedData.exportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid export parameters", details: error.errors });
+      }
+      console.error("Error generating exercise worksheet PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF export" });
+    }
+  });
+
+  // POST /api/vocabulary/export/batch/pdf - Export multiple vocabulary sets as PDF
+  app.post("/api/vocabulary/export/batch/pdf", requireAuth, requireRole("LARARE"), requireCsrf, async (req, res) => {
+    try {
+      const validatedData = batchVocabularyPDFExportSchema.parse(req.body);
+      const teacherId = req.user!.id;
+      
+      // Fetch all requested vocabulary sets and their data
+      const vocabularyData = await Promise.all(
+        validatedData.setIds.map(async (setId) => {
+          try {
+            const [set, words, exercises] = await Promise.all([
+              storage.getVocabularySet(setId),
+              storage.getVocabularyWordsForSet(setId),
+              storage.getVocabularyExercisesForSet(setId)
+            ]);
+            
+            if (!set) {
+              console.warn(`Vocabulary set ${setId} not found, skipping`);
+              return null;
+            }
+
+            // Security check: Ensure teacher has access to this vocabulary set
+            if (set.teacherId !== teacherId) {
+              console.warn(`Teacher ${teacherId} does not have access to vocabulary set ${setId}, skipping`);
+              return null;
+            }
+            
+            return { set, words, exercises };
+          } catch (error) {
+            console.error(`Error fetching vocabulary set ${setId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out failed fetches
+      const validVocabularyData = vocabularyData.filter(Boolean) as Array<{
+        set: schema.VocabularySet;
+        words: schema.VocabularyWord[];
+        exercises: schema.VocabularyExercise[];
+      }>;
+
+      if (validVocabularyData.length === 0) {
+        return res.status(404).json({ error: "No valid vocabulary sets found" });
+      }
+
+      // Generate PDF
+      const pdfBuffer = await pdfExportService.generateBatchVocabularyPDF(
+        validVocabularyData,
+        validatedData
+      );
+
+      // Set response headers for PDF download
+      const filename = `vocabulary_collection_${validatedData.exportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid export parameters", details: error.errors });
+      }
+      console.error("Error generating batch vocabulary PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF export" });
     }
   });
   

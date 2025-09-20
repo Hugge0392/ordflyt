@@ -8,7 +8,10 @@ import type {
   ClassDataBackup, 
   ExportJob,
   StudentAnalytics,
-  ClassAnalytics 
+  ClassAnalytics,
+  VocabularySet,
+  VocabularyWord,
+  VocabularyExercise 
 } from '@shared/schema';
 
 export interface PDFExportOptions {
@@ -23,6 +26,21 @@ export interface PDFExportOptions {
   includeCharts?: boolean;
   colorScheme?: 'default' | 'professional' | 'colorful' | 'monochrome';
   language?: 'sv' | 'en';
+}
+
+export interface VocabularyPDFOptions extends PDFExportOptions {
+  exportType: 'teacher' | 'student' | 'answer_key' | 'complete';
+  includeExercises?: boolean;
+  includeImages?: boolean;
+  includePhonetics?: boolean;
+  includeSynonymsAntonyms?: boolean;
+  exerciseTypes?: string[]; // Filter specific exercise types
+  customHeader?: {
+    schoolName?: string;
+    className?: string;
+    teacherName?: string;
+    date?: string;
+  };
 }
 
 export interface ChartConfig {
@@ -775,6 +793,1659 @@ export class PDFExportService {
           -webkit-print-color-adjust: exact;
         }
       }
+    `;
+  }
+
+  /**
+   * Generate vocabulary set PDF export
+   */
+  async generateVocabularySetPDF(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercises: VocabularyExercise[] = [],
+    options: VocabularyPDFOptions
+  ): Promise<Buffer> {
+    const defaults: VocabularyPDFOptions = {
+      format: 'A4',
+      orientation: 'portrait',
+      margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+      includeCharts: false,
+      colorScheme: 'professional',
+      language: 'sv',
+      exportType: 'teacher',
+      includeExercises: true,
+      includeImages: true,
+      includePhonetics: true,
+      includeSynonymsAntonyms: true
+    };
+
+    const config = { ...defaults, ...options };
+    
+    // Sort words by order index
+    const sortedWords = [...words].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+    
+    // Sort exercises by order index
+    const sortedExercises = [...exercises].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    // Generate HTML content based on export type
+    let htmlContent: string;
+    
+    switch (config.exportType) {
+      case 'student':
+        htmlContent = this.generateStudentVocabularyHTML(vocabularySet, sortedWords, sortedExercises, config);
+        break;
+      case 'teacher':
+        htmlContent = this.generateTeacherVocabularyHTML(vocabularySet, sortedWords, sortedExercises, config);
+        break;
+      case 'answer_key':
+        htmlContent = this.generateAnswerKeyHTML(vocabularySet, sortedWords, sortedExercises, config);
+        break;
+      case 'complete':
+        htmlContent = this.generateCompleteVocabularyHTML(vocabularySet, sortedWords, sortedExercises, config);
+        break;
+      default:
+        htmlContent = this.generateTeacherVocabularyHTML(vocabularySet, sortedWords, sortedExercises, config);
+    }
+    
+    // Convert to PDF
+    return await this.htmlToPDF(htmlContent, config);
+  }
+
+  /**
+   * Generate exercise worksheet PDF
+   */
+  async generateExerciseWorksheetPDF(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercise: VocabularyExercise,
+    options: VocabularyPDFOptions
+  ): Promise<Buffer> {
+    const defaults: VocabularyPDFOptions = {
+      format: 'A4',
+      orientation: 'portrait',
+      margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+      includeCharts: false,
+      colorScheme: 'professional',
+      language: 'sv',
+      exportType: 'student',
+      includeImages: false,
+      includePhonetics: false,
+      includeSynonymsAntonyms: false
+    };
+
+    const config = { ...defaults, ...options };
+    
+    // Sort words by order index
+    const sortedWords = [...words].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+    // Generate worksheet HTML based on exercise type
+    const htmlContent = this.generateExerciseWorksheetHTML(vocabularySet, sortedWords, exercise, config);
+    
+    return await this.htmlToPDF(htmlContent, config);
+  }
+
+  /**
+   * Generate batch export for multiple vocabulary sets
+   */
+  async generateBatchVocabularyPDF(
+    vocabularySets: Array<{
+      set: VocabularySet;
+      words: VocabularyWord[];
+      exercises: VocabularyExercise[];
+    }>,
+    options: VocabularyPDFOptions
+  ): Promise<Buffer> {
+    const defaults: VocabularyPDFOptions = {
+      format: 'A4',
+      orientation: 'portrait',
+      margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
+      includeCharts: false,
+      colorScheme: 'professional',
+      language: 'sv',
+      exportType: 'teacher',
+      includeExercises: true,
+      includeImages: true,
+      includePhonetics: true,
+      includeSynonymsAntonyms: true
+    };
+
+    const config = { ...defaults, ...options };
+    
+    // Generate combined HTML for all sets
+    const htmlContent = this.generateBatchVocabularyHTML(vocabularySets, config);
+    
+    return await this.htmlToPDF(htmlContent, config);
+  }
+
+  /**
+   * Generate student-friendly vocabulary HTML
+   */
+  private generateStudentVocabularyHTML(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercises: VocabularyExercise[],
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+    const setThemeColor = vocabularySet.themeColor || colorScheme.primary;
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${vocabularySet.title} - ${isSwedish ? 'Elevmaterial' : 'Student Material'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(setThemeColor, colorScheme)}
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${vocabularySet.title}</h1>
+        <p class="subtitle">${isSwedish ? 'Ordförråd för Elever' : 'Student Vocabulary'}</p>
+        ${vocabularySet.description ? `<p class="description">${vocabularySet.description}</p>` : ''}
+        ${options.customHeader?.date ? `<p class="date">${isSwedish ? 'Datum' : 'Date'}: ${options.customHeader.date}</p>` : ''}
+    </div>
+
+    <div class="vocabulary-section">
+        <h2>${isSwedish ? 'Ordlista' : 'Word List'}</h2>
+        <div class="word-grid">
+            ${words.map((word, index) => `
+                <div class="word-card student-card">
+                    <div class="word-number">${index + 1}</div>
+                    <div class="word-content">
+                        <div class="word-term">${word.term}</div>
+                        ${options.includePhonetics && word.phonetic ? `<div class="word-phonetic">[${word.phonetic}]</div>` : ''}
+                        <div class="word-definition">${word.definition}</div>
+                        ${word.example ? `<div class="word-example"><em>${word.example}</em></div>` : ''}
+                        ${options.includeSynonymsAntonyms && (word.synonym || word.antonym) ? `
+                            <div class="word-relations">
+                                ${word.synonym ? `<span class="synonym">${isSwedish ? 'Synonym' : 'Synonym'}: ${word.synonym}</span>` : ''}
+                                ${word.antonym ? `<span class="antonym">${isSwedish ? 'Antonym' : 'Antonym'}: ${word.antonym}</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+
+    ${options.includeExercises && exercises.length > 0 ? `
+    <div class="page-break"></div>
+    <div class="exercises-section">
+        <h2>${isSwedish ? 'Övningar' : 'Exercises'}</h2>
+        ${exercises.map((exercise, index) => this.generateStudentExerciseHTML(exercise, words, index + 1, isSwedish)).join('')}
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        <p>${isSwedish ? 'Använd detta material för att öva på ditt ordförråd.' : 'Use this material to practice your vocabulary.'}</p>
+        <p>${isSwedish ? 'Fråga din lärare om hjälp när det behövs.' : 'Ask your teacher for help when needed.'}</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate teacher vocabulary HTML with full details
+   */
+  private generateTeacherVocabularyHTML(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercises: VocabularyExercise[],
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+    const setThemeColor = vocabularySet.themeColor || colorScheme.primary;
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${vocabularySet.title} - ${isSwedish ? 'Lärarmaterial' : 'Teacher Material'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(setThemeColor, colorScheme)}
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${vocabularySet.title}</h1>
+        <p class="subtitle">${isSwedish ? 'Lärarmaterial och Handleding' : 'Teacher Material and Guide'}</p>
+        ${vocabularySet.description ? `<p class="description">${vocabularySet.description}</p>` : ''}
+    </div>
+
+    <div class="overview-section">
+        <h2>${isSwedish ? 'Översikt' : 'Overview'}</h2>
+        <div class="overview-grid">
+            <div class="overview-card">
+                <div class="overview-number">${words.length}</div>
+                <div class="overview-label">${isSwedish ? 'Ord Totalt' : 'Total Words'}</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-number">${exercises.length}</div>
+                <div class="overview-label">${isSwedish ? 'Övningar' : 'Exercises'}</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-number">${words.filter(w => w.imageUrl).length}</div>
+                <div class="overview-label">${isSwedish ? 'Med Bilder' : 'With Images'}</div>
+            </div>
+            <div class="overview-card">
+                <div class="overview-number">${words.filter(w => w.pronunciationUrl || w.phonetic).length}</div>
+                <div class="overview-label">${isSwedish ? 'Med Uttal' : 'With Pronunciation'}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vocabulary-section">
+        <h2>${isSwedish ? 'Komplett Ordlista' : 'Complete Word List'}</h2>
+        <div class="word-list-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>${isSwedish ? 'Ord' : 'Word'}</th>
+                        <th>${isSwedish ? 'Definition' : 'Definition'}</th>
+                        ${options.includePhonetics ? `<th>${isSwedish ? 'Uttal' : 'Pronunciation'}</th>` : ''}
+                        ${options.includeSynonymsAntonyms ? `<th>${isSwedish ? 'Synonym' : 'Synonym'}</th>` : ''}
+                        ${options.includeSynonymsAntonyms ? `<th>${isSwedish ? 'Antonym' : 'Antonym'}</th>` : ''}
+                        <th>${isSwedish ? 'Exempel' : 'Example'}</th>
+                        ${options.includeImages ? `<th>${isSwedish ? 'Bild' : 'Image'}</th>` : ''}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${words.map((word, index) => `
+                        <tr>
+                            <td class="number-cell">${index + 1}</td>
+                            <td class="word-cell"><strong>${word.term}</strong></td>
+                            <td class="definition-cell">${word.definition}</td>
+                            ${options.includePhonetics ? `<td class="phonetic-cell">${word.phonetic || '-'}</td>` : ''}
+                            ${options.includeSynonymsAntonyms ? `<td class="relation-cell">${word.synonym || '-'}</td>` : ''}
+                            ${options.includeSynonymsAntonyms ? `<td class="relation-cell">${word.antonym || '-'}</td>` : ''}
+                            <td class="example-cell">${word.example || '-'}</td>
+                            ${options.includeImages ? `<td class="image-cell">${word.imageUrl ? '✓' : '-'}</td>` : ''}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    ${options.includeExercises && exercises.length > 0 ? `
+    <div class="page-break"></div>
+    <div class="exercises-section">
+        <h2>${isSwedish ? 'Övningar med Facit' : 'Exercises with Answer Keys'}</h2>
+        ${exercises.map((exercise, index) => this.generateTeacherExerciseHTML(exercise, words, index + 1, isSwedish)).join('')}
+    </div>
+    ` : ''}
+
+    <div class="teaching-notes">
+        <h2>${isSwedish ? 'Undervisningsförslag' : 'Teaching Suggestions'}</h2>
+        <div class="suggestions-grid">
+            <div class="suggestion-card">
+                <h4>${isSwedish ? 'Introduktion' : 'Introduction'}</h4>
+                <ul>
+                    <li>${isSwedish ? 'Gå igenom orden tillsammans med klassen' : 'Review words together with the class'}</li>
+                    <li>${isSwedish ? 'Låt eleverna uttala orden högt' : 'Have students pronounce words aloud'}</li>
+                    <li>${isSwedish ? 'Diskutera betydelser och användning' : 'Discuss meanings and usage'}</li>
+                </ul>
+            </div>
+            <div class="suggestion-card">
+                <h4>${isSwedish ? 'Aktiviteter' : 'Activities'}</h4>
+                <ul>
+                    <li>${isSwedish ? 'Använd orden i egna meningar' : 'Use words in own sentences'}</li>
+                    <li>${isSwedish ? 'Skapa ordassociationer' : 'Create word associations'}</li>
+                    <li>${isSwedish ? 'Grupparbete med synonymer och antonymer' : 'Group work with synonyms and antonyms'}</li>
+                </ul>
+            </div>
+            <div class="suggestion-card">
+                <h4>${isSwedish ? 'Bedömning' : 'Assessment'}</h4>
+                <ul>
+                    <li>${isSwedish ? 'Muntliga prov av uttal' : 'Oral pronunciation tests'}</li>
+                    <li>${isSwedish ? 'Skriftliga övningar' : 'Written exercises'}</li>
+                    <li>${isSwedish ? 'Användning i sammanhang' : 'Usage in context'}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>${isSwedish ? 'Detta material är avsett för lärare att använda tillsammans med elevmaterialet.' : 'This material is intended for teachers to use alongside student materials.'}</p>
+        <p>${isSwedish ? 'Anpassa övningarna efter elevernas nivå och behov.' : 'Adapt exercises according to students\' level and needs.'}</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate answer key HTML
+   */
+  private generateAnswerKeyHTML(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercises: VocabularyExercise[],
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+    const setThemeColor = vocabularySet.themeColor || colorScheme.primary;
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${vocabularySet.title} - ${isSwedish ? 'Facit' : 'Answer Key'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(setThemeColor, colorScheme)}
+        .answer-key-note {
+            background: ${colorScheme.warning}20;
+            border: 2px solid ${colorScheme.warning};
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${vocabularySet.title}</h1>
+        <p class="subtitle">${isSwedish ? 'Facit och Svar' : 'Answer Key'}</p>
+        <div class="answer-key-note">
+            ${isSwedish ? '⚠️ ENDAST FÖR LÄRARE - Innehåller alla svar' : '⚠️ TEACHER ONLY - Contains all answers'}
+        </div>
+    </div>
+
+    <div class="vocabulary-section">
+        <h2>${isSwedish ? 'Ordlista med Svar' : 'Word List with Answers'}</h2>
+        <div class="answer-list">
+            ${words.map((word, index) => `
+                <div class="answer-item">
+                    <div class="answer-number">${index + 1}.</div>
+                    <div class="answer-content">
+                        <strong>${word.term}</strong> - ${word.definition}
+                        ${word.example ? `<br><em>${isSwedish ? 'Exempel' : 'Example'}: ${word.example}</em>` : ''}
+                        ${word.synonym ? `<br><span class="synonym">${isSwedish ? 'Synonym' : 'Synonym'}: ${word.synonym}</span>` : ''}
+                        ${word.antonym ? `<br><span class="antonym">${isSwedish ? 'Antonym' : 'Antonym'}: ${word.antonym}</span>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+
+    ${exercises.length > 0 ? `
+    <div class="exercises-section">
+        <h2>${isSwedish ? 'Övningar med Facit' : 'Exercise Answer Keys'}</h2>
+        ${exercises.map((exercise, index) => this.generateExerciseAnswerKeyHTML(exercise, words, index + 1, isSwedish)).join('')}
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        <p>${isSwedish ? 'Detta facit är endast avsett för lärare.' : 'This answer key is intended for teachers only.'}</p>
+        <p>${isSwedish ? 'Använd för att kontrollera elevernas svar och ge feedback.' : 'Use to check student answers and provide feedback.'}</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate complete vocabulary HTML (all materials combined)
+   */
+  private generateCompleteVocabularyHTML(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercises: VocabularyExercise[],
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+    const setThemeColor = vocabularySet.themeColor || colorScheme.primary;
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${vocabularySet.title} - ${isSwedish ? 'Komplett Paket' : 'Complete Package'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(setThemeColor, colorScheme)}
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${vocabularySet.title}</h1>
+        <p class="subtitle">${isSwedish ? 'Komplett Undervisningsmaterial' : 'Complete Teaching Material'}</p>
+        ${vocabularySet.description ? `<p class="description">${vocabularySet.description}</p>` : ''}
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc-section">
+        <h2>${isSwedish ? 'Innehållsförteckning' : 'Table of Contents'}</h2>
+        <ol class="toc-list">
+            <li>${isSwedish ? 'Lärarguide och Översikt' : 'Teacher Guide and Overview'}</li>
+            <li>${isSwedish ? 'Komplett Ordlista' : 'Complete Word List'}</li>
+            <li>${isSwedish ? 'Elevmaterial' : 'Student Materials'}</li>
+            ${exercises.length > 0 ? `<li>${isSwedish ? 'Övningar' : 'Exercises'}</li>` : ''}
+            <li>${isSwedish ? 'Facit och Svar' : 'Answer Keys'}</li>
+        </ol>
+    </div>
+
+    <!-- Teacher Guide Section -->
+    <div class="page-break"></div>
+    ${this.generateTeacherVocabularyHTML(vocabularySet, words, exercises, { ...options, includeExercises: false }).replace(/^.*<body[^>]*>|<\/body>.*$/gs, '').replace(/^.*<div class="header">.*?<\/div>/s, '')}
+
+    <!-- Student Materials Section -->
+    <div class="page-break"></div>
+    <div class="section-header">
+        <h1>${isSwedish ? 'Elevmaterial' : 'Student Materials'}</h1>
+        <p>${isSwedish ? 'Material för utdelning till elever' : 'Materials for distribution to students'}</p>
+    </div>
+    ${this.generateStudentVocabularyHTML(vocabularySet, words, exercises, { ...options, includeExercises: false }).replace(/^.*<body[^>]*>|<\/body>.*$/gs, '').replace(/^.*<div class="header">.*?<\/div>/s, '')}
+
+    <!-- Answer Keys Section -->
+    ${exercises.length > 0 ? `
+    <div class="page-break"></div>
+    <div class="section-header">
+        <h1>${isSwedish ? 'Facit och Svar' : 'Answer Keys'}</h1>
+        <p>${isSwedish ? 'Endast för lärare' : 'Teacher only'}</p>
+    </div>
+    ${this.generateAnswerKeyHTML(vocabularySet, words, exercises, options).replace(/^.*<body[^>]*>|<\/body>.*$/gs, '').replace(/^.*<div class="header">.*?<\/div>/s, '')}
+    ` : ''}
+
+    <div class="footer">
+        <p>${isSwedish ? 'Detta är ett komplett undervisningspaket för ordförrådsundervisning.' : 'This is a complete teaching package for vocabulary instruction.'}</p>
+        <p>${isSwedish ? 'Anpassa materialet efter elevernas behov och nivå.' : 'Adapt materials according to students\' needs and level.'}</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate exercise worksheet HTML
+   */
+  private generateExerciseWorksheetHTML(
+    vocabularySet: VocabularySet,
+    words: VocabularyWord[],
+    exercise: VocabularyExercise,
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+    const setThemeColor = vocabularySet.themeColor || colorScheme.primary;
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${exercise.title} - ${isSwedish ? 'Övningsblad' : 'Worksheet'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(setThemeColor, colorScheme)}
+        ${this.getExerciseWorksheetStyles(colorScheme)}
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${exercise.title}</h1>
+        <p class="subtitle">${vocabularySet.title}</p>
+        ${exercise.description ? `<p class="description">${exercise.description}</p>` : ''}
+        ${exercise.instructions ? `
+        <div class="instructions">
+            <strong>${isSwedish ? 'Instruktioner' : 'Instructions'}:</strong> ${exercise.instructions}
+        </div>
+        ` : ''}
+    </div>
+
+    <div class="worksheet-content">
+        ${this.generateExerciseWorksheetContent(exercise, words, isSwedish)}
+    </div>
+
+    ${options.exportType === 'teacher' || options.exportType === 'answer_key' ? `
+    <div class="page-break"></div>
+    <div class="answer-section">
+        <h2>${isSwedish ? 'Facit' : 'Answer Key'}</h2>
+        ${this.generateExerciseAnswerKeyHTML(exercise, words, 1, isSwedish)}
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        <p>${isSwedish ? 'Använd ordlistan ovan för att hjälpa dig.' : 'Use the word list above to help you.'}</p>
+        ${exercise.timeLimit ? `<p>${isSwedish ? 'Tid' : 'Time'}: ${Math.floor(exercise.timeLimit / 60)} ${isSwedish ? 'minuter' : 'minutes'}</p>` : ''}
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate batch vocabulary HTML
+   */
+  private generateBatchVocabularyHTML(
+    vocabularySets: Array<{
+      set: VocabularySet;
+      words: VocabularyWord[];
+      exercises: VocabularyExercise[];
+    }>,
+    options: VocabularyPDFOptions
+  ): string {
+    const colorScheme = this.getColorScheme(options.colorScheme || 'professional');
+    const isSwedish = options.language === 'sv';
+
+    return `
+<!DOCTYPE html>
+<html lang="${options.language || 'sv'}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${isSwedish ? 'Ordförrådssamling' : 'Vocabulary Collection'}</title>
+    <style>
+        ${this.getCommonStyles(colorScheme)}
+        ${this.getVocabularyStyles(colorScheme.primary, colorScheme)}
+    </style>
+</head>
+<body>
+    ${this.generateCustomHeader(options.customHeader, isSwedish)}
+    
+    <div class="header">
+        <h1>${isSwedish ? 'Ordförrådssamling' : 'Vocabulary Collection'}</h1>
+        <p class="subtitle">${vocabularySets.length} ${isSwedish ? 'ordförrådsset' : 'vocabulary sets'}</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc-section">
+        <h2>${isSwedish ? 'Innehållsförteckning' : 'Table of Contents'}</h2>
+        <ol class="toc-list">
+            ${vocabularySets.map((item, index) => `
+                <li>${item.set.title} (${item.words.length} ${isSwedish ? 'ord' : 'words'})</li>
+            `).join('')}
+        </ol>
+    </div>
+
+    ${vocabularySets.map((item, index) => `
+        ${index > 0 ? '<div class="page-break"></div>' : ''}
+        <div class="set-section">
+            <div class="set-header">
+                <h2>${item.set.title}</h2>
+                ${item.set.description ? `<p class="set-description">${item.set.description}</p>` : ''}
+                <div class="set-stats">
+                    <span class="stat">${item.words.length} ${isSwedish ? 'ord' : 'words'}</span>
+                    ${item.exercises.length > 0 ? `<span class="stat">${item.exercises.length} ${isSwedish ? 'övningar' : 'exercises'}</span>` : ''}
+                </div>
+            </div>
+            
+            <div class="word-grid">
+                ${item.words.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)).map((word, wordIndex) => `
+                    <div class="word-card">
+                        <div class="word-number">${wordIndex + 1}</div>
+                        <div class="word-content">
+                            <div class="word-term">${word.term}</div>
+                            ${options.includePhonetics && word.phonetic ? `<div class="word-phonetic">[${word.phonetic}]</div>` : ''}
+                            <div class="word-definition">${word.definition}</div>
+                            ${word.example ? `<div class="word-example"><em>${word.example}</em></div>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('')}
+
+    <div class="footer">
+        <p>${isSwedish ? 'Denna samling innehåller ' : 'This collection contains '} ${vocabularySets.reduce((total, item) => total + item.words.length, 0)} ${isSwedish ? 'ord totalt.' : 'words in total.'}</p>
+        <p>${isSwedish ? 'Använd materialet för att bygga elevernas ordförråd systematiskt.' : 'Use the material to build students\' vocabulary systematically.'}</p>
+    </div>
+</body>
+</html>`;
+  }
+
+  /**
+   * Generate custom header HTML
+   */
+  private generateCustomHeader(customHeader: VocabularyPDFOptions['customHeader'], isSwedish: boolean): string {
+    if (!customHeader) return '';
+
+    return `
+    <div class="custom-header">
+        <div class="custom-header-content">
+            ${customHeader.schoolName ? `<div class="school-name">${customHeader.schoolName}</div>` : ''}
+            ${customHeader.className ? `<div class="class-name">${isSwedish ? 'Klass' : 'Class'}: ${customHeader.className}</div>` : ''}
+            ${customHeader.teacherName ? `<div class="teacher-name">${isSwedish ? 'Lärare' : 'Teacher'}: ${customHeader.teacherName}</div>` : ''}
+            ${customHeader.date ? `<div class="header-date">${isSwedish ? 'Datum' : 'Date'}: ${customHeader.date}</div>` : ''}
+        </div>
+    </div>`;
+  }
+
+  /**
+   * Generate student exercise HTML
+   */
+  private generateStudentExerciseHTML(exercise: VocabularyExercise, words: VocabularyWord[], exerciseNumber: number, isSwedish: boolean): string {
+    return `
+    <div class="exercise-container">
+        <div class="exercise-header">
+            <h3>${isSwedish ? 'Övning' : 'Exercise'} ${exerciseNumber}: ${exercise.title}</h3>
+            ${exercise.description ? `<p class="exercise-description">${exercise.description}</p>` : ''}
+            ${exercise.instructions ? `<p class="exercise-instructions"><strong>${isSwedish ? 'Instruktioner' : 'Instructions'}:</strong> ${exercise.instructions}</p>` : ''}
+        </div>
+        <div class="exercise-content">
+            ${this.generateExerciseWorksheetContent(exercise, words, isSwedish)}
+        </div>
+    </div>`;
+  }
+
+  /**
+   * Generate teacher exercise HTML with answers
+   */
+  private generateTeacherExerciseHTML(exercise: VocabularyExercise, words: VocabularyWord[], exerciseNumber: number, isSwedish: boolean): string {
+    return `
+    <div class="exercise-container teacher-exercise">
+        <div class="exercise-header">
+            <h3>${isSwedish ? 'Övning' : 'Exercise'} ${exerciseNumber}: ${exercise.title}</h3>
+            ${exercise.description ? `<p class="exercise-description">${exercise.description}</p>` : ''}
+            ${exercise.instructions ? `<p class="exercise-instructions"><strong>${isSwedish ? 'Instruktioner' : 'Instructions'}:</strong> ${exercise.instructions}</p>` : ''}
+            <div class="exercise-meta">
+                <span class="exercise-type">${isSwedish ? 'Typ' : 'Type'}: ${this.getExerciseTypeLabel(exercise.type, isSwedish)}</span>
+                ${exercise.timeLimit ? `<span class="exercise-time">${isSwedish ? 'Tid' : 'Time'}: ${Math.floor(exercise.timeLimit / 60)} min</span>` : ''}
+                <span class="exercise-points">${exercise.pointsPerCorrect} ${isSwedish ? 'poäng/rätt' : 'points/correct'}</span>
+            </div>
+        </div>
+        <div class="exercise-content">
+            ${this.generateExerciseWorksheetContent(exercise, words, isSwedish)}
+        </div>
+        <div class="teacher-answer-key">
+            <h4>${isSwedish ? 'Facit' : 'Answer Key'}:</h4>
+            ${this.generateExerciseAnswerKeyHTML(exercise, words, exerciseNumber, isSwedish)}
+        </div>
+    </div>`;
+  }
+
+  /**
+   * Generate exercise answer key HTML
+   */
+  private generateExerciseAnswerKeyHTML(exercise: VocabularyExercise, words: VocabularyWord[], exerciseNumber: number, isSwedish: boolean): string {
+    switch (exercise.type) {
+      case 'multiple_choice':
+        return this.generateMultipleChoiceAnswerKey(exercise, words, isSwedish);
+      case 'fill_in_blank':
+        return this.generateFillInBlankAnswerKey(exercise, words, isSwedish);
+      case 'matching':
+        return this.generateMatchingAnswerKey(exercise, words, isSwedish);
+      case 'flashcards':
+        return this.generateFlashcardsAnswerKey(exercise, words, isSwedish);
+      case 'word_association':
+        return this.generateWordAssociationAnswerKey(exercise, words, isSwedish);
+      case 'sentence_completion':
+        return this.generateSentenceCompletionAnswerKey(exercise, words, isSwedish);
+      case 'definition_matching':
+        return this.generateDefinitionMatchingAnswerKey(exercise, words, isSwedish);
+      case 'synonym_antonym':
+        return this.generateSynonymAntonymAnswerKey(exercise, words, isSwedish);
+      case 'image_matching':
+        return this.generateImageMatchingAnswerKey(exercise, words, isSwedish);
+      case 'spelling':
+        return this.generateSpellingAnswerKey(exercise, words, isSwedish);
+      default:
+        return `<p>${isSwedish ? 'Svar: Se ordlistan ovan' : 'Answers: See word list above'}</p>`;
+    }
+  }
+
+  /**
+   * Generate exercise worksheet content based on type
+   */
+  private generateExerciseWorksheetContent(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    switch (exercise.type) {
+      case 'multiple_choice':
+        return this.generateMultipleChoiceWorksheet(exercise, words, isSwedish);
+      case 'fill_in_blank':
+        return this.generateFillInBlankWorksheet(exercise, words, isSwedish);
+      case 'matching':
+        return this.generateMatchingWorksheet(exercise, words, isSwedish);
+      case 'flashcards':
+        return this.generateFlashcardsWorksheet(exercise, words, isSwedish);
+      case 'word_association':
+        return this.generateWordAssociationWorksheet(exercise, words, isSwedish);
+      case 'sentence_completion':
+        return this.generateSentenceCompletionWorksheet(exercise, words, isSwedish);
+      case 'definition_matching':
+        return this.generateDefinitionMatchingWorksheet(exercise, words, isSwedish);
+      case 'synonym_antonym':
+        return this.generateSynonymAntonymWorksheet(exercise, words, isSwedish);
+      case 'image_matching':
+        return this.generateImageMatchingWorksheet(exercise, words, isSwedish);
+      case 'spelling':
+        return this.generateSpellingWorksheet(exercise, words, isSwedish);
+      default:
+        return this.generateGenericWorksheet(exercise, words, isSwedish);
+    }
+  }
+
+  /**
+   * Generate multiple choice worksheet
+   */
+  private generateMultipleChoiceWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    const selectedWords = words.slice(0, 10); // Limit to 10 questions for printability
+    
+    return `
+    <div class="multiple-choice-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Välj rätt svar för varje fråga.' : 'Choose the correct answer for each question.'}</p>
+        ${selectedWords.map((word, index) => {
+          // Create wrong options by using other words' definitions
+          const wrongOptions = words.filter(w => w.id !== word.id).slice(0, 3).map(w => w.definition);
+          const allOptions = [word.definition, ...wrongOptions].sort(() => Math.random() - 0.5);
+          
+          return `
+          <div class="mc-question">
+              <div class="question-number">${index + 1}.</div>
+              <div class="question-content">
+                  <p class="question-text">${isSwedish ? 'Vad betyder' : 'What does'} "<strong>${word.term}</strong>" ${isSwedish ? 'betyder' : 'mean'}?</p>
+                  <div class="mc-options">
+                      ${allOptions.map((option, optIndex) => `
+                          <div class="mc-option">
+                              <span class="option-letter">${String.fromCharCode(65 + optIndex)})</span>
+                              <span class="option-text">${option}</span>
+                          </div>
+                      `).join('')}
+                  </div>
+              </div>
+          </div>`;
+        }).join('')}
+    </div>`;
+  }
+
+  /**
+   * Generate fill in the blank worksheet
+   */
+  private generateFillInBlankWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    const selectedWords = words.filter(w => w.example).slice(0, 10);
+    
+    return `
+    <div class="fill-blank-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Fyll i de tomma rutorna med rätt ord.' : 'Fill in the blanks with the correct words.'}</p>
+        <div class="word-bank">
+            <strong>${isSwedish ? 'Ordbank' : 'Word Bank'}:</strong>
+            ${selectedWords.map(word => `<span class="bank-word">${word.term}</span>`).join(', ')}
+        </div>
+        ${selectedWords.map((word, index) => {
+          const sentence = word.example?.replace(new RegExp(word.term, 'gi'), '_______') || `${isSwedish ? 'Skriv en mening med ordet' : 'Write a sentence with the word'} _______`;
+          
+          return `
+          <div class="fill-blank-question">
+              <div class="question-number">${index + 1}.</div>
+              <div class="sentence-with-blank">${sentence}</div>
+          </div>`;
+        }).join('')}
+    </div>`;
+  }
+
+  /**
+   * Generate matching worksheet
+   */
+  private generateMatchingWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    const selectedWords = words.slice(0, 8);
+    const shuffledDefinitions = [...selectedWords.map(w => w.definition)].sort(() => Math.random() - 0.5);
+    
+    return `
+    <div class="matching-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Matcha varje ord med dess definition genom att dra linjer.' : 'Match each word with its definition by drawing lines.'}</p>
+        <div class="matching-grid">
+            <div class="words-column">
+                <h4>${isSwedish ? 'Ord' : 'Words'}</h4>
+                ${selectedWords.map((word, index) => `
+                    <div class="match-item">
+                        <span class="match-number">${index + 1}.</span>
+                        <span class="match-word">${word.term}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="definitions-column">
+                <h4>${isSwedish ? 'Definitioner' : 'Definitions'}</h4>
+                ${shuffledDefinitions.map((definition, index) => `
+                    <div class="match-item">
+                        <span class="match-letter">${String.fromCharCode(65 + index)}.</span>
+                        <span class="match-definition">${definition}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    </div>`;
+  }
+
+  /**
+   * Generate generic exercise answer keys
+   */
+  private generateMultipleChoiceAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.slice(0, 10).map((word, index) => `${index + 1}. ${word.term} - ${word.definition}`).join('<br>')}</div>`;
+  }
+
+  private generateFillInBlankAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.filter(w => w.example).slice(0, 10).map((word, index) => `${index + 1}. ${word.term}`).join('<br>')}</div>`;
+  }
+
+  private generateMatchingAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.slice(0, 8).map((word, index) => `${index + 1}. ${word.term} - ${word.definition}`).join('<br>')}</div>`;
+  }
+
+  private generateFlashcardsAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${isSwedish ? 'Se ordlistan för alla svar' : 'See word list for all answers'}</div>`;
+  }
+
+  private generateWordAssociationAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.map((word, index) => `${word.term}: ${[word.synonym, word.antonym].filter(Boolean).join(', ') || isSwedish ? 'Olika svar möjliga' : 'Various answers possible'}`).join('<br>')}</div>`;
+  }
+
+  private generateSentenceCompletionAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${isSwedish ? 'Acceptera meningar som använder orden korrekt i sammanhang' : 'Accept sentences that use words correctly in context'}</div>`;
+  }
+
+  private generateDefinitionMatchingAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return this.generateMatchingAnswerKey(exercise, words, isSwedish);
+  }
+
+  private generateSynonymAntonymAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.filter(w => w.synonym || w.antonym).map((word, index) => `${word.term}: ${isSwedish ? 'Synonym' : 'Synonym'}: ${word.synonym || '-'}, ${isSwedish ? 'Antonym' : 'Antonym'}: ${word.antonym || '-'}`).join('<br>')}</div>`;
+  }
+
+  private generateImageMatchingAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.filter(w => w.imageUrl).map((word, index) => `${word.term} - ${isSwedish ? 'Se bild' : 'See image'}`).join('<br>')}</div>`;
+  }
+
+  private generateSpellingAnswerKey(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="answer-key-simple">${words.map((word, index) => `${index + 1}. ${word.term}`).join('<br>')}</div>`;
+  }
+
+  /**
+   * Generate generic worksheets for exercise types
+   */
+  private generateFlashcardsWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `<div class="flashcards-note"><p>${isSwedish ? 'Detta är en flashcard-övning som fungerar bäst digitalt. Se ordlistan för studier.' : 'This is a flashcard exercise that works best digitally. See word list for studying.'}</p></div>`;
+  }
+
+  private generateWordAssociationWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `
+    <div class="word-association-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Skriv ord som du associerar med varje ord nedan.' : 'Write words you associate with each word below.'}</p>
+        ${words.slice(0, 10).map((word, index) => `
+            <div class="association-item">
+                <div class="base-word">${index + 1}. <strong>${word.term}</strong></div>
+                <div class="association-lines">
+                    <div class="association-line">_________________________</div>
+                    <div class="association-line">_________________________</div>
+                    <div class="association-line">_________________________</div>
+                </div>
+            </div>
+        `).join('')}
+    </div>`;
+  }
+
+  private generateSentenceCompletionWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `
+    <div class="sentence-completion-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Skriv en komplett mening med varje ord.' : 'Write a complete sentence using each word.'}</p>
+        ${words.slice(0, 8).map((word, index) => `
+            <div class="sentence-item">
+                <div class="word-prompt">${index + 1}. <strong>${word.term}</strong></div>
+                <div class="sentence-lines">
+                    <div class="sentence-line">_________________________________________________</div>
+                    <div class="sentence-line">_________________________________________________</div>
+                </div>
+            </div>
+        `).join('')}
+    </div>`;
+  }
+
+  private generateDefinitionMatchingWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return this.generateMatchingWorksheet(exercise, words, isSwedish);
+  }
+
+  private generateSynonymAntonymWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    const wordsWithSynAnt = words.filter(w => w.synonym || w.antonym).slice(0, 10);
+    return `
+    <div class="synonym-antonym-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Skriv synonymer och antonymer för varje ord.' : 'Write synonyms and antonyms for each word.'}</p>
+        ${wordsWithSynAnt.map((word, index) => `
+            <div class="syn-ant-item">
+                <div class="word-center"><strong>${word.term}</strong></div>
+                <div class="syn-ant-grid">
+                    <div class="synonym-section">
+                        <label>${isSwedish ? 'Synonym' : 'Synonym'}:</label>
+                        <div class="answer-line">_________________________</div>
+                    </div>
+                    <div class="antonym-section">
+                        <label>${isSwedish ? 'Antonym' : 'Antonym'}:</label>
+                        <div class="answer-line">_________________________</div>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+    </div>`;
+  }
+
+  private generateImageMatchingWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    const wordsWithImages = words.filter(w => w.imageUrl).slice(0, 8);
+    return `
+    <div class="image-matching-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Matcha varje ord med rätt bild (bilder visas inte i utskrift).' : 'Match each word with the correct image (images not shown in print).'}</p>
+        <div class="image-word-list">
+            ${wordsWithImages.map((word, index) => `
+                <div class="image-word-item">
+                    <span class="word-number">${index + 1}.</span>
+                    <span class="word-text">${word.term}</span>
+                    <span class="image-placeholder">[${isSwedish ? 'Bild' : 'Image'} ${String.fromCharCode(65 + index)}]</span>
+                </div>
+            `).join('')}
+        </div>
+    </div>`;
+  }
+
+  private generateSpellingWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `
+    <div class="spelling-worksheet">
+        <p class="worksheet-instructions">${isSwedish ? 'Stava orden korrekt. Din lärare kommer att läsa upp orden.' : 'Spell the words correctly. Your teacher will read the words aloud.'}</p>
+        ${words.slice(0, 15).map((word, index) => `
+            <div class="spelling-item">
+                <span class="spelling-number">${index + 1}.</span>
+                <div class="spelling-line">_________________________</div>
+            </div>
+        `).join('')}
+    </div>`;
+  }
+
+  private generateGenericWorksheet(exercise: VocabularyExercise, words: VocabularyWord[], isSwedish: boolean): string {
+    return `
+    <div class="generic-worksheet">
+        <p class="worksheet-instructions">${exercise.instructions || (isSwedish ? 'Följ instruktionerna från din lärare.' : 'Follow instructions from your teacher.')}</p>
+        <div class="word-reference">
+            <h4>${isSwedish ? 'Ordlista' : 'Word List'}:</h4>
+            ${words.map((word, index) => `<div class="ref-word">${index + 1}. ${word.term} - ${word.definition}</div>`).join('')}
+        </div>
+    </div>`;
+  }
+
+  /**
+   * Get exercise type label in appropriate language
+   */
+  private getExerciseTypeLabel(type: string, isSwedish: boolean): string {
+    const labels = {
+      flashcards: isSwedish ? 'Flashcards' : 'Flashcards',
+      multiple_choice: isSwedish ? 'Flervalsuppgift' : 'Multiple Choice',
+      fill_in_blank: isSwedish ? 'Fyll i luckorna' : 'Fill in the Blank',
+      matching: isSwedish ? 'Matchning' : 'Matching',
+      word_association: isSwedish ? 'Ordassociation' : 'Word Association',
+      sentence_completion: isSwedish ? 'Meningskomplettering' : 'Sentence Completion',
+      definition_matching: isSwedish ? 'Definitionsmatchning' : 'Definition Matching',
+      synonym_antonym: isSwedish ? 'Synonymer/Antonymer' : 'Synonym/Antonym',
+      image_matching: isSwedish ? 'Bildmatchning' : 'Image Matching',
+      spelling: isSwedish ? 'Stavning' : 'Spelling'
+    };
+    return labels[type as keyof typeof labels] || type;
+  }
+
+  /**
+   * Get vocabulary-specific CSS styles
+   */
+  private getVocabularyStyles(themeColor: string, colorScheme: any): string {
+    return `
+        .custom-header {
+            background: ${colorScheme.light};
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid ${colorScheme.border};
+        }
+        
+        .custom-header-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .school-name, .class-name, .teacher-name, .header-date {
+            font-weight: 500;
+            color: ${colorScheme.secondary};
+        }
+        
+        .subtitle {
+            color: ${colorScheme.secondary};
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            font-style: italic;
+            color: ${colorScheme.secondary};
+            margin-bottom: 15px;
+        }
+        
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .word-card {
+            background: white;
+            border: 2px solid ${themeColor}30;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+        }
+        
+        .word-card.student-card {
+            border-left: 4px solid ${themeColor};
+        }
+        
+        .word-number {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: ${themeColor};
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .word-content {
+            margin-top: 10px;
+        }
+        
+        .word-term {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: ${themeColor};
+            margin-bottom: 5px;
+        }
+        
+        .word-phonetic {
+            color: ${colorScheme.secondary};
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .word-definition {
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .word-example {
+            background: ${colorScheme.light};
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 3px solid ${colorScheme.accent};
+        }
+        
+        .word-relations {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+        }
+        
+        .synonym {
+            color: ${colorScheme.success};
+        }
+        
+        .antonym {
+            color: ${colorScheme.warning};
+        }
+        
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .overview-card {
+            background: ${colorScheme.background};
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid ${colorScheme.border};
+        }
+        
+        .overview-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: ${themeColor};
+            margin-bottom: 5px;
+        }
+        
+        .overview-label {
+            font-size: 0.9em;
+            color: ${colorScheme.secondary};
+        }
+        
+        .word-list-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .word-list-table th,
+        .word-list-table td {
+            border: 1px solid ${colorScheme.border};
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .word-list-table th {
+            background: ${themeColor};
+            color: white;
+            font-weight: bold;
+        }
+        
+        .word-list-table tr:nth-child(even) {
+            background: ${colorScheme.light};
+        }
+        
+        .number-cell {
+            text-align: center;
+            font-weight: bold;
+            width: 40px;
+        }
+        
+        .word-cell {
+            font-weight: bold;
+            color: ${themeColor};
+        }
+        
+        .phonetic-cell {
+            font-style: italic;
+            color: ${colorScheme.secondary};
+        }
+        
+        .relation-cell {
+            font-size: 0.9em;
+        }
+        
+        .example-cell {
+            font-style: italic;
+        }
+        
+        .image-cell {
+            text-align: center;
+            color: ${colorScheme.success};
+        }
+        
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .suggestion-card {
+            background: ${colorScheme.light};
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid ${themeColor};
+        }
+        
+        .suggestion-card h4 {
+            color: ${themeColor};
+            margin-bottom: 10px;
+        }
+        
+        .suggestion-card ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+        
+        .suggestion-card li {
+            margin-bottom: 5px;
+        }
+        
+        .toc-section {
+            background: ${colorScheme.light};
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .toc-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .toc-list li {
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .answer-list {
+            margin: 20px 0;
+        }
+        
+        .answer-item {
+            display: flex;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: ${colorScheme.light};
+            border-radius: 8px;
+        }
+        
+        .answer-number {
+            font-weight: bold;
+            color: ${themeColor};
+            margin-right: 10px;
+            min-width: 30px;
+        }
+        
+        .answer-content {
+            flex: 1;
+        }
+        
+        .section-header {
+            background: ${themeColor};
+            color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .section-header h1 {
+            color: white;
+            margin-bottom: 5px;
+        }
+        
+        .set-section {
+            margin: 30px 0;
+        }
+        
+        .set-header {
+            background: ${colorScheme.light};
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 2px solid ${themeColor};
+        }
+        
+        .set-header h2 {
+            color: ${themeColor};
+            margin-bottom: 5px;
+        }
+        
+        .set-description {
+            color: ${colorScheme.secondary};
+            margin-bottom: 10px;
+        }
+        
+        .set-stats {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .stat {
+            background: ${themeColor}20;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+    `;
+  }
+
+  /**
+   * Get exercise worksheet specific CSS styles
+   */
+  private getExerciseWorksheetStyles(colorScheme: any): string {
+    return `
+        .instructions {
+            background: ${colorScheme.light};
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid ${colorScheme.primary};
+            margin: 15px 0;
+        }
+        
+        .worksheet-content {
+            margin: 30px 0;
+        }
+        
+        .worksheet-instructions {
+            background: ${colorScheme.success}20;
+            border: 1px solid ${colorScheme.success};
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: 500;
+        }
+        
+        .exercise-container {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid ${colorScheme.border};
+            border-radius: 8px;
+        }
+        
+        .teacher-exercise {
+            background: ${colorScheme.light};
+        }
+        
+        .exercise-header h3 {
+            color: ${colorScheme.primary};
+            margin-bottom: 10px;
+        }
+        
+        .exercise-description {
+            color: ${colorScheme.secondary};
+            margin-bottom: 10px;
+        }
+        
+        .exercise-instructions {
+            background: ${colorScheme.warning}20;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .exercise-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        .exercise-meta span {
+            background: ${colorScheme.background};
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid ${colorScheme.border};
+        }
+        
+        .teacher-answer-key {
+            background: ${colorScheme.warning}20;
+            border: 2px solid ${colorScheme.warning};
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .teacher-answer-key h4 {
+            color: ${colorScheme.warning};
+            margin-bottom: 10px;
+        }
+        
+        .answer-section {
+            background: ${colorScheme.error}20;
+            border: 2px solid ${colorScheme.error};
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .answer-section h2 {
+            color: ${colorScheme.error};
+            margin-bottom: 15px;
+        }
+        
+        .answer-key-simple {
+            line-height: 1.8;
+            font-family: monospace;
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        /* Multiple Choice Styles */
+        .multiple-choice-worksheet .mc-question {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .question-number {
+            font-weight: bold;
+            color: ${colorScheme.primary};
+            min-width: 30px;
+        }
+        
+        .question-content {
+            flex: 1;
+        }
+        
+        .question-text {
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .mc-options {
+            margin-left: 20px;
+        }
+        
+        .mc-option {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+        
+        .option-letter {
+            font-weight: bold;
+            min-width: 25px;
+        }
+        
+        .option-text {
+            flex: 1;
+        }
+        
+        /* Fill in the Blank Styles */
+        .fill-blank-worksheet .word-bank {
+            background: ${colorScheme.light};
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid ${colorScheme.border};
+        }
+        
+        .bank-word {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin: 3px;
+            display: inline-block;
+            border: 1px solid ${colorScheme.border};
+        }
+        
+        .fill-blank-question {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .sentence-with-blank {
+            flex: 1;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        
+        /* Matching Styles */
+        .matching-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .words-column, .definitions-column {
+            border: 1px solid ${colorScheme.border};
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .words-column h4, .definitions-column h4 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: ${colorScheme.primary};
+        }
+        
+        .match-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: ${colorScheme.light};
+            border-radius: 4px;
+            align-items: flex-start;
+        }
+        
+        .match-number, .match-letter {
+            font-weight: bold;
+            min-width: 25px;
+            color: ${colorScheme.primary};
+        }
+        
+        .match-word, .match-definition {
+            flex: 1;
+        }
+        
+        /* Other Exercise Styles */
+        .association-item, .sentence-item, .syn-ant-item, .spelling-item {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid ${colorScheme.border};
+            border-radius: 8px;
+        }
+        
+        .base-word, .word-prompt, .word-center {
+            font-weight: bold;
+            color: ${colorScheme.primary};
+            margin-bottom: 10px;
+        }
+        
+        .association-lines, .sentence-lines {
+            margin-left: 20px;
+        }
+        
+        .association-line, .sentence-line, .answer-line {
+            border-bottom: 1px solid #ccc;
+            height: 25px;
+            margin-bottom: 10px;
+        }
+        
+        .syn-ant-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .synonym-section, .antonym-section {
+            text-align: center;
+        }
+        
+        .synonym-section label, .antonym-section label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: ${colorScheme.secondary};
+        }
+        
+        .spelling-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .spelling-number {
+            font-weight: bold;
+            color: ${colorScheme.primary};
+            min-width: 30px;
+        }
+        
+        .spelling-line {
+            flex: 1;
+            border-bottom: 2px solid #333;
+            height: 30px;
+        }
+        
+        .image-word-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .image-word-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid ${colorScheme.border};
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .word-number {
+            font-weight: bold;
+            color: ${colorScheme.primary};
+        }
+        
+        .word-text {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .image-placeholder {
+            background: ${colorScheme.light};
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-style: italic;
+            color: ${colorScheme.secondary};
+        }
+        
+        .word-reference {
+            background: ${colorScheme.light};
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .ref-word {
+            margin-bottom: 5px;
+            padding: 5px;
+            background: white;
+            border-radius: 4px;
+        }
+        
+        .flashcards-note {
+            background: ${colorScheme.warning}20;
+            border: 1px solid ${colorScheme.warning};
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-style: italic;
+        }
     `;
   }
 

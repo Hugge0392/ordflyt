@@ -46,7 +46,10 @@ import {
   Clock,
   Award,
   Users,
-  Sparkles
+  Sparkles,
+  Download,
+  FileDown,
+  Printer
 } from "lucide-react";
 import { 
   type VocabularySet, 
@@ -322,6 +325,12 @@ export default function AdminVocabulary() {
   const [editingWord, setEditingWord] = useState<VocabularyWord | null>(null);
   const [editingExercise, setEditingExercise] = useState<VocabularyExercise | null>(null);
   
+  // PDF export state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [batchExportDialog, setBatchExportDialog] = useState(false);
+  const [selectedExportSets, setSelectedExportSets] = useState<string[]>([]);
+
   // Collapsible sections state
   const [sectionsOpen, setSectionsOpen] = useState({
     setDetails: true,
@@ -630,6 +639,207 @@ export default function AdminVocabulary() {
       });
     }
   });
+
+  // PDF Export Functions
+  const exportVocabularySetPDF = async (setId: string, options: any) => {
+    try {
+      setExportLoading(true);
+      
+      // Use apiRequest to handle CSRF tokens automatically
+      const response = await fetch(`/api/vocabulary/sets/${setId}/export/pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await (async () => {
+            try {
+              const res = await fetch('/api/auth/me', { credentials: "include" });
+              if (res.ok) {
+                const data = await res.json();
+                return data.csrfToken || '';
+              }
+            } catch (e) {
+              console.warn('Failed to get CSRF token:', e);
+            }
+            return localStorage.getItem('csrfToken') || '';
+          })(),
+        },
+        credentials: "include",
+        body: JSON.stringify(options),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to export PDF');
+      }
+
+      // Get filename from response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `vocabulary_export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export framgångsrik",
+        description: "PDF:en har laddats ner framgångsrikt.",
+      });
+      
+      // Only close dialog on success
+      setIsExportDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: "Export misslyckades",
+        description: error.message || "Kunde inte exportera PDF. Försök igen.",
+        variant: "destructive",
+      });
+      // Keep dialog open on error so user can retry
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportBatchVocabularyPDF = async (setIds: string[], options: any) => {
+    try {
+      setExportLoading(true);
+      
+      // Use proper CSRF token handling
+      const response = await fetch('/api/vocabulary/export/batch/pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await (async () => {
+            try {
+              const res = await fetch('/api/auth/me', { credentials: "include" });
+              if (res.ok) {
+                const data = await res.json();
+                return data.csrfToken || '';
+              }
+            } catch (e) {
+              console.warn('Failed to get CSRF token:', e);
+            }
+            return localStorage.getItem('csrfToken') || '';
+          })(),
+        },
+        credentials: "include",
+        body: JSON.stringify({ setIds, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to export batch PDF');
+      }
+
+      // Get filename from response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `vocabulary_batch_export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Batch export framgångsrik",
+        description: `${setIds.length} ordförrådsset har exporterats framgångsrikt.`,
+      });
+      
+      // Only close dialog on success
+      setBatchExportDialog(false);
+    } catch (error: any) {
+      console.error('Error exporting batch PDF:', error);
+      toast({
+        title: "Batch export misslyckades",
+        description: error.message || "Kunde inte exportera PDF. Försök igen.",
+        variant: "destructive",
+      });
+      // Keep dialog open on error so user can retry
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportExerciseWorksheetPDF = async (exerciseId: string, options: any) => {
+    try {
+      setExportLoading(true);
+      
+      // Use proper CSRF token handling
+      const response = await fetch(`/api/vocabulary/exercises/${exerciseId}/export/pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await (async () => {
+            try {
+              const res = await fetch('/api/auth/me', { credentials: "include" });
+              if (res.ok) {
+                const data = await res.json();
+                return data.csrfToken || '';
+              }
+            } catch (e) {
+              console.warn('Failed to get CSRF token:', e);
+            }
+            return localStorage.getItem('csrfToken') || '';
+          })(),
+        },
+        credentials: "include",
+        body: JSON.stringify(options),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to export exercise worksheet PDF');
+      }
+
+      // Get filename from response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `exercise_worksheet_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Övningsblad exporterat",
+        description: "PDF-övningsbladet har laddats ner framgångsrikt.",
+      });
+    } catch (error: any) {
+      console.error('Error exporting exercise worksheet PDF:', error);
+      toast({
+        title: "Export misslyckades",
+        description: error.message || "Kunde inte exportera övningsbladet. Försök igen.",
+        variant: "destructive",
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // Event handlers
   const handleCreateSet = (data: VocabularySetForm) => {
@@ -1160,14 +1370,36 @@ export default function AdminVocabulary() {
                           </div>
                         </div>
                         <div className="mt-4 pt-4 border-t">
-                          <Button 
-                            onClick={() => openEditSetDialog(selectedSet)}
-                            variant="outline"
-                            data-testid="button-edit-set-details"
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Redigera set-detaljer
-                          </Button>
+                          <div className="flex flex-wrap gap-2">
+                            <Button 
+                              onClick={() => openEditSetDialog(selectedSet)}
+                              variant="outline"
+                              data-testid="button-edit-set-details"
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Redigera set-detaljer
+                            </Button>
+                            <Button 
+                              onClick={() => setIsExportDialogOpen(true)}
+                              variant="outline"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              disabled={exportLoading}
+                              data-testid="button-export-pdf"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              {exportLoading ? "Exporterar..." : "Exportera PDF"}
+                            </Button>
+                            <Button 
+                              onClick={() => setBatchExportDialog(true)}
+                              variant="outline"
+                              className="text-green-600 border-green-200 hover:bg-green-50"
+                              disabled={exportLoading}
+                              data-testid="button-batch-export"
+                            >
+                              <FileDown className="w-4 h-4 mr-2" />
+                              {exportLoading ? "Exporterar..." : "Batch Export"}
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </CollapsibleContent>
