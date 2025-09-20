@@ -64,6 +64,29 @@ export const studentActivityTypeEnum = pgEnum('student_activity_type', [
   'answer_question'
 ]);
 
+// Vocabulary exercise type enum
+export const vocabularyExerciseTypeEnum = pgEnum('vocabulary_exercise_type', [
+  'flashcards',
+  'multiple_choice',
+  'fill_in_blank',
+  'matching',
+  'word_association',
+  'sentence_completion',
+  'definition_matching',
+  'synonym_antonym',
+  'image_matching',
+  'spelling'
+]);
+
+// Vocabulary attempt status enum
+export const vocabularyAttemptStatusEnum = pgEnum('vocabulary_attempt_status', [
+  'not_started',
+  'in_progress',
+  'completed',
+  'passed',
+  'failed'
+]);
+
 // Users table - core authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -618,6 +641,316 @@ export const insertReadingLessonSchema = createInsertSchema(readingLessons).omit
 
 export type ReadingLesson = typeof readingLessons.$inferSelect;
 export type InsertReadingLesson = z.infer<typeof insertReadingLessonSchema>;
+
+// Vocabulary system tables
+
+// Vocabulary sets - core vocabulary lesson containers
+export const vocabularySets = pgTable("vocabulary_sets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  
+  // Visual styling
+  themeColor: varchar("theme_color", { length: 7 }).default('#3B82F6'), // hex color code
+  frameColor: varchar("frame_color", { length: 7 }).default('#1F2937'), // hex color code
+  orderNumbersColor: varchar("order_numbers_color", { length: 7 }).default('#F59E0B'), // hex color code
+  
+  // Optional banner image
+  bannerImage: text("banner_image"), // URL to banner image
+  
+  // Optional link to existing lesson
+  lessonId: varchar("lesson_id").references(() => readingLessons.id),
+  
+  // Publishing and status
+  isPublished: boolean("is_published").default(false),
+  
+  // Metadata for flexibility
+  metadata: jsonb("metadata").$type<VocabularySetMetadata>(),
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  titleIdx: index("vocabulary_sets_title_idx").on(table.title),
+  publishedIdx: index("vocabulary_sets_published_idx").on(table.isPublished),
+  lessonIdx: index("vocabulary_sets_lesson_idx").on(table.lessonId),
+}));
+
+// Vocabulary words - individual words in each set
+export const vocabularyWords = pgTable("vocabulary_words", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  setId: varchar("set_id").notNull().references(() => vocabularySets.id, { onDelete: 'cascade' }),
+  
+  // Core word data
+  term: varchar("term", { length: 255 }).notNull(),
+  definition: text("definition").notNull(),
+  
+  // Optional enrichment data
+  synonym: varchar("synonym", { length: 255 }),
+  antonym: varchar("antonym", { length: 255 }),
+  example: text("example"), // example sentence using the word
+  imageUrl: text("image_url"), // URL to associated image
+  
+  // Audio pronunciation (optional)
+  pronunciationUrl: text("pronunciation_url"),
+  phonetic: varchar("phonetic", { length: 255 }), // phonetic spelling
+  
+  // Ordering within set
+  orderIndex: integer("order_index").default(0),
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  setOrderIdx: index("vocabulary_words_set_order_idx").on(table.setId, table.orderIndex),
+  termIdx: index("vocabulary_words_term_idx").on(table.term),
+  setIdx: index("vocabulary_words_set_idx").on(table.setId),
+  // Unique constraint: setId + term must be unique
+  uniqueSetTerm: uniqueIndex("vocabulary_words_set_term_unique").on(table.setId, table.term),
+}));
+
+// Vocabulary exercises - different exercise types per set
+export const vocabularyExercises = pgTable("vocabulary_exercises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  setId: varchar("set_id").notNull().references(() => vocabularySets.id, { onDelete: 'cascade' }),
+  
+  // Exercise configuration
+  type: vocabularyExerciseTypeEnum("type").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"), // description for the exercise
+  instructions: text("instructions"), // instructions for the exercise
+  
+  // Exercise configuration in JSON for flexibility
+  config: jsonb("config").$type<ExerciseConfig>().notNull(),
+  
+  // Ordering for exercise sequence
+  orderIndex: integer("order_index").default(0),
+  
+  // Exercise settings
+  timeLimit: integer("time_limit"), // time limit in seconds (optional)
+  pointsPerCorrect: integer("points_per_correct").default(10),
+  minPassingScore: integer("min_passing_score").default(70), // percentage
+  allowRetries: boolean("allow_retries").default(true),
+  
+  // Publishing status
+  isActive: boolean("is_active").default(true),
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  setOrderIdx: index("vocabulary_exercises_set_order_idx").on(table.setId, table.orderIndex),
+  typeIdx: index("vocabulary_exercises_type_idx").on(table.type),
+  setIdx: index("vocabulary_exercises_set_idx").on(table.setId),
+  activeIdx: index("vocabulary_exercises_active_idx").on(table.isActive),
+  // Check constraint: orderIndex must be >= 0
+  orderIndexCheck: check("vocabulary_exercises_order_index_check", sql`order_index >= 0`),
+}));
+
+// Vocabulary attempts - student progress tracking
+export const vocabularyAttempts = pgTable("vocabulary_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  exerciseId: varchar("exercise_id").notNull().references(() => vocabularyExercises.id, { onDelete: 'cascade' }),
+  
+  // Attempt tracking
+  status: vocabularyAttemptStatusEnum("status").notNull().default('not_started'),
+  score: integer("score").default(0), // points earned
+  percent: integer("percent").default(0), // 0-100 percentage score
+  
+  // Time tracking
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  durationMs: integer("duration_ms").default(0), // duration in milliseconds
+  
+  // Answer data in JSON for flexibility
+  answers: jsonb("answers").$type<VocabularyAnswerData>(),
+  attemptNumber: integer("attempt_number").default(1), // attempt number for this exercise
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentExerciseIdx: index("vocabulary_attempts_student_exercise_idx").on(table.studentId, table.exerciseId),
+  statusIdx: index("vocabulary_attempts_status_idx").on(table.status),
+  studentIdx: index("vocabulary_attempts_student_idx").on(table.studentId),
+  exerciseIdx: index("vocabulary_attempts_exercise_idx").on(table.exerciseId),
+  completedIdx: index("vocabulary_attempts_completed_idx").on(table.completedAt),
+  // Composite index for comprehensive querying
+  studentExerciseStatusIdx: index("vocabulary_attempts_student_exercise_status_idx").on(table.studentId, table.exerciseId, table.status),
+}));
+
+// Vocabulary system interfaces and types
+
+export interface VocabularySetMetadata {
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTime?: number; // minutes
+  gradeLevel?: string; // e.g., "4-6", "7-9"
+  subject?: string; // e.g., "English", "Science"
+  tags?: string[]; // categorization tags
+  targetAudience?: string; // description of intended audience
+  learningObjectives?: string[]; // what students should learn
+}
+
+// Exercise config discriminated union as requested by architect
+export type ExerciseConfig = 
+  | ({ type: 'flashcards' } & FlashcardsConfig)
+  | ({ type: 'multiple_choice' } & MultipleChoiceConfig)
+  | ({ type: 'fill_in_blank' } & FillInBlankConfig)
+  | ({ type: 'matching' } & MatchingConfig)
+  | ({ type: 'word_association' } & WordAssociationConfig)
+  | ({ type: 'sentence_completion' } & SentenceCompletionConfig)
+  | ({ type: 'definition_matching' } & DefinitionMatchingConfig)
+  | ({ type: 'synonym_antonym' } & SynonymAntonymConfig)
+  | ({ type: 'image_matching' } & ImageMatchingConfig)
+  | ({ type: 'spelling' } & SpellingConfig);
+
+// Legacy interface for backward compatibility
+export interface VocabularyExerciseConfig {
+  // Common settings for all exercise types
+  wordIds?: string[]; // specific words to include in exercise
+  wordCount?: number; // number of words to use
+  randomOrder?: boolean; // randomize word order
+  showDefinitions?: boolean; // show definitions
+  showImages?: boolean; // show images if available
+  
+  // Exercise type specific settings
+  multipleChoice?: MultipleChoiceConfig;
+  flashcards?: FlashcardsConfig;
+  fillInBlank?: FillInBlankConfig;
+  matching?: MatchingConfig;
+  wordAssociation?: WordAssociationConfig;
+  sentenceCompletion?: SentenceCompletionConfig;
+  definitionMatching?: DefinitionMatchingConfig;
+  synonymAntonym?: SynonymAntonymConfig;
+  imageMatching?: ImageMatchingConfig;
+  spelling?: SpellingConfig;
+}
+
+export interface MultipleChoiceConfig {
+  questionType: 'definition' | 'synonym' | 'antonym' | 'example';
+  optionCount: number; // number of answer choices
+  showHints?: boolean;
+  allowPartialCredit?: boolean;
+}
+
+export interface FlashcardsConfig {
+  showTerm: boolean; // show term first or definition first
+  autoFlip?: boolean; // automatically flip cards
+  flipDelay?: number; // seconds before auto flip
+  shuffleCards?: boolean;
+}
+
+export interface FillInBlankConfig {
+  sentenceType: 'example' | 'definition' | 'custom';
+  blankPosition: 'random' | 'beginning' | 'middle' | 'end';
+  provideWordBank?: boolean;
+  showFirstLetter?: boolean;
+}
+
+export interface MatchingConfig {
+  matchType: 'term_definition' | 'synonym_antonym' | 'image_term';
+  columns: number; // number of columns for layout
+  allowDragDrop?: boolean;
+}
+
+export interface WordAssociationConfig {
+  associationType: 'synonym' | 'antonym' | 'category' | 'theme';
+  responseFormat: 'single_word' | 'multiple_choice' | 'free_text';
+  timeLimit?: number; // seconds per word
+}
+
+export interface SentenceCompletionConfig {
+  sentenceSource: 'examples' | 'custom' | 'generated';
+  completionType: 'single_word' | 'phrase' | 'multiple_choice';
+  showContext?: boolean;
+}
+
+export interface DefinitionMatchingConfig {
+  presentationStyle: 'grid' | 'list' | 'cards';
+  allowPartialMatching?: boolean;
+  showProgressIndicator?: boolean;
+}
+
+export interface SynonymAntonymConfig {
+  focusType: 'synonyms' | 'antonyms' | 'both';
+  responseFormat: 'selection' | 'typing' | 'drag_drop';
+  showWordType?: boolean; // show if it's noun, verb, etc.
+}
+
+export interface ImageMatchingConfig {
+  imageLayout: 'grid' | 'carousel' | 'single';
+  matchDirection: 'image_to_word' | 'word_to_image' | 'both';
+  showImageHints?: boolean;
+}
+
+export interface SpellingConfig {
+  inputMethod: 'typing' | 'letter_selection' | 'drag_drop';
+  showPhonetics?: boolean;
+  allowAudioHints?: boolean;
+  scrambleLetters?: boolean;
+}
+
+export interface VocabularyAnswerData {
+  responses: VocabularyResponse[]; // individual responses for each question
+  totalQuestions: number;
+  correctCount: number;
+  incorrectCount: number;
+  skippedCount: number;
+  hintsUsed: number;
+  timePerQuestion?: number[]; // time spent on each question in seconds
+  streakCount: number; // longest streak achieved
+  sessionStartTime?: string; // ISO timestamp
+  sessionEndTime?: string; // ISO timestamp
+}
+
+export interface VocabularyResponse {
+  questionId: string; // unique identifier for the question
+  wordId: string; // vocabulary word this question is about
+  questionType: string; // type of question asked
+  userAnswer: any; // user's answer (can be string, number, array, etc.)
+  correctAnswer: any; // the correct answer
+  isCorrect: boolean;
+  timeSpent: number; // seconds spent on this question
+  hintsUsed: number; // number of hints used for this question
+  attemptNumber: number; // attempt number for this question
+  timestamp: string; // ISO timestamp when answered
+}
+
+// Insert schemas for vocabulary system
+export const insertVocabularySetSchema = createInsertSchema(vocabularySets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVocabularyWordSchema = createInsertSchema(vocabularyWords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVocabularyExerciseSchema = createInsertSchema(vocabularyExercises).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVocabularyAttemptSchema = createInsertSchema(vocabularyAttempts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// TypeScript types for vocabulary system
+export type VocabularySet = typeof vocabularySets.$inferSelect;
+export type InsertVocabularySet = z.infer<typeof insertVocabularySetSchema>;
+export type VocabularyWord = typeof vocabularyWords.$inferSelect;
+export type InsertVocabularyWord = z.infer<typeof insertVocabularyWordSchema>;
+export type VocabularyExercise = typeof vocabularyExercises.$inferSelect;
+export type InsertVocabularyExercise = z.infer<typeof insertVocabularyExerciseSchema>;
+export type VocabularyAttempt = typeof vocabularyAttempts.$inferSelect;
+export type InsertVocabularyAttempt = z.infer<typeof insertVocabularyAttemptSchema>;
 
 // Klasskamp (multiplayer game) tables
 export const klassKampGames = pgTable("klasskamp_games", {
@@ -2318,7 +2651,21 @@ export const studentAvatars = pgTable("student_avatars", {
   studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
   
   // Avatar configuration
-  avatarData: jsonb("avatar_data").$type<AvatarConfiguration>().notNull().default({}),
+  avatarData: jsonb("avatar_data").$type<AvatarConfiguration>().notNull().default({
+    hair: { style: "default", color: "brown" },
+    face: { eyes: "default", expression: "neutral" },
+    clothing: {
+      top: "default",
+      bottom: "default",
+      shoes: "default",
+      accessories: []
+    },
+    colors: {
+      skinTone: "medium",
+      hairColor: "brown",
+      eyeColor: "brown"
+    }
+  }),
   currentOutfit: varchar("current_outfit"), // current outfit/combination ID
   savedOutfits: jsonb("saved_outfits").$type<SavedOutfit[]>().default([]),
   
@@ -2333,7 +2680,15 @@ export const studentRooms = pgTable("student_rooms", {
   studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
   
   // Room configuration
-  roomData: jsonb("room_data").$type<RoomConfiguration>().notNull().default({}),
+  roomData: jsonb("room_data").$type<RoomConfiguration>().notNull().default({
+    furniture: [],
+    decorations: [],
+    lighting: [],
+    background: {
+      wallColor: "#f0f0f0",
+      floorColor: "#d4b896"
+    }
+  }),
   currentTheme: varchar("current_theme").default("default"),
   roomLayout: varchar("room_layout").default("standard"), // different room layouts
   
