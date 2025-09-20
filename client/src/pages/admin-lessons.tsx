@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Target, Gamepad2, BookOpen, PenTool } from "lucide-react";
+import { ArrowLeft, Target, Gamepad2, BookOpen, PenTool, Settings, Plus } from "lucide-react";
 
 export default function AdminLessons() {
   return (
@@ -63,6 +63,28 @@ export default function AdminLessons() {
                   <div>• Interaktiva meningar</div>
                   <div>• Progressionssystem</div>
                   <div>• Tidstester och quiz</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/lesson-templates">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Settings className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl">Lesson Templates</CardTitle>
+                <CardDescription>
+                  Hantera lesson templates som lärare kan använda
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>• Skapa återanvändbara mallar</div>
+                  <div>• Kategorisera lektioner</div>
+                  <div>• Anpassa svårighetsgrad</div>
+                  <div>• Teacher-friendly innehåll</div>
                 </div>
               </CardContent>
             </Card>

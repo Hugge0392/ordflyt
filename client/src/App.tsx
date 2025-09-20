@@ -30,6 +30,8 @@ import AdminGrammatik from "@/pages/admin-grammatik";
 import AdminAccounts from "@/pages/admin-accounts";
 import AdminSentences from "@/pages/admin-sentences";
 import AdminEmailTest from "@/pages/admin-email-test";
+import AdminLessonTemplates from "@/pages/admin-lesson-templates";
+import TeacherLessonBank from "@/pages/teacher-lesson-bank";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
@@ -159,6 +161,12 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      <Route path="/teacher/lesson-bank">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <TeacherLessonBank />
+        </ProtectedRoute>
+      </Route>
+      
       {/* Swedish teacher route aliases */}
       <Route path="/larare">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
@@ -205,6 +213,11 @@ function Router() {
       <Route path="/admin/email-test">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminEmailTest />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/lesson-templates">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminLessonTemplates />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">
