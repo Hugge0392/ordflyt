@@ -32,6 +32,8 @@ import AdminSentences from "@/pages/admin-sentences";
 import AdminEmailTest from "@/pages/admin-email-test";
 import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
+import AvatarBuilder from "@/pages/avatar-builder";
+import RoomDecorator from "@/pages/room-decorator";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
@@ -86,6 +88,8 @@ function Router() {
       {/* Student routes - now public for exploration */}
       <Route path="/elev" component={StudentHome} />
       <Route path="/elev/butik" component={StudentShop} />
+      <Route path="/elev/avatar" component={AvatarBuilder} />
+      <Route path="/elev/rum" component={RoomDecorator} />
       <Route path="/menu" component={Menu} />
       <Route path="/grammatik" component={Menu} />
       <Route path="/lasforstaelse" component={ReadingHome} />

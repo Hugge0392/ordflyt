@@ -19,8 +19,12 @@ import {
   User,
   Settings,
   HandHeart,
-  Sparkles
+  Sparkles,
+  Store,
+  Home,
+  Gem
 } from "lucide-react";
+import StudentNavigation from "@/components/StudentNavigation";
 import { 
   type LessonCategory, 
   type LessonTemplate, 

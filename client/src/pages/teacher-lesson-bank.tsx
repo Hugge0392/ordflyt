@@ -300,8 +300,8 @@ export default function TeacherLessonBank() {
                     <SelectContent>
                       <SelectItem value="all">Alla nivåer</SelectItem>
                       {availableDifficulties.map((difficulty) => (
-                        <SelectItem key={difficulty} value={difficulty}>
-                          {getDifficultyText(difficulty)}
+                        <SelectItem key={difficulty || 'none'} value={difficulty || 'none'}>
+                          {getDifficultyText(difficulty || undefined)}
                         </SelectItem>
                       ))}
                     </SelectContent>
