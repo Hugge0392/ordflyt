@@ -122,10 +122,7 @@ export default function TeacherLessonBank() {
   // Save customization mutation
   const saveCustomizationMutation = useMutation({
     mutationFn: async (customization: Partial<TeacherLessonCustomization>) => {
-      return apiRequest('/api/teacher-lesson-customizations', {
-        method: 'POST',
-        body: customization,
-      });
+      return apiRequest('/api/teacher-lesson-customizations', 'POST', customization);
     },
     onSuccess: () => {
       toast({
@@ -287,7 +284,7 @@ export default function TeacherLessonBank() {
                       <SelectItem value="all">Alla kategorier</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          {category.swedishName || category.name}
+                          {category.swedishName || category.name || ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -421,9 +418,9 @@ export default function TeacherLessonBank() {
                         </Badge>
                         <Badge 
                           variant="outline" 
-                          className={getDifficultyColor(template.difficulty)}
+                          className={getDifficultyColor(template.difficulty || undefined)}
                         >
-                          {getDifficultyText(template.difficulty)}
+                          {getDifficultyText(template.difficulty || undefined)}
                         </Badge>
                         {hasCustomization && (
                           <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
@@ -586,9 +583,9 @@ export default function TeacherLessonBank() {
                 </Badge>
                 <Badge 
                   variant="outline" 
-                  className={getDifficultyColor(previewTemplate.difficulty)}
+                  className={getDifficultyColor(previewTemplate.difficulty || undefined)}
                 >
-                  {getDifficultyText(previewTemplate.difficulty)}
+                  {getDifficultyText(previewTemplate.difficulty || undefined)}
                 </Badge>
                 <Badge variant="outline">
                   {previewTemplate.estimatedDuration || 0} min
