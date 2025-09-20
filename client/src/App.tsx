@@ -62,6 +62,7 @@ import EmailVerificationPage from "@/pages/EmailVerificationPage";
 import LicenseActivationPage from "@/pages/LicenseActivationPage";
 import StudentLoginPage from "@/pages/student-login";
 import StudentPasswordChangePage from "@/pages/student-password-change";
+import VocabularyExercise from "@/pages/vocabulary-exercise";
 
 function Router() {
   return (
@@ -91,6 +92,8 @@ function Router() {
       <Route path="/elev/butik" component={StudentShop} />
       <Route path="/elev/avatar" component={AvatarBuilder} />
       <Route path="/elev/rum" component={RoomDecorator} />
+      <Route path="/elev/ordforrad" component={VocabularyExercise} />
+      <Route path="/vocabulary/exercise/:exerciseId" component={VocabularyExercise} />
       <Route path="/menu" component={Menu} />
       <Route path="/grammatik" component={Menu} />
       <Route path="/lasforstaelse" component={ReadingHome} />

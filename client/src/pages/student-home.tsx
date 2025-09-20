@@ -31,7 +31,8 @@ import {
   Heart,
   Zap,
   GamepadIcon,
-  Gift
+  Gift,
+  Target
 } from "lucide-react";
 import StudentNavigation from "@/components/StudentNavigation";
 import { 
@@ -338,6 +339,55 @@ export default function StudentHome() {
               </div>
               <div className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-active-streak">7</div>
               <div className="text-sm text-green-600 dark:text-green-400">Dagars streak</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Featured: Vocabulary Exercises */}
+        <div className="mb-8">
+          <Card className="bg-gradient-to-br from-purple-100 dark:from-purple-900 to-pink-200 dark:to-pink-800 border-purple-200 dark:border-purple-700 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center text-white shadow-lg">
+                    <Type className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-purple-800 dark:text-purple-200 mb-2">
+                      🎯 Ordförrådsövningar
+                    </h3>
+                    <p className="text-purple-700 dark:text-purple-300 mb-2">
+                      Träna ord med roliga övningar! Sant/falskt, lucktext och matchning.
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-purple-600 dark:text-purple-400">
+                      <span className="flex items-center gap-1">
+                        <Target className="w-4 h-4" />
+                        3 övningstyper
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Trophy className="w-4 h-4" />
+                        Poäng & achievements
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-4 h-4" />
+                        Kul för alla nivåer
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <Link href="/elev/ordforrad">
+                    <Button 
+                      size="lg" 
+                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transition-all min-w-32"
+                      data-testid="button-vocabulary-exercises"
+                    >
+                      <BookOpen className="w-5 h-5 mr-2" />
+                      Börja träna!
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
