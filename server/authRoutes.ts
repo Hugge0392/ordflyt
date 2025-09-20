@@ -1000,6 +1000,7 @@ router.post("/api/auth/teacher/verify-email", loginRateLimit, async (req, res) =
   }
 });
 
+
 // Step 3: Activate License Code
 router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, loginRateLimit, async (req, res) => {
   try {
@@ -1008,8 +1009,8 @@ router.post("/api/auth/teacher/activate-license", requireAuth, requireCsrf, logi
     const ipAddress = req.ip || 'unknown';
     const userAgent = req.headers['user-agent'];
 
-    // Check user role authorization
-    if (!userId || !userRole || !['LÄRARE', 'ADMIN'].includes(userRole)) {
+    // Check user role authorization - Fixed: Use LARARE instead of LÄRARE to match schema
+    if (!userId || !userRole || !['LARARE', 'ADMIN'].includes(userRole)) {
       await logAuditEvent('LICENSE_ACTIVATION_UNAUTHORIZED', userId || null, false, ipAddress, userAgent, {
         userRole: userRole || null,
         reason: 'Invalid role for license activation'

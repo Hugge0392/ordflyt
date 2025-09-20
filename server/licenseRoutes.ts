@@ -2,6 +2,9 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { hashPassword } from './auth';
+import { db } from './db';
+import { users, teacherRegistrations } from '@shared/schema';
+import { emailService } from './emailService';
 import { 
   findOneTimeCode,
   redeemOneTimeCode,
@@ -102,6 +105,172 @@ async function requireActiveLicense(req: any, res: Response, next: Function) {
     return res.status(500).json({ error: 'Serverfel vid licenskontroll' });
   }
 }
+
+// POST /api/license/activate - Combined Teacher Registration and License Activation
+// This is the endpoint that tests expect to use for teacher registration with license codes
+router.post('/activate', async (req: any, res: Response) => {
+  const { 
+    code,
+    username, 
+    email, 
+    password, 
+    firstName, 
+    lastName, 
+    schoolName 
+  } = req.body;
+  const ipAddress = req.ip || 'unknown';
+  const userAgent = req.headers['user-agent'];
+  
+  try {
+    // Validate input
+    if (!code || !username || !email || !password || !firstName || !lastName || !schoolName) {
+      return res.status(400).json({ error: 'Alla fält krävs (kod, användarnamn, email, lösenord, förnamn, efternamn, skolnamn)' });
+    }
+
+    // Validate license code format  
+    if (!code || !/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) {
+      return res.status(400).json({ error: 'Ogiltig kodformat' });
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_-]{3,50}$/.test(username)) {
+      return res.status(400).json({ error: 'Ogiltigt användarnamn format' });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Ogiltig e-postadress' });
+    }
+
+    // Validate password strength
+    if (password.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return res.status(400).json({ error: 'Lösenordet uppfyller inte kraven' });
+    }
+
+    // Check if username already exists
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Användarnamnet är redan taget' });
+    }
+
+    // Check if email already exists
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingEmail) {
+      return res.status(400).json({ error: 'E-postadressen är redan registrerad' });
+    }
+
+    // Validate license code
+    const codeHash = hashCode(code);
+    const oneTimeCode = await findOneTimeCode(codeHash);
+    
+    if (!oneTimeCode) {
+      return res.status(400).json({ error: 'Ogiltig licenskod' });
+    }
+
+    // Check if already redeemed
+    if (oneTimeCode.redeemedAt) {
+      return res.status(400).json({ error: 'Licenskoden har redan använts' });
+    }
+
+    // Check if expired
+    if (oneTimeCode.expiresAt && new Date() > oneTimeCode.expiresAt) {
+      return res.status(400).json({ error: 'Licenskoden har gått ut' });
+    }
+
+    // Check if email matches license code (optional validation)
+    if (oneTimeCode.recipientEmail && oneTimeCode.recipientEmail.toLowerCase() !== email.toLowerCase()) {
+      return res.status(400).json({ error: 'Denna licens tillhör en annan email-adress' });
+    }
+
+    // Hash password and create user
+    const passwordHash = await hashPassword(password);
+    
+    const [newUser] = await db.insert(users).values({
+      username,
+      email,
+      passwordHash,
+      role: 'LARARE', // Use correct role from schema
+      isActive: true,
+      emailVerified: true,
+      mustChangePassword: false
+    }).returning();
+
+    // Create teacher profile record
+    const [teacherProfile] = await db.insert(teacherRegistrations).values({
+      email,
+      firstName,
+      lastName,
+      schoolName,
+      emailVerified: true,
+      userId: newUser.id,
+      status: 'account_created'
+    }).returning();
+
+    // Create teacher license
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    const license = await createTeacherLicense(newUser.id, oneTimeCode.id, expiresAt);
+    
+    // Mark code as redeemed
+    await redeemOneTimeCode(oneTimeCode.id, newUser.id);
+
+    // Log successful registration with license activation
+    await logLicenseActivity(license.id, 'registration_with_license', { 
+      username,
+      email,
+      registration_type: 'license_activation',
+      licenseCode: code.substring(0, 4) + '****'
+    }, newUser.id, ipAddress);
+
+    // Send registration confirmation email
+    try {
+      await emailService.sendRegistrationConfirmation(
+        newUser.email || email,
+        newUser.username
+      );
+    } catch (emailError: any) {
+      console.error('Failed to send registration confirmation email:', emailError);
+      // Don't fail the registration if email fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Lärarkonto skapat och licens aktiverad framgångsrikt!',
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role
+      },
+      license: {
+        expiresAt: license.expiresAt,
+        isActive: license.isActive
+      }
+    });
+
+  } catch (error: any) {
+    console.error('License activation registration error:', error);
+    
+    await logLicenseActivity(null, 'registration_with_license_failed', { 
+      reason: 'server_error',
+      error: error.message,
+      attempted_username: username,
+      attempted_email: email
+    }, undefined, ipAddress);
+
+    res.status(500).json({ error: 'Serverfel vid registrering och licensaktivering' });
+  }
+});
 
 // POST /api/license/redeem - Lösa in engångskod
 router.post('/redeem', requireAuth, requireCsrf, async (req: any, res: Response) => {
