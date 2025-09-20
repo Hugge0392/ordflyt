@@ -195,16 +195,7 @@ export default function TeacherClassesPage() {
 
   const generateSetupCodeMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      console.log('🔵 CLIENT: Attempting to generate setup code for student:', studentId);
-      console.log('🔍 CLIENT: Making API request to:', `/api/license/students/${studentId}/generate-setup-code`);
-      try {
-        const result = await apiRequest('POST', `/api/license/students/${studentId}/generate-setup-code`);
-        console.log('✅ CLIENT: API request successful:', result);
-        return result;
-      } catch (error) {
-        console.error('❌ CLIENT: API request failed:', error);
-        throw error;
-      }
+      return apiRequest('POST', `/api/license/students/${studentId}/generate-setup-code`);
     },
     onSuccess: (data, studentId) => {
       setGenerateCodeDialog(null);
