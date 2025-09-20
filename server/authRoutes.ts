@@ -1723,7 +1723,8 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
         mustChangePassword: true, // Always require password change after setup code login
         lastLogin: student.lastLogin
       },
-      requirePasswordChange: true
+      requirePasswordChange: true,
+      redirectPath: '/elev/password'
     });
 
   } catch (error) {
