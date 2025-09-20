@@ -195,8 +195,8 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lösenord</FormLabel>
-                    <FormControl>
-                      <div className="relative">
+                    <div className="relative">
+                      <FormControl>
                         <Input
                           {...field}
                           type={showPassword ? "text" : "password"}
@@ -205,29 +205,29 @@ export default function LoginPage() {
                           disabled={isLoading}
                           data-testid="input-password"
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isLoading}
-                          data-testid="button-toggle-password"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                        data-testid="button-toggle-password"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                    {isCapsLockOn && (
+                      <div className="mt-2 flex items-center gap-2 text-sm text-orange-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>Caps Lock är aktiverat</span>
                       </div>
-                      {isCapsLockOn && (
-                        <div className="mt-2 flex items-center gap-2 text-sm text-orange-600">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span>Caps Lock är aktiverat</span>
-                        </div>
-                      )}
-                    </FormControl>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
