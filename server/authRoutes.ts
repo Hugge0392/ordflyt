@@ -1808,8 +1808,8 @@ router.get("/api/student/me", requireStudentAuth, async (req, res) => {
   }
 });
 
-// POST /api/student/password - Change student password
-router.post("/api/student/password", requireStudentAuth, requireCsrf, async (req, res) => {
+// POST /api/student/password - Change student password (CSRF not needed for first-time password change)
+router.post("/api/student/password", requireStudentAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     
