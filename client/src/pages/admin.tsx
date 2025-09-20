@@ -605,6 +605,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('overview');
   const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   
   const handleLogout = async () => {
     try {
