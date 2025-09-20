@@ -1,0 +1,140 @@
+ 
+
+ 
+
+ 
+
+ 
+
+💡 Ytterligare Funktionsidéer 
+
+För Elever (9-12 år fokus): 
+
+🎨 Personalisering: 
+
+ 
+
+Jag tycker att detta är en bra ide. Jag tycker att man ska kunna köpa saker i en shop för att kunna dekorera sin karaktär eller sitt rum. Jag har planer på att implementera en ai-bot som man ska kunna dekorera som sin avatar. Samlarkorten kan vi skrota. Färgteman tycker jag också att man ska kunna köpa till huvudmenyn. Dock ska lektionerna inte påverkas av detta alls. Jag tänker att admin bestämmer hu mycket pengar man tjänar på ett uppdrag osv.  
+
+Mitt Rum - Dekorera sitt virtuella rum med föremål som låses upp 
+
+Avatar Builder - Skapa och anpassa sin egen karaktär 
+
+Samlarbilder - Låsa upp bilder/kort genom att slutföra lektioner 
+
+Teman - Välja mellan olika färgteman för sin profil 
+
+ 
+
+🤝 Social (klassrum-säker): 
+
+Jag tycker att det ska finnas sätt att vara med klasskompisarna, tex dela arbeten, men denna funktion väntar vi med.  
+
+Klasskompisar - Se vem som är online och arbetar med lektioner 
+
+Hjälpa varandra - Skicka uppmuntran/hjälp till klasskompisar 
+
+Gruppuppdrag - Vissa lektioner kan lösas tillsammans 
+
+Klassens galleri - Dela kreativa arbeten (med lärarens godkännande)’ 
+
+ 
+
+🎯 Belöningssystem (utan press): 
+
+Tänker på shopen uppfyller detta.  
+
+Äventyrskartor - Varje lektion är en plats på en karta att utforska 
+
+Samlarkort - Få kort med grammatikregler, ordklasser etc. 
+
+Hemliga rum - Låsa upp speciella områden genom att slutföra lektioner 
+
+Karaktärsuppdatering - Din avatar får nya kläder/tillbehör’ 
+
+ 
+
+🎭 Kreativa Verktyg: 
+
+Vi skrotar denna för tillfället 
+
+Berättarverktyg - Skapa egna berättelser med grammatikreglerna 
+
+Ordmagi - Animationer när man använder rätt grammatik 
+
+Teckna & Förklara - Rita bilder för att förklara grammatikregler 
+
+Röstinspelning - Spela in sig själv när man läser sina texter 
+
+ 
+
+ 
+
+ 
+
+För Lärare: 
+
+🎪 Engagemang: 
+
+Skrota denna 
+
+Klassens Äventyrsvy - Se hela klassens framsteg på en gemensam karta 
+
+Uppmuntran-verktyg - Skicka positiva meddelanden till elever 
+
+Klassutmaning - Sätt upp roliga mål för hela klassen 
+
+Visa-upp-vägg - Framhäv elevernas bästa arbeten 
+
+📊 Pedagogiska Verktyg: 
+
+ 
+
+Detta ska finnas. Skippa ai nu, men eleverna ska tex kunna räcka upp handen under lektionen i programmet och läraren ser vem som var först med att göra detta och eleven kan sedan ta bort denna och sedan går nästa namn upp på listan.  
+
+Förståelse-radar - Visuell översikt över vad klassen har svårt med 
+
+Anpassningsförslag - Systemet föreslår förändringar baserat på elevernas arbete 
+
+Kreativa uppgifter-generator - AI som skapar roliga uppgifter baserat på lektionsinnehållet 
+
+Elevernas röst - Anonyma feedback från elever om lektionerna 
+
+För Admin: 
+
+🎨 Lektions-kreativitet: 
+
+Skrota detta 
+
+Interaktiva element - Dra-och-släpp, klickbara animationer 
+
+Ljudinslag - Lägg till ljud och musik till lektioner 
+
+Minispel-byggare - Skapa små spel kopplade till grammatiken 
+
+Storytelling-mallar - Olika berättarstrukturer för lektioner 
+
+🔧 Systemverktyg: 
+
+Skrota detta 
+
+A/B-testning - Testa olika versioner av lektioner 
+
+Engagement-analys - Se vilka typer av innehåll som engagerar mest 
+
+Tillgänglighet-checker - Automatisk kontroll av tillgänglighet 
+
+Innehålls-AI - AI som hjälper till att skapa variationer av övningar 
+
+🌟 Unika Funktioner 
+
+🎪 "Grammatik-cirkus" - Varje grammatikregel presenteras som en cirkusakt 
+🏰 "Ordslott" - Elever bygger sitt eget slott genom att lära sig ord och regler 
+🌍 "Språkäventyr" - Resa genom olika "länder" som representerar grammatikområden 
+🎭 "Karaktärsteatern" - Elever kan spela upp historier med grammatiska element 
+
+ 
+
+Hur ser det ut nu. Ge mig en status på vad du ska skapa och förändra när jag släpper dig fri – lista helst 
+
+ 
