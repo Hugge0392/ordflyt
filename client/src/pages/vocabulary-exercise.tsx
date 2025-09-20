@@ -878,6 +878,39 @@ export default function VocabularyExercise({ setId: propSetId, exerciseId: propE
     saveAttempt();
   };
 
+  // State for rewards and achievements
+  const [rewardInfo, setRewardInfo] = useState<{
+    rewards: {
+      coinsEarned: number;
+      baseCoins: number;
+      accuracyBonus: number;
+      exerciseTypeBonus: number;
+      streakBonusCoins: number;
+      experienceEarned: number;
+      totalReward: number;
+    };
+    streak: {
+      current: number;
+      previous: number;
+      longest: number;
+      isNewDay: boolean;
+      continued: boolean;
+      broken: boolean;
+      nextMilestone: number;
+    };
+    achievement: {
+      title: string;
+      coinsAwarded: number;
+      type: string;
+    } | null;
+    performance: {
+      accuracy: number;
+      correctAnswers: number;
+      totalQuestions: number;
+      exerciseType: string;
+    };
+  } | null>(null);
+
   // Save attempt to backend
   const saveAttemptMutation = useMutation({
     mutationFn: async (attemptData: typeof insertVocabularyAttemptSchema._input) => {
@@ -886,14 +919,54 @@ export default function VocabularyExercise({ setId: propSetId, exerciseId: propE
       }
       return apiRequest('POST', `/api/vocabulary/exercises/${exerciseId}/attempts`, attemptData);
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
+      // Store reward information for display
+      if (response.rewards) {
+        setRewardInfo(response);
+      }
+
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['/api/vocabulary/exercises', exerciseId, 'attempts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/vocabulary/sets', 'published'] });
-      toast({
-        title: "Bra jobbat! 🎉",
-        description: "Ditt resultat har sparats och du kan se det i dina framsteg."
-      });
+      queryClient.invalidateQueries({ queryKey: ['/api/student/currency'] }); // Refresh currency display
+
+      // Show comprehensive reward toast
+      if (response.rewards) {
+        const { coinsEarned, streakBonusCoins } = response.rewards;
+        const { current: streak, isNewDay, continued } = response.streak;
+        
+        let title = "Fantastiskt jobbat! 🎉";
+        let description = `Du tjänade ${coinsEarned} mynt!`;
+        
+        if (streakBonusCoins > 0) {
+          title = "Streak-bonus! 🔥";
+          description = `${coinsEarned} mynt tjänade! ${streakBonusCoins} bonus för ${streak}-dagars streak!`;
+        } else if (isNewDay && continued) {
+          description += ` Du fortsätter din ${streak}-dagars streak!`;
+        } else if (isNewDay) {
+          description += " Din streak började idag!";
+        }
+
+        toast({
+          title,
+          description
+        });
+
+        // Show achievement toast if unlocked
+        if (response.achievement) {
+          setTimeout(() => {
+            toast({
+              title: `🏆 ${response.achievement.title}!`,
+              description: `Du fick en prestation! +${response.achievement.coinsAwarded} extra mynt!`
+            });
+          }, 1500);
+        }
+      } else {
+        toast({
+          title: "Bra jobbat! 🎉",
+          description: "Ditt resultat har sparats och du kan se det i dina framsteg."
+        });
+      }
     },
     onError: (error: any) => {
       console.error('Failed to save attempt:', error);
@@ -917,14 +990,22 @@ export default function VocabularyExercise({ setId: propSetId, exerciseId: propE
       return;
     }
     
+    // Calculate performance metrics for backend
+    const correctAnswers = exerciseState.results.filter(r => r.isCorrect).length;
+    const totalQuestions = exerciseState.totalQuestions;
+    
     const attemptData = {
       exerciseId: exerciseId,
       studentId: user?.id || 'anonymous', // Use authenticated user ID if available
       status: 'completed' as const,
       score: exerciseState.score,
-      maxScore: exerciseState.totalQuestions * 10,
+      maxScore: totalQuestions * 10,
       timeSpent: Math.floor((Date.now() - exerciseState.timeStarted) / 1000), // in seconds
-      answersData: exerciseState.results,
+      answers: {
+        responses: exerciseState.results,
+        totalQuestions: totalQuestions,
+        correctCount: correctAnswers
+      },
       completedAt: new Date()
     };
 
@@ -1116,6 +1197,7 @@ export default function VocabularyExercise({ setId: propSetId, exerciseId: propE
             exerciseState={exerciseState}
             selectedSet={selectedSet!}
             exerciseType={selectedExerciseType!}
+            rewardInfo={rewardInfo}
             onTryAgain={tryAgain}
             onBackToSelection={backToSelection}
           />
@@ -2447,12 +2529,44 @@ function ResultsScreen({
   exerciseState, 
   selectedSet, 
   exerciseType, 
+  rewardInfo,
   onTryAgain, 
   onBackToSelection 
 }: {
   exerciseState: ExerciseState,
   selectedSet: VocabularySet,
   exerciseType: string,
+  rewardInfo: {
+    rewards: {
+      coinsEarned: number;
+      baseCoins: number;
+      accuracyBonus: number;
+      exerciseTypeBonus: number;
+      streakBonusCoins: number;
+      experienceEarned: number;
+      totalReward: number;
+    };
+    streak: {
+      current: number;
+      previous: number;
+      longest: number;
+      isNewDay: boolean;
+      continued: boolean;
+      broken: boolean;
+      nextMilestone: number;
+    };
+    achievement: {
+      title: string;
+      coinsAwarded: number;
+      type: string;
+    } | null;
+    performance: {
+      accuracy: number;
+      correctAnswers: number;
+      totalQuestions: number;
+      exerciseType: string;
+    };
+  } | null,
   onTryAgain: () => void,
   onBackToSelection: () => void
 }) {
@@ -2469,6 +2583,21 @@ function ResultsScreen({
 
   const performance = getPerformanceMessage();
 
+  const getStreakMessage = () => {
+    if (!rewardInfo?.streak) return null;
+    
+    const { current, continued, isNewDay, broken, nextMilestone } = rewardInfo.streak;
+    
+    if (broken) return { message: "Ingen fara! Din streak börjar på nytt idag! 🌱", emoji: "🔄", color: "text-blue-500" };
+    if (isNewDay && continued) return { message: `Fantastiskt! Du fortsätter din ${current}-dagars streak! 🔥`, emoji: "🔥", color: "text-orange-500" };
+    if (isNewDay) return { message: "Du började din streak idag! Håll igång! 💪", emoji: "⭐", color: "text-green-500" };
+    if (current > 0) return { message: `Du har en ${current}-dagars streak! Kom tillbaka imorgon! 📅`, emoji: "📅", color: "text-blue-500" };
+    
+    return null;
+  };
+
+  const streakInfo = getStreakMessage();
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 text-center">
       <div className="space-y-4">
@@ -2479,6 +2608,82 @@ function ResultsScreen({
         <p className={`text-xl font-semibold ${performance.color}`} data-testid="text-performance-message">
           {performance.message}
         </p>
+        
+        {/* Coin Rewards Display */}
+        {rewardInfo?.rewards && (
+          <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-700 rounded-2xl p-6 border-2 border-yellow-300 dark:border-yellow-600">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="text-4xl animate-spin">🪙</div>
+              <h3 className="text-2xl font-bold text-yellow-800 dark:text-yellow-100" data-testid="text-coins-earned">
+                +{rewardInfo.rewards.coinsEarned} mynt!
+              </h3>
+              <div className="text-4xl animate-spin">🪙</div>
+            </div>
+            
+            <div className="space-y-2 text-sm text-yellow-700 dark:text-yellow-200">
+              {rewardInfo.rewards.baseCoins > 0 && (
+                <div className="flex justify-between">
+                  <span>Grundbelöning:</span>
+                  <span className="font-semibold">+{rewardInfo.rewards.baseCoins} mynt</span>
+                </div>
+              )}
+              {rewardInfo.rewards.accuracyBonus > 0 && (
+                <div className="flex justify-between">
+                  <span>Träffsäkerhetsbonus:</span>
+                  <span className="font-semibold">+{rewardInfo.rewards.accuracyBonus} mynt</span>
+                </div>
+              )}
+              {rewardInfo.rewards.exerciseTypeBonus > 0 && (
+                <div className="flex justify-between">
+                  <span>Övningstypsbonus:</span>
+                  <span className="font-semibold">+{rewardInfo.rewards.exerciseTypeBonus} mynt</span>
+                </div>
+              )}
+              {rewardInfo.rewards.streakBonusCoins > 0 && (
+                <div className="flex justify-between">
+                  <span>🔥 Streak-bonus:</span>
+                  <span className="font-semibold">+{rewardInfo.rewards.streakBonusCoins} mynt</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Streak Information */}
+        {streakInfo && (
+          <div className="bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-800 dark:to-purple-800 rounded-xl p-4 border border-blue-300 dark:border-blue-600">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="text-2xl">{streakInfo.emoji}</div>
+              <p className={`text-lg font-semibold ${streakInfo.color}`} data-testid="text-streak-message">
+                {streakInfo.message}
+              </p>
+            </div>
+            
+            {rewardInfo?.streak && (
+              <div className="text-center text-sm text-gray-600 dark:text-gray-300">
+                Nästa mål: {rewardInfo.streak.nextMilestone} dagar i rad
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Achievement Unlock */}
+        {rewardInfo?.achievement && (
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-800 dark:to-pink-800 rounded-xl p-6 border-2 border-purple-300 dark:border-purple-600 animate-pulse">
+            <div className="text-center space-y-2">
+              <div className="text-4xl">🏆</div>
+              <h3 className="text-xl font-bold text-purple-800 dark:text-purple-100" data-testid="text-achievement-title">
+                Prestation upplåst!
+              </h3>
+              <p className="text-lg font-semibold text-purple-700 dark:text-purple-200" data-testid="text-achievement-name">
+                {rewardInfo.achievement.title}
+              </p>
+              <p className="text-sm text-purple-600 dark:text-purple-300">
+                +{rewardInfo.achievement.coinsAwarded} extra mynt!
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Results Stats */}

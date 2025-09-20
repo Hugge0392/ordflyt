@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
 import emailTestRoutes from "./emailTestRoutes";
-import { requireAuth, requireRole, requireCsrf, requireTeacherLicense, requireStudentAuth } from "./auth";
+import { requireAuth, requireRole, requireCsrf, requireTeacherLicense, requireStudentAuth, logAuditEvent } from "./auth";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -3464,6 +3464,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
   }
 
+  // VOCABULARY EXERCISE REWARD CALCULATION
+  function calculateVocabularyRewards(
+    correctAnswers: number, 
+    totalQuestions: number, 
+    accuracyPercent: number, 
+    exerciseType: string,
+    streakAtStart: number, 
+    streakAtEnd: number,
+    completionBonus: boolean = true
+  ) {
+    // Base reward: 10 coins per completed exercise + bonus for correct answers
+    let baseCoins = completionBonus ? 10 : 0;
+    baseCoins += correctAnswers; // 1 coin per correct answer
+
+    // Accuracy bonuses (matching requirements specification)
+    let accuracyBonus = 0;
+    if (accuracyPercent >= 90) {
+      accuracyBonus += 5; // +5 coins for ≥90% accuracy
+    } else if (accuracyPercent >= 75) {
+      accuracyBonus += 2; // +2 coins for ≥75% accuracy
+    }
+
+    // Exercise type specific bonuses
+    let exerciseTypeBonus = 0;
+    const difficultyBonuses: Record<string, number> = {
+      'true_false': 0,           // Easiest - no bonus
+      'fill_in_blank': 1,        // Easy
+      'matching': 1,             // Easy-Medium  
+      'image_matching': 1,       // Easy-Medium
+      'sentence_completion': 2,  // Medium
+      'synonym_antonym': 2,      // Medium
+      'crossword': 3,           // Hardest - biggest bonus
+    };
+    exerciseTypeBonus = difficultyBonuses[exerciseType] || 0;
+
+    // Streak milestone bonuses (matching specification: 3-day, 7-day, 14-day, 30-day)
+    let streakBonusCoins = 0;
+    let milestoneReached = null;
+    
+    if (streakAtEnd === 3) {
+      streakBonusCoins = 25; // 3-day streak milestone
+      milestoneReached = '3-dagars streak';
+    } else if (streakAtEnd === 7) {
+      streakBonusCoins = 50; // 7-day streak milestone  
+      milestoneReached = '7-dagars streak';
+    } else if (streakAtEnd === 14) {
+      streakBonusCoins = 75; // 14-day streak milestone
+      milestoneReached = '14-dagars streak';
+    } else if (streakAtEnd === 30) {
+      streakBonusCoins = 100; // 30-day streak milestone
+      milestoneReached = '30-dagars streak';
+    } else if (streakAtEnd > 30 && streakAtEnd % 10 === 0) {
+      streakBonusCoins = 25; // Every 10-day streak beyond 30
+      milestoneReached = `${streakAtEnd}-dagars streak`;
+    }
+
+    const totalCoins = baseCoins + accuracyBonus + exerciseTypeBonus + streakBonusCoins;
+    
+    // Experience calculation (1 XP per correct answer + completion bonus)
+    const experienceEarned = correctAnswers + (completionBonus ? 5 : 0);
+
+    return {
+      coinsEarned: totalCoins,
+      baseCoins,
+      accuracyBonus,
+      exerciseTypeBonus,
+      streakBonusCoins,
+      experienceEarned,
+      milestoneReached,
+      streakAtEnd,
+      achievementUnlocked: milestoneReached !== null
+    };
+  }
+
+  // VOCABULARY STREAK TRACKING HELPERS
+  function isSameDay(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+  }
+
+  function isConsecutiveDay(lastDate: Date, currentDate: Date): boolean {
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return isSameDay(lastDate, yesterday);
+  }
+
+  function calculateNewStreak(lastStudyDate: Date | null, currentDate: Date, currentStreak: number): {
+    newStreak: number;
+    isNewDay: boolean;
+    streakContinued: boolean;
+    streakBroken: boolean;
+  } {
+    if (!lastStudyDate) {
+      return {
+        newStreak: 1,
+        isNewDay: true,
+        streakContinued: false,
+        streakBroken: false
+      };
+    }
+
+    if (isSameDay(lastStudyDate, currentDate)) {
+      // Same day - no streak change
+      return {
+        newStreak: currentStreak,
+        isNewDay: false,
+        streakContinued: false,
+        streakBroken: false
+      };
+    }
+
+    if (isConsecutiveDay(lastStudyDate, currentDate)) {
+      // Consecutive day - continue streak
+      return {
+        newStreak: currentStreak + 1,
+        isNewDay: true,
+        streakContinued: true,
+        streakBroken: false
+      };
+    }
+
+    // Gap in days - streak broken, start new
+    return {
+      newStreak: 1,
+      isNewDay: true,
+      streakContinued: false,
+      streakBroken: true
+    };
+  }
+
   // SHOP ITEMS
   app.get("/api/shop/items", requireStudentAuth, async (req, res) => {
     try {
@@ -4220,25 +4351,514 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/vocabulary/exercises/:exerciseId/attempts - Create new vocabulary attempt (Student only)
+  // SECURITY: SERVER-SIDE VOCABULARY ANSWER VALIDATION FUNCTION
+  // CRITICAL FIX: Now validates against DATABASE-STORED exercise config, not client data
+  function validateVocabularyAnswers(exerciseConfig: any, studentResponses: any[]): {
+    totalQuestions: number;
+    correctAnswers: number;
+    accuracy: number;
+    validatedResponses: any[];
+  } {
+    if (!exerciseConfig || !studentResponses || !Array.isArray(studentResponses)) {
+      return { totalQuestions: 0, correctAnswers: 0, accuracy: 0, validatedResponses: [] };
+    }
+
+    let correctCount = 0;
+    const validatedResponses = studentResponses.map((response, questionIndex) => {
+      // SERVER-AUTHORITATIVE: Validate against DATABASE-STORED exercise config
+      // NEVER trust client-supplied correctAnswer fields
+      let isCorrect = false;
+      
+      try {
+        // Validate based on exercise type using SERVER-STORED configuration
+        switch (exerciseConfig.type) {
+          case 'true_false':
+            isCorrect = validateTrueFalseAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'fill_in_blank':  
+            isCorrect = validateFillInBlankAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'matching':
+            isCorrect = validateMatchingAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'image_matching':
+            isCorrect = validateImageMatchingAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'sentence_completion':
+            isCorrect = validateSentenceCompletionAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'synonym_antonym':
+            isCorrect = validateSynonymAntonymAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'multiple_choice':
+            isCorrect = validateMultipleChoiceAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'definition_matching':
+            isCorrect = validateDefinitionMatchingAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'word_association':
+            isCorrect = validateWordAssociationAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'spelling':
+            isCorrect = validateSpellingAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'flashcards':
+            isCorrect = validateFlashcardAnswer(exerciseConfig, response, questionIndex);
+            break;
+          case 'crossword':
+            isCorrect = validateCrosswordAnswer(exerciseConfig, response, questionIndex);
+            break;
+          default:
+            console.warn(`Unsupported exercise type: ${exerciseConfig.type}`);
+            isCorrect = false;
+        }
+      } catch (error) {
+        console.error(`Validation error for question ${questionIndex}:`, error);
+        isCorrect = false; // Fail-safe: if validation fails, mark as incorrect
+      }
+
+      if (isCorrect) {
+        correctCount++;
+      }
+
+      return {
+        questionId: response.questionId || questionIndex,
+        userAnswer: response.userAnswer,
+        isCorrect, // SERVER-CALCULATED from database config, overriding any client value
+        validatedAt: new Date().toISOString(),
+        exerciseType: exerciseConfig.type
+      };
+    });
+
+    const totalQuestions = studentResponses.length;
+    const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+    return {
+      totalQuestions,
+      correctAnswers: correctCount,
+      accuracy,
+      validatedResponses
+    };
+  }
+
+  // EXERCISE TYPE VALIDATORS - All validate against DATABASE config, not client data
+  
+  function validateTrueFalseAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswer = question.correctAnswer; // From DATABASE config
+    const userAnswer = response.userAnswer;
+    
+    // Convert to boolean for comparison
+    const correctBool = typeof correctAnswer === 'boolean' ? correctAnswer : correctAnswer === 'true';
+    const userBool = typeof userAnswer === 'boolean' ? userAnswer : userAnswer === 'true';
+    
+    return correctBool === userBool;
+  }
+
+  function validateFillInBlankAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswers = Array.isArray(question.correctAnswers) 
+      ? question.correctAnswers 
+      : [question.correctAnswer];
+    
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    return correctAnswers.some((correct: any) => 
+      String(correct).toLowerCase().trim() === userAnswer
+    );
+  }
+
+  function validateMatchingAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question || !question.pairs) return false;
+    
+    const correctPairs = question.pairs; // Array of {left: string, right: string}
+    const userPairs = response.userAnswer; // Should be same format
+    
+    if (!Array.isArray(userPairs) || userPairs.length !== correctPairs.length) {
+      return false;
+    }
+    
+    // Check if all pairs match (order doesn't matter)
+    return userPairs.every((userPair: any) => 
+      correctPairs.some((correctPair: any) => 
+        correctPair.left === userPair.left && correctPair.right === userPair.right
+      )
+    );
+  }
+
+  function validateImageMatchingAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswer = question.correctImageId || question.correctAnswer;
+    const userAnswer = response.userAnswer;
+    
+    return String(correctAnswer) === String(userAnswer);
+  }
+
+  function validateSentenceCompletionAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswers = Array.isArray(question.correctAnswers) 
+      ? question.correctAnswers 
+      : [question.correctAnswer];
+    
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    return correctAnswers.some((correct: any) => 
+      String(correct).toLowerCase().trim() === userAnswer
+    );
+  }
+
+  function validateSynonymAntonymAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswers = Array.isArray(question.correctAnswers) 
+      ? question.correctAnswers 
+      : [question.correctAnswer];
+    
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    return correctAnswers.some((correct: any) => 
+      String(correct).toLowerCase().trim() === userAnswer
+    );
+  }
+
+  function validateMultipleChoiceAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswer = question.correctOptionIndex || question.correctAnswer;
+    const userAnswer = response.userAnswer;
+    
+    return correctAnswer === userAnswer;
+  }
+
+  function validateDefinitionMatchingAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question || !question.matches) return false;
+    
+    const correctMatches = question.matches; // Array of {term: string, definition: string}
+    const userMatches = response.userAnswer;
+    
+    if (!Array.isArray(userMatches) || userMatches.length !== correctMatches.length) {
+      return false;
+    }
+    
+    // Check if all matches are correct
+    return userMatches.every((userMatch: any) => 
+      correctMatches.some((correctMatch: any) => 
+        correctMatch.term === userMatch.term && correctMatch.definition === userMatch.definition
+      )
+    );
+  }
+
+  function validateWordAssociationAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctAnswers = Array.isArray(question.correctAnswers) 
+      ? question.correctAnswers 
+      : [question.correctAnswer];
+    
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    return correctAnswers.some((correct: any) => 
+      String(correct).toLowerCase().trim() === userAnswer
+    );
+  }
+
+  function validateSpellingAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    const correctSpelling = question.correctSpelling || question.word;
+    const userSpelling = String(response.userAnswer || '').trim();
+    
+    // Exact match for spelling (case-insensitive)
+    return correctSpelling.toLowerCase() === userSpelling.toLowerCase();
+  }
+
+  function validateFlashcardAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    // For flashcards, answer could be definition, synonym, or translation
+    const correctAnswers = Array.isArray(question.correctAnswers) 
+      ? question.correctAnswers 
+      : [question.correctAnswer, question.definition, question.translation].filter(Boolean);
+    
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    return correctAnswers.some((correct: any) => 
+      String(correct).toLowerCase().trim() === userAnswer
+    );
+  }
+
+  function validateCrosswordAnswer(config: any, response: any, questionIndex: number): boolean {
+    const question = config.questions?.[questionIndex];
+    if (!question) return false;
+    
+    // For crosswords, validate word placement and spelling
+    const correctWord = question.word || question.correctAnswer;
+    const userAnswer = String(response.userAnswer || '').toLowerCase().trim();
+    
+    // Support both word answers and coordinate-based answers
+    if (question.position && response.position) {
+      // Validate position matches (for crossword grid placement)
+      const correctPosition = question.position;
+      const userPosition = response.position;
+      
+      const positionMatch = correctPosition.row === userPosition.row && 
+                           correctPosition.col === userPosition.col &&
+                           correctPosition.direction === userPosition.direction;
+      
+      return positionMatch && correctWord.toLowerCase() === userAnswer;
+    } else {
+      // Simple word matching for crossword clues
+      return correctWord.toLowerCase() === userAnswer;
+    }
+  }
+
+  // POST /api/vocabulary/exercises/:exerciseId/attempts - Create new vocabulary attempt with SECURE server-side validation (Student only)
   app.post("/api/vocabulary/exercises/:exerciseId/attempts", requireStudentAuth, requireCsrf, async (req, res) => {
+    const ipAddress = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+    
     try {
       const { exerciseId } = req.params;
       const studentId = (req.user as any)?.id;
       if (!studentId) {
+        await logAuditEvent('VOCABULARY_ATTEMPT_UNAUTHORIZED', null, false, ipAddress, userAgent, { exerciseId });
         return res.status(401).json({ error: "Student authentication required" });
       }
       
+      // Validate the incoming attempt data
       const validatedData = insertVocabularyAttemptSchema.strict().parse({ 
         ...req.body, 
         exerciseId, 
         studentId 
       });
-      const newAttempt = await storage.createVocabularyAttempt(validatedData);
-      res.status(201).json(newAttempt);
+
+      // IDEMPOTENCY CHECK: Prevent duplicate submissions
+      if (validatedData.idempotencyKey) {
+        const [existingAttempt] = await db
+          .select()
+          .from(schema.vocabularyAttempts)
+          .where(eq(schema.vocabularyAttempts.idempotencyKey, validatedData.idempotencyKey))
+          .limit(1);
+          
+        if (existingAttempt) {
+          await logAuditEvent('VOCABULARY_ATTEMPT_DUPLICATE', studentId, false, ipAddress, userAgent, { 
+            exerciseId, 
+            idempotencyKey: validatedData.idempotencyKey,
+            existingAttemptId: existingAttempt.id
+          });
+          return res.status(409).json({ 
+            error: "Duplicate submission detected", 
+            existingAttempt: existingAttempt 
+          });
+        }
+      }
+
+      // Only award rewards for completed attempts
+      if (validatedData.status !== 'completed') {
+        const newAttempt = await storage.createVocabularyAttempt(validatedData);
+        return res.status(201).json(newAttempt);
+      }
+
+      // ATOMIC TRANSACTION: All operations must succeed together
+      const result = await db.transaction(async (tx) => {
+        // Get exercise details for reward calculation
+        const exercise = await storage.getVocabularyExercise(exerciseId);
+        if (!exercise) {
+          throw new Error("Exercise not found");
+        }
+
+        // SECURITY: SERVER-SIDE VALIDATION - Never trust client-supplied performance metrics
+        const clientAnswers = validatedData.answers || { responses: [] };
+        const validation = validateVocabularyAnswers(exercise.config, clientAnswers.responses);
+        
+        // SERVER-CALCULATED metrics (ignore ALL client values)
+        const totalQuestions = validation.totalQuestions;
+        const correctAnswers = validation.correctAnswers;
+        const accuracyPercent = validation.accuracy;
+
+        // Get or create student's vocabulary streak record
+        let streakRecord = await storage.getVocabularyStreak(studentId);
+        const currentDate = new Date();
+        
+        if (!streakRecord) {
+          // Create new streak record for first-time user
+          streakRecord = await storage.createVocabularyStreak({
+            studentId,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastStudyDate: null,
+            totalDaysStudied: 0,
+            totalExercisesCompleted: 0,
+            totalCorrectAnswers: 0,
+            totalCoinsEarned: 0,
+            achievements: [],
+            milestones: []
+          });
+        }
+
+        // Calculate streak changes
+        const streakAtStart = streakRecord.currentStreak;
+        const streakCalc = calculateNewStreak(streakRecord.lastStudyDate, currentDate, streakAtStart);
+        const streakAtEnd = streakCalc.newStreak;
+
+        // Calculate rewards based on SERVER-VALIDATED performance and streaks
+        const rewardInfo = calculateVocabularyRewards(
+          correctAnswers,
+          totalQuestions,
+          accuracyPercent,
+          exercise.type,
+          streakAtStart,
+          streakAtEnd,
+          true // completion bonus
+        );
+
+        // Create the attempt record with SERVER-CALCULATED reward information and validated answers
+        const attemptData = {
+          ...validatedData,
+          answers: {
+            responses: validation.validatedResponses,
+            totalQuestions,
+            correctCount: correctAnswers,
+            incorrectCount: totalQuestions - correctAnswers,
+            skippedCount: 0,
+            hintsUsed: 0,
+            streakCount: 0
+          },
+          accuracy: accuracyPercent,
+          streakAtStart,
+          streakAtEnd,
+          coinsEarned: rewardInfo.coinsEarned,
+          experienceEarned: rewardInfo.experienceEarned,
+          rewardedAt: new Date()
+        };
+
+        const newAttempt = await storage.createVocabularyAttempt(attemptData);
+
+        // SECURITY: Award coins securely with atomic transaction (prevents double-awards)
+        if (rewardInfo.coinsEarned > 0) {
+          await awardCurrencySecure(
+            studentId,
+            rewardInfo.coinsEarned,
+            `Ordförrådsövning: ${exercise.title}`,
+            'vocabulary_exercise',
+            exerciseId
+          );
+        }
+
+        // Update vocabulary streak record
+        const updatedStreak = await storage.updateVocabularyStreak(streakRecord.id, {
+          currentStreak: streakAtEnd,
+          longestStreak: Math.max(streakRecord.longestStreak, streakAtEnd),
+          lastStudyDate: streakCalc.isNewDay ? currentDate : streakRecord.lastStudyDate,
+          streakStartDate: streakAtEnd === 1 ? currentDate : streakRecord.streakStartDate,
+          totalDaysStudied: streakCalc.isNewDay ? 
+            (streakRecord.totalDaysStudied || 0) + 1 : 
+            (streakRecord.totalDaysStudied || 0),
+          totalExercisesCompleted: (streakRecord.totalExercisesCompleted || 0) + 1,
+          totalCorrectAnswers: (streakRecord.totalCorrectAnswers || 0) + correctAnswers,
+          totalCoinsEarned: (streakRecord.totalCoinsEarned || 0) + rewardInfo.coinsEarned,
+          updatedAt: currentDate
+        });
+
+        // Check for new achievements and milestones
+        const achievements = [...(streakRecord.achievements || [])];
+        
+        if (rewardInfo.achievementUnlocked && rewardInfo.milestoneReached) {
+          const newAchievement = {
+            id: `streak_${streakAtEnd}_${Date.now()}`,
+            type: 'streak' as const,
+            title: rewardInfo.milestoneReached,
+            description: `Fantastiskt! Du har tränat ordförråd ${streakAtEnd} dagar i rad!`,
+            earnedAt: currentDate.toISOString(),
+            coinsAwarded: rewardInfo.streakBonusCoins,
+            criteria: { streakDays: streakAtEnd }
+          };
+          achievements.push(newAchievement);
+
+          // Update achievements in streak record
+          await storage.updateVocabularyStreak(streakRecord.id, {
+            achievements
+          });
+        }
+
+        // AUDIT LOGGING: Log successful completion with server-calculated metrics
+        await logAuditEvent('VOCABULARY_ATTEMPT_COMPLETED', studentId, true, ipAddress, userAgent, {
+          exerciseId,
+          attemptId: newAttempt.id,
+          serverValidation: {
+            totalQuestions,
+            correctAnswers,
+            accuracy: accuracyPercent,
+            coinsEarned: rewardInfo.coinsEarned,
+            streakAtStart,
+            streakAtEnd
+          },
+          clientMetricsIgnored: true,
+          idempotencyKey: validatedData.idempotencyKey
+        });
+
+        // Return comprehensive response with SERVER-CALCULATED reward information
+        return {
+          attempt: newAttempt,
+          rewards: {
+            coinsEarned: rewardInfo.coinsEarned,
+            baseCoins: rewardInfo.baseCoins,
+            accuracyBonus: rewardInfo.accuracyBonus,
+            exerciseTypeBonus: rewardInfo.exerciseTypeBonus,
+            streakBonusCoins: rewardInfo.streakBonusCoins,
+            experienceEarned: rewardInfo.experienceEarned,
+            totalReward: rewardInfo.coinsEarned,
+            // Include server validation info for transparency (but not used for rewards)
+            serverValidation: {
+              totalQuestions,
+              correctAnswers,
+              accuracy: accuracyPercent,
+              clientMetricsIgnored: true
+            }
+          },
+          streak: {
+            current: streakAtEnd,
+            previous: streakAtStart,
+            longest: updatedStreak.longestStreak,
+            isNewDay: streakCalc.isNewDay,
+            continued: streakCalc.streakContinued,
+            broken: streakCalc.streakBroken
+          },
+          achievement: rewardInfo.achievementUnlocked ? {
+            title: rewardInfo.milestoneReached,
+            coinsAwarded: rewardInfo.streakBonusCoins,
+            type: 'streak'
+          } : null
+        };
+      });
+
+      // Return the secure transaction result
+      res.status(201).json(result);
     } catch (error) {
+      // AUDIT LOGGING: Log all errors for security analysis
+      await logAuditEvent('VOCABULARY_ATTEMPT_ERROR', studentId || null, false, ipAddress, userAgent, { 
+        exerciseId: req.params.exerciseId,
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof z.ZodError ? 'validation' : 'system'
+      });
+      
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
+        return res.status(400).json({ error: "Invalid attempt data", details: error.errors });
       }
       console.error("Error creating vocabulary attempt:", error);
       res.status(500).json({ error: "Failed to create vocabulary attempt" });

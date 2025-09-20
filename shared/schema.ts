@@ -75,7 +75,8 @@ export const vocabularyExerciseTypeEnum = pgEnum('vocabulary_exercise_type', [
   'definition_matching',
   'synonym_antonym',
   'image_matching',
-  'spelling'
+  'spelling',
+  'true_false'
 ]);
 
 // Vocabulary attempt status enum
@@ -767,6 +768,16 @@ export const vocabularyAttempts = pgTable("vocabulary_attempts", {
   answers: jsonb("answers").$type<VocabularyAnswerData>(),
   attemptNumber: integer("attempt_number").default(1), // attempt number for this exercise
   
+  // Streak and reward tracking (added for integration)
+  streakAtStart: integer("streak_at_start").default(0),
+  streakAtEnd: integer("streak_at_end").default(0),
+  coinsEarned: integer("coins_earned").default(0),
+  experienceEarned: integer("experience_earned").default(0),
+  rewardedAt: timestamp("rewarded_at"), // Prevents double-awarding rewards
+  
+  // IDEMPOTENCY: Prevents duplicate submissions
+  idempotencyKey: varchar("idempotency_key", { length: 255 }),
+  
   // Standard tracking fields
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -778,6 +789,44 @@ export const vocabularyAttempts = pgTable("vocabulary_attempts", {
   completedIdx: index("vocabulary_attempts_completed_idx").on(table.completedAt),
   // Composite index for comprehensive querying
   studentExerciseStatusIdx: index("vocabulary_attempts_student_exercise_status_idx").on(table.studentId, table.exerciseId, table.status),
+  // Index for reward tracking
+  rewardedIdx: index("vocabulary_attempts_rewarded_idx").on(table.rewardedAt),
+  // Unique constraint on idempotency key for duplicate prevention
+  idempotencyIdx: uniqueIndex("vocabulary_attempts_idempotency_idx").on(table.idempotencyKey),
+}));
+
+// Vocabulary streaks - tracks daily streaks and achievements per student for vocabulary exercises
+export const vocabularyStreaks = pgTable("vocabulary_streaks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // Daily streak tracking
+  currentStreak: integer("current_streak").default(0), // current consecutive days
+  longestStreak: integer("longest_streak").default(0), // best streak ever
+  lastStudyDate: timestamp("last_study_date"),
+  streakStartDate: timestamp("streak_start_date"),
+  
+  // Achievement tracking
+  achievements: jsonb("achievements").$type<VocabularyAchievement[]>().default([]),
+  
+  // Statistics
+  totalDaysStudied: integer("total_days_studied").default(0),
+  totalExercisesCompleted: integer("total_exercises_completed").default(0),
+  totalCorrectAnswers: integer("total_correct_answers").default(0),
+  totalCoinsEarned: integer("total_coins_earned").default(0),
+  
+  // Milestone tracking
+  milestones: jsonb("milestones").$type<VocabularyMilestone[]>().default([]),
+  nextMilestoneAt: integer("next_milestone_at").default(3), // next milestone streak length
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentIdx: uniqueIndex("vocabulary_streaks_student_idx").on(table.studentId),
+  currentStreakIdx: index("vocabulary_streaks_current_streak_idx").on(table.currentStreak),
+  lastStudyIdx: index("vocabulary_streaks_last_study_idx").on(table.lastStudyDate),
+  longestStreakIdx: index("vocabulary_streaks_longest_streak_idx").on(table.longestStreak),
 }));
 
 // Vocabulary system interfaces and types
@@ -917,6 +966,35 @@ export interface VocabularyResponse {
   timestamp: string; // ISO timestamp when answered
 }
 
+// Vocabulary achievement system interfaces
+export interface VocabularyAchievement {
+  id: string;
+  type: 'streak' | 'accuracy' | 'speed' | 'completion' | 'milestone';
+  title: string; // e.g., "3-dagar i rad", "Perfekt poäng", "Blixtsnabb"
+  description: string;
+  earnedAt: string; // ISO timestamp
+  coinsAwarded: number;
+  criteria: {
+    streakDays?: number;
+    accuracy?: number; // percentage
+    completedExercises?: number;
+    averageTime?: number; // milliseconds
+    exerciseType?: string;
+  };
+}
+
+export interface VocabularyMilestone {
+  id: string;
+  type: 'daily_streak' | 'weekly_streak' | 'monthly_streak' | 'total_exercises' | 'perfect_scores';
+  name: string; // e.g., "3-dagars streak", "7-dagars streak"
+  description: string;
+  threshold: number; // streak days or exercise count
+  coinsReward: number;
+  reached: boolean;
+  reachedAt?: string; // ISO timestamp
+  nextThreshold?: number; // next milestone
+}
+
 // Insert schemas for vocabulary system
 export const insertVocabularySetSchema = createInsertSchema(vocabularySets).omit({
   id: true,
@@ -942,6 +1020,12 @@ export const insertVocabularyAttemptSchema = createInsertSchema(vocabularyAttemp
   updatedAt: true,
 });
 
+export const insertVocabularyStreakSchema = createInsertSchema(vocabularyStreaks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // TypeScript types for vocabulary system
 export type VocabularySet = typeof vocabularySets.$inferSelect;
 export type InsertVocabularySet = z.infer<typeof insertVocabularySetSchema>;
@@ -951,6 +1035,8 @@ export type VocabularyExercise = typeof vocabularyExercises.$inferSelect;
 export type InsertVocabularyExercise = z.infer<typeof insertVocabularyExerciseSchema>;
 export type VocabularyAttempt = typeof vocabularyAttempts.$inferSelect;
 export type InsertVocabularyAttempt = z.infer<typeof insertVocabularyAttemptSchema>;
+export type VocabularyStreak = typeof vocabularyStreaks.$inferSelect;
+export type InsertVocabularyStreak = z.infer<typeof insertVocabularyStreakSchema>;
 
 // Flashcard system extensions
 

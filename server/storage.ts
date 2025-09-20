@@ -287,6 +287,11 @@ export interface IStorage {
   getVocabularyAttempt(id: string): Promise<VocabularyAttempt | undefined>;
   updateVocabularyAttempt(id: string, attempt: Partial<InsertVocabularyAttempt>): Promise<VocabularyAttempt>;
 
+  // Vocabulary streak methods
+  createVocabularyStreak(streak: InsertVocabularyStreak): Promise<VocabularyStreak>;
+  getVocabularyStreak(studentId: string): Promise<VocabularyStreak | undefined>;
+  updateVocabularyStreak(id: string, streak: Partial<InsertVocabularyStreak>): Promise<VocabularyStreak>;
+
   // Flashcard progress methods
   createFlashcardProgress(progress: InsertFlashcardProgress): Promise<FlashcardProgress>;
   getFlashcardProgress(studentId: string, wordId: string): Promise<FlashcardProgress | undefined>;
@@ -330,6 +335,7 @@ export class MemStorage implements IStorage {
   private vocabularyWords: Map<string, VocabularyWord> = new Map();
   private vocabularyExercises: Map<string, VocabularyExercise> = new Map();
   private vocabularyAttempts: Map<string, VocabularyAttempt> = new Map();
+  private vocabularyStreaks: Map<string, VocabularyStreak> = new Map();
   private flashcardProgress: Map<string, FlashcardProgress> = new Map();
   private flashcardStreaks: Map<string, FlashcardStreak> = new Map();
   private flashcardSessions: Map<string, FlashcardSession> = new Map();
@@ -1154,6 +1160,38 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     this.vocabularyAttempts.set(id, updated);
+    return updated;
+  }
+
+  // Vocabulary streak methods
+  async createVocabularyStreak(streak: InsertVocabularyStreak): Promise<VocabularyStreak> {
+    const id = randomUUID();
+    const newStreak: VocabularyStreak = {
+      id,
+      ...streak,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.vocabularyStreaks.set(id, newStreak);
+    return newStreak;
+  }
+
+  async getVocabularyStreak(studentId: string): Promise<VocabularyStreak | undefined> {
+    return Array.from(this.vocabularyStreaks.values())
+      .find(streak => streak.studentId === studentId);
+  }
+
+  async updateVocabularyStreak(id: string, streak: Partial<InsertVocabularyStreak>): Promise<VocabularyStreak> {
+    const existing = this.vocabularyStreaks.get(id);
+    if (!existing) {
+      throw new Error(`Vocabulary streak with id ${id} not found`);
+    }
+    const updated: VocabularyStreak = {
+      ...existing,
+      ...streak,
+      updatedAt: new Date(),
+    };
+    this.vocabularyStreaks.set(id, updated);
     return updated;
   }
 
@@ -3630,6 +3668,29 @@ export class DatabaseStorage implements IStorage {
       .update(vocabularyAttempts)
       .set({ ...attempt, updatedAt: new Date() })
       .where(eq(vocabularyAttempts.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Vocabulary streak methods
+  async createVocabularyStreak(streak: InsertVocabularyStreak): Promise<VocabularyStreak> {
+    const [newStreak] = await db.insert(vocabularyStreaks).values(streak).returning();
+    return newStreak;
+  }
+
+  async getVocabularyStreak(studentId: string): Promise<VocabularyStreak | undefined> {
+    const [result] = await db
+      .select()
+      .from(vocabularyStreaks)
+      .where(eq(vocabularyStreaks.studentId, studentId));
+    return result;
+  }
+
+  async updateVocabularyStreak(id: string, streak: Partial<InsertVocabularyStreak>): Promise<VocabularyStreak> {
+    const [updated] = await db
+      .update(vocabularyStreaks)
+      .set({ ...streak, updatedAt: new Date() })
+      .where(eq(vocabularyStreaks.id, id))
       .returning();
     return updated;
   }
