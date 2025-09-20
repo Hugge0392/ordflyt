@@ -9,6 +9,8 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Menu from "@/pages/menu";
+import StudentHome from "@/pages/student-home";
+import StudentShop from "@/pages/student-shop";
 import Placeholder from "@/pages/placeholder";
 import ReadingHome from "@/pages/reading-home";
 import ReadingComprehension from "@/pages/reading-comprehension";
@@ -80,6 +82,8 @@ function Router() {
       <Route path="/elev/password" component={StudentPasswordChangePage} />
       
       {/* Student routes - now public for exploration */}
+      <Route path="/elev" component={StudentHome} />
+      <Route path="/elev/butik" component={StudentShop} />
       <Route path="/menu" component={Menu} />
       <Route path="/grammatik" component={Menu} />
       <Route path="/lasforstaelse" component={ReadingHome} />
