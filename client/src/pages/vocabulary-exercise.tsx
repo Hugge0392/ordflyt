@@ -68,6 +68,14 @@ const EXERCISE_TYPES = [
     icon: <Shuffle className="w-6 h-6" />,
     color: 'bg-purple-100 text-purple-800 border-purple-200',
     difficulty: 'Medel'
+  },
+  { 
+    id: 'flashcards', 
+    title: 'Flashcards', 
+    description: 'Interaktiva kort med spaced repetition',
+    icon: <Zap className="w-6 h-6" />,
+    color: 'bg-gradient-to-r from-pink-100 to-purple-100 text-pink-800 border-pink-200',
+    difficulty: 'Anpassad'
   }
 ];
 
@@ -295,6 +303,12 @@ export default function VocabularyExercise({ setId: propSetId, exerciseId: propE
 
   // Start exercise
   const startExercise = (set: VocabularySet, exerciseType: string) => {
+    // Handle flashcards - redirect to flashcard session
+    if (exerciseType === 'flashcards') {
+      setLocation(`/vocabulary/flashcards/${set.id}`);
+      return;
+    }
+
     // Ensure the parent selectedSet matches the set being started
     if (selectedSet?.id !== set.id) {
       setSelectedSet(set);

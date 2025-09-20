@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { BookOpen, Clock, Target, Award, User, Search, Filter, Play, Sparkles } from "lucide-react";
+import { BookOpen, Clock, Target, Award, User, Search, Filter, Play, Sparkles, Zap, Brain } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 import type { VocabularySet, VocabularyStatsResponse } from "@shared/schema";
@@ -267,6 +267,35 @@ export default function VocabularyLessons() {
                           <Play className="w-3 h-3" />
                           <span data-testid={`text-exercise-count-${set.id}`}>{exerciseCount} övningar</span>
                         </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/elev/ordforrad?setId=${set.id || ''}`);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs"
+                          data-testid={`button-exercises-${set.id}`}
+                        >
+                          <Play className="w-3 h-3 mr-1" />
+                          Övningar
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/vocabulary/flashcards/${set.id}`);
+                          }}
+                          size="sm"
+                          className="flex-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                          data-testid={`button-flashcards-${set.id}`}
+                        >
+                          <Zap className="w-3 h-3 mr-1" />
+                          Flashcards
+                        </Button>
                       </div>
 
                       {wordCount > 0 && (

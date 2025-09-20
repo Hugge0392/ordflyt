@@ -64,6 +64,7 @@ import StudentLoginPage from "@/pages/student-login";
 import StudentPasswordChangePage from "@/pages/student-password-change";
 import VocabularyExercise from "@/pages/vocabulary-exercise";
 import VocabularyLessons from "@/pages/vocabulary-lessons";
+import FlashcardSession from "@/pages/flashcard-session";
 
 function Router() {
   return (
@@ -96,6 +97,7 @@ function Router() {
       <Route path="/vocabulary-lessons" component={VocabularyLessons} />
       <Route path="/elev/ordforrad" component={VocabularyExercise} />
       <Route path="/vocabulary/exercise/:exerciseId" component={VocabularyExercise} />
+      <Route path="/vocabulary/flashcards/:setId" component={FlashcardSession} />
       <Route path="/menu" component={Menu} />
       <Route path="/grammatik" component={Menu} />
       <Route path="/lasforstaelse" component={ReadingHome} />

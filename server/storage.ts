@@ -68,11 +68,17 @@ import {
   type InsertVocabularyExercise,
   type VocabularyAttempt,
   type InsertVocabularyAttempt,
+  type FlashcardProgress,
+  type InsertFlashcardProgress,
+  type FlashcardStreak,
+  type InsertFlashcardStreak,
+  type FlashcardSession,
+  type InsertFlashcardSession,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, gte, lte, sql, or } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity, vocabularySets, vocabularyWords, vocabularyExercises, vocabularyAttempts } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity, vocabularySets, vocabularyWords, vocabularyExercises, vocabularyAttempts, flashcardProgress, flashcardStreaks, flashcardSessions } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -280,6 +286,24 @@ export interface IStorage {
   getStudentVocabularyAttempts(studentId: string, exerciseId: string): Promise<VocabularyAttempt[]>;
   getVocabularyAttempt(id: string): Promise<VocabularyAttempt | undefined>;
   updateVocabularyAttempt(id: string, attempt: Partial<InsertVocabularyAttempt>): Promise<VocabularyAttempt>;
+
+  // Flashcard progress methods
+  createFlashcardProgress(progress: InsertFlashcardProgress): Promise<FlashcardProgress>;
+  getFlashcardProgress(studentId: string, wordId: string): Promise<FlashcardProgress | undefined>;
+  getStudentFlashcardProgress(studentId: string, setId?: string): Promise<FlashcardProgress[]>;
+  updateFlashcardProgress(id: string, progress: Partial<InsertFlashcardProgress>): Promise<FlashcardProgress>;
+  getWordsForReview(studentId: string, setId: string, limit?: number): Promise<FlashcardProgress[]>;
+
+  // Flashcard streak methods
+  createFlashcardStreak(streak: InsertFlashcardStreak): Promise<FlashcardStreak>;
+  getFlashcardStreak(studentId: string): Promise<FlashcardStreak | undefined>;
+  updateFlashcardStreak(id: string, streak: Partial<InsertFlashcardStreak>): Promise<FlashcardStreak>;
+
+  // Flashcard session methods
+  createFlashcardSession(session: InsertFlashcardSession): Promise<FlashcardSession>;
+  getFlashcardSessions(studentId: string, setId?: string): Promise<FlashcardSession[]>;
+  getFlashcardSession(id: string): Promise<FlashcardSession | undefined>;
+  updateFlashcardSession(id: string, session: Partial<InsertFlashcardSession>): Promise<FlashcardSession>;
 }
 
 export class MemStorage implements IStorage {
@@ -306,6 +330,9 @@ export class MemStorage implements IStorage {
   private vocabularyWords: Map<string, VocabularyWord> = new Map();
   private vocabularyExercises: Map<string, VocabularyExercise> = new Map();
   private vocabularyAttempts: Map<string, VocabularyAttempt> = new Map();
+  private flashcardProgress: Map<string, FlashcardProgress> = new Map();
+  private flashcardStreaks: Map<string, FlashcardStreak> = new Map();
+  private flashcardSessions: Map<string, FlashcardSession> = new Map();
 
   constructor() {
     this.gameProgress = this.createEmptyProgress();
@@ -1127,6 +1154,130 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     this.vocabularyAttempts.set(id, updated);
+    return updated;
+  }
+
+  // Flashcard progress methods
+  async createFlashcardProgress(progress: InsertFlashcardProgress): Promise<FlashcardProgress> {
+    const id = randomUUID();
+    const newProgress: FlashcardProgress = {
+      id,
+      ...progress,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.flashcardProgress.set(id, newProgress);
+    return newProgress;
+  }
+
+  async getFlashcardProgress(studentId: string, wordId: string): Promise<FlashcardProgress | undefined> {
+    return Array.from(this.flashcardProgress.values())
+      .find(progress => progress.studentId === studentId && progress.wordId === wordId);
+  }
+
+  async getStudentFlashcardProgress(studentId: string, setId?: string): Promise<FlashcardProgress[]> {
+    return Array.from(this.flashcardProgress.values())
+      .filter(progress => {
+        if (progress.studentId !== studentId) return false;
+        if (setId && progress.setId !== setId) return false;
+        return true;
+      })
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
+  async updateFlashcardProgress(id: string, progress: Partial<InsertFlashcardProgress>): Promise<FlashcardProgress> {
+    const existing = this.flashcardProgress.get(id);
+    if (!existing) {
+      throw new Error(`Flashcard progress with id ${id} not found`);
+    }
+    const updated: FlashcardProgress = {
+      ...existing,
+      ...progress,
+      updatedAt: new Date(),
+    };
+    this.flashcardProgress.set(id, updated);
+    return updated;
+  }
+
+  async getWordsForReview(studentId: string, setId: string, limit: number = 20): Promise<FlashcardProgress[]> {
+    const now = new Date();
+    return Array.from(this.flashcardProgress.values())
+      .filter(progress => {
+        if (progress.studentId !== studentId || progress.setId !== setId) return false;
+        return progress.nextReviewDate <= now;
+      })
+      .sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime())
+      .slice(0, limit);
+  }
+
+  // Flashcard streak methods
+  async createFlashcardStreak(streak: InsertFlashcardStreak): Promise<FlashcardStreak> {
+    const id = randomUUID();
+    const newStreak: FlashcardStreak = {
+      id,
+      ...streak,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.flashcardStreaks.set(id, newStreak);
+    return newStreak;
+  }
+
+  async getFlashcardStreak(studentId: string): Promise<FlashcardStreak | undefined> {
+    return Array.from(this.flashcardStreaks.values())
+      .find(streak => streak.studentId === studentId);
+  }
+
+  async updateFlashcardStreak(id: string, streak: Partial<InsertFlashcardStreak>): Promise<FlashcardStreak> {
+    const existing = this.flashcardStreaks.get(id);
+    if (!existing) {
+      throw new Error(`Flashcard streak with id ${id} not found`);
+    }
+    const updated: FlashcardStreak = {
+      ...existing,
+      ...streak,
+      updatedAt: new Date(),
+    };
+    this.flashcardStreaks.set(id, updated);
+    return updated;
+  }
+
+  // Flashcard session methods
+  async createFlashcardSession(session: InsertFlashcardSession): Promise<FlashcardSession> {
+    const id = randomUUID();
+    const newSession: FlashcardSession = {
+      id,
+      ...session,
+      createdAt: new Date(),
+    };
+    this.flashcardSessions.set(id, newSession);
+    return newSession;
+  }
+
+  async getFlashcardSessions(studentId: string, setId?: string): Promise<FlashcardSession[]> {
+    return Array.from(this.flashcardSessions.values())
+      .filter(session => {
+        if (session.studentId !== studentId) return false;
+        if (setId && session.setId !== setId) return false;
+        return true;
+      })
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }
+
+  async getFlashcardSession(id: string): Promise<FlashcardSession | undefined> {
+    return this.flashcardSessions.get(id);
+  }
+
+  async updateFlashcardSession(id: string, session: Partial<InsertFlashcardSession>): Promise<FlashcardSession> {
+    const existing = this.flashcardSessions.get(id);
+    if (!existing) {
+      throw new Error(`Flashcard session with id ${id} not found`);
+    }
+    const updated: FlashcardSession = {
+      ...existing,
+      ...session,
+    };
+    this.flashcardSessions.set(id, updated);
     return updated;
   }
 }
@@ -3479,6 +3630,109 @@ export class DatabaseStorage implements IStorage {
       .update(vocabularyAttempts)
       .set({ ...attempt, updatedAt: new Date() })
       .where(eq(vocabularyAttempts.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Flashcard progress methods
+  async createFlashcardProgress(progress: InsertFlashcardProgress): Promise<FlashcardProgress> {
+    const [newProgress] = await db.insert(flashcardProgress).values(progress).returning();
+    return newProgress;
+  }
+
+  async getFlashcardProgress(studentId: string, wordId: string): Promise<FlashcardProgress | undefined> {
+    const [result] = await db
+      .select()
+      .from(flashcardProgress)
+      .where(and(eq(flashcardProgress.studentId, studentId), eq(flashcardProgress.wordId, wordId)));
+    return result;
+  }
+
+  async getStudentFlashcardProgress(studentId: string, setId?: string): Promise<FlashcardProgress[]> {
+    const conditions = [eq(flashcardProgress.studentId, studentId)];
+    if (setId) {
+      conditions.push(eq(flashcardProgress.setId, setId));
+    }
+    return await db
+      .select()
+      .from(flashcardProgress)
+      .where(and(...conditions))
+      .orderBy(sql`${flashcardProgress.updatedAt} DESC`);
+  }
+
+  async updateFlashcardProgress(id: string, progress: Partial<InsertFlashcardProgress>): Promise<FlashcardProgress> {
+    const [updated] = await db
+      .update(flashcardProgress)
+      .set({ ...progress, updatedAt: new Date() })
+      .where(eq(flashcardProgress.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getWordsForReview(studentId: string, setId: string, limit: number = 20): Promise<FlashcardProgress[]> {
+    return await db
+      .select()
+      .from(flashcardProgress)
+      .where(and(
+        eq(flashcardProgress.studentId, studentId),
+        eq(flashcardProgress.setId, setId),
+        lte(flashcardProgress.nextReviewDate, new Date())
+      ))
+      .orderBy(flashcardProgress.nextReviewDate)
+      .limit(limit);
+  }
+
+  // Flashcard streak methods
+  async createFlashcardStreak(streak: InsertFlashcardStreak): Promise<FlashcardStreak> {
+    const [newStreak] = await db.insert(flashcardStreaks).values(streak).returning();
+    return newStreak;
+  }
+
+  async getFlashcardStreak(studentId: string): Promise<FlashcardStreak | undefined> {
+    const [result] = await db
+      .select()
+      .from(flashcardStreaks)
+      .where(eq(flashcardStreaks.studentId, studentId));
+    return result;
+  }
+
+  async updateFlashcardStreak(id: string, streak: Partial<InsertFlashcardStreak>): Promise<FlashcardStreak> {
+    const [updated] = await db
+      .update(flashcardStreaks)
+      .set({ ...streak, updatedAt: new Date() })
+      .where(eq(flashcardStreaks.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Flashcard session methods
+  async createFlashcardSession(session: InsertFlashcardSession): Promise<FlashcardSession> {
+    const [newSession] = await db.insert(flashcardSessions).values(session).returning();
+    return newSession;
+  }
+
+  async getFlashcardSessions(studentId: string, setId?: string): Promise<FlashcardSession[]> {
+    const conditions = [eq(flashcardSessions.studentId, studentId)];
+    if (setId) {
+      conditions.push(eq(flashcardSessions.setId, setId));
+    }
+    return await db
+      .select()
+      .from(flashcardSessions)
+      .where(and(...conditions))
+      .orderBy(sql`${flashcardSessions.startedAt} DESC`);
+  }
+
+  async getFlashcardSession(id: string): Promise<FlashcardSession | undefined> {
+    const [result] = await db.select().from(flashcardSessions).where(eq(flashcardSessions.id, id));
+    return result;
+  }
+
+  async updateFlashcardSession(id: string, session: Partial<InsertFlashcardSession>): Promise<FlashcardSession> {
+    const [updated] = await db
+      .update(flashcardSessions)
+      .set(session)
+      .where(eq(flashcardSessions.id, id))
       .returning();
     return updated;
   }

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, jsonb, timestamp, pgEnum, boolean, uniqueIndex, index, check } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb, timestamp, pgEnum, boolean, uniqueIndex, index, check, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -951,6 +951,225 @@ export type VocabularyExercise = typeof vocabularyExercises.$inferSelect;
 export type InsertVocabularyExercise = z.infer<typeof insertVocabularyExerciseSchema>;
 export type VocabularyAttempt = typeof vocabularyAttempts.$inferSelect;
 export type InsertVocabularyAttempt = z.infer<typeof insertVocabularyAttemptSchema>;
+
+// Flashcard system extensions
+
+// Mastery level enum for individual word progress
+export const masteryLevelEnum = pgEnum('mastery_level', [
+  'learning',    // Just started learning this word
+  'familiar',    // Seen it a few times, getting familiar
+  'mastered'     // Consistently gets it right
+]);
+
+// Learning mode enum for flashcard sessions
+export const learningModeEnum = pgEnum('learning_mode', [
+  'study',       // Browse without scoring
+  'practice',    // Self-assessment with easy/hard feedback
+  'test',        // Formal assessment with scoring
+  'mixed'        // Random order with spaced repetition
+]);
+
+// Flashcard progress - tracks individual word progress per student
+export const flashcardProgress = pgTable("flashcard_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  wordId: varchar("word_id").notNull().references(() => vocabularyWords.id, { onDelete: 'cascade' }),
+  setId: varchar("set_id").notNull().references(() => vocabularySets.id, { onDelete: 'cascade' }),
+  
+  // Progress tracking
+  masteryLevel: masteryLevelEnum("mastery_level").notNull().default('learning'),
+  timesReviewed: integer("times_reviewed").default(0),
+  timesCorrect: integer("times_correct").default(0),
+  timesIncorrect: integer("times_incorrect").default(0),
+  currentStreak: integer("current_streak").default(0), // consecutive correct answers
+  bestStreak: integer("best_streak").default(0), // best streak ever for this word
+  
+  // Spaced repetition algorithm data
+  easinessFactor: doublePrecision("easiness_factor").default(2.5), // SM-2 algorithm easiness factor
+  intervalDays: integer("interval_days").default(1), // days until next review
+  nextReviewDate: timestamp("next_review_date").defaultNow(),
+  lastReviewDate: timestamp("last_review_date"),
+  
+  // Performance metrics
+  averageResponseTime: integer("average_response_time").default(0), // milliseconds
+  lastResponseTime: integer("last_response_time").default(0), // milliseconds
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentWordIdx: uniqueIndex("flashcard_progress_student_word_idx").on(table.studentId, table.wordId),
+  studentSetIdx: index("flashcard_progress_student_set_idx").on(table.studentId, table.setId),
+  masteryIdx: index("flashcard_progress_mastery_idx").on(table.masteryLevel),
+  nextReviewIdx: index("flashcard_progress_next_review_idx").on(table.nextReviewDate),
+  studentIdx: index("flashcard_progress_student_idx").on(table.studentId),
+  wordIdx: index("flashcard_progress_word_idx").on(table.wordId),
+}));
+
+// Flashcard streaks - tracks daily streaks and achievements per student
+export const flashcardStreaks = pgTable("flashcard_streaks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  
+  // Daily streak tracking
+  currentStreak: integer("current_streak").default(0), // current consecutive days
+  longestStreak: integer("longest_streak").default(0), // best streak ever
+  lastStudyDate: timestamp("last_study_date"),
+  streakStartDate: timestamp("streak_start_date"),
+  
+  // Achievement tracking
+  achievements: jsonb("achievements").$type<FlashcardAchievement[]>().default([]),
+  
+  // Statistics
+  totalDaysStudied: integer("total_days_studied").default(0),
+  totalCardsReviewed: integer("total_cards_reviewed").default(0),
+  totalCorrectAnswers: integer("total_correct_answers").default(0),
+  totalSessionsCompleted: integer("total_sessions_completed").default(0),
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  studentIdx: uniqueIndex("flashcard_streaks_student_idx").on(table.studentId),
+  currentStreakIdx: index("flashcard_streaks_current_streak_idx").on(table.currentStreak),
+  lastStudyIdx: index("flashcard_streaks_last_study_idx").on(table.lastStudyDate),
+}));
+
+// Flashcard sessions - tracks completed flashcard study sessions
+export const flashcardSessions = pgTable("flashcard_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
+  setId: varchar("set_id").notNull().references(() => vocabularySets.id, { onDelete: 'cascade' }),
+  
+  // Session configuration
+  mode: learningModeEnum("mode").notNull(),
+  totalCards: integer("total_cards").notNull(),
+  targetCards: integer("target_cards"), // user-selected number of cards to review
+  
+  // Session results
+  cardsCompleted: integer("cards_completed").default(0),
+  cardsCorrect: integer("cards_correct").default(0),
+  cardsIncorrect: integer("cards_incorrect").default(0),
+  cardsSkipped: integer("cards_skipped").default(0),
+  
+  // Performance metrics
+  totalTime: integer("total_time").default(0), // total session time in milliseconds
+  averageTimePerCard: integer("average_time_per_card").default(0), // milliseconds
+  accuracy: doublePrecision("accuracy").default(0), // percentage
+  
+  // Streak and reward tracking
+  streakAtStart: integer("streak_at_start").default(0),
+  streakAtEnd: integer("streak_at_end").default(0),
+  coinsEarned: integer("coins_earned").default(0),
+  experienceEarned: integer("experience_earned").default(0),
+  rewardedAt: timestamp("rewarded_at"), // Prevents double-awarding rewards
+  
+  // Session timing
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  
+  // Session data (detailed card-by-card results)
+  sessionData: jsonb("session_data").$type<FlashcardSessionData>(),
+  
+  // Standard tracking fields
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  studentIdx: index("flashcard_sessions_student_idx").on(table.studentId),
+  setIdx: index("flashcard_sessions_set_idx").on(table.setId),
+  modeIdx: index("flashcard_sessions_mode_idx").on(table.mode),
+  completedIdx: index("flashcard_sessions_completed_idx").on(table.completedAt),
+  studentDateIdx: index("flashcard_sessions_student_date_idx").on(table.studentId, table.startedAt),
+}));
+
+// Flashcard system interfaces and types
+
+export interface FlashcardAchievement {
+  id: string;
+  type: 'streak' | 'mastery' | 'speed' | 'accuracy' | 'volume';
+  title: string; // e.g., "3-Day Streak", "Lightning Fast", "Perfect Score"
+  description: string;
+  earnedAt: string; // ISO timestamp
+  criteria: {
+    streakDays?: number;
+    masteredWords?: number;
+    averageTime?: number; // milliseconds
+    accuracy?: number; // percentage
+    cardsReviewed?: number;
+  };
+}
+
+export interface FlashcardSessionData {
+  cards: FlashcardCardResult[];
+  sessionConfig: {
+    shuffled: boolean;
+    showDefinitionFirst: boolean;
+    autoAdvance: boolean;
+    timeLimit?: number;
+  };
+}
+
+export interface FlashcardCardResult {
+  wordId: string;
+  term: string;
+  definition: string;
+  userRating?: 'easy' | 'hard' | 'again'; // for practice mode
+  isCorrect?: boolean; // for test mode
+  responseTime: number; // milliseconds
+  hintsUsed: number;
+  skipped: boolean;
+  masteryLevelBefore: 'learning' | 'familiar' | 'mastered';
+  masteryLevelAfter: 'learning' | 'familiar' | 'mastered';
+  timestamp: string; // ISO timestamp when answered
+}
+
+// Enhanced flashcard config extending the existing one
+export interface EnhancedFlashcardsConfig extends FlashcardsConfig {
+  // Spaced repetition settings
+  useSpacedRepetition?: boolean;
+  reviewOverdueOnly?: boolean; // only show cards due for review
+  
+  // Session configuration
+  cardLimit?: number; // max cards per session
+  timeLimit?: number; // session time limit in minutes
+  autoAdvance?: boolean; // automatically advance after answer
+  
+  // Learning preferences
+  showDefinitionFirst?: boolean; // show definition first instead of term
+  enableHints?: boolean;
+  allowSkipping?: boolean;
+  
+  // Progress tracking
+  trackDetailedProgress?: boolean;
+  updateMasteryLevels?: boolean;
+  awardCoins?: boolean;
+  streakBonusMultiplier?: number;
+}
+
+// Insert schemas for flashcard system
+export const insertFlashcardProgressSchema = createInsertSchema(flashcardProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFlashcardStreakSchema = createInsertSchema(flashcardStreaks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFlashcardSessionSchema = createInsertSchema(flashcardSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// TypeScript types for flashcard system
+export type FlashcardProgress = typeof flashcardProgress.$inferSelect;
+export type InsertFlashcardProgress = z.infer<typeof insertFlashcardProgressSchema>;
+export type FlashcardStreak = typeof flashcardStreaks.$inferSelect;
+export type InsertFlashcardStreak = z.infer<typeof insertFlashcardStreakSchema>;
+export type FlashcardSession = typeof flashcardSessions.$inferSelect;
+export type InsertFlashcardSession = z.infer<typeof insertFlashcardSessionSchema>;
 
 // Klasskamp (multiplayer game) tables
 export const klassKampGames = pgTable("klasskamp_games", {

@@ -25,7 +25,7 @@ import { z } from "zod";
 import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema, vocabularyStatsResponseSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ClassroomWebSocket } from "./classroom-websocket";
 import { ttsService } from "./ttsService";
@@ -3353,6 +3353,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // REMOVED: POST /api/students/:studentId/currency/award - This endpoint was a security vulnerability
+  // Students could self-award unlimited coins. All rewards are now calculated server-side on session completion.
+
+  // INTERNAL SECURE FUNCTION: Award currency (server-authoritative only)
+  async function awardCurrencySecure(studentId: string, amount: number, description: string, sourceType: string, sourceId: string) {
+    if (amount <= 0) {
+      throw new Error("Amount must be positive");
+    }
+
+    // ATOMIC TRANSACTION: Everything happens inside transaction with SQL arithmetic
+    const result = await db.transaction(async (tx) => {
+      // Ensure currency record exists (upsert pattern)
+      await tx
+        .insert(schema.studentCurrency)
+        .values({ 
+          studentId, 
+          currentCoins: 0, 
+          totalEarned: 0, 
+          totalSpent: 0 
+        })
+        .onConflictDoNothing(); // If exists, do nothing
+
+      // Get current balance for transaction logging (inside transaction)
+      const [currentCurrency] = await tx
+        .select({
+          currentCoins: schema.studentCurrency.currentCoins,
+          totalEarned: schema.studentCurrency.totalEarned
+        })
+        .from(schema.studentCurrency)
+        .where(eq(schema.studentCurrency.studentId, studentId));
+
+      // Update currency using SQL arithmetic (fully atomic)
+      const [updatedCurrency] = await tx
+        .update(schema.studentCurrency)
+        .set({
+          currentCoins: sql`${schema.studentCurrency.currentCoins} + ${amount}`,
+          totalEarned: sql`${schema.studentCurrency.totalEarned} + ${amount}`,
+          lastEarned: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(schema.studentCurrency.studentId, studentId))
+        .returning();
+
+      // Log transaction with atomically calculated balances
+      await tx
+        .insert(schema.currencyTransactions)
+        .values({
+          studentId,
+          type: 'earned',
+          amount: amount,
+          description: description,
+          sourceType: sourceType,
+          sourceId: sourceId,
+          balanceBefore: currentCurrency.currentCoins,
+          balanceAfter: currentCurrency.currentCoins + amount
+        });
+
+      return updatedCurrency;
+    });
+
+    return result;
+  }
+
+  // INTERNAL SECURE FUNCTION: Ensure student ownership with teacher/admin bypass
+  function ensureStudentOwnership(req: any, studentId: string) {
+    // Allow teachers and admins to access any student data
+    if (req.user && (req.user.role === 'ADMIN' || req.user.role === 'LARARE')) {
+      return true;
+    }
+    
+    // For students, ensure they can only access their own data
+    if (req.student && req.student.id === studentId) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  // INTERNAL SECURE FUNCTION: Calculate flashcard session rewards (server-authoritative)
+  function calculateFlashcardRewards(cardsCorrect: number, cardsCompleted: number, accuracy: number, streakAtStart: number, streakAtEnd: number, mode: string) {
+    // Base coins: 10 + correct answers
+    let coinsEarned = 10 + cardsCorrect;
+
+    // Accuracy bonuses (server-verified)
+    if (accuracy >= 90) coinsEarned += 5; // Bonus for excellence  
+    if (accuracy >= 75) coinsEarned += 2; // Bonus for good performance
+
+    // Streak milestone bonuses (calculated server-side, idempotent)
+    let streakBonusCoins = 0;
+    if (streakAtEnd === 7) {
+      streakBonusCoins = 50; // 7-day streak bonus
+    } else if (streakAtEnd === 30) {
+      streakBonusCoins = 100; // 30-day streak bonus
+    } else if (streakAtEnd > 0 && streakAtEnd % 10 === 0) {
+      streakBonusCoins = 25; // Every 10-day streak gets 25 coins
+    }
+
+    const totalCoinsEarned = coinsEarned + streakBonusCoins;
+    
+    // Experience calculation (2 XP per correct answer)
+    const experienceEarned = cardsCorrect * 2;
+
+    return {
+      coinsEarned: totalCoinsEarned,
+      baseCoins: coinsEarned,
+      streakBonusCoins,
+      experienceEarned,
+      totalReward: totalCoinsEarned
+    };
+  }
+
   // SHOP ITEMS
   app.get("/api/shop/items", requireStudentAuth, async (req, res) => {
     try {
@@ -4335,6 +4446,360 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error generating batch vocabulary PDF:", error);
       res.status(500).json({ error: "Failed to generate PDF export" });
+    }
+  });
+
+  // ===============================
+  // Flashcard System API Routes
+  // ===============================
+
+  // Flashcard Progress Routes
+  
+  // GET /api/flashcard/progress/by-set/:studentId/:setId - Get flashcard progress for student by set
+  app.get("/api/flashcard/progress/by-set/:studentId/:setId", requireStudentAuth, async (req, res) => {
+    try {
+      const { studentId, setId } = req.params;
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own flashcard progress" });
+      }
+      
+      const progress = await storage.getStudentFlashcardProgress(studentId, setId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching flashcard progress by set:", error);
+      res.status(500).json({ error: "Failed to fetch flashcard progress" });
+    }
+  });
+
+  // GET /api/flashcard/progress/by-word/:studentId/:wordId - Get specific word progress
+  app.get("/api/flashcard/progress/by-word/:studentId/:wordId", requireStudentAuth, async (req, res) => {
+    try {
+      const { studentId, wordId } = req.params;
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own flashcard progress" });
+      }
+      
+      const progress = await storage.getFlashcardProgress(studentId, wordId);
+      res.json(progress);
+    } catch (error) {
+      console.error("Error fetching word progress:", error);
+      res.status(500).json({ error: "Failed to fetch word progress" });
+    }
+  });
+
+  // POST /api/flashcard/progress - Create or update flashcard progress
+  app.post("/api/flashcard/progress", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const validatedData = schema.insertFlashcardProgressSchema.parse(req.body);
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, validatedData.studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only modify your own flashcard progress" });
+      }
+      
+      // Check if progress already exists for this student and word
+      const existing = await storage.getFlashcardProgress(validatedData.studentId, validatedData.wordId);
+      
+      if (existing) {
+        // Update existing progress
+        const updated = await storage.updateFlashcardProgress(existing.id, validatedData);
+        res.json(updated);
+      } else {
+        // Create new progress
+        const newProgress = await storage.createFlashcardProgress(validatedData);
+        res.json(newProgress);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid progress data", details: error.errors });
+      }
+      console.error("Error saving flashcard progress:", error);
+      res.status(500).json({ error: "Failed to save flashcard progress" });
+    }
+  });
+
+  // GET /api/flashcard/review/:studentId/:setId - Get words for review (spaced repetition)
+  app.get("/api/flashcard/review/:studentId/:setId", requireStudentAuth, async (req, res) => {
+    try {
+      const { studentId, setId } = req.params;
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own review words" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 20;
+      const wordsForReview = await storage.getWordsForReview(studentId, setId, limit);
+      res.json(wordsForReview);
+    } catch (error) {
+      console.error("Error fetching words for review:", error);
+      res.status(500).json({ error: "Failed to fetch words for review" });
+    }
+  });
+
+  // Flashcard Streak Routes
+  
+  // GET /api/flashcard/streak/:studentId - Get current streak for student
+  app.get("/api/flashcard/streak/:studentId", requireStudentAuth, async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own streak data" });
+      }
+      
+      const streak = await storage.getFlashcardStreak(studentId);
+      res.json(streak);
+    } catch (error) {
+      console.error("Error fetching flashcard streak:", error);
+      res.status(500).json({ error: "Failed to fetch flashcard streak" });
+    }
+  });
+
+  // POST /api/flashcard/streak - Create or update streak
+  app.post("/api/flashcard/streak", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const validatedData = schema.insertFlashcardStreakSchema.parse(req.body);
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, validatedData.studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only modify your own streak data" });
+      }
+      
+      // Check if streak already exists for this student
+      const existing = await storage.getFlashcardStreak(validatedData.studentId);
+      
+      if (existing) {
+        // Update existing streak
+        const updated = await storage.updateFlashcardStreak(existing.id, validatedData);
+        res.json(updated);
+      } else {
+        // Create new streak
+        const newStreak = await storage.createFlashcardStreak(validatedData);
+        res.json(newStreak);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid streak data", details: error.errors });
+      }
+      console.error("Error saving flashcard streak:", error);
+      res.status(500).json({ error: "Failed to save flashcard streak" });
+    }
+  });
+
+  // Flashcard Session Routes
+  
+  // GET /api/flashcard/sessions/:studentId/:setId? - Get flashcard sessions for student
+  app.get("/api/flashcard/sessions/:studentId/:setId?", requireStudentAuth, async (req, res) => {
+    try {
+      const { studentId, setId } = req.params;
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own flashcard sessions" });
+      }
+      
+      const sessions = await storage.getFlashcardSessions(studentId, setId);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching flashcard sessions:", error);
+      res.status(500).json({ error: "Failed to fetch flashcard sessions" });
+    }
+  });
+
+  // POST /api/flashcard/sessions - Create new flashcard session
+  app.post("/api/flashcard/sessions", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const validatedData = schema.insertFlashcardSessionSchema.parse(req.body);
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, validatedData.studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only create your own flashcard sessions" });
+      }
+      
+      const newSession = await storage.createFlashcardSession(validatedData);
+      res.json(newSession);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid session data", details: error.errors });
+      }
+      console.error("Error creating flashcard session:", error);
+      res.status(500).json({ error: "Failed to create flashcard session" });
+    }
+  });
+
+  // PUT /api/flashcard/sessions/:id - Update flashcard session with ATOMIC IDEMPOTENT reward transaction
+  app.put("/api/flashcard/sessions/:id", requireStudentAuth, requireCsrf, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = schema.insertFlashcardSessionSchema.partial().parse(req.body);
+      
+      // Get existing session to verify ownership and check completion status
+      const existingSession = await storage.getFlashcardSession(id);
+      if (!existingSession) {
+        return res.status(404).json({ error: "Flashcard session not found" });
+      }
+
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, existingSession.studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only update your own sessions" });
+      }
+
+      // Check if this update is completing the session
+      const isCompleting = !existingSession.completedAt && validatedData.completedAt;
+      
+      if (isCompleting) {
+        // SERVER-AUTHORITATIVE CALCULATION: Recompute ALL metrics from session data, ignore client values
+        let serverCardsCorrect = 0;
+        let serverCardsCompleted = 0;
+        let serverAccuracy = 0;
+        
+        if (existingSession.sessionData && existingSession.sessionData.cards) {
+          const cardResults = existingSession.sessionData.cards;
+          serverCardsCompleted = cardResults.length;
+          serverCardsCorrect = cardResults.filter(card => 
+            card.isCorrect === true || 
+            card.userRating === 'easy' || 
+            card.responseType === 'correct'
+          ).length;
+          serverAccuracy = serverCardsCompleted > 0 ? (serverCardsCorrect / serverCardsCompleted) * 100 : 0;
+        }
+
+        // Use server-calculated values, NEVER trust client data
+        const streakAtStart = existingSession.streakAtStart || 0;
+        const streakAtEnd = validatedData.streakAtEnd || existingSession.streakAtEnd || 0;
+        const mode = existingSession.mode;
+
+        // Server-authoritative reward calculation
+        const rewardInfo = calculateFlashcardRewards(serverCardsCorrect, serverCardsCompleted, serverAccuracy, streakAtStart, streakAtEnd, mode);
+        
+        // Override ALL client-provided values with server-calculated ones
+        validatedData.cardsCorrect = serverCardsCorrect;
+        validatedData.cardsCompleted = serverCardsCompleted;
+        validatedData.accuracy = serverAccuracy;
+        validatedData.coinsEarned = rewardInfo.coinsEarned;
+        validatedData.experienceEarned = rewardInfo.experienceEarned;
+        validatedData.rewardedAt = new Date(); // Mark as rewarded to prevent double-awards
+
+        // ATOMIC IDEMPOTENT TRANSACTION: Update session AND award currency in single transaction
+        const result = await db.transaction(async (tx) => {
+          // 1. CONDITIONAL UPDATE: Only update if not already rewarded (idempotent protection)
+          const [updatedSession] = await tx
+            .update(schema.flashcardSessions)
+            .set(validatedData)
+            .where(and(
+              eq(schema.flashcardSessions.id, id),
+              isNull(schema.flashcardSessions.rewardedAt) // Only update if not already rewarded
+            ))
+            .returning();
+
+          // 2. If no rows updated, session was already rewarded (race condition protection)
+          if (!updatedSession) {
+            console.warn(`Attempted to re-award rewards for session ${id} - already completed by another request`);
+            // Return 409 Conflict - indicates the resource was already processed
+            throw new Error("ALREADY_REWARDED");
+          }
+
+          // 3. Award currency in SAME transaction if coins earned
+          if (rewardInfo.coinsEarned > 0) {
+            let description = `Flashcard session avslutad - ${rewardInfo.baseCoins} grundmynt`;
+            if (rewardInfo.streakBonusCoins > 0) {
+              description += ` + ${rewardInfo.streakBonusCoins} streak-bonus`;
+            }
+
+            // Get current currency or create if doesn't exist (within same transaction)
+            let [currency] = await tx
+              .select()
+              .from(schema.studentCurrency)
+              .where(eq(schema.studentCurrency.studentId, existingSession.studentId));
+
+            if (!currency) {
+              [currency] = await tx
+                .insert(schema.studentCurrency)
+                .values({ 
+                  studentId: existingSession.studentId, 
+                  currentCoins: 0, 
+                  totalEarned: 0, 
+                  totalSpent: 0 
+                })
+                .returning();
+            }
+
+            // Update currency atomically
+            const newBalance = currency.currentCoins + rewardInfo.coinsEarned;
+            await tx
+              .update(schema.studentCurrency)
+              .set({
+                currentCoins: newBalance,
+                totalEarned: currency.totalEarned + rewardInfo.coinsEarned,
+                lastEarned: new Date(),
+                updatedAt: new Date()
+              })
+              .where(eq(schema.studentCurrency.studentId, existingSession.studentId));
+
+            // Log transaction atomically
+            await tx
+              .insert(schema.currencyTransactions)
+              .values({
+                studentId: existingSession.studentId,
+                type: 'earned',
+                amount: rewardInfo.coinsEarned,
+                description: description,
+                sourceType: 'flashcard_session',
+                sourceId: id,
+                balanceBefore: currency.currentCoins,
+                balanceAfter: newBalance
+              });
+          }
+
+          return { session: updatedSession, rewardInfo };
+        });
+
+        // Include reward information in response for client display
+        res.json({
+          ...result.session,
+          rewardInfo: result.rewardInfo
+        });
+      } else {
+        // Non-completing update - just update the session normally
+        const updated = await storage.updateFlashcardSession(id, validatedData);
+        res.json(updated);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid session data", details: error.errors });
+      }
+      if (error.message === "ALREADY_REWARDED") {
+        return res.status(409).json({ error: "Session rewards have already been awarded" });
+      }
+      console.error("Error updating flashcard session:", error);
+      res.status(500).json({ error: "Failed to update flashcard session" });
+    }
+  });
+
+  // GET /api/flashcard/sessions/:id - Get specific flashcard session
+  app.get("/api/flashcard/sessions/:id", requireStudentAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const session = await storage.getFlashcardSession(id);
+      if (!session) {
+        return res.status(404).json({ error: "Flashcard session not found" });
+      }
+      
+      // SECURITY: Ensure student ownership with teacher/admin bypass
+      if (!ensureStudentOwnership(req, session.studentId)) {
+        return res.status(403).json({ error: "Access denied - you can only access your own flashcard sessions" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching flashcard session:", error);
+      res.status(500).json({ error: "Failed to fetch flashcard session" });
     }
   });
   
