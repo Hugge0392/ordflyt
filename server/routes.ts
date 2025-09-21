@@ -4133,11 +4133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/vocabulary/sets/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
     try {
       const { id } = req.params;
-      const validatedData = insertVocabularySetSchema.partial().strict().parse(req.body);
+      console.log("Updating vocabulary set with data:", req.body);
+      const validatedData = localVocabularySetSchema.partial().strict().parse(req.body);
+      console.log("Validated update data:", validatedData);
       const updatedSet = await storage.updateVocabularySet(id, validatedData);
+      console.log("Updated vocabulary set:", updatedSet);
       res.json(updatedSet);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Update validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error updating vocabulary set:", error);
