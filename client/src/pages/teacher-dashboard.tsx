@@ -1313,16 +1313,10 @@ export default function TeacherDashboard() {
       description: 'Hantera elever och lösenord'
     },
     {
-      id: 'assignments' as DashboardSection,
-      label: 'Tilldela lektioner',
-      icon: BookOpen,
-      description: 'Tilldela uppgifter och lektioner'
-    },
-    {
       id: 'lessonbank' as DashboardSection,
       label: 'Lektionsbank',
       icon: Library,
-      description: 'Bläddra bland admin-skapade lektioner och välj vilka som ska publiceras'
+      description: 'Bläddra, anpassa och tilldela lektioner till dina klasser'
     },
     {
       id: 'results' as DashboardSection,
@@ -1633,21 +1627,6 @@ export default function TeacherDashboard() {
         return renderOverview();
       case 'students':
         return <StudentManagementSection />;
-      case 'assignments':
-        // Redirect to the dedicated assign-lessons page
-        window.location.href = '/teacher/assign-lessons';
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Omdirigerar...</CardTitle>
-              <CardDescription>Tar dig till lektionstilldelningssidan</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center py-12">
-              <BookOpen className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">Omdirigerar till lektionstilldelning...</p>
-            </CardContent>
-          </Card>
-        );
       case 'lessonbank':
         return <TeacherLessonBank />;
       case 'results':

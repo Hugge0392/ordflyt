@@ -59,7 +59,7 @@ interface AssignmentModalLesson {
   title: string;
   type: string;
   lessonType: string;
-  category?: string;
+  category: string;
   difficulty?: string;
   estimatedDuration?: number;
 }
@@ -1072,9 +1072,8 @@ export default function TeacherLessonBank() {
       {/* Assignment Modal */}
       <AssignmentModal 
         open={showAssignmentModal}
-        onClose={() => setShowAssignmentModal(false)}
+        onOpenChange={setShowAssignmentModal}
         lessons={selectedLessonsForAssignment}
-        onAssignmentSuccess={handleAssignmentSuccess}
       />
     </div>
   );
