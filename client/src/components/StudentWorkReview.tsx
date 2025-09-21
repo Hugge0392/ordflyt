@@ -135,7 +135,7 @@ export default function StudentWorkReview() {
         if (value) searchParams.append(key, value);
       });
       
-      return apiRequest(`/api/feedback/student-work/review?${searchParams}`);
+      return apiRequest('GET', `/api/feedback/student-work/review?${searchParams}`);
     }
   });
 
@@ -153,21 +153,19 @@ export default function StudentWorkReview() {
         if (value) searchParams.append(key, value);
       });
       
-      return apiRequest(`/api/feedback/completion-overview?${searchParams}`);
+      return apiRequest('GET', `/api/feedback/completion-overview?${searchParams}`);
     }
   });
 
-  // Fetch teacher's classes (placeholder - you'd need to implement this endpoint)
+  // Fetch teacher's classes
   const { data: classes = [] } = useQuery({
     queryKey: ['/api/license/classes'],
-    queryFn: () => apiRequest('/api/license/classes'),
     select: (data: any) => data.classes || []
   });
 
   // Fetch teacher's assignments
   const { data: assignments = [] } = useQuery({
-    queryKey: ['/api/assignments'],
-    queryFn: () => apiRequest('/api/assignments')
+    queryKey: ['/api/assignments']
   });
 
   // Filter student work based on search term
