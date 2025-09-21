@@ -106,10 +106,7 @@ export function AssignmentModal({ open, onOpenChange, lessons }: AssignmentModal
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
     mutationFn: async (assignmentData: any) => {
-      return apiRequest('/api/assignments', {
-        method: 'POST',
-        body: JSON.stringify(assignmentData),
-      });
+      return apiRequest('POST', '/api/assignments', assignmentData);
     },
     onSuccess: () => {
       toast({

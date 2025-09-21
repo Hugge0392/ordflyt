@@ -417,7 +417,18 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
     const userId = req.user.id;
     const classes = await getTeacherClasses(userId);
 
-    res.json({ classes });
+    // Hämta elever för varje klass
+    const classesWithStudents = await Promise.all(
+      classes.map(async (classData) => {
+        const students = await getStudentsByClassId(classData.id);
+        return {
+          ...classData,
+          students: students || []
+        };
+      })
+    );
+
+    res.json({ classes: classesWithStudents });
 
   } catch (error) {
     console.error('Get classes error:', error);
