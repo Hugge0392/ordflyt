@@ -54,10 +54,7 @@ import {
 import { 
   type VocabularySet, 
   type VocabularyWord,
-  type VocabularyExercise,
-  insertVocabularySetSchema,
-  insertVocabularyWordSchema,
-  insertVocabularyExerciseSchema
+  type VocabularyExercise
 } from "@shared/schema";
 
 // Vocabulary exercise types
@@ -86,18 +83,18 @@ const THEME_COLORS = [
   { name: 'Indigo', value: '#6366F1' }
 ];
 
-// Form schemas
-const vocabularySetSchema = insertVocabularySetSchema.extend({
+// Form schemas - Local definitions to avoid broken imports from shared/schema.ts
+const vocabularySetSchema = z.object({
   title: z.string().min(1, "Titel krävs").max(255, "Titel för lång"),
   description: z.string().optional(),
-  themeColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg"),
-  frameColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg"),
-  orderNumbersColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg"),
+  themeColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg").default("#3B82F6"),
+  frameColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg").default("#1F2937"),
+  orderNumbersColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Ogiltig färg").default("#F59E0B"),
   bannerImage: z.string().optional(),
   isPublished: z.boolean().default(false),
 });
 
-const vocabularyWordSchema = insertVocabularyWordSchema.extend({
+const vocabularyWordSchema = z.object({
   term: z.string().min(1, "Ord krävs").max(255, "Ord för långt"),
   definition: z.string().min(1, "Definition krävs"),
   synonym: z.string().optional(),
@@ -109,7 +106,8 @@ const vocabularyWordSchema = insertVocabularyWordSchema.extend({
   orderIndex: z.number().default(0),
 });
 
-const vocabularyExerciseSchema = insertVocabularyExerciseSchema.extend({
+const vocabularyExerciseSchema = z.object({
+  type: z.string().default("flashcards"),
   title: z.string().min(1, "Titel krävs").max(255, "Titel för lång"),
   description: z.string().optional(),
   instructions: z.string().optional(),
@@ -427,6 +425,7 @@ export default function AdminVocabulary() {
   // Mutations for vocabulary sets
   const createSetMutation = useMutation({
     mutationFn: async (data: VocabularySetForm) => {
+      console.log("Creating vocabulary set with data:", data);
       return apiRequest('POST', '/api/vocabulary/sets', data);
     },
     onSuccess: () => {
@@ -439,6 +438,7 @@ export default function AdminVocabulary() {
       setForm.reset();
     },
     onError: (error: any) => {
+      console.error("Failed to create vocabulary set:", error);
       toast({
         title: "Fel",
         description: error.message || "Kunde inte skapa ordförrådsset",
@@ -1226,8 +1226,12 @@ export default function AdminVocabulary() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => duplicateSetMutation.mutate(set.id)}
-                                disabled={duplicateSetMutation.isPending}
+                                onClick={() => {
+                                  toast({
+                                    title: "Info",
+                                    description: "Duplicera-funktionen kommer snart"
+                                  });
+                                }}
                                 title="Duplicera set"
                                 data-testid={`button-duplicate-set-${set.id}`}
                               >
@@ -1236,11 +1240,13 @@ export default function AdminVocabulary() {
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                onClick={() => togglePublishMutation.mutate({ 
-                                  id: set.id, 
-                                  isPublished: !set.isPublished 
-                                })}
-                                disabled={togglePublishMutation.isPending}
+                                onClick={() => {
+                                  updateSetMutation.mutate({ 
+                                    id: set.id, 
+                                    data: { isPublished: !set.isPublished }
+                                  });
+                                }}
+                                disabled={updateSetMutation.isPending}
                                 title={set.isPublished ? "Göm set" : "Publicera set"}
                                 data-testid={`button-toggle-publish-${set.id}`}
                               >

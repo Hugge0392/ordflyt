@@ -24,25 +24,31 @@ async function throwIfResNotOk(res: Response) {
 // Function to refresh CSRF token from /api/auth/me
 export async function refreshCsrfToken(): Promise<string | null> {
   try {
+    console.log('[refreshCsrfToken] Fetching CSRF token from /api/auth/me...');
     const res = await fetch('/api/auth/me', {
       credentials: "include",
     });
 
     if (!res.ok) {
-      console.warn('Failed to refresh CSRF token:', res.status, res.statusText);
+      console.warn('[refreshCsrfToken] Failed to refresh CSRF token:', res.status, res.statusText);
       return null;
     }
 
     const data = await res.json();
+    console.log('[refreshCsrfToken] Response data keys:', Object.keys(data));
+    
     if (data.csrfToken) {
       // Update localStorage with the new token
       localStorage.setItem('csrfToken', data.csrfToken);
+      console.log('[refreshCsrfToken] CSRF token refreshed successfully:', data.csrfToken.substring(0, 8) + '...');
       return data.csrfToken;
+    } else {
+      console.warn('[refreshCsrfToken] No csrfToken in response data');
     }
     
     return null;
   } catch (error) {
-    console.warn('Error refreshing CSRF token:', error);
+    console.error('[refreshCsrfToken] Error refreshing CSRF token:', error);
     return null;
   }
 }
@@ -63,18 +69,27 @@ export async function apiRequest(
   // Add CSRF token for mutating operations with automatic refresh
   const mutatingMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
   if (mutatingMethods.includes(method.toUpperCase())) {
+    console.log(`[apiRequest] Performing ${method} request to ${url}. Refreshing CSRF token...`);
+    
     // Always refresh CSRF token before mutating operations to ensure it's valid
     const csrfToken = await refreshCsrfToken();
     if (csrfToken) {
       headers["X-CSRF-Token"] = csrfToken;
+      console.log(`[apiRequest] CSRF token obtained: ${csrfToken.substring(0, 8)}...`);
     } else {
+      console.warn(`[apiRequest] Failed to refresh CSRF token, trying stored token...`);
       // Fallback to stored token if refresh fails
       const storedToken = localStorage.getItem('csrfToken');
       if (storedToken) {
         headers["X-CSRF-Token"] = storedToken;
+        console.log(`[apiRequest] Using stored CSRF token: ${storedToken.substring(0, 8)}...`);
+      } else {
+        console.error(`[apiRequest] No CSRF token available - request may fail`);
       }
     }
   }
+
+  console.log(`[apiRequest] Making ${method} request to ${url} with headers:`, Object.keys(headers));
 
   const res = await fetch(url, {
     method,
@@ -82,6 +97,8 @@ export async function apiRequest(
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  console.log(`[apiRequest] Response status: ${res.status}`);
 
   await throwIfResNotOk(res);
   

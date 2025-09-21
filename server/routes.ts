@@ -4099,14 +4099,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary local vocabulary set schema to bypass broken shared/schema imports
+  const localVocabularySetSchema = z.object({
+    title: z.string().min(1).max(255),
+    description: z.string().optional(),
+    themeColor: z.string().regex(/^#[0-9A-F]{6}$/i).default("#3B82F6"),
+    frameColor: z.string().regex(/^#[0-9A-F]{6}$/i).default("#1F2937"),
+    orderNumbersColor: z.string().regex(/^#[0-9A-F]{6}$/i).default("#F59E0B"),
+    bannerImage: z.string().optional(),
+    isPublished: z.boolean().default(false),
+  });
+
   // POST /api/vocabulary/sets - Create new vocabulary set (Admin only)
   app.post("/api/vocabulary/sets", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
     try {
-      const validatedData = insertVocabularySetSchema.strict().parse(req.body);
+      console.log("Creating vocabulary set with data:", req.body);
+      const validatedData = localVocabularySetSchema.strict().parse(req.body);
+      console.log("Validated data:", validatedData);
       const newSet = await storage.createVocabularySet(validatedData);
+      console.log("Created vocabulary set:", newSet);
       res.status(201).json(newSet);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error creating vocabulary set:", error);
@@ -4171,15 +4186,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary local vocabulary word schema to bypass broken shared/schema imports
+  const localVocabularyWordSchema = z.object({
+    setId: z.string(),
+    term: z.string().min(1).max(255),
+    definition: z.string().min(1),
+    synonym: z.string().optional(),
+    antonym: z.string().optional(),
+    example: z.string().optional(),
+    imageUrl: z.string().optional(),
+    pronunciationUrl: z.string().optional(),
+    phonetic: z.string().optional(),
+    orderIndex: z.number().default(0),
+  });
+
   // POST /api/vocabulary/sets/:setId/words - Create new vocabulary word (Admin only)
   app.post("/api/vocabulary/sets/:setId/words", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
     try {
       const { setId } = req.params;
-      const validatedData = insertVocabularyWordSchema.strict().parse({ ...req.body, setId });
+      console.log("Creating vocabulary word with data:", { ...req.body, setId });
+      const validatedData = localVocabularyWordSchema.strict().parse({ ...req.body, setId });
+      console.log("Validated word data:", validatedData);
       const newWord = await storage.createVocabularyWord(validatedData);
+      console.log("Created vocabulary word:", newWord);
       res.status(201).json(newWord);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Word validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error creating vocabulary word:", error);
