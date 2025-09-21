@@ -32,7 +32,6 @@ import {
   verifyStudentOwnership,
   licenseDb
 } from './licenseDb';
-import { emailService } from './emailService';
 import { requireAuth, requireRole, requireSchoolAccess, requireTeacherLicense, requireCsrf } from './auth';
 import { Request, Response } from 'express';
 import { oneTimeCodes, teacherLicenses, teacherClasses, studentAccounts } from '@shared/schema';
