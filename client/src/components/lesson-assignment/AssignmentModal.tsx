@@ -76,6 +76,27 @@ const ASSIGNMENT_TYPE_LABELS = {
   'homework': 'Hemläxa'
 };
 
+// Map frontend assignment types to backend enum based on lesson type
+const mapAssignmentType = (frontendType: string, lessonType?: string) => {
+  // For vocabulary/word class lessons
+  if (lessonType === 'vocabulary' || lessonType === 'word_class' || lessonType === 'published_lesson') {
+    switch (frontendType) {
+      case 'practice': return 'word_class_practice';
+      case 'test': return 'word_class_practice';
+      case 'homework': return 'word_class_practice';
+      default: return 'word_class_practice';
+    }
+  }
+  
+  // For reading lessons
+  if (lessonType === 'reading' || lessonType === 'reading_lesson') {
+    return 'reading_lesson';
+  }
+  
+  // Default to published lesson for other types
+  return 'published_lesson';
+};
+
 export function AssignmentModal({ open, onOpenChange, lessons }: AssignmentModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<AssignmentFormData>({
@@ -94,7 +115,7 @@ export function AssignmentModal({ open, onOpenChange, lessons }: AssignmentModal
   const queryClient = useQueryClient();
 
   // Fetch teacher's classes
-  const { data: classesData, isLoading: isLoadingClasses } = useQuery<{ classes: ClassData[] }>({
+  const { data: classesData, isLoading: isLoadingClasses, error: classesError } = useQuery<{ classes: ClassData[] }>({
     queryKey: ['/api/license/classes'],
     enabled: open,
   });
@@ -164,10 +185,13 @@ export function AssignmentModal({ open, onOpenChange, lessons }: AssignmentModal
       return;
     }
 
+    const lessonType = lessons[0]?.type || 'published_lesson';
+    const backendAssignmentType = mapAssignmentType(formData.assignmentType, lessonType);
+    
     const assignmentData = {
       title: formData.title || `${lessons.map(l => l.title).join(', ')}`,
       description: formData.description,
-      assignmentType: formData.assignmentType,
+      assignmentType: backendAssignmentType,
       
       // Target assignment
       ...(formData.assignmentTarget === 'class' ? 

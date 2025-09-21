@@ -168,6 +168,12 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      <Route path="/assign-lessons">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <AssignLessonsPage />
+        </ProtectedRoute>
+      </Route>
+      
       <Route path="/teacher/assign-lessons">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
           <AssignLessonsPage />
