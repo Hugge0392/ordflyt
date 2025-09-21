@@ -57,7 +57,14 @@ export default function LoginPage() {
     try {
       // Normalize password and detect if it's a 6-character setup code (uppercase letters and numbers)
       const normalizedPassword = data.password.trim().toUpperCase();
-      const isSetupCode = /^[A-Z0-9]{6}$/.test(normalizedPassword);
+      
+      // Exclude hardcoded development credentials from setup code detection
+      const isDevelopmentCredential = 
+        (data.username === 'admin' && data.password === 'admin') ||
+        (data.username === 'larare' && data.password === 'larare') ||
+        (data.username === 'elev' && data.password === 'elev');
+      
+      const isSetupCode = !isDevelopmentCredential && /^[A-Z0-9]{6}$/.test(normalizedPassword);
       
       let result: any;
       let response: Response;
