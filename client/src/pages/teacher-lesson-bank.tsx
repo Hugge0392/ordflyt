@@ -53,6 +53,9 @@ export default function TeacherLessonBank() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+
+  // Debug logging
+  console.log('TeacherLessonBank: Component starting, user:', user?.role);
   
   const [activeTab, setActiveTab] = useState('browse');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -73,10 +76,14 @@ export default function TeacherLessonBank() {
     queryKey: ['/api/lesson-templates'],
   });
 
+  console.log('TeacherLessonBank: templates data:', templates, 'loading:', templatesLoading);
+
   // Fetch vocabulary sets
   const { data: vocabularySets = [], isLoading: vocabularySetsLoading } = useQuery<VocabularySet[]>({
     queryKey: ['/api/vocabulary/sets/published'],
   });
+
+  console.log('TeacherLessonBank: vocabularySets data:', vocabularySets, 'loading:', vocabularySetsLoading);
 
   // Temporarily disabled vocabulary stats to debug React error
   // const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
