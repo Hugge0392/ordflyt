@@ -83,8 +83,8 @@ export function LessonBrowser({ onLessonSelect, selectedLessons = [], multiSelec
   }) || [];
 
   // Get unique values for filters
-  const uniqueWordClasses = Array.from(new Set(lessons?.map(l => l.wordClass).filter(Boolean)));
-  const uniqueGradeLevels = Array.from(new Set(lessons?.map(l => l.gradeLevel).filter(Boolean)));
+  const uniqueWordClasses = Array.from(new Set(lessons?.map(l => l.wordClass).filter(Boolean))) as string[];
+  const uniqueGradeLevels = Array.from(new Set(lessons?.map(l => l.gradeLevel).filter(Boolean))) as string[];
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -294,7 +294,7 @@ export function LessonBrowser({ onLessonSelect, selectedLessons = [], multiSelec
                       {lesson.difficulty && (
                         <Badge variant="outline" className="text-xs">
                           <Target className="h-3 w-3 mr-1" />
-                          {DIFFICULTY_LABELS[lesson.difficulty] || lesson.difficulty}
+                          {DIFFICULTY_LABELS[lesson.difficulty as keyof typeof DIFFICULTY_LABELS] || lesson.difficulty}
                         </Badge>
                       )}
                       {lesson.gradeLevel && (
