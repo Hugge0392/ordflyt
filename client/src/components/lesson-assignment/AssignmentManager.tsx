@@ -82,12 +82,12 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  'not_started': 'gray',
-  'in_progress': 'blue',
-  'completed': 'green',
-  'submitted': 'green',
-  'overdue': 'red'
-};
+  'not_started': 'secondary',
+  'in_progress': 'default',
+  'completed': 'default',
+  'submitted': 'default',
+  'overdue': 'destructive'
+} as const;
 
 export function AssignmentManager() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,10 +113,7 @@ export function AssignmentManager() {
   // Toggle assignment active status
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest(`/api/assignments/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ isActive }),
-      });
+      return apiRequest('PUT', `/api/assignments/${id}`, { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });
@@ -137,9 +134,7 @@ export function AssignmentManager() {
   // Delete assignment
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/assignments/${id}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/assignments/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assignments'] });

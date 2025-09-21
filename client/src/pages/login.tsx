@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, LogIn, UserPlus, AlertTriangle } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Användarnamn eller e-post krävs"),
@@ -123,6 +124,9 @@ export default function LoginPage() {
         title: "Inloggning lyckades",
         description: `Välkommen ${result.user?.username || result.student?.username}!`,
       });
+
+      // Invalidate auth cache to trigger auth state update
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
       // Determine redirect path based on role if not provided
       let redirectPath = result.redirectPath;
