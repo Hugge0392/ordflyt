@@ -2,7 +2,21 @@ import * as puppeteer from 'puppeteer';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
-import { Chart } from 'chart.js';
+import {
+  Chart,
+  registerables,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  TimeScale,
+  ArcElement
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
 import type { 
   StudentProgressReport, 
   ClassDataBackup, 
@@ -55,6 +69,21 @@ export class PDFExportService {
   private tempDir: string;
 
   constructor() {
+    // Register Chart.js components before initializing the renderer
+    Chart.register(...registerables);
+    Chart.register(
+      CategoryScale,
+      LinearScale,
+      PointElement,
+      LineElement,
+      BarElement,
+      Title,
+      Tooltip,
+      Legend,
+      TimeScale,
+      ArcElement
+    );
+
     this.chartRenderer = new ChartJSNodeCanvas({ 
       width: 800, 
       height: 400,
