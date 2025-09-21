@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { StudentClassroomProvider } from "@/components/classroom/StudentClassroomClient";
 import { PreviewProvider } from "@/contexts/PreviewContext";
 import PreviewModeBanner from "@/components/PreviewModeBanner";
+import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Menu from "@/pages/menu";
@@ -270,6 +271,7 @@ function App() {
         <PreviewProvider>
           <StudentClassroomProvider>
             <PreviewModeBanner />
+            <DevRoleSwitcher />
             <Toaster />
             <Router />
           </StudentClassroomProvider>

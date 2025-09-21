@@ -54,8 +54,6 @@ export default function TeacherLessonBank() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Debug logging
-  console.log('TeacherLessonBank: Component starting, user:', user?.role);
   
   const [activeTab, setActiveTab] = useState('browse');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -76,14 +74,10 @@ export default function TeacherLessonBank() {
     queryKey: ['/api/lesson-templates'],
   });
 
-  console.log('TeacherLessonBank: templates data:', templates, 'loading:', templatesLoading);
-
   // Fetch vocabulary sets
   const { data: vocabularySets = [], isLoading: vocabularySetsLoading } = useQuery<VocabularySet[]>({
     queryKey: ['/api/vocabulary/sets/published'],
   });
-
-  console.log('TeacherLessonBank: vocabularySets data:', vocabularySets, 'loading:', vocabularySetsLoading);
 
   // Temporarily disabled vocabulary stats to debug React error
   // const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
@@ -605,7 +599,7 @@ export default function TeacherLessonBank() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <Hash className="h-4 w-4 text-purple-600" />
+                            <Target className="h-4 w-4 text-purple-600" />
                             <span className="text-xs text-muted-foreground font-medium">ORDKUNSKAP</span>
                           </div>
                           <CardTitle className="text-lg line-clamp-2">

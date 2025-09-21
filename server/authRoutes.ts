@@ -1880,4 +1880,174 @@ router.post("/api/student/password", requireStudentAuth, async (req, res) => {
   }
 });
 
+// Development quick-login endpoint (only available in development)
+router.post("/api/dev/quick-login", async (req, res) => {
+  // Block in production
+  if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  try {
+    const { role } = req.body;
+    
+    if (!role || !['ADMIN', 'LARARE', 'ELEV'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const ipAddress = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+    let redirectPath = '/';
+    let csrfToken: string;
+
+    if (role === 'ELEV') {
+      // Handle student login
+      const studentUsername = 'elev';
+      const studentPassword = 'password';
+      
+      // Find or create student
+      let student = await getStudentByUsername(studentUsername);
+      if (!student) {
+        const hashedPassword = await hashPassword(studentPassword);
+        // We need to ensure a class exists first
+        let [teacherClass] = await db
+          .select()
+          .from(teacherClasses)
+          .limit(1);
+          
+        if (!teacherClass) {
+          // Create a default dev class first
+          const [teacher] = await db
+            .select()
+            .from(users)
+            .where(eq(users.username, 'larare'))
+            .limit(1);
+            
+          if (teacher) {
+            [teacherClass] = await db.insert(teacherClasses).values({
+              teacherId: teacher.id,
+              className: 'Dev Testklass',
+              gradeLevel: '4',
+              subject: 'Svenska',
+              isActive: true
+            }).returning();
+          }
+        }
+        
+        if (!teacherClass) {
+          throw new Error('Could not create or find teacher class for student');
+        }
+        
+        const [newStudent] = await db.insert(studentAccounts).values({
+          username: studentUsername,
+          passwordHash: hashedPassword,
+          studentName: 'Test Elev',
+          classId: teacherClass.id,
+          isActive: true,
+          mustChangePassword: false
+        }).returning();
+        student = newStudent;
+      }
+
+      // Generate CSRF token for student
+      csrfToken = await generateCsrfToken();
+
+      // Create student session
+      const sessionData = await createStudentSession(
+        student.id,
+        ipAddress,
+        userAgent || 'unknown',
+        generateDeviceFingerprint(req)
+      );
+
+      // Set student session cookie
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+      res.cookie('student_session', sessionData.sessionToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 1000, // 1 hour for students
+        path: '/'
+      });
+
+      redirectPath = '/elev';
+      
+      // Audit log
+      await logAuditEvent(
+        'DEV_QUICK_LOGIN_STUDENT',
+        null,
+        true,
+        ipAddress,
+        userAgent,
+        { role, username: studentUsername }
+      );
+
+      return res.json({ student, csrfToken, redirectPath });
+    } else {
+      // Handle admin/teacher login
+      const username = role === 'ADMIN' ? 'admin' : 'larare';
+      const password = username; // Simple password for dev
+      
+      // Find or create user
+      let [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+        
+      if (!user) {
+        const hashedPassword = await hashPassword(password);
+        const [newUser] = await db.insert(users).values({
+          username,
+          email: `${username}@test.se`,
+          passwordHash: hashedPassword,
+          role: role as 'ADMIN' | 'LARARE',
+          isActive: true,
+          emailVerified: true,
+          mustChangePassword: false
+        }).returning();
+        user = newUser;
+      }
+
+      // Create session using existing createSession function
+      const sessionData = await createSession(
+        user.id,
+        ipAddress,
+        userAgent || 'unknown',
+        generateDeviceFingerprint(req),
+        user.role
+      );
+      
+      // Generate CSRF token
+      csrfToken = await generateCsrfToken(sessionData.id);
+      
+      // Set session cookie
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+      res.cookie('sessionToken', sessionData.sessionToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        maxAge: 30 * 60 * 1000, // 30 minutes for teachers/admin
+        path: '/'
+      });
+
+      redirectPath = role === 'ADMIN' ? '/admin' : '/teacher';
+      
+      // Audit log
+      await logAuditEvent(
+        'DEV_QUICK_LOGIN',
+        user.id,
+        true,
+        ipAddress,
+        userAgent,
+        { role, username }
+      );
+
+      return res.json({ user, csrfToken, redirectPath });
+    }
+  } catch (error) {
+    console.error('Dev quick-login error:', error);
+    return res.status(500).json({ message: 'Login failed' });
+  }
+});
+
 export default router;
