@@ -16,7 +16,6 @@ import {
   TimeScale,
   ArcElement
 } from 'chart.js';
-import 'chartjs-adapter-date-fns';
 import type { 
   StudentProgressReport, 
   ClassDataBackup, 
@@ -65,42 +64,51 @@ export interface ChartConfig {
 }
 
 export class PDFExportService {
-  private chartRenderer: ChartJSNodeCanvas;
+  private chartRenderer!: ChartJSNodeCanvas;
   private tempDir: string;
+  private initialized: boolean = false;
 
   constructor() {
-    // Register Chart.js components before initializing the renderer
-    Chart.register(...registerables);
-    Chart.register(
-      CategoryScale,
-      LinearScale,
-      PointElement,
-      LineElement,
-      BarElement,
-      Title,
-      Tooltip,
-      Legend,
-      TimeScale,
-      ArcElement
-    );
-
-    this.chartRenderer = new ChartJSNodeCanvas({ 
-      width: 800, 
-      height: 400,
-      backgroundColour: 'white',
-      plugins: {
-        modern: ['chartjs-adapter-date-fns'],
-        requireLegacy: ['chartjs-plugin-datalabels']
-      }
-    });
     this.tempDir = path.join(process.cwd(), 'temp', 'pdf-exports');
   }
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     try {
+      // Register Chart.js components before initializing the renderer
+      Chart.register(...registerables);
+      Chart.register(
+        CategoryScale,
+        LinearScale,
+        PointElement,
+        LineElement,
+        BarElement,
+        Title,
+        Tooltip,
+        Legend,
+        TimeScale,
+        ArcElement
+      );
+
+      // Import the date adapter after Chart.js is fully registered
+      await import('chartjs-adapter-date-fns');
+
+      this.chartRenderer = new ChartJSNodeCanvas({ 
+        width: 800, 
+        height: 400,
+        backgroundColour: 'white',
+        plugins: {
+          modern: ['chartjs-adapter-date-fns'],
+          requireLegacy: ['chartjs-plugin-datalabels']
+        }
+      });
+
       await fs.mkdir(this.tempDir, { recursive: true });
+      this.initialized = true;
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      console.error('Error initializing PDF export service:', error);
+      throw error;
     }
   }
 
@@ -170,6 +178,8 @@ export class PDFExportService {
    * Generate chart as base64 image
    */
   private async generateChart(chartConfig: ChartConfig): Promise<string> {
+    await this.initialize();
+    
     try {
       const configuration = {
         type: chartConfig.type,
