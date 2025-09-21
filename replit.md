@@ -4,10 +4,11 @@ This project has been transformed from a simple Swedish grammar learning applica
 
 **Core Features:**
 - **Admin Interface**: Create reusable lesson templates with categories and rich content
-- **Teacher Tools**: Browse, preview, and customize admin-created lesson templates  
+- **Teacher Tools**: Unified lesson browsing and assignment interface with selection toggles, assignment creation via modal, and comprehensive assignment management
 - **Student Experience**: Engaging home screen, comprehensive shop with 32+ items, avatar customization, room decoration
 - **Shop System**: Currency management, purchases, avatar items, room decorations, themes
 - **Personalization**: Avatar builder with categories (hair, face, outfit, accessories) and room decorator with furniture placement
+- **Assignment System**: Complete teacher workflow for browsing lessons, selecting multiple lessons, creating assignments, and managing student progress
 
 The application maintains its original grammar learning foundation while adding a complete educational ecosystem with role-based access control, engaging visuals, and comprehensive content management.
 

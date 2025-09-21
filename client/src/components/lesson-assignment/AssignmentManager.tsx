@@ -100,9 +100,17 @@ export function AssignmentManager() {
   const queryClient = useQueryClient();
 
   // Fetch assignments
-  const { data: assignments = [], isLoading, error } = useQuery<Assignment[]>({
+  const { data: rawAssignments = [], isLoading, error } = useQuery<Assignment[]>({
     queryKey: ['/api/assignments'],
   });
+
+  // Normalize assignments to ensure lessonIds is always an array
+  const assignments = rawAssignments.map((assignment: any) => ({
+    ...assignment,
+    lessonIds: Array.isArray(assignment.lessonIds) 
+      ? assignment.lessonIds 
+      : (assignment.lessonId ? [assignment.lessonId] : [])
+  }));
 
   // Fetch progress for selected assignment
   const { data: progressData = [], isLoading: isLoadingProgress } = useQuery<StudentProgress[]>({
@@ -377,7 +385,7 @@ export function AssignmentManager() {
                   <CardContent>
                     <div className="flex justify-between items-center text-sm">
                       <div className="text-muted-foreground">
-                        {assignment.lessonIds.length} {assignment.lessonIds.length === 1 ? 'lektion' : 'lektioner'}
+                        {(assignment.lessonIds || []).length} {(assignment.lessonIds || []).length === 1 ? 'lektion' : 'lektioner'}
                       </div>
                       
                       <div className="flex items-center gap-4">
