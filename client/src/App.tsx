@@ -148,7 +148,7 @@ function Router() {
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
-          <TeacherPage />
+          <TeacherDashboard />
         </ProtectedRoute>
       </Route>
       <Route path="/teacher-dashboard">

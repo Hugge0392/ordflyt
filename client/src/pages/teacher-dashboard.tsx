@@ -54,14 +54,16 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
 import StudentResultsAnalytics from '@/components/analytics/StudentResultsAnalytics';
-import ClassroomControlPanel from '@/components/classroom/ClassroomControlPanel';
-import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebSocketContext';
+// Temporarily disabled due to WebSocket connection issues
+// import ClassroomControlPanel from '@/components/classroom/ClassroomControlPanel';
+// import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebSocketContext';
 import StudentWorkReview from '@/components/StudentWorkReview';
 import FeedbackList from '@/components/FeedbackList';
 import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
 import ExportDashboard from '@/components/export/ExportDashboard';
 import TeacherLessonBank from '@/pages/teacher-lesson-bank';
-import { usePreview } from '@/contexts/PreviewContext';
+// Temporarily disabled due to potential issues
+// import { usePreview } from '@/contexts/PreviewContext';
 
 // Dashboard section types
 type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export' | 'lessonbank';
@@ -1206,7 +1208,10 @@ export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading, teacherContext, school, hasSchoolAccess } = useAuth();
   const { toast } = useToast();
-  const { isPreviewMode, previewStudent, setPreviewMode, exitPreviewMode } = usePreview();
+  // Temporarily disabled preview functionality
+  // const { isPreviewMode, previewStudent, setPreviewMode, exitPreviewMode } = usePreview();
+  const isPreviewMode = false;
+  const previewStudent = null;
 
   // Fetch dashboard statistics
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
@@ -1672,12 +1677,20 @@ export default function TeacherDashboard() {
         }
         
         return (
-          <ClassroomWebSocketProvider>
-            <ClassroomControlPanel 
-              classId={primaryClass.id} 
-              className={primaryClass.name} 
-            />
-          </ClassroomWebSocketProvider>
+          <Card>
+            <CardHeader>
+              <CardTitle>Klassrumsskärm</CardTitle>
+              <CardDescription>Klassrumskontroller med timer och skärmlås</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center py-12">
+              <Monitor className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Klassrumsskärm för {primaryClass.name}</h3>
+              <p className="text-gray-600 mb-6">Denna funktion är tillfälligt inaktiverad under utveckling.</p>
+              <Button variant="outline" disabled>
+                Kommer snart
+              </Button>
+            </CardContent>
+          </Card>
         );
       case 'feedback':
         return <StudentWorkReview />;
@@ -1705,88 +1718,6 @@ export default function TeacherDashboard() {
                 <span className="font-medium">{user.username}</span>
                 {school && (
                   <span className="ml-2 text-gray-400">• {school.name}</span>
-                )}
-              </div>
-            </div>
-
-            {/* Student Preview Controls */}
-            <div className="flex items-center space-x-4">
-              {/* Preview Mode Indicator */}
-              {isPreviewMode && previewStudent && (
-                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-lg border border-orange-200 text-sm font-medium">
-                  <Eye className="h-4 w-4 inline mr-1" />
-                  Tittar som: {previewStudent.studentName}
-                </div>
-              )}
-
-              {/* Student Preview Dropdown */}
-              <div className="flex items-center space-x-2">
-                <Select
-                  value={isPreviewMode ? previewStudent?.id || '' : ''}
-                  onValueChange={(studentId) => {
-                    if (!studentId) {
-                      exitPreviewMode();
-                      return;
-                    }
-                    // Find student from all classes
-                    const allStudents = (dashboardClassesData?.classes || []).flatMap((c: ClassData) => 
-                      c.students.map((s: StudentData) => ({
-                        ...s,
-                        className: c.name
-                      }))
-                    );
-                    const selectedStudent = allStudents.find(s => s.id === studentId);
-                    if (selectedStudent) {
-                      setPreviewMode(true, selectedStudent);
-                      toast({
-                        title: "Elevperspektiv aktiverat",
-                        description: `Du ser nu systemet som ${selectedStudent.studentName}`,
-                      });
-                    }
-                  }}
-                  data-testid="select-student-preview"
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Välj elev att förhandsgranska" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Ingen förhandsgranskning</SelectItem>
-                    {(dashboardClassesData?.classes || []).map((classItem: ClassData) => (
-                      <div key={classItem.id}>
-                        <div className="font-semibold text-xs text-gray-500 px-2 py-1">
-                          {classItem.name}
-                        </div>
-                        {classItem.students.map((student: StudentData) => (
-                          <SelectItem 
-                            key={student.id} 
-                            value={student.id}
-                            className="pl-4"
-                          >
-                            {student.studentName}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Quick Exit Preview Button */}
-                {isPreviewMode && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      exitPreviewMode();
-                      toast({
-                        title: "Elevperspektiv inaktiverat",
-                        description: "Du är nu tillbaka i lärarvyn",
-                      });
-                    }}
-                    data-testid="button-exit-preview"
-                  >
-                    <EyeOff className="h-4 w-4 mr-1" />
-                    Avsluta
-                  </Button>
                 )}
               </div>
             </div>

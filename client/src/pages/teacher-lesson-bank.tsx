@@ -78,28 +78,34 @@ export default function TeacherLessonBank() {
     queryKey: ['/api/vocabulary/sets/published'],
   });
 
-  // Efficiently fetch vocabulary stats using the new bulk stats endpoint and default fetcher
-  const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
-  const { data: vocabularyStats = [], isLoading: vocabularyStatsLoading } = useQuery<VocabularyStatsResponse>({
-    queryKey: ['/api/vocabulary/sets/stats', { ids: vocabularySetIds }],
-    enabled: vocabularySets.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Temporarily disabled vocabulary stats to debug React error
+  // const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
+  // const { data: vocabularyStats = [], isLoading: vocabularyStatsLoading } = useQuery<VocabularyStatsResponse>({
+  //   queryKey: ['/api/vocabulary/sets/stats', { ids: vocabularySetIds }],
+  //   enabled: vocabularySets.length > 0,
+  //   staleTime: 5 * 60 * 1000, // 5 minutes
+  // });
 
-  // Transform stats array into convenient lookup objects
-  const vocabularyWordCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
-    acc[stat.setId] = stat.wordCount;
-    return acc;
-  }, {});
+  // // Transform stats array into convenient lookup objects
+  // const vocabularyWordCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
+  //   acc[stat.setId] = stat.wordCount;
+  //   return acc;
+  // }, {});
 
-  const vocabularyExerciseCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
-    acc[stat.setId] = stat.exerciseCount;
-    return acc;
-  }, {});
+  // const vocabularyExerciseCounts = vocabularyStats.reduce<Record<string, number>>((acc, stat) => {
+  //   acc[stat.setId] = stat.exerciseCount;
+  //   return acc;
+  // }, {});
 
-  // Combined loading state
-  const wordCountsLoading = vocabularyStatsLoading;
-  const exerciseCountsLoading = vocabularyStatsLoading;
+  // // Combined loading state
+  // const wordCountsLoading = vocabularyStatsLoading;
+  // const exerciseCountsLoading = vocabularyStatsLoading;
+
+  // Temporary simple placeholders
+  const vocabularyWordCounts: Record<string, number> = {};
+  const vocabularyExerciseCounts: Record<string, number> = {};
+  const wordCountsLoading = false;
+  const exerciseCountsLoading = false;
 
   // Fetch teacher's existing customizations
   const { data: teacherCustomizations = [], isLoading: customizationsLoading } = useQuery<TeacherLessonCustomization[]>({
@@ -150,6 +156,10 @@ export default function TeacherLessonBank() {
       case 'easy': return 'Lätt';
       case 'medium': return 'Medium';
       case 'hard': return 'Svår';
+      // Handle Swedish values from database
+      case 'lätt': return 'Lätt';
+      case 'medel': return 'Medium';
+      case 'svår': return 'Svår';
       default: return difficulty || 'Medium';
     }
   };
@@ -160,6 +170,10 @@ export default function TeacherLessonBank() {
       case 'easy': return 'bg-green-100 text-green-800 border-green-200';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'hard': return 'bg-red-100 text-red-800 border-red-200';
+      // Handle Swedish values from database
+      case 'lätt': return 'bg-green-100 text-green-800 border-green-200';
+      case 'medel': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'svår': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -234,7 +248,7 @@ export default function TeacherLessonBank() {
   // Get total selected items count
   const totalSelectedItems = selectedTemplates.length + selectedVocabularySets.length;
 
-  if (!user || (user.role !== 'LÄRARE' && user.role !== 'ADMIN')) {
+  if (!user || (user.role !== 'LARARE' && user.role !== 'ADMIN')) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <Card>
@@ -457,7 +471,7 @@ export default function TeacherLessonBank() {
           )}
 
           {/* Lesson Items Grid */}
-          {(templatesLoading || vocabularySetsLoading) ? (
+          {(templatesLoading || vocabularySetsLoading || categoriesLoading) ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Laddar lektioner...</p>
             </div>
