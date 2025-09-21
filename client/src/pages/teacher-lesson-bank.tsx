@@ -28,9 +28,13 @@ import {
   Search,
   Star,
   Download,
-  Plus
+  Plus,
+  X,
+  Send
 } from 'lucide-react';
 import type { LessonTemplate, LessonCategory, TeacherLessonCustomization, VocabularySet, VocabularyStatsResponse } from '@shared/schema';
+import { AssignmentModal } from '@/components/lesson-assignment/AssignmentModal';
+import { AssignmentManager } from '@/components/lesson-assignment/AssignmentManager';
 
 interface SelectedTemplate {
   template: LessonTemplate;
@@ -49,6 +53,49 @@ function isVocabularySet(item: SelectedItem): item is SelectedVocabularySet {
   return 'vocabularySet' in item;
 }
 
+// Adapter to convert selected items to AssignmentModal format
+interface AssignmentModalLesson {
+  id: string;
+  title: string;
+  type: string;
+  lessonType: string;
+  category?: string;
+  difficulty?: string;
+  estimatedDuration?: number;
+}
+
+function adaptSelectedItemsToLessons(templates: SelectedTemplate[], vocabularySets: SelectedVocabularySet[]): AssignmentModalLesson[] {
+  const lessons: AssignmentModalLesson[] = [];
+  
+  // Add templates
+  templates.forEach(item => {
+    lessons.push({
+      id: item.template.id,
+      title: item.template.title,
+      type: 'published_lesson',
+      lessonType: 'Interaktiv lektion',
+      category: item.template.categoryId || 'Allmänt',
+      difficulty: item.template.difficulty || 'medium',
+      estimatedDuration: item.template.estimatedDuration || 15
+    });
+  });
+  
+  // Add vocabulary sets
+  vocabularySets.forEach(item => {
+    lessons.push({
+      id: item.vocabularySet.id,
+      title: item.vocabularySet.title,
+      type: 'vocabulary',
+      lessonType: 'Ordkunskap',
+      category: 'Ordkunskap',
+      difficulty: 'medium',
+      estimatedDuration: 15
+    });
+  });
+  
+  return lessons;
+}
+
 export default function TeacherLessonBank() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -63,6 +110,40 @@ export default function TeacherLessonBank() {
   const [selectedVocabularySets, setSelectedVocabularySets] = useState<SelectedVocabularySet[]>([]);
   const [previewTemplate, setPreviewTemplate] = useState<LessonTemplate | null>(null);
   const [customizeTemplate, setCustomizeTemplate] = useState<LessonTemplate | null>(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  
+  // Get total selected count and adapted lessons
+  const totalSelectedCount = selectedTemplates.length + selectedVocabularySets.length;
+  const selectedLessonsForAssignment = adaptSelectedItemsToLessons(selectedTemplates, selectedVocabularySets);
+  
+  // Clear all selections
+  const clearAllSelections = () => {
+    setSelectedTemplates([]);
+    setSelectedVocabularySets([]);
+  };
+  
+  // Handle assignment modal open
+  const handleOpenAssignmentModal = () => {
+    if (totalSelectedCount === 0) {
+      toast({
+        title: 'Inga lektioner valda',
+        description: 'Välj minst en lektion för att tilldela.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setShowAssignmentModal(true);
+  };
+  
+  // Handle successful assignment
+  const handleAssignmentSuccess = () => {
+    clearAllSelections();
+    setShowAssignmentModal(false);
+    toast({
+      title: 'Uppgift tilldelad',
+      description: 'Lektionerna har tilldelats framgångsrikt.',
+    });
+  };
   
   // Fetch lesson categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<LessonCategory[]>({
@@ -326,12 +407,86 @@ export default function TeacherLessonBank() {
         </Card>
       </div>
 
+      {/* Selected Items Bar */}
+      {totalSelectedCount > 0 && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className="font-medium">
+                    {totalSelectedCount} lektion{totalSelectedCount !== 1 ? 'er' : ''} vald{totalSelectedCount !== 1 ? 'a' : ''}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {selectedTemplates.map((item) => (
+                    <Badge key={item.template.id} variant="secondary" className="text-xs">
+                      {item.template.title}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-3 w-3 ml-1 p-0 hover:bg-transparent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTemplateSelect(item.template);
+                        }}
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </Badge>
+                  ))}
+                  {selectedVocabularySets.map((item) => (
+                    <Badge key={item.vocabularySet.id} variant="secondary" className="text-xs">
+                      {item.vocabularySet.title}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-3 w-3 ml-1 p-0 hover:bg-transparent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVocabularySetSelect(item.vocabularySet);
+                        }}
+                      >
+                        <X className="h-2 w-2" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllSelections}
+                  data-testid="button-clear-selection"
+                >
+                  Rensa alla
+                </Button>
+                <Button
+                  onClick={handleOpenAssignmentModal}
+                  className="bg-primary hover:bg-primary/90"
+                  data-testid="button-assign-lessons"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Tilldela lektioner
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="browse" data-testid="tab-browse">
             <BookOpen className="h-4 w-4 mr-2" />
             Bläddra mallar
+          </TabsTrigger>
+          <TabsTrigger value="assignments" data-testid="tab-assignments">
+            <Users className="h-4 w-4 mr-2" />
+            Hantera uppgifter
           </TabsTrigger>
           <TabsTrigger value="customizations" data-testid="tab-customizations">
             <Settings className="h-4 w-4 mr-2" />
@@ -766,6 +921,11 @@ export default function TeacherLessonBank() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Assignments Tab */}
+        <TabsContent value="assignments" className="space-y-6">
+          <AssignmentManager />
+        </TabsContent>
       </Tabs>
 
       {/* Preview Modal */}
@@ -908,6 +1068,14 @@ export default function TeacherLessonBank() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Assignment Modal */}
+      <AssignmentModal 
+        open={showAssignmentModal}
+        onClose={() => setShowAssignmentModal(false)}
+        lessons={selectedLessonsForAssignment}
+        onAssignmentSuccess={handleAssignmentSuccess}
+      />
     </div>
   );
 }
