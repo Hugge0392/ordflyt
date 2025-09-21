@@ -16,6 +16,8 @@ import {
   TimeScale,
   ArcElement
 } from 'chart.js';
+// Import the date adapter at the top level to ensure proper initialization order
+import 'chartjs-adapter-date-fns';
 import type { 
   StudentProgressReport, 
   ClassDataBackup, 
@@ -91,9 +93,7 @@ export class PDFExportService {
         ArcElement
       );
 
-      // Import the date adapter after Chart.js is fully registered
-      await import('chartjs-adapter-date-fns');
-
+      // Date adapter is already imported at the top level, so we can directly create the renderer
       this.chartRenderer = new ChartJSNodeCanvas({ 
         width: 800, 
         height: 400,
