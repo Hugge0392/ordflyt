@@ -48,7 +48,7 @@ import { WelcomeGuide } from '@/components/ui/welcome-guide';
 import { HelpTooltip, InfoTooltip } from '@/components/ui/help-tooltip';
 import { HelpMenu, commonGuides } from '@/components/ui/help-menu';
 import { useAuth } from '@/hooks/useAuth';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import {
   Shield,
   Key,
