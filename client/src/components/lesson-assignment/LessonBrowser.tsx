@@ -54,13 +54,13 @@ export function LessonBrowser({ onLessonSelect, selectedLessons = [], multiSelec
 
   // Fetch available lessons
   const { data: lessons = [], isLoading, error } = useQuery<Lesson[]>({
-    queryKey: ['/api/assignments/lessons', {
-      type: selectedType !== 'all' ? selectedType : undefined,
-      wordClass: selectedWordClass !== 'all' ? selectedWordClass : undefined,
-      difficulty: selectedDifficulty !== 'all' ? selectedDifficulty : undefined,
-      gradeLevel: selectedGradeLevel !== 'all' ? selectedGradeLevel : undefined,
-      search: searchTerm || undefined
-    }],
+    queryKey: ['/api/assignments/lessons', 
+      selectedType !== 'all' ? selectedType : undefined,
+      selectedWordClass !== 'all' ? selectedWordClass : undefined, 
+      selectedDifficulty !== 'all' ? selectedDifficulty : undefined,
+      selectedGradeLevel !== 'all' ? selectedGradeLevel : undefined,
+      searchTerm || undefined
+    ],
   });
 
   // Filter lessons by active category
@@ -130,14 +130,29 @@ export function LessonBrowser({ onLessonSelect, selectedLessons = [], multiSelec
           />
         </div>
 
-        {/* Category Tabs */}
+        {/* Category Tabs with Icons */}
         <Tabs value={activeCategory} onValueChange={setActiveCategory}>
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all" data-testid="tab-all">Alla</TabsTrigger>
-            <TabsTrigger value="grammar" data-testid="tab-grammar">Grammatik</TabsTrigger>
-            <TabsTrigger value="reading" data-testid="tab-reading">Läsförståelse</TabsTrigger>
-            <TabsTrigger value="interactive" data-testid="tab-interactive">Interaktiva</TabsTrigger>
-            <TabsTrigger value="custom" data-testid="tab-custom">Anpassade</TabsTrigger>
+            <TabsTrigger value="all" data-testid="tab-all" className="flex flex-col gap-1 h-auto py-3">
+              <span className="text-base">📋</span>
+              <span className="text-xs">Alla</span>
+            </TabsTrigger>
+            <TabsTrigger value="grammar" data-testid="tab-grammar" className="flex flex-col gap-1 h-auto py-3">
+              <span className="text-base">📚</span>
+              <span className="text-xs">Grammatik</span>
+            </TabsTrigger>
+            <TabsTrigger value="reading" data-testid="tab-reading" className="flex flex-col gap-1 h-auto py-3">
+              <span className="text-base">📖</span>
+              <span className="text-xs">Läsförståelse</span>
+            </TabsTrigger>
+            <TabsTrigger value="interactive" data-testid="tab-interactive" className="flex flex-col gap-1 h-auto py-3">
+              <span className="text-base">🎮</span>
+              <span className="text-xs">Interaktiva</span>
+            </TabsTrigger>
+            <TabsTrigger value="custom" data-testid="tab-custom" className="flex flex-col gap-1 h-auto py-3">
+              <span className="text-base">⚙️</span>
+              <span className="text-xs">Anpassade</span>
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
