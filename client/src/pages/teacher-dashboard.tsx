@@ -46,7 +46,8 @@ import {
   Trash2,
   MessageSquare,
   MapPin,
-  Lightbulb
+  Lightbulb,
+  Library
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -59,10 +60,11 @@ import StudentWorkReview from '@/components/StudentWorkReview';
 import FeedbackList from '@/components/FeedbackList';
 import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
 import ExportDashboard from '@/components/export/ExportDashboard';
+import TeacherLessonBank from '@/pages/teacher-lesson-bank';
 import { usePreview } from '@/contexts/PreviewContext';
 
 // Dashboard section types
-type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export';
+type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export' | 'lessonbank';
 
 interface DashboardStats {
   totalStudents: number;
@@ -1312,6 +1314,12 @@ export default function TeacherDashboard() {
       description: 'Tilldela uppgifter och lektioner'
     },
     {
+      id: 'lessonbank' as DashboardSection,
+      label: 'Lektionsbank',
+      icon: Library,
+      description: 'Bläddra bland admin-skapade lektioner och välj vilka som ska publiceras'
+    },
+    {
       id: 'results' as DashboardSection,
       label: 'Resultat elever',
       icon: BarChart3,
@@ -1635,6 +1643,8 @@ export default function TeacherDashboard() {
             </CardContent>
           </Card>
         );
+      case 'lessonbank':
+        return <TeacherLessonBank />;
       case 'results':
         return <StudentResultsAnalytics />;
       case 'classroom':
