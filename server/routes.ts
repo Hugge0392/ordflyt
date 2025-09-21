@@ -4099,7 +4099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Temporary local vocabulary set schema to bypass broken shared/schema imports
+  // Temporary local vocabulary schemas to bypass broken shared/schema imports
   const localVocabularySetSchema = z.object({
     title: z.string().min(1).max(255),
     description: z.string().optional(),
@@ -4108,6 +4108,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     orderNumbersColor: z.string().regex(/^#[0-9A-F]{6}$/i).default("#F59E0B"),
     bannerImage: z.string().optional(),
     isPublished: z.boolean().default(false),
+  });
+
+  const localVocabularyWordSchema = z.object({
+    setId: z.string(),
+    word: z.string().min(1).max(255),
+    definition: z.string().min(1),
+    synonym: z.string().optional(),
+    antonym: z.string().optional(),
+    example: z.string().optional(),
+    difficulty: z.enum(["beginner", "intermediate", "advanced"]).default("beginner"),
+    orderIndex: z.number().int().min(0).default(0),
+  });
+
+  const localVocabularyExerciseSchema = z.object({
+    setId: z.string(),
+    type: z.enum(["matching", "fill_in_blank", "true_false", "multiple_choice", "flashcards"]),
+    title: z.string().min(1).max(255),
+    description: z.string().optional(),
+    instructions: z.string().optional(),
+    config: z.record(z.any()).default({}),
+    orderIndex: z.number().int().min(0).default(0),
+    isActive: z.boolean().default(true),
+    timeLimit: z.number().int().min(0).optional(),
+    passingScore: z.number().int().min(0).max(100).default(70),
   });
 
   // POST /api/vocabulary/sets - Create new vocabulary set (Admin only)
@@ -4297,11 +4321,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/vocabulary/sets/:setId/exercises", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
     try {
       const { setId } = req.params;
-      const validatedData = insertVocabularyExerciseSchema.strict().parse({ ...req.body, setId });
+      console.log("Creating vocabulary exercise with data:", req.body);
+      const validatedData = localVocabularyExerciseSchema.strict().parse({ ...req.body, setId });
+      console.log("Validated exercise data:", validatedData);
       const newExercise = await storage.createVocabularyExercise(validatedData);
+      console.log("Created vocabulary exercise:", newExercise);
       res.status(201).json(newExercise);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Exercise validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error creating vocabulary exercise:", error);
@@ -4313,11 +4341,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/vocabulary/exercises/:id", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
     try {
       const { id } = req.params;
-      const validatedData = insertVocabularyExerciseSchema.partial().strict().parse(req.body);
+      console.log("Updating vocabulary exercise with data:", req.body);
+      const validatedData = localVocabularyExerciseSchema.partial().strict().parse(req.body);
+      console.log("Validated exercise update data:", validatedData);
       const updatedExercise = await storage.updateVocabularyExercise(id, validatedData);
+      console.log("Updated vocabulary exercise:", updatedExercise);
       res.json(updatedExercise);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Exercise update validation error:", error.errors);
         return res.status(400).json({ error: "Invalid data", details: error.errors });
       }
       console.error("Error updating vocabulary exercise:", error);
