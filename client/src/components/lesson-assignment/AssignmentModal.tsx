@@ -96,7 +96,6 @@ export function AssignmentModal({ open, onOpenChange, lessons }: AssignmentModal
   // Fetch teacher's classes
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<{ classes: ClassData[] }>({
     queryKey: ['/api/license/classes'],
-    initialData: { classes: [] },
     enabled: open,
   });
 
