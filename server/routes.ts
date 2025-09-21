@@ -4112,13 +4112,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const localVocabularyWordSchema = z.object({
     setId: z.string(),
-    word: z.string().min(1).max(255),
+    term: z.string().min(1).max(255),  // Frontend sends 'term' not 'word'
     definition: z.string().min(1),
     synonym: z.string().optional(),
     antonym: z.string().optional(),
     example: z.string().optional(),
-    difficulty: z.enum(["beginner", "intermediate", "advanced"]).default("beginner"),
+    difficulty: z.enum(["beginner", "intermediate", "advanced"]).default("beginner").optional(),
     orderIndex: z.number().int().min(0).default(0),
+    // Additional fields that frontend sends
+    imageUrl: z.string().optional(),
+    pronunciationUrl: z.string().optional(),
+    phonetic: z.string().optional(),
   });
 
   const localVocabularyExerciseSchema = z.object({
@@ -4132,6 +4136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isActive: z.boolean().default(true),
     timeLimit: z.number().int().min(0).optional(),
     passingScore: z.number().int().min(0).max(100).default(70),
+    // Additional fields that frontend sends
+    pointsPerCorrect: z.number().optional(),
+    minPassingScore: z.number().int().min(0).max(100).optional(),
+    allowRetries: z.boolean().optional(),
   });
 
   // POST /api/vocabulary/sets - Create new vocabulary set (Admin only)
@@ -4214,19 +4222,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Temporary local vocabulary word schema to bypass broken shared/schema imports
-  const localVocabularyWordSchema = z.object({
-    setId: z.string(),
-    term: z.string().min(1).max(255),
-    definition: z.string().min(1),
-    synonym: z.string().optional(),
-    antonym: z.string().optional(),
-    example: z.string().optional(),
-    imageUrl: z.string().optional(),
-    pronunciationUrl: z.string().optional(),
-    phonetic: z.string().optional(),
-    orderIndex: z.number().default(0),
-  });
 
   // POST /api/vocabulary/sets/:setId/words - Create new vocabulary word (Admin only)
   app.post("/api/vocabulary/sets/:setId/words", requireAuth, requireRole("ADMIN"), requireCsrf, async (req, res) => {
