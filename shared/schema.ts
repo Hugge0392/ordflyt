@@ -2826,12 +2826,14 @@ export const lessonCategories = pgTable("lesson_categories", {
   description: text("description"),
   color: varchar("color", { length: 20 }).default('#3B82F6'), // Hex color for UI
   icon: varchar("icon", { length: 50 }), // Lucide icon name
+  parentId: varchar("parent_id"), // Self-referencing for subcategories
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   nameIdx: uniqueIndex("lesson_categories_name_idx").on(table.name),
   sortIdx: index("lesson_categories_sort_idx").on(table.sortOrder),
+  parentIdx: index("lesson_categories_parent_idx").on(table.parentId),
 }));
 
 // Lesson templates - Admin creates these as base templates for teachers

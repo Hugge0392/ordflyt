@@ -35,6 +35,7 @@ import {
 import type { LessonTemplate, LessonCategory, TeacherLessonCustomization, VocabularySet, VocabularyStatsResponse } from '@shared/schema';
 import { AssignmentModal } from '@/components/lesson-assignment/AssignmentModal';
 import { AssignmentManager } from '@/components/lesson-assignment/AssignmentManager';
+import { CategoryBrowserView } from '@/components/CategoryBrowserView';
 
 interface SelectedTemplate {
   template: LessonTemplate;
@@ -103,9 +104,36 @@ export default function TeacherLessonBank() {
 
   
   const [activeTab, setActiveTab] = useState('browse');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
+  
+  // Navigation state for categories
+  const [selectedMainCategory, setSelectedMainCategory] = useState<LessonCategory | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<LessonCategory | null>(null);
+  
+  // Navigation breadcrumbs
+  const breadcrumbs = [];
+  if (selectedMainCategory) {
+    breadcrumbs.push({
+      name: 'Kategorier',
+      onClick: () => {
+        setSelectedMainCategory(null);
+        setSelectedSubcategory(null);
+      }
+    });
+    breadcrumbs.push({
+      name: selectedMainCategory.swedishName || selectedMainCategory.name,
+      onClick: () => {
+        setSelectedSubcategory(null);
+      }
+    });
+  }
+  if (selectedSubcategory) {
+    breadcrumbs.push({
+      name: selectedSubcategory.swedishName || selectedSubcategory.name,
+      onClick: () => {}
+    });
+  }
   const [selectedTemplates, setSelectedTemplates] = useState<SelectedTemplate[]>([]);
   const [selectedVocabularySets, setSelectedVocabularySets] = useState<SelectedVocabularySet[]>([]);
   const [previewTemplate, setPreviewTemplate] = useState<LessonTemplate | null>(null);
@@ -143,6 +171,28 @@ export default function TeacherLessonBank() {
       title: 'Uppgift tilldelad',
       description: 'Lektionerna har tilldelats framgångsrikt.',
     });
+  };
+  
+  // Category navigation handlers
+  const handleCategorySelect = (category: LessonCategory) => {
+    setSelectedMainCategory(category);
+    setSelectedSubcategory(null);
+    
+    // Clear search when navigating to a category
+    setSearchQuery('');
+  };
+  
+  const handleSubcategorySelect = (subcategory: LessonCategory) => {
+    setSelectedSubcategory(subcategory);
+    
+    // Clear search when navigating to a subcategory
+    setSearchQuery('');
+  };
+  
+  // Get subcategories for current main category
+  const getCurrentSubcategories = () => {
+    if (!selectedMainCategory) return [];
+    return categories.filter(cat => cat.parentId === selectedMainCategory.id);
   };
   
   // Fetch lesson categories
@@ -197,27 +247,64 @@ export default function TeacherLessonBank() {
   // Get the vocabulary category ID
   const vocabularyCategoryId = categories.find(c => c.name === 'vocabulary')?.id;
 
+  // Determine if we should show lessons (when category is selected or searching)
+  const showLessons = searchQuery.trim() !== '' || !!selectedMainCategory || !!selectedSubcategory;
+  
+  // Get current category filter ID
+  const getCurrentCategoryId = () => {
+    if (selectedSubcategory) return selectedSubcategory.id;
+    if (selectedMainCategory) return selectedMainCategory.id;
+    return null;
+  };
+
   // Filter templates based on search and filters
   const filteredTemplates = templates.filter((template) => {
-    const matchesCategory = selectedCategory === 'all' || template.categoryId === selectedCategory;
-    const matchesSearch = searchQuery === '' || 
-      template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesDifficulty = difficultyFilter === 'all' || template.difficulty === difficultyFilter;
-    const isPublished = template.isPublished;
+    // If searching, show all matching templates regardless of category selection
+    if (searchQuery.trim() !== '') {
+      const matchesSearch = 
+        template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (template.description && template.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesDifficulty = difficultyFilter === 'all' || template.difficulty === difficultyFilter;
+      const isPublished = template.isPublished;
+      
+      return matchesSearch && matchesDifficulty && isPublished;
+    }
     
-    return matchesCategory && matchesSearch && matchesDifficulty && isPublished;
+    // If category is selected, filter by that category
+    const currentCategoryId = getCurrentCategoryId();
+    if (currentCategoryId) {
+      const matchesCategory = template.categoryId === currentCategoryId;
+      const matchesDifficulty = difficultyFilter === 'all' || template.difficulty === difficultyFilter;
+      const isPublished = template.isPublished;
+      
+      return matchesCategory && matchesDifficulty && isPublished;
+    }
+    
+    // Don't show any templates when in category browser mode
+    return false;
   });
 
   // Filter vocabulary sets based on search and filters  
   const filteredVocabularySets = vocabularySets.filter((set) => {
-    const matchesCategory = selectedCategory === 'all' || selectedCategory === vocabularyCategoryId;
-    const matchesSearch = searchQuery === '' || 
-      set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const isPublished = set.isPublished;
+    // If searching, show all matching vocabulary sets
+    if (searchQuery.trim() !== '') {
+      const matchesSearch = 
+        set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const isPublished = set.isPublished;
+      
+      return matchesSearch && isPublished;
+    }
     
-    return matchesCategory && matchesSearch && isPublished;
+    // If category is selected, only show vocabulary sets if it's the vocabulary category
+    const currentCategoryId = getCurrentCategoryId();
+    if (currentCategoryId && currentCategoryId === vocabularyCategoryId) {
+      const isPublished = set.isPublished;
+      return isPublished;
+    }
+    
+    // Don't show vocabulary sets when in category browser mode
+    return false;
   });
 
   // Combine both types for unified display
@@ -525,22 +612,21 @@ export default function TeacherLessonBank() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Kategori</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger data-testid="select-category">
-                      <SelectValue placeholder="Välj kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Alla kategorier</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.swedishName || category.name || ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Category filter only shown when in lesson view */}
+                {showLessons && (
+                  <div className="space-y-2">
+                    <Label>Vald kategori</Label>
+                    <div className="p-2 bg-muted rounded-md text-sm">
+                      {selectedSubcategory ? (
+                        `${selectedMainCategory?.swedishName} > ${selectedSubcategory.swedishName}`
+                      ) : selectedMainCategory ? (
+                        selectedMainCategory.swedishName
+                      ) : (
+                        'Alla kategorier (vid sökning)'
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="difficulty">Svårighetsgrad</Label>
@@ -564,7 +650,8 @@ export default function TeacherLessonBank() {
                     variant="outline"
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedCategory('all');
+                      setSelectedMainCategory(null);
+                      setSelectedSubcategory(null);
                       setDifficultyFilter('all');
                     }}
                     data-testid="button-clear-filters"
@@ -626,11 +713,21 @@ export default function TeacherLessonBank() {
             </Card>
           )}
 
-          {/* Lesson Items Grid */}
+          {/* Category Browser or Lesson Items Grid */}
           {(templatesLoading || vocabularySetsLoading || categoriesLoading) ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Laddar lektioner...</p>
+              <p className="text-muted-foreground">Laddar innehåll...</p>
             </div>
+          ) : !showLessons ? (
+            /* Category Browser Mode */
+            <CategoryBrowserView
+              categories={categories}
+              onCategorySelect={handleCategorySelect}
+              onSubcategorySelect={handleSubcategorySelect}
+              selectedCategory={selectedMainCategory}
+              subcategories={getCurrentSubcategories()}
+              breadcrumbs={breadcrumbs}
+            />
           ) : (filteredTemplates.length === 0 && filteredVocabularySets.length === 0) ? (
             <Card>
               <CardContent className="p-8 text-center">
