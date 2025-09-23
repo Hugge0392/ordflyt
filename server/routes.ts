@@ -22,10 +22,10 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 }
 import { LessonGenerator } from "./lessonGenerator";
 import { z } from "zod";
-import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema, vocabularyStatsResponseSchema } from "@shared/schema";
+import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSchema, insertReadingLessonSchema, insertKlassKampGameSchema, insertLessonAssignmentSchema, insertStudentLessonProgressSchema, insertTeacherFeedbackSchema, insertExportJobSchema, insertExportTemplateSchema, insertExportHistorySchema, insertStudentProgressSchema, insertStudentActivitySchema, insertLessonCategorySchema, insertLessonTemplateSchema, insertTeacherLessonCustomizationSchema, insertStudentCurrencySchema, insertShopItemSchema, insertStudentPurchaseSchema, insertStudentAvatarSchema, insertStudentRoomSchema, insertHandRaisingSchema, insertCurrencyTransactionSchema, insertVocabularySetSchema, insertVocabularyWordSchema, insertVocabularyExerciseSchema, insertVocabularyAttemptSchema, vocabularyStatsResponseSchema, insertBlogPostSchema, insertNewsletterSubscriptionSchema } from "@shared/schema";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ClassroomWebSocket } from "./classroom-websocket";
 import { ttsService } from "./ttsService";
@@ -1139,6 +1139,198 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register migration routes
   registerMigrationRoutes(app);
+
+  // ===== BLOG/LESSON MATERIALS ENDPOINTS =====
+  
+  // Blog posts query validation schema
+  const blogPostsQuerySchema = z.object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(10),
+    category: z.string().uuid().optional(),
+  });
+
+  // Get published blog posts (public)
+  app.get("/api/blog/posts", async (req, res) => {
+    try {
+      const validation = blogPostsQuerySchema.safeParse(req.query);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid query parameters", 
+          errors: validation.error.errors 
+        });
+      }
+      
+      const { page, limit, category } = validation.data;
+      const offset = (page - 1) * limit;
+
+      let whereCondition = eq(schema.blogPosts.isPublished, true);
+      if (category) {
+        whereCondition = and(whereCondition, eq(schema.blogPosts.categoryId, category));
+      }
+
+      const posts = await db
+        .select({
+          id: schema.blogPosts.id,
+          title: schema.blogPosts.title,
+          slug: schema.blogPosts.slug,
+          excerpt: schema.blogPosts.excerpt,
+          heroImageUrl: schema.blogPosts.heroImageUrl,
+          downloadFileName: schema.blogPosts.downloadFileName,
+          downloadFileType: schema.blogPosts.downloadFileType,
+          categoryId: schema.blogPosts.categoryId,
+          tags: schema.blogPosts.tags,
+          publishedAt: schema.blogPosts.publishedAt,
+          authorName: schema.blogPosts.authorName,
+          viewCount: schema.blogPosts.viewCount,
+          downloadCount: schema.blogPosts.downloadCount,
+        })
+        .from(schema.blogPosts)
+        .where(whereCondition)
+        .orderBy(desc(schema.blogPosts.publishedAt))
+        .limit(limit)
+        .offset(offset);
+
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.blogPosts)
+        .where(whereCondition);
+
+      res.json({
+        posts,
+        pagination: {
+          page,
+          limit,
+          total: totalCount[0]?.count || 0,
+          totalPages: Math.ceil((totalCount[0]?.count || 0) / limit),
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  // Get single blog post by slug (public)
+  app.get("/api/blog/posts/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+
+      const post = await db
+        .select()
+        .from(schema.blogPosts)
+        .where(and(eq(schema.blogPosts.slug, slug), eq(schema.blogPosts.isPublished, true)))
+        .limit(1);
+
+      if (!post[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      // Increment view count
+      await db
+        .update(schema.blogPosts)
+        .set({ viewCount: sql`${schema.blogPosts.viewCount} + 1` })
+        .where(eq(schema.blogPosts.id, post[0].id));
+
+      res.json(post[0]);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
+  // Download file endpoint (tracks downloads)
+  app.get("/api/blog/download/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+
+      const post = await db
+        .select({
+          id: schema.blogPosts.id,
+          downloadFileUrl: schema.blogPosts.downloadFileUrl,
+          downloadFileName: schema.blogPosts.downloadFileName,
+        })
+        .from(schema.blogPosts)
+        .where(and(eq(schema.blogPosts.slug, slug), eq(schema.blogPosts.isPublished, true)))
+        .limit(1);
+
+      if (!post[0] || !post[0].downloadFileUrl) {
+        return res.status(404).json({ message: "Download not found" });
+      }
+
+      // Increment download count
+      await db
+        .update(schema.blogPosts)
+        .set({ downloadCount: sql`${schema.blogPosts.downloadCount} + 1` })
+        .where(eq(schema.blogPosts.id, post[0].id));
+
+      // In a real app, you'd stream the file from cloud storage
+      // For now, just redirect to the file URL
+      res.redirect(post[0].downloadFileUrl);
+    } catch (error) {
+      console.error("Error handling download:", error);
+      res.status(500).json({ message: "Download failed" });
+    }
+  });
+
+  // Newsletter subscription endpoint (public)
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const validation = insertNewsletterSubscriptionSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid subscription data", 
+          errors: validation.error.errors 
+        });
+      }
+      
+      const { email, name, categories } = validation.data;
+
+      // Check if already subscribed
+      const existing = await db
+        .select()
+        .from(schema.newsletterSubscriptions)
+        .where(eq(schema.newsletterSubscriptions.email, email))
+        .limit(1);
+
+      if (existing[0]) {
+        if (existing[0].isActive) {
+          return res.status(400).json({ message: "Already subscribed" });
+        } else {
+          // Reactivate subscription
+          await db
+            .update(schema.newsletterSubscriptions)
+            .set({ 
+              isActive: true, 
+              unsubscribedAt: null,
+              categories: categories || [],
+              name: name || existing[0].name,
+            })
+            .where(eq(schema.newsletterSubscriptions.id, existing[0].id));
+          
+          return res.json({ message: "Subscription reactivated!" });
+        }
+      }
+
+      // Create new subscription
+      const newSubscription = await db
+        .insert(schema.newsletterSubscriptions)
+        .values({
+          email,
+          name: name || null,
+          categories: categories || [],
+          confirmedAt: new Date(), // Auto-confirm for now
+        })
+        .returning();
+
+      res.status(201).json({ 
+        message: "Successfully subscribed!", 
+        subscription: newSubscription[0] 
+      });
+    } catch (error) {
+      console.error("Error subscribing to newsletter:", error);
+      res.status(500).json({ message: "Subscription failed" });
+    }
+  });
 
   // ===== LESSON ASSIGNMENT ENDPOINTS =====
   

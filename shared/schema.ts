@@ -3051,6 +3051,82 @@ export const currencyTransactions = pgTable("currency_transactions", {
   createdAtIdx: index("currency_transactions_date_idx").on(table.createdAt),
 }));
 
+// =============================================================================  
+// BLOG/LESSON MATERIALS SYSTEM
+// =============================================================================
+
+// Blog posts/lesson materials for public content
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull(),
+  excerpt: text("excerpt"), // Short description for previews
+  content: text("content").notNull(), // Full text content
+  
+  // Featured image and downloadable file
+  heroImageUrl: varchar("hero_image_url"),
+  downloadFileUrl: varchar("download_file_url"),
+  downloadFileName: varchar("download_file_name"),
+  downloadFileType: varchar("download_file_type"), // pdf, pptx, docx, etc.
+  
+  // Categorization and metadata
+  categoryId: varchar("category_id").references(() => lessonCategories.id),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  
+  // SEO and social sharing
+  metaDescription: text("meta_description"),
+  socialImageUrl: varchar("social_image_url"),
+  
+  // Publishing
+  isPublished: boolean("is_published").default(false),
+  publishedAt: timestamp("published_at"),
+  
+  // Author info (for future multi-author support)
+  authorName: varchar("author_name").default("Ordflyt Team"),
+  authorId: varchar("author_id").references(() => users.id),
+  
+  // Analytics
+  viewCount: integer("view_count").default(0),
+  downloadCount: integer("download_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  slugIdx: uniqueIndex("blog_posts_slug_idx").on(table.slug),
+  categoryIdx: index("blog_posts_category_idx").on(table.categoryId),
+  publishedIdx: index("blog_posts_published_idx").on(table.isPublished, table.publishedAt),
+  authorIdx: index("blog_posts_author_idx").on(table.authorId),
+}));
+
+// Newsletter subscriptions for lesson material updates
+export const newsletterSubscriptions = pgTable("newsletter_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }), // Optional name
+  
+  // Subscription preferences
+  isActive: boolean("is_active").default(true),
+  frequency: varchar("frequency").default("weekly"), // weekly, monthly
+  categories: jsonb("categories").$type<string[]>().default([]), // Subscribe to specific categories
+  
+  // Subscription metadata
+  source: varchar("source").default("website"), // website, referral, etc.
+  confirmationToken: varchar("confirmation_token"),
+  confirmedAt: timestamp("confirmed_at"),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+  
+  // Analytics
+  totalEmailsSent: integer("total_emails_sent").default(0),
+  lastEmailSent: timestamp("last_email_sent"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  emailIdx: uniqueIndex("newsletter_subscriptions_email_idx").on(table.email),
+  activeIdx: index("newsletter_subscriptions_active_idx").on(table.isActive),
+  confirmedIdx: index("newsletter_subscriptions_confirmed_idx").on(table.confirmedAt),
+}));
+
 // Interface definitions for JSONB fields
 export interface LessonTemplateData {
   components: LessonComponent[];
@@ -3214,6 +3290,22 @@ export const insertCurrencyTransactionSchema = createInsertSchema(currencyTransa
   createdAt: true,
 });
 
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewCount: true,
+  downloadCount: true,
+});
+
+export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalEmailsSent: true,
+  lastEmailSent: true,
+});
+
 // Types for new tables
 export type LessonCategory = typeof lessonCategories.$inferSelect;
 export type InsertLessonCategory = z.infer<typeof insertLessonCategorySchema>;
@@ -3235,6 +3327,10 @@ export type HandRaising = typeof handRaisings.$inferSelect;
 export type InsertHandRaising = z.infer<typeof insertHandRaisingSchema>;
 export type CurrencyTransaction = typeof currencyTransactions.$inferSelect;
 export type InsertCurrencyTransaction = z.infer<typeof insertCurrencyTransactionSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type NewsletterSubscription = typeof newsletterSubscriptions.$inferSelect;
+export type InsertNewsletterSubscription = z.infer<typeof insertNewsletterSubscriptionSchema>;
 
 // Vocabulary stats types for efficient bulk fetching
 export interface VocabularySetStats {

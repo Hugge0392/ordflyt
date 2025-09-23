@@ -66,6 +66,8 @@ import StudentPasswordChangePage from "@/pages/student-password-change";
 import VocabularyExercise from "@/pages/vocabulary-exercise";
 import VocabularyLessons from "@/pages/vocabulary-lessons";
 import FlashcardSession from "@/pages/flashcard-session";
+import LessonMaterials from "@/pages/lesson-materials";
+import LessonMaterialDetail from "@/pages/lesson-material-detail";
 
 function Router() {
   return (
@@ -145,6 +147,12 @@ function Router() {
       
       {/* Rich Editor Test Route */}
       <Route path="/rich-editor-test" component={RichEditorTest} />
+      
+      {/* Lesson Materials / Blog (public) */}
+      <Route path="/lektionsmaterial" component={LessonMaterials} />
+      <Route path="/lektionsmaterial/:slug" component={LessonMaterialDetail} />
+      <Route path="/gratis-lektioner" component={LessonMaterials} />
+      <Route path="/gratis-lektioner/:slug" component={LessonMaterialDetail} />
       
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">

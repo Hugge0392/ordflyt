@@ -59,6 +59,7 @@ export default function Home() {
           --speak:#7e6be6;
           --nordic:#15a8a8;
           --source:#f0722a;
+          --materials:#e879f9;
           --tile-ink:#ffffff;
         }
 
@@ -170,6 +171,7 @@ export default function Home() {
         .speak{background:var(--speak)}
         .nordic{background:var(--nordic)}
         .source{background:var(--source)}
+        .materials{background:var(--materials)}
 
         .footer{margin-top:26px; color:#5c6b7a; font-size:14px}
         .footer a{color:#4b6cb7; text-underline-offset:3px}
@@ -443,6 +445,10 @@ export default function Home() {
             <Link className="tile source" href="/kallkritik">
               <div className="icon">🔍</div>
               <div className="label">Källkritik</div>
+            </Link>
+            <Link className="tile materials" href="/lektionsmaterial">
+              <div className="icon">📄</div>
+              <div className="label">Gratis Lektioner</div>
             </Link>
           </section>
 
