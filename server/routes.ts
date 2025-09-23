@@ -3210,6 +3210,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/lesson-categories/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      const validatedData = insertLessonCategorySchema.partial().parse(req.body);
+      
+      const [updatedCategory] = await db
+        .update(schema.lessonCategories)
+        .set(validatedData)
+        .where(eq(schema.lessonCategories.id, categoryId))
+        .returning();
+      
+      if (!updatedCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      console.error("Error updating lesson category:", error);
+      res.status(500).json({ message: "Failed to update lesson category" });
+    }
+  });
+
+  app.delete("/api/lesson-categories/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const categoryId = req.params.id;
+      
+      // Check if category has any templates
+      const templatesWithCategory = await db
+        .select()
+        .from(schema.lessonTemplates)
+        .where(eq(schema.lessonTemplates.categoryId, categoryId))
+        .limit(1);
+      
+      if (templatesWithCategory.length > 0) {
+        return res.status(400).json({ 
+          message: "Cannot delete category with existing templates",
+          details: "Move or delete all templates in this category first" 
+        });
+      }
+      
+      const [deletedCategory] = await db
+        .delete(schema.lessonCategories)
+        .where(eq(schema.lessonCategories.id, categoryId))
+        .returning();
+      
+      if (!deletedCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting lesson category:", error);
+      res.status(500).json({ message: "Failed to delete lesson category" });
+    }
+  });
+
   // LESSON TEMPLATES  
   app.get("/api/lesson-templates", requireAuth, async (req, res) => {
     try {
