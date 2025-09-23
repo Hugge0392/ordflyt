@@ -1,5 +1,114 @@
 import { Link } from "wouter";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { BlogPost } from "@shared/schema";
+import { Calendar, Download, ArrowRight } from "lucide-react";
+import { format } from "date-fns";
+import { sv } from "date-fns/locale";
+
+// Component to display recent blog posts
+function RecentBlogPosts() {
+  const { data: blogData, isLoading, error } = useQuery<{ posts: BlogPost[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
+    queryKey: ['/api/blog/posts', { limit: 3, page: 1 }],
+  });
+
+  // Always show section, handle loading and empty states
+  if (isLoading) {
+    return (
+      <section className="recent-blog-posts" data-testid="section-recent-material">
+        <h2 className="section-title">📚 Senaste Lektionsmaterial</h2>
+        <p className="section-description">
+          Nya gratis material för din undervisning - uppdateras varje vecka!
+        </p>
+        <div className="blog-cards">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="blog-card blog-card-skeleton">
+              <div className="blog-card-image-skeleton"></div>
+              <div className="blog-card-content">
+                <div className="blog-card-title-skeleton"></div>
+                <div className="blog-card-excerpt-skeleton"></div>
+                <div className="blog-card-meta-skeleton"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return null; // Gracefully hide section on error
+  }
+
+  if (!blogData?.posts?.length) {
+    return (
+      <section className="recent-blog-posts" data-testid="section-recent-material">
+        <h2 className="section-title">📚 Senaste Lektionsmaterial</h2>
+        <p className="section-description">
+          Nya gratis material för din undervisning - uppdateras varje vecka!
+        </p>
+        <div className="blog-empty-state">
+          <div className="blog-empty-icon">📄</div>
+          <h3 className="blog-empty-title">Inga material än</h3>
+          <p className="blog-empty-description">
+            Vi arbetar på att lägga till det första materialet. Kom tillbaka snart!
+          </p>
+          <Link href="/lektionsmaterial" className="view-all-link" data-testid="link-view-all-materials">
+            Besök materialsidan
+            <ArrowRight className="blog-icon" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="recent-blog-posts">
+      <h2 className="section-title">📚 Senaste Lektionsmaterial</h2>
+      <p className="section-description">
+        Nya gratis material för din undervisning - uppdateras varje vecka!
+      </p>
+      <div className="blog-cards">
+        {blogData.posts.map((post) => (
+          <Link 
+            key={post.id} 
+            href={`/lektionsmaterial/${post.slug}`} 
+            className="blog-card"
+            data-testid={`card-material-${post.id}`}
+          >
+            {post.heroImageUrl && (
+              <div className="blog-card-image">
+                <img src={post.heroImageUrl} alt={post.title} />
+              </div>
+            )}
+            <div className="blog-card-content">
+              <h3 className="blog-card-title">{post.title}</h3>
+              <p className="blog-card-excerpt">{post.excerpt}</p>
+              <div className="blog-card-meta">
+                <span className="blog-card-date">
+                  <Calendar className="blog-icon" />
+                  {format(new Date(post.publishedAt), 'dd MMM', { locale: sv })}
+                </span>
+                {post.downloadFileName && (
+                  <span className="blog-card-download">
+                    <Download className="blog-icon" />
+                    {post.downloadFileType?.toUpperCase() || 'Fil'}
+                  </span>
+                )}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div className="blog-section-footer">
+        <Link href="/lektionsmaterial" className="view-all-link" data-testid="link-view-all-materials">
+          Se alla material
+          <ArrowRight className="blog-icon" />
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   useEffect(() => {
@@ -175,6 +284,217 @@ export default function Home() {
 
         .footer{margin-top:26px; color:#5c6b7a; font-size:14px}
         .footer a{color:#4b6cb7; text-underline-offset:3px}
+        
+        /* Recent Blog Posts Section */
+        .recent-blog-posts {
+          margin-top: 60px;
+          padding: 40px 20px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: var(--tile-radius);
+          box-shadow: var(--shadow);
+          backdrop-filter: blur(10px);
+        }
+        
+        .section-title {
+          font-size: 32px;
+          font-weight: 800;
+          color: var(--ink);
+          margin-bottom: 10px;
+          text-align: center;
+        }
+        
+        .section-description {
+          font-size: 18px;
+          color: var(--sub);
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        
+        .blog-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+        
+        .blog-card {
+          background: white;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(22, 46, 77, 0.08);
+          transition: all 0.3s ease;
+          text-decoration: none;
+          color: inherit;
+        }
+        
+        .blog-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(22, 46, 77, 0.15);
+        }
+        
+        .blog-card-image {
+          aspect-ratio: 16/9;
+          overflow: hidden;
+        }
+        
+        .blog-card-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .blog-card-content {
+          padding: 20px;
+        }
+        
+        .blog-card-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: 8px;
+          line-height: 1.3;
+        }
+        
+        .blog-card-excerpt {
+          font-size: 14px;
+          color: var(--sub);
+          margin-bottom: 12px;
+          line-height: 1.4;
+        }
+        
+        .blog-card-meta {
+          display: flex;
+          gap: 16px;
+          font-size: 12px;
+          color: #8a9ba8;
+        }
+        
+        .blog-card-date,
+        .blog-card-download {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
+        .blog-icon {
+          width: 12px;
+          height: 12px;
+        }
+        
+        .blog-section-footer {
+          text-align: center;
+        }
+        
+        .view-all-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          background: linear-gradient(135deg, var(--materials), #c355f0);
+          color: white;
+          text-decoration: none;
+          border-radius: 25px;
+          font-weight: 600;
+          font-size: 16px;
+          transition: all 0.3s ease;
+        }
+        
+        .view-all-link:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(227, 121, 249, 0.4);
+        }
+        
+        /* Loading States */
+        .blog-card-skeleton {
+          animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .blog-card-image-skeleton {
+          aspect-ratio: 16/9;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        
+        .blog-card-title-skeleton {
+          height: 16px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 4px;
+          margin-bottom: 8px;
+        }
+        
+        .blog-card-excerpt-skeleton {
+          height: 12px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 4px;
+          margin-bottom: 12px;
+          width: 80%;
+        }
+        
+        .blog-card-meta-skeleton {
+          height: 10px;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 4px;
+          width: 60%;
+        }
+        
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+        
+        /* Empty State */
+        .blog-empty-state {
+          text-align: center;
+          padding: 40px 20px;
+        }
+        
+        .blog-empty-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+        
+        .blog-empty-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: 8px;
+        }
+        
+        .blog-empty-description {
+          font-size: 14px;
+          color: var(--sub);
+          margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+          .recent-blog-posts {
+            margin-top: 40px;
+            padding: 30px 15px;
+          }
+          
+          .section-title {
+            font-size: 28px;
+          }
+          
+          .blog-cards {
+            grid-template-columns: 1fr;
+          }
+          
+          .blog-empty-state {
+            padding: 30px 15px;
+          }
+        }
         
         /* Top buttons container */
         .top-buttons {
@@ -455,6 +775,9 @@ export default function Home() {
           <p className="footer">
             Klicka på <strong>Grammatik</strong> för att komma till ordklasser och lektioner.
           </p>
+          
+          {/* Recent Blog Posts Section */}
+          <RecentBlogPosts />
         </main>
       </div>
     </>
