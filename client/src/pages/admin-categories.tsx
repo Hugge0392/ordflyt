@@ -251,7 +251,7 @@ export default function AdminCategories() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/admin-lesson-templates">
+              <Link href="/admin">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Tillbaka till admin

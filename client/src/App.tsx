@@ -33,6 +33,7 @@ import AdminSentences from "@/pages/admin-sentences";
 import AdminEmailTest from "@/pages/admin-email-test";
 import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import AdminVocabulary from "@/pages/admin-vocabulary";
+import AdminCategories from "@/pages/admin-categories";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
 import AvatarBuilder from "@/pages/avatar-builder";
 import RoomDecorator from "@/pages/room-decorator";
@@ -238,6 +239,11 @@ function Router() {
       <Route path="/admin/vocabulary">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminVocabulary />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/categories">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminCategories />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">
