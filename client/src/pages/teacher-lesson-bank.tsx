@@ -174,7 +174,7 @@ export default function TeacherLessonBank() {
   };
   
   // Category navigation handlers
-  const handleCategorySelect = (category: LessonCategory) => {
+  const handleCategorySelect = (category: LessonCategory | null) => {
     setSelectedMainCategory(category);
     setSelectedSubcategory(null);
     

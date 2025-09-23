@@ -7,9 +7,9 @@ import type { LessonCategory } from '@shared/schema';
 
 interface CategoryBrowserViewProps {
   categories: LessonCategory[];
-  onCategorySelect: (category: LessonCategory) => void;
+  onCategorySelect: (category: LessonCategory | null) => void;
   onSubcategorySelect?: (subcategory: LessonCategory) => void;
-  selectedCategory?: LessonCategory;
+  selectedCategory?: LessonCategory | null;
   subcategories?: LessonCategory[];
   breadcrumbs?: { name: string; onClick: () => void }[];
 }
@@ -59,10 +59,11 @@ export function CategoryBrowserView({
                 // Navigate one level up
                 breadcrumbs[breadcrumbs.length - 2].onClick();
               } else {
-                // Go back to top level
-                onCategorySelect(selectedCategory);
+                // Go back to top level by clearing selection
+                onCategorySelect(null);
               }
             }}
+            data-testid="button-back"
             className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -118,9 +119,9 @@ export function CategoryBrowserView({
                 )}
 
                 {/* Subcategory indicator */}
-                {!showSubcategories && subcategories.filter(sub => sub.parentId === category.id).length > 0 && (
+                {!showSubcategories && categories.filter(sub => sub.parentId === category.id).length > 0 && (
                   <Badge variant="outline" className="mb-2">
-                    {subcategories.filter(sub => sub.parentId === category.id).length} underkategorier
+                    {categories.filter(sub => sub.parentId === category.id).length} underkategorier
                   </Badge>
                 )}
               </CardContent>
