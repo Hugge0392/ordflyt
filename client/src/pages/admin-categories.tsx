@@ -40,8 +40,9 @@ import {
   insertLessonCategorySchema
 } from "@shared/schema";
 
-// Available icons mapping
+// Available icons mapping - supports both kebab-case (new) and PascalCase (legacy)
 const AVAILABLE_ICONS = {
+  // Kebab-case (new format)
   'book-open': BookOpen,
   'folder': Folder,  
   'folder-open': FolderOpen,
@@ -52,6 +53,12 @@ const AVAILABLE_ICONS = {
   'mic': Mic,
   'pencil': Pencil,
   'settings': Settings,
+  // Legacy PascalCase (for existing data)
+  'BookOpen': BookOpen,
+  'Type': Users, // Map old 'Type' to 'users' icon
+  'FileText': BookOpen, // Map old 'FileText' to 'book-open' icon
+  'PenTool': Pencil, // Map old 'PenTool' to 'pencil' icon
+  'Sparkles': Settings, // Map old 'Sparkles' to 'settings' icon
 } as const;
 
 // Available colors
@@ -186,10 +193,16 @@ export default function AdminCategories() {
 
   // Handle create/edit submission
   const onSubmit = async (data: CategoryForm) => {
+    // Normalize parentId: convert empty string to undefined/null
+    const normalizedData = {
+      ...data,
+      parentId: data.parentId === "" ? undefined : data.parentId,
+    };
+    
     if (editingCategory) {
-      updateCategoryMutation.mutate({ id: editingCategory.id, data });
+      updateCategoryMutation.mutate({ id: editingCategory.id, data: normalizedData });
     } else {
-      createCategoryMutation.mutate(data);
+      createCategoryMutation.mutate(normalizedData);
     }
   };
 
