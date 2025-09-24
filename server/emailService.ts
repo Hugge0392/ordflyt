@@ -340,6 +340,16 @@ Om du inte begärde en lösenordsåterställning kan du ignorera detta e-postmed
     await this.sendEmail(toEmail, subject, htmlBody, textBody);
   }
 
+  // Public method for sending custom emails
+  async sendCustomEmail(
+    to: string, 
+    subject: string, 
+    htmlBody: string, 
+    textBody: string
+  ): Promise<void> {
+    await this.sendEmail(to, subject, htmlBody, textBody);
+  }
+
   // Generic method to send emails
   private async sendEmail(
     to: string, 

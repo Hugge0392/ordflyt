@@ -53,6 +53,11 @@ export default function TeacherClassesPage() {
   const [isAddStudentsDialogOpen, setIsAddStudentsDialogOpen] = useState(false);
   const [isEditStudentDialogOpen, setIsEditStudentDialogOpen] = useState(false);
   const [isEditClassDialogOpen, setIsEditClassDialogOpen] = useState(false);
+  const [emailConfirmationDialog, setEmailConfirmationDialog] = useState<{
+    isOpen: boolean;
+    classData?: any;
+    studentsWithExistingCodes?: number;
+  }>({ isOpen: false });
   const [generateCodeDialog, setGenerateCodeDialog] = useState<string | null>(null);
   const [createdClass, setCreatedClass] = useState<any>(null);
   
@@ -333,6 +338,138 @@ export default function TeacherClassesPage() {
     link.click();
     document.body.removeChild(link);
   };
+
+  const downloadStudentCredentialsPDF = async (classData: any) => {
+    try {
+      const jsPDF = (await import('jspdf')).default;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Titel
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Inloggningsuppgifter - ${classData.class.name}`, 20, 25);
+      
+      // Dagens datum
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Genererat: ${new Date().toLocaleDateString('sv-SE')}`, 20, 35);
+      
+      let yPosition = 50;
+      const pageHeight = pdf.internal.pageSize.height;
+      const cardHeight = 25; // Höjd för varje kort
+      const cardWidth = 80; // Bredd för varje kort
+      const cardsPerRow = 2;
+      const marginX = 20;
+      const marginY = 10;
+      let currentPageRows = 0;
+      let maxRowsPerPage = Math.floor((pageHeight - yPosition - 20) / (cardHeight + marginY));
+      
+      classData.students.forEach((student: any, index: number) => {
+        const col = index % cardsPerRow;
+        
+        // Om vi är på första kolumnen, kontrollera om vi behöver ny sida
+        if (col === 0 && currentPageRows >= maxRowsPerPage) {
+          pdf.addPage();
+          yPosition = 30; // Ny sida börjar högre upp
+          currentPageRows = 0;
+          // Räkna om maxRowsPerPage för ny sida med ny yPosition
+          maxRowsPerPage = Math.floor((pageHeight - yPosition - 20) / (cardHeight + marginY));
+        }
+        
+        const x = marginX + col * (cardWidth + 10);
+        const y = yPosition + currentPageRows * (cardHeight + marginY);
+        
+        drawStudentCard(pdf, student, x, y, cardWidth, cardHeight);
+        
+        // Uppdatera rad-räknare när vi är på sista kolumnen
+        if (col === cardsPerRow - 1) {
+          currentPageRows++;
+        }
+      });
+      
+      // Ladda ner PDF
+      pdf.save(`${classData.class.name}_inloggningskort.pdf`);
+      
+      toast({
+        title: 'PDF skapad!',
+        description: 'Inloggningskorten har laddats ner som PDF.',
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: 'Fel vid PDF-skapande',
+        description: 'Kunde inte skapa PDF-filen. Försök igen.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const drawStudentCard = (pdf: any, student: any, x: number, y: number, width: number, height: number) => {
+    // Rita ram runt kortet med streckad linje för urklipp
+    pdf.setLineWidth(0.5);
+    pdf.setLineDashPattern([2, 2], 0);
+    pdf.rect(x, y, width, height);
+    pdf.setLineDashPattern([], 0); // Återställ till heldragen linje
+    
+    // Säksiksymbol i hörnet
+    pdf.setFontSize(8);
+    pdf.text('✂', x + width - 8, y + 5);
+    
+    // Elevnamn
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(student.studentName, x + 3, y + 8);
+    
+    // Användarnamn
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Användarnamn:', x + 3, y + 14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(student.username, x + 3, y + 18);
+    
+    // Lösenord/Engångskod
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Engångskod:', x + 3, y + 22);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(student.setupCode, x + 3, y + 26);
+  };
+
+  const emailCredentialsMutation = useMutation({
+    mutationFn: async ({ classData, forceRegenerate }: { classData: any; forceRegenerate?: boolean }) => {
+      return apiRequest('POST', '/api/license/email-credentials', {
+        classId: classData.class.id,
+        forceRegenerate: forceRegenerate || false
+      });
+    },
+    onSuccess: (data: any) => {
+      if (data.regeneratedCodes > 0) {
+        toast({
+          title: 'E-post skickad!',
+          description: `Inloggningsuppgifterna har skickats till din e-post. ${data.regeneratedCodes} nya koder genererades.`,
+        });
+      } else {
+        toast({
+          title: 'E-post skickad!',
+          description: 'Inloggningsuppgifterna har skickats till din e-post.',
+        });
+      }
+    },
+    onError: (error: any) => {
+      if (error.message?.includes('existing_codes_found')) {
+        setEmailConfirmationDialog({
+          isOpen: true,
+          classData: error.classData,
+          studentsWithExistingCodes: error.studentsWithExistingCodes
+        });
+      } else {
+        toast({
+          title: 'Fel vid e-post',
+          description: error.message || 'Kunde inte skicka e-post. Försök igen.',
+          variant: 'destructive',
+        });
+      }
+    },
+  });
 
   if (isCheckingLicense) {
     return (
@@ -927,10 +1064,29 @@ export default function TeacherClassesPage() {
                   <Button
                     variant="outline"
                     onClick={() => downloadStudentCredentials(createdClass)}
-                    data-testid="button-download-credentials"
+                    data-testid="button-download-csv"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Ladda ner CSV
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => downloadStudentCredentialsPDF(createdClass)}
+                    data-testid="button-download-pdf"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF-kort
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      emailCredentialsMutation.mutate({ classData: createdClass });
+                    }}
+                    disabled={emailCredentialsMutation.isPending}
+                    data-testid="button-email-credentials"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {emailCredentialsMutation.isPending ? 'Skickar...' : 'E-posta'}
                   </Button>
                 </div>
 
@@ -1220,6 +1376,39 @@ export default function TeacherClassesPage() {
             </AlertDialogContent>
           </AlertDialog>
         )}
+
+        {/* Email Confirmation Dialog */}
+        <AlertDialog open={emailConfirmationDialog.isOpen} onOpenChange={(open) => setEmailConfirmationDialog({ isOpen: open })}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Befintliga koder funna</AlertDialogTitle>
+              <AlertDialogDescription>
+                {emailConfirmationDialog.studentsWithExistingCodes} elever har redan aktiva inloggningskoder. 
+                Om du fortsätter kommer nya koder att genereras och de gamla koderna blir ogiltiga. 
+                Detta kan störa elever som är mitt i inloggningsprocessen.
+                <br /><br />
+                Vill du fortsätta och generera nya koder för alla elever?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (emailConfirmationDialog.classData) {
+                    emailCredentialsMutation.mutate({ 
+                      classData: emailConfirmationDialog.classData, 
+                      forceRegenerate: true 
+                    });
+                  }
+                  setEmailConfirmationDialog({ isOpen: false });
+                }}
+                data-testid="button-confirm-regenerate-codes"
+              >
+                Ja, generera nya koder
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
     </TooltipProvider>

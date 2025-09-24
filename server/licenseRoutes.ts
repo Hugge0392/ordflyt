@@ -1527,4 +1527,221 @@ router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLice
   }
 });
 
+// POST /api/license/email-credentials - Skicka klasskoder via e-post
+router.post('/email-credentials', requireAuth, requireTeacherLicense, requireSchoolAccess(), requireCsrf, async (req: any, res: Response) => {
+  try {
+    const { classId, forceRegenerate } = req.body;
+    const userId = req.user.id;
+    const ipAddress = req.ip || 'unknown';
+
+    if (!classId) {
+      return res.status(400).json({ error: 'Klass-ID krävs' });
+    }
+
+    // Get teacher's email from authenticated user
+    const teacherEmail = req.user.email;
+    if (!teacherEmail) {
+      return res.status(400).json({ error: 'Ingen e-postadress registrerad på ditt lärarkonto' });
+    }
+
+    // Verify teacher owns this class and get class details
+    const teacherClasses = await getTeacherClasses(userId);
+    const ownedClass = teacherClasses.find(cls => cls.id === classId);
+    
+    if (!ownedClass) {
+      return res.status(403).json({ error: 'Ingen behörighet till denna klass' });
+    }
+
+    const className = ownedClass.name;
+
+    // Fetch students from database (trusted source)
+    const students = await licenseDb
+      .select({
+        id: studentAccounts.id,
+        studentName: studentAccounts.studentName,
+        username: studentAccounts.username,
+      })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.classId, classId));
+
+    // Check for existing setup codes first
+    const studentsWithActiveCodesCheck = await Promise.all(
+      students.map(async (student) => {
+        const existingCode = await getActiveSetupCode(student.id, userId);
+        return {
+          student,
+          hasActiveCode: existingCode.exists
+        };
+      })
+    );
+
+    const studentsWithActiveCodes = studentsWithActiveCodesCheck.filter(s => s.hasActiveCode);
+    
+    // If any students have active codes and forceRegenerate is not true, ask for confirmation
+    if (studentsWithActiveCodes.length > 0 && !forceRegenerate) {
+      return res.status(409).json({
+        error: 'existing_codes_found',
+        message: `${studentsWithActiveCodes.length} elever har redan aktiva koder. Generera nya koder kommer att invalidera befintliga koder och kan störa pågående inloggningar.`,
+        studentsWithExistingCodes: studentsWithActiveCodes.length,
+        classData: { id: classId, name: className }
+      });
+    }
+
+    // Generate setup codes (either all new or regenerate existing ones)
+    const studentsWithCodes = await Promise.all(
+      students.map(async (student) => {
+        try {
+          const existingCodeCheck = studentsWithActiveCodesCheck.find(s => s.student.id === student.id);
+          
+          if (existingCodeCheck?.hasActiveCode && !forceRegenerate) {
+            // This should not happen due to check above, but keep as safety
+            throw new Error('Existing code found without force regenerate');
+          }
+          
+          // Generate new code
+          const { clearCode } = await createStudentSetupCode(student.id, userId);
+          
+          // Log the action appropriately
+          await logLicenseActivity(
+            null, 
+            forceRegenerate ? 'setup_code_regenerated_for_email' : 'setup_code_generated_for_email', 
+            { 
+              student_id: student.id,
+              student_name: student.studentName,
+              force_regenerate: forceRegenerate,
+              reason: forceRegenerate ? 'teacher_confirmed_regenerate' : 'no_active_code_found'
+            }, 
+            userId, 
+            ipAddress
+          );
+          
+          return {
+            ...student,
+            setupCode: clearCode
+          };
+        } catch (error) {
+          console.error(`Failed to handle setup code for student ${student.id}:`, error);
+          return {
+            ...student,
+            setupCode: 'Kunde inte hantera kod'
+          };
+        }
+      })
+    );
+
+    if (studentsWithCodes.length === 0) {
+      return res.status(400).json({ error: 'Inga elever hittades i denna klass' });
+    }
+
+    // Create email content
+    const subject = `Inloggningsuppgifter för klass ${className}`;
+    
+    const htmlBody = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+            .student { background-color: white; margin: 10px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #2563eb; }
+            .student-name { font-weight: bold; font-size: 16px; color: #1e40af; }
+            .credentials { margin-top: 8px; font-family: monospace; }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Inloggningsuppgifter - ${className}</h1>
+            </div>
+            <div class="content">
+              <p>Här är inloggningsuppgifterna för eleverna i klass <strong>${className}</strong>:</p>
+              
+              ${studentsWithCodes.map(student => `
+                <div class="student">
+                  <div class="student-name">${student.studentName}</div>
+                  <div class="credentials">
+                    <strong>Användarnamn:</strong> ${student.username}<br>
+                    <strong>Engångskod:</strong> ${student.setupCode}
+                  </div>
+                </div>
+              `).join('')}
+              
+              <p><strong>Instruktioner för eleverna:</strong></p>
+              <ol>
+                <li>Gå till inloggningssidan</li>
+                <li>Ange sitt användarnamn och engångskod</li>
+                <li>Skapa ett nytt lösenord vid första inloggning</li>
+                <li>Använd det nya lösenordet för framtida inloggningar</li>
+              </ol>
+              
+              <p><strong>Viktigt:</strong> Engångskoderna fungerar endast vid första inloggning. Efter det använder eleverna sina egna lösenord.</p>
+            </div>
+            <div class="footer">
+              <p>Detta meddelande skickades från Ordflyt.se<br>
+              Genererat: ${new Date().toLocaleString('sv-SE')}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textBody = `
+Inloggningsuppgifter - ${className}
+
+Här är inloggningsuppgifterna för eleverna i klass ${className}:
+
+${studentsWithCodes.map(student => `
+${student.studentName}
+Användarnamn: ${student.username}
+Engångskod: ${student.setupCode}
+`).join('\n')}
+
+Instruktioner för eleverna:
+1. Gå till inloggningssidan
+2. Ange sitt användarnamn och engångskod
+3. Skapa ett nytt lösenord vid första inloggning
+4. Använd det nya lösenordet för framtida inloggningar
+
+Viktigt: Engångskoderna fungerar endast vid första inloggning. Efter det använder eleverna sina egna lösenord.
+
+Detta meddelande skickades från Ordflyt.se
+Genererat: ${new Date().toLocaleString('sv-SE')}
+    `;
+
+    // Send email
+    await emailService.sendCustomEmail(teacherEmail, subject, htmlBody, textBody);
+
+    // Log the action
+    const licenseId = req.teacherContext?.licenseId || null;
+    await logLicenseActivity(
+      licenseId, 
+      'email_credentials', 
+      { 
+        class_id: classId,
+        class_name: className,
+        student_count: studentsWithCodes.length,
+        recipient_email: teacherEmail
+      }, 
+      userId, 
+      ipAddress
+    );
+
+    res.json({
+      success: true,
+      message: `Inloggningsuppgifter skickade till ${teacherEmail}`,
+      studentCount: studentsWithCodes.length,
+      regeneratedCodes: forceRegenerate ? studentsWithActiveCodes.length : 0
+    });
+
+  } catch (error: any) {
+    console.error('Email credentials error:', error);
+    res.status(500).json({ 
+      error: 'Serverfel vid e-postutskick',
+      details: error.message 
+    });
+  }
+});
+
 export default router;
