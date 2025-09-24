@@ -23,6 +23,7 @@ import {
   Target,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   Lightbulb,
   Filter,
   Search,
@@ -662,6 +663,44 @@ export default function TeacherLessonBank() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Back to Categories Button - shown when in lesson view */}
+          {showLessons && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      // Clear all selections to go back to category browser
+                      setSelectedMainCategory(null);
+                      setSelectedSubcategory(null);
+                      setSearchQuery('');
+                    }}
+                    data-testid="button-back-to-categories"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Tillbaka till kategorier
+                  </Button>
+                  
+                  {/* Show current navigation path */}
+                  <div className="text-sm text-muted-foreground">
+                    {selectedSubcategory ? (
+                      <>Kategorier → {selectedMainCategory?.swedishName} → {selectedSubcategory.swedishName}</>
+                    ) : selectedMainCategory ? (
+                      <>Kategorier → {selectedMainCategory.swedishName}</>
+                    ) : searchQuery ? (
+                      <>Sökresultat för: "{searchQuery}"</>
+                    ) : (
+                      <>Alla lektioner</>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Selected Items Bar */}
           {totalSelectedItems > 0 && (
