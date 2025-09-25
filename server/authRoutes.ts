@@ -1908,23 +1908,39 @@ router.post("/api/dev/quick-login", async (req, res) => {
       let student = await getStudentByUsername(studentUsername);
       if (!student) {
         const hashedPassword = await hashPassword(studentPassword);
-        // We need to ensure a class exists first
+        
+        // Find dev teacher's class (created when dev teacher was created)
+        let [devTeacher] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, 'larare'))
+          .limit(1);
+          
+        // If dev teacher doesn't exist, create one first (this should trigger teacher creation above)
+        if (!devTeacher) {
+          // This shouldn't happen in normal flow, but as fallback, create minimal structure
+          const hashedTeacherPassword = await hashPassword('larare');
+          [devTeacher] = await db.insert(users).values({
+            username: 'larare',
+            email: 'larare@test.se',
+            passwordHash: hashedTeacherPassword,
+            role: 'LARARE',
+            isActive: true,
+            emailVerified: true,
+            mustChangePassword: false,
+            schoolId: 'dev-school-id'
+          }).returning();
+        }
+        
+        // Find dev teacher's class
         let [teacherClass] = await db
           .select()
           .from(teacherClasses)
+          .where(eq(teacherClasses.teacherId, devTeacher.id))
           .limit(1);
-          
-        if (!teacherClass) {
-          // Use existing testklass created by testteacher2
-          [teacherClass] = await db
-            .select()
-            .from(teacherClasses)
-            .where(eq(teacherClasses.id, '651d0a9a-b4b0-4682-a863-d729372fb869'))
-            .limit(1);
-        }
         
         if (!teacherClass) {
-          throw new Error('Could not create or find teacher class for student');
+          throw new Error('Could not find dev teacher class for student. Make sure dev teacher is created first.');
         }
         
         const [newStudent] = await db.insert(studentAccounts).values({
@@ -1991,9 +2007,84 @@ router.post("/api/dev/quick-login", async (req, res) => {
           role: role as 'ADMIN' | 'LARARE',
           isActive: true,
           emailVerified: true,
-          mustChangePassword: false
+          mustChangePassword: false,
+          schoolId: role === 'LARARE' ? 'dev-school-id' : null // Add school for dev teacher
         }).returning();
         user = newUser;
+        
+        // If creating dev teacher, ensure they have a license and class
+        if (role === 'LARARE') {
+          // Create or find dev school first
+          let [school] = await db
+            .select()
+            .from(schools)
+            .where(eq(schools.id, 'dev-school-id'))
+            .limit(1);
+            
+          if (!school) {
+            [school] = await db.insert(schools).values({
+              id: 'dev-school-id',
+              name: 'Dev Test Skola',
+              organizationNumber: '1234567890',
+              address: 'Test Address',
+              city: 'Test City',
+              postalCode: '12345',
+              contactEmail: 'test@dev.se',
+              contactPhone: '1234567890',
+              isActive: true
+            }).returning();
+          }
+          
+          // Create teacher license
+          let [license] = await db
+            .select()
+            .from(teacherLicenses)
+            .where(eq(teacherLicenses.teacherId, user.id))
+            .limit(1);
+            
+          if (!license) {
+            [license] = await db.insert(teacherLicenses).values({
+              teacherId: user.id,
+              isActive: true,
+              activatedAt: new Date()
+            }).returning();
+          }
+          
+          // Create teacher class
+          let [teacherClass] = await db
+            .select()
+            .from(teacherClasses)
+            .where(eq(teacherClasses.teacherId, user.id))
+            .limit(1);
+            
+          if (!teacherClass) {
+            [teacherClass] = await db.insert(teacherClasses).values({
+              name: 'Dev Test Klass',
+              teacherId: user.id,
+              licenseId: license.id,
+              term: 'Dev Term',
+              description: 'Development test class'
+            }).returning();
+          }
+          
+          // Create teacher school membership
+          const [membership] = await db
+            .select()
+            .from(teacherSchoolMemberships)
+            .where(and(
+              eq(teacherSchoolMemberships.teacherId, user.id),
+              eq(teacherSchoolMemberships.schoolId, school.id)
+            ))
+            .limit(1);
+            
+          if (!membership) {
+            await db.insert(teacherSchoolMemberships).values({
+              teacherId: user.id,
+              schoolId: school.id,
+              isActive: true
+            });
+          }
+        }
       }
 
       // Create session using existing createSession function
