@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, Plus, Users, Download, Eye, Calendar, Key, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Loader2, Edit2, Trash2, RotateCcw, Archive, Filter, Settings, UserPlus, BookOpen } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Download, Eye, Calendar, Key, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Loader2, Edit2, Trash2, RotateCcw, Archive, Filter, Settings, UserPlus, BookOpen, Send } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 const createClassSchema = z.object({
@@ -322,7 +322,7 @@ export default function TeacherClassesPage() {
     const csvContent = [
       ['Elevnamn', 'Användarnamn', 'Engångskod'],
       ...classData.students.map((student: any) => [
-        student.studentName,
+        student.studentName || 'Namn saknas',
         student.username,
         student.setupCode,
       ])
@@ -418,7 +418,7 @@ export default function TeacherClassesPage() {
     // Elevnamn
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(student.studentName, x + 3, y + 8);
+    pdf.text(student.studentName || 'Namn saknas', x + 3, y + 8);
     
     // Användarnamn
     pdf.setFontSize(10);
@@ -881,7 +881,7 @@ export default function TeacherClassesPage() {
                                     <span className={`text-sm font-medium ${
                                       student.isActive !== false ? 'text-blue-600' : 'text-gray-400'
                                     }`}>
-                                      {student.studentName.charAt(0).toUpperCase()}
+                                      {student.studentName?.charAt(0)?.toUpperCase() || '?'}
                                     </span>
                                   </div>
                                   <div>
@@ -889,7 +889,7 @@ export default function TeacherClassesPage() {
                                       <p className={`font-medium ${
                                         student.isActive !== false ? 'text-gray-900' : 'text-gray-500'
                                       }`} data-testid={`student-name-${student.id}`}>
-                                        {student.studentName}
+                                        {student.studentName || 'Namn saknas'}
                                       </p>
                                       {student.isActive === false && (
                                         <Badge variant="outline" className="text-gray-500 border-gray-300">
@@ -923,7 +923,7 @@ export default function TeacherClassesPage() {
                                           size="sm"
                                           onClick={() => {
                                             setSelectedStudent(student);
-                                            editStudentForm.setValue('name', student.studentName);
+                                            editStudentForm.setValue('name', student.studentName || '');
                                             setIsEditStudentDialogOpen(true);
                                           }}
                                           data-testid={`button-edit-student-${student.id}`}
@@ -996,7 +996,7 @@ export default function TeacherClassesPage() {
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Ta bort elev</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Är du säker på att du vill ta bort eleven "{student.studentName}" från klassen? 
+                                            Är du säker på att du vill ta bort eleven "{student.studentName || 'Okänd elev'}" från klassen? 
                                             Denna åtgärd kan inte ångras och eleven kommer att förlora tillgång till systemet.
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
@@ -1103,7 +1103,7 @@ export default function TeacherClassesPage() {
                     <TableBody>
                       {createdClass.students.map((student: any) => (
                         <TableRow key={student.id}>
-                          <TableCell className="font-medium">{student.studentName}</TableCell>
+                          <TableCell className="font-medium">{student.studentName || 'Namn saknas'}</TableCell>
                           <TableCell className="font-mono">{student.username}</TableCell>
                           <TableCell className="font-mono">{student.setupCode}</TableCell>
                           <TableCell>

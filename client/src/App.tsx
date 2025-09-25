@@ -56,6 +56,7 @@ import KlassKampHostPage from "@/pages/klasskamp-host";
 import KlassKampPlayPage from "@/pages/klasskamp-play";
 import LicensePage from "@/pages/license";
 import TeacherClassesPage from "@/pages/teacher-classes";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RichEditorTest from "@/pages/rich-editor-test";
 import TeacherRegistrationPage from "@/pages/TeacherRegistrationPage";
@@ -172,7 +173,9 @@ function Router() {
       </Route>
       <Route path="/teacher/classes">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
-          <TeacherClassesPage />
+          <ErrorBoundary>
+            <TeacherClassesPage />
+          </ErrorBoundary>
         </ProtectedRoute>
       </Route>
       
@@ -199,7 +202,9 @@ function Router() {
       </Route>
       <Route path="/larare/klasser">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
-          <TeacherClassesPage />
+          <ErrorBoundary>
+            <TeacherClassesPage />
+          </ErrorBoundary>
         </ProtectedRoute>
       </Route>
       

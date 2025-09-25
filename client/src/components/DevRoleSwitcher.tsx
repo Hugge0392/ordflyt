@@ -55,7 +55,11 @@ export default function DevRoleSwitcher() {
         
         // Navigate to the appropriate page
         console.log('DevRoleSwitcher: Redirecting to:', data.redirectPath);
-        window.location.href = data.redirectPath;
+        
+        // Give a small delay to ensure cookies are set before redirect
+        setTimeout(() => {
+          window.location.href = data.redirectPath;
+        }, 100);
       } else {
         console.error('DevRoleSwitcher: Quick-login failed with status:', response.status);
         const errorData = await response.text();
