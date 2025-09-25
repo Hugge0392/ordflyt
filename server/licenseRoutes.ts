@@ -453,7 +453,29 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
         .replace(/[^a-z]/g, '')
         .substring(0, 8);
       
-      const username = `${baseUsername}${String(index + 1).padStart(2, '0')}`;
+      // Generate unique username across the entire system
+      let username = '';
+      let counter = 1;
+      let isUnique = false;
+      
+      while (!isUnique) {
+        username = `${baseUsername}${String(counter).padStart(2, '0')}`;
+        
+        // Check if username already exists globally
+        const existingUser = await licenseDb
+          .select({ count: sql<number>`count(*)` })
+          .from(studentAccounts)
+          .where(eq(studentAccounts.username, username));
+          
+        const userExists = (existingUser[0]?.count || 0) > 0;
+        
+        if (!userExists) {
+          isUnique = true;
+        } else {
+          counter++;
+        }
+      }
+      
       const tempPassword = generateSecurePassword(); // Temporärt lösenord som måste ändras
       const passwordHash = await hashPassword(tempPassword);
 
@@ -543,10 +565,29 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
         .replace(/[^a-z]/g, '')
         .substring(0, 8);
       
-      // Hitta nästa tillgängliga nummer för användarnamn
-      const existingStudents = await getStudentsByClassId(classId);
-      const existingCount = existingStudents.length;
-      const username = `${baseUsername}${String(existingCount + index + 1).padStart(2, '0')}`;
+      // Generate unique username across the entire system
+      let username = '';
+      let counter = 1;
+      let isUnique = false;
+      
+      while (!isUnique) {
+        username = `${baseUsername}${String(counter).padStart(2, '0')}`;
+        
+        // Check if username already exists globally
+        const existingUser = await licenseDb
+          .select({ count: sql<number>`count(*)` })
+          .from(studentAccounts)
+          .where(eq(studentAccounts.username, username));
+          
+        const userExists = (existingUser[0]?.count || 0) > 0;
+        
+        if (!userExists) {
+          isUnique = true;
+        } else {
+          counter++;
+        }
+      }
+      
       const password = generateSecurePassword();
       const passwordHash = await hashPassword(password);
 
@@ -1009,14 +1050,28 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
       .replace(/[^a-z]/g, '')
       .substring(0, 8);
     
-    // Get existing students count to generate unique username
-    const existingStudents = await licenseDb
-      .select({ count: sql<number>`count(*)` })
-      .from(studentAccounts)
-      .where(eq(studentAccounts.classId, classId));
+    // Generate unique username across the entire system
+    let username = '';
+    let counter = 1;
+    let isUnique = false;
     
-    const studentCount = existingStudents[0]?.count || 0;
-    const username = `${baseUsername}${String(studentCount + 1).padStart(2, '0')}`;
+    while (!isUnique) {
+      username = `${baseUsername}${String(counter).padStart(2, '0')}`;
+      
+      // Check if username already exists globally
+      const existingUser = await licenseDb
+        .select({ count: sql<number>`count(*)` })
+        .from(studentAccounts)
+        .where(eq(studentAccounts.username, username));
+        
+      const userExists = (existingUser[0]?.count || 0) > 0;
+      
+      if (!userExists) {
+        isUnique = true;
+      } else {
+        counter++;
+      }
+    }
     const password = generateSecurePassword();
     const passwordHash = await hashPassword(password);
     
