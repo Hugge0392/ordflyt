@@ -1915,22 +1915,12 @@ router.post("/api/dev/quick-login", async (req, res) => {
           .limit(1);
           
         if (!teacherClass) {
-          // Create a default dev class first
-          const [teacher] = await db
+          // Use existing testklass created by testteacher2
+          [teacherClass] = await db
             .select()
-            .from(users)
-            .where(eq(users.username, 'larare'))
+            .from(teacherClasses)
+            .where(eq(teacherClasses.id, '651d0a9a-b4b0-4682-a863-d729372fb869'))
             .limit(1);
-            
-          if (teacher) {
-            [teacherClass] = await db.insert(teacherClasses).values({
-              teacherId: teacher.id,
-              className: 'Dev Testklass',
-              gradeLevel: '4',
-              subject: 'Svenska',
-              isActive: true
-            }).returning();
-          }
         }
         
         if (!teacherClass) {
@@ -1948,10 +1938,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         student = newStudent;
       }
 
-      // Generate CSRF token for student
-      csrfToken = await generateCsrfToken();
-
-      // Create student session
+      // Create student session - students don't need CSRF tokens
       const sessionData = await createStudentSession(
         student.id,
         ipAddress,
@@ -1959,9 +1946,10 @@ router.post("/api/dev/quick-login", async (req, res) => {
         generateDeviceFingerprint(req)
       );
 
+
       // Set student session cookie
       const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
-      res.cookie('student_session', sessionData.sessionToken, {
+      res.cookie('studentSessionToken', sessionData.sessionToken, {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'strict',
@@ -1981,7 +1969,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         { role, username: studentUsername }
       );
 
-      return res.json({ student, csrfToken, redirectPath });
+      return res.json({ student, redirectPath });
     } else {
       // Handle admin/teacher login
       const username = role === 'ADMIN' ? 'admin' : 'larare';

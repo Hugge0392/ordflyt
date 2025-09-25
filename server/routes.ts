@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { emailService } from "./emailService";
 import emailTestRoutes from "./emailTestRoutes";
-import { requireAuth, requireRole, requireCsrf, requireTeacherLicense, requireStudentAuth, logAuditEvent } from "./auth";
+import { requireAuth, requireAnyAuth, requireRole, requireCsrf, requireTeacherLicense, requireStudentAuth, logAuditEvent } from "./auth";
 
 function parseObjectPath(path: string): { bucketName: string; objectName: string } {
   if (!path.startsWith("/")) {
@@ -3462,7 +3462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // LESSON TEMPLATES  
-  app.get("/api/lesson-templates", requireAuth, async (req, res) => {
+  app.get("/api/lesson-templates", requireAnyAuth, async (req, res) => {
     try {
       const templates = await db
         .select()
@@ -3477,7 +3477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/lesson-templates/:id", requireAuth, async (req, res) => {
+  app.get("/api/lesson-templates/:id", requireAnyAuth, async (req, res) => {
     try {
       const [template] = await db
         .select()

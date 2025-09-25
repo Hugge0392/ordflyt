@@ -438,6 +438,87 @@ export async function requireStudentAuth(req: Request, res: Response, next: Next
   next();
 }
 
+// Combined authentication middleware (supports both users and students)
+export async function requireAnyAuth(req: Request, res: Response, next: NextFunction) {
+  const sessionToken = req.cookies?.sessionToken;
+  const studentSessionToken = req.cookies?.studentSessionToken;
+  
+  // Try regular user authentication first
+  if (sessionToken) {
+    const session = await validateSession(sessionToken);
+    
+    if (session) {
+      // Get user
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, session.userId))
+        .limit(1);
+        
+      if (user && user.isActive) {
+        req.user = user;
+        req.session = session;
+        req.deviceFingerprint = generateDeviceFingerprint(req);
+        
+        // Add school context for teachers
+        if (user.role === 'LARARE' || user.role === 'ADMIN') {
+          const teacherContext = await getTeacherSchoolContext(user.id);
+          if (teacherContext) {
+            req.teacherContext = teacherContext;
+            
+            // If teacher has school, also fetch full school object
+            if (teacherContext.schoolId) {
+              const [school] = await db
+                .select()
+                .from(schools)
+                .where(eq(schools.id, teacherContext.schoolId))
+                .limit(1);
+              
+              if (school) {
+                req.school = school;
+              }
+            }
+          }
+        }
+        
+        return next();
+      }
+    }
+  }
+  
+  // Try student authentication if regular auth failed
+  if (studentSessionToken) {
+    const studentSession = await validateStudentSession(studentSessionToken);
+    
+    if (studentSession) {
+      // Get student account
+      const [student] = await db
+        .select()
+        .from(studentAccounts)
+        .where(eq(studentAccounts.id, studentSession.studentId))
+        .limit(1);
+        
+      if (student) {
+        // Check if account is locked
+        if (student.lockedUntil && new Date() < student.lockedUntil) {
+          return res.status(423).json({ 
+            error: 'Kontot är låst. Försök igen senare.', 
+            lockedUntil: student.lockedUntil.toISOString() 
+          });
+        }
+        
+        req.student = student;
+        req.studentSession = studentSession;
+        req.deviceFingerprint = generateDeviceFingerprint(req);
+        
+        return next();
+      }
+    }
+  }
+  
+  return res.status(401).json({ error: 'Ej inloggad' });
+}
+
 // Authentication middleware
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const sessionToken = req.cookies?.sessionToken;
