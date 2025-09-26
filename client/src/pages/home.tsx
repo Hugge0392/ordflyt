@@ -1,10 +1,97 @@
 import { Link } from "wouter";
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BlogPost } from "@shared/schema";
-import { Calendar, Download, ArrowRight } from "lucide-react";
+import { Calendar, Download, ArrowRight, Shield, GraduationCap, User } from "lucide-react";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
+import { useLocation } from "wouter";
+
+// Development role switching component for quick access
+function DevQuickLogin() {
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
+
+  // Only show in development mode
+  if (import.meta.env.PROD) {
+    return null;
+  }
+
+  const handleQuickLogin = async (role: 'ADMIN' | 'LARARE' | 'ELEV') => {
+    // Enable dev bypass mode
+    localStorage.setItem('devBypass', 'true');
+    localStorage.setItem('devRole', role);
+
+    // Navigate directly without authentication
+    const targetPath =
+      role === 'ADMIN' ? '/admin' :
+      role === 'LARARE' ? '/teacher-dashboard' :
+      role === 'ELEV' ? '/elev' : '/';
+
+    console.log('Dev quick access enabled for role:', role);
+    console.log('Navigating to:', targetPath);
+
+    // Force a page reload to ensure all components pick up the dev bypass
+    window.location.href = targetPath;
+  };
+
+  // Check if dev bypass is currently active
+  const isDevBypassActive = localStorage.getItem('devBypass') === 'true';
+
+  const handleDisableBypass = () => {
+    localStorage.removeItem('devBypass');
+    localStorage.removeItem('devRole');
+    console.log('Dev bypass disabled');
+    window.location.href = '/';
+  };
+
+  return (
+    <div className="dev-quick-login">
+      <h3 className="dev-login-title">🚀 Snabb utvecklingsåtkomst</h3>
+      <p className="dev-login-description">
+        {isDevBypassActive
+          ? `Dev bypass aktiv (${localStorage.getItem('devRole')}). Klicka nedan för att navigera eller stänga av.`
+          : 'Hoppa direkt till olika vyer utan autentisering:'}
+      </p>
+      <div className="dev-login-buttons">
+        <button
+          className="dev-btn dev-btn-admin"
+          onClick={() => handleQuickLogin('ADMIN')}
+          data-testid="dev-quick-admin"
+        >
+          <Shield className="dev-btn-icon" />
+          Admin
+        </button>
+        <button
+          className="dev-btn dev-btn-teacher"
+          onClick={() => handleQuickLogin('LARARE')}
+          data-testid="dev-quick-teacher"
+        >
+          <GraduationCap className="dev-btn-icon" />
+          Lärare
+        </button>
+        <button
+          className="dev-btn dev-btn-student"
+          onClick={() => handleQuickLogin('ELEV')}
+          data-testid="dev-quick-student"
+        >
+          <User className="dev-btn-icon" />
+          Elev
+        </button>
+        {isDevBypassActive && (
+          <button
+            className="dev-btn dev-btn-disable"
+            onClick={handleDisableBypass}
+            data-testid="dev-disable-bypass"
+            style={{ background: 'rgba(255, 0, 0, 0.3)', borderColor: 'rgba(255, 0, 0, 0.5)' }}
+          >
+            ❌ Stäng av bypass
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Component to display recent blog posts
 function RecentBlogPosts() {
@@ -174,7 +261,7 @@ export default function Home() {
 
         .home-body {
           margin:0; 
-          background:linear-gradient(180deg, #cfe9ff 0%, #f7fafc 80%); 
+          background:linear-gradient(180deg, #ffc2e1 0%, #f8c8dc 80%); 
           color:var(--ink);
           font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
           display:flex; 
@@ -646,6 +733,138 @@ export default function Home() {
           .home-body{background:linear-gradient(180deg, #0f1b2d 0%, #182538 70%)}
         }
 
+        /* Development Quick Login Styles */
+        .dev-quick-login {
+          margin: 40px auto 20px;
+          padding: 30px;
+          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+          border-radius: var(--tile-radius);
+          box-shadow: var(--shadow);
+          text-align: center;
+          color: white;
+          max-width: 600px;
+          border: 3px solid #ff4757;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .dev-quick-login::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.1) 10px,
+            rgba(255, 255, 255, 0.1) 20px
+          );
+          animation: devStripes 20s linear infinite;
+          pointer-events: none;
+        }
+
+        @keyframes devStripes {
+          0% { transform: translateX(-100%) translateY(-100%); }
+          100% { transform: translateX(0%) translateY(0%); }
+        }
+
+        .dev-login-title {
+          font-size: 24px;
+          font-weight: 800;
+          margin-bottom: 10px;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          z-index: 1;
+          position: relative;
+        }
+
+        .dev-login-description {
+          font-size: 16px;
+          margin-bottom: 25px;
+          opacity: 0.9;
+          z-index: 1;
+          position: relative;
+        }
+
+        .dev-login-buttons {
+          display: flex;
+          gap: 15px;
+          justify-content: center;
+          flex-wrap: wrap;
+          z-index: 1;
+          position: relative;
+        }
+
+        .dev-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 15px 25px;
+          border: none;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          color: white;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          min-width: 120px;
+          justify-content: center;
+        }
+
+        .dev-btn:hover {
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+          background: rgba(255, 255, 255, 0.3);
+          border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .dev-btn:active {
+          transform: translateY(-1px) scale(1.02);
+        }
+
+        .dev-btn-icon {
+          width: 18px;
+          height: 18px;
+        }
+
+        .dev-btn-admin:hover {
+          background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+          border-color: #6c5ce7;
+        }
+
+        .dev-btn-teacher:hover {
+          background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+          border-color: #00b894;
+        }
+
+        .dev-btn-student:hover {
+          background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
+          border-color: #0984e3;
+        }
+
+        @media (max-width: 768px) {
+          .dev-quick-login {
+            margin: 30px auto 15px;
+            padding: 20px;
+          }
+
+          .dev-login-buttons {
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .dev-btn {
+            width: 100%;
+            max-width: 250px;
+          }
+        }
+
         /* Moln */
         .clouds{position:fixed; top:40px; left:0; width:100%; height:140px; pointer-events:none; z-index:-1; opacity:.5}
         .cloud{position:absolute; width:180px; height:60px; background:#fff; border-radius:40px; filter:blur(0.4px); box-shadow:40px 10px 0 10px #fff,80px 0 0 0 #fff,120px 12px 0 6px #fff; animation:drift 55s linear infinite}
@@ -775,7 +994,10 @@ export default function Home() {
           <p className="footer">
             Klicka på <strong>Grammatik</strong> för att komma till ordklasser och lektioner.
           </p>
-          
+
+          {/* Development Quick Login Section */}
+          <DevQuickLogin />
+
           {/* Recent Blog Posts Section */}
           <RecentBlogPosts />
         </main>

@@ -93,11 +93,27 @@ function Router() {
       <Route path="/elev/login" component={StudentLoginPage} />
       <Route path="/elev/password" component={StudentPasswordChangePage} />
       
-      {/* Student routes - now public for exploration */}
-      <Route path="/elev" component={StudentHome} />
-      <Route path="/elev/butik" component={StudentShop} />
-      <Route path="/elev/avatar" component={AvatarBuilder} />
-      <Route path="/elev/rum" component={RoomDecorator} />
+      {/* Student routes */}
+      <Route path="/elev">
+        <ProtectedRoute allowedRoles={["ELEV", "ADMIN"]}>
+          <StudentHome />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/elev/butik">
+        <ProtectedRoute allowedRoles={["ELEV", "ADMIN"]}>
+          <StudentShop />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/elev/avatar">
+        <ProtectedRoute allowedRoles={["ELEV", "ADMIN"]}>
+          <AvatarBuilder />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/elev/rum">
+        <ProtectedRoute allowedRoles={["ELEV", "ADMIN"]}>
+          <RoomDecorator />
+        </ProtectedRoute>
+      </Route>
       <Route path="/vocabulary-lessons" component={VocabularyLessons} />
       <Route path="/elev/ordforrad" component={VocabularyExercise} />
       <Route path="/vocabulary/exercise/:exerciseId" component={VocabularyExercise} />

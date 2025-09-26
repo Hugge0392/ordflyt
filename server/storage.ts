@@ -421,10 +421,8 @@ export class MemStorage implements IStorage {
       this.wordClasses.set(randomUUID(), { ...data, id: randomUUID() });
     }
 
-    // TODO: Lägg in alla dina sentences här
-    const sentencesData: Omit<Sentence, "id">[] = [
-  
-    ];
+    // Sentences are now loaded from database instead of hardcoded array
+    const sentencesData: Omit<Sentence, "id">[] = [];
 
     for (const data of sentencesData) {
       this.sentences.set(randomUUID(), { ...data, id: randomUUID() });

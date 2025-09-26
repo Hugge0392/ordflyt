@@ -195,7 +195,7 @@ export default function NormalMode({
     <div className="reading-main-grid grid grid-cols-1 lg:grid-cols-[2.3fr_1fr] gap-3 items-start mb-4 overflow-x-hidden">
       {/* Questions Panel - One Question at a Time */}
       {showQuestionsPanel12 && lesson && totalQuestions > 0 && (
-        <div className="questions-panel-wrapper order-2 lg:order-2">
+        <div className="questions-panel-wrapper order-1 lg:order-2">
           {/* Spacer-element för att undvika layoutskutt när panelen blir fixed */}
           <div 
             className={`panel-spacer ${isSticky ? 'sticky-space' : ''}`} 
@@ -658,7 +658,7 @@ export default function NormalMode({
 
       {/* Main Content - Left Column (takes 2/3 of space) */}
       <Card
-        className="reading-content-card mb-4 lg:mb-0 order-1 lg:order-1 bg-white dark:bg-gray-900 rounded-lg overflow-hidden"
+        className="reading-content-card mb-4 lg:mb-0 order-2 lg:order-1 bg-white dark:bg-gray-900 rounded-lg overflow-hidden"
         style={
           {
             ...styleVars,
@@ -938,8 +938,6 @@ export default function NormalMode({
                 border: "1px solid",
                 borderColor: "color-mix(in srgb, var(--accessibility-text-color) 15%, transparent)",
               } as React.CSSProperties}
-              onMouseOver={handleContentMouseOver}
-              onMouseOut={handleContentMouseOut}
             >
               <style>{`
                 /* Dölj bara divider/HR */
@@ -990,20 +988,11 @@ export default function NormalMode({
                   word-spacing: 0.1em !important;
                 }
                 
-                /* Förbättrad ordfrkingsmarkeringar styling */
+                /* Förbättrad ordförklaringsmarkeringar styling - utan hover-effekt */
                 .defined-word {
                   text-decoration: none !important;
-                  background: linear-gradient(120deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
                   border-bottom: 2px dotted rgba(59, 130, 246, 0.6) !important;
-                  padding: 0.1em 0.2em !important;
-                  border-radius: 3px !important;
-                  cursor: help !important;
-                  transition: all 0.2s ease !important;
                   position: relative !important;
-                }
-                .defined-word:hover {
-                  background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%) !important;
-                  border-bottom-color: rgba(59, 130, 246, 0.8) !important;
                 }
                 
                 /* Listor styling */

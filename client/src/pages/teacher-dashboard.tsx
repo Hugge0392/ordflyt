@@ -1243,6 +1243,13 @@ export default function TeacherDashboard() {
 
   // Check authentication and redirect if needed
   useEffect(() => {
+    // Skip redirect if dev bypass is active
+    const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
+    if (isDevBypass) {
+      console.log('Dev bypass active in TeacherDashboard, skipping auth redirects');
+      return;
+    }
+
     if (!isLoading && !isAuthenticated) {
       setLocation('/login');
     }
@@ -1282,7 +1289,10 @@ export default function TeacherDashboard() {
     );
   }
 
-  if (!user || !teacherContext?.isTeacher) {
+  // Allow access if dev bypass is active
+  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
+
+  if (!isDevBypass && (!user || !teacherContext?.isTeacher)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50">
         <Card className="w-full max-w-md">

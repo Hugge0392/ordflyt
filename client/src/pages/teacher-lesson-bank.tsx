@@ -33,7 +33,7 @@ import {
   X,
   Send
 } from 'lucide-react';
-import type { LessonTemplate, LessonCategory, TeacherLessonCustomization, VocabularySet, VocabularyStatsResponse } from '@shared/schema';
+import type { LessonTemplate, LessonCategory, TeacherLessonCustomization, VocabularySet, VocabularyStatsResponse, ReadingLesson } from '@shared/schema';
 import { AssignmentModal } from '@/components/lesson-assignment/AssignmentModal';
 import { AssignmentManager } from '@/components/lesson-assignment/AssignmentManager';
 import { CategoryBrowserView } from '@/components/CategoryBrowserView';
@@ -49,10 +49,18 @@ interface SelectedVocabularySet {
   exerciseCount?: number;
 }
 
-type SelectedItem = SelectedTemplate | SelectedVocabularySet;
+interface SelectedReadingLesson {
+  readingLesson: ReadingLesson;
+}
+
+type SelectedItem = SelectedTemplate | SelectedVocabularySet | SelectedReadingLesson;
 
 function isVocabularySet(item: SelectedItem): item is SelectedVocabularySet {
   return 'vocabularySet' in item;
+}
+
+function isReadingLesson(item: SelectedItem): item is SelectedReadingLesson {
+  return 'readingLesson' in item;
 }
 
 // Adapter to convert selected items to AssignmentModal format
@@ -66,9 +74,9 @@ interface AssignmentModalLesson {
   estimatedDuration?: number;
 }
 
-function adaptSelectedItemsToLessons(templates: SelectedTemplate[], vocabularySets: SelectedVocabularySet[]): AssignmentModalLesson[] {
+function adaptSelectedItemsToLessons(templates: SelectedTemplate[], vocabularySets: SelectedVocabularySet[], readingLessons: SelectedReadingLesson[]): AssignmentModalLesson[] {
   const lessons: AssignmentModalLesson[] = [];
-  
+
   // Add templates
   templates.forEach(item => {
     lessons.push({
@@ -81,7 +89,7 @@ function adaptSelectedItemsToLessons(templates: SelectedTemplate[], vocabularySe
       estimatedDuration: item.template.estimatedDuration || 15
     });
   });
-  
+
   // Add vocabulary sets
   vocabularySets.forEach(item => {
     lessons.push({
@@ -94,7 +102,20 @@ function adaptSelectedItemsToLessons(templates: SelectedTemplate[], vocabularySe
       estimatedDuration: 15
     });
   });
-  
+
+  // Add reading lessons
+  readingLessons.forEach(item => {
+    lessons.push({
+      id: item.readingLesson.id,
+      title: item.readingLesson.title,
+      type: 'reading_lesson',
+      lessonType: 'Läsförståelse',
+      category: 'Läsförståelse',
+      difficulty: item.readingLesson.difficulty || 'medium',
+      estimatedDuration: item.readingLesson.estimatedDuration || 30
+    });
+  });
+
   return lessons;
 }
 
@@ -137,18 +158,21 @@ export default function TeacherLessonBank() {
   }
   const [selectedTemplates, setSelectedTemplates] = useState<SelectedTemplate[]>([]);
   const [selectedVocabularySets, setSelectedVocabularySets] = useState<SelectedVocabularySet[]>([]);
+  const [selectedReadingLessons, setSelectedReadingLessons] = useState<SelectedReadingLesson[]>([]);
   const [previewTemplate, setPreviewTemplate] = useState<LessonTemplate | null>(null);
+  const [previewVocabularySet, setPreviewVocabularySet] = useState<VocabularySet | null>(null);
   const [customizeTemplate, setCustomizeTemplate] = useState<LessonTemplate | null>(null);
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   
   // Get total selected count and adapted lessons
-  const totalSelectedCount = selectedTemplates.length + selectedVocabularySets.length;
-  const selectedLessonsForAssignment = adaptSelectedItemsToLessons(selectedTemplates, selectedVocabularySets);
+  const totalSelectedCount = selectedTemplates.length + selectedVocabularySets.length + selectedReadingLessons.length;
+  const selectedLessonsForAssignment = adaptSelectedItemsToLessons(selectedTemplates, selectedVocabularySets, selectedReadingLessons);
   
   // Clear all selections
   const clearAllSelections = () => {
     setSelectedTemplates([]);
     setSelectedVocabularySets([]);
+    setSelectedReadingLessons([]);
   };
   
   // Handle assignment modal open
@@ -211,6 +235,20 @@ export default function TeacherLessonBank() {
     queryKey: ['/api/vocabulary/sets/published'],
   });
 
+  // Fetch reading lessons (läsförståelseövningar)
+  const { data: readingLessons = [], isLoading: readingLessonsLoading } = useQuery<ReadingLesson[]>({
+    queryKey: ['/api/reading-lessons/published'],
+    queryFn: async () => {
+      const response = await fetch('/api/reading-lessons/published', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch published reading lessons');
+      }
+      return await response.json();
+    }
+  });
+
   // Temporarily disabled vocabulary stats to debug React error
   // const vocabularySetIds = vocabularySets.map(s => s.id).join(',');
   // const { data: vocabularyStats = [], isLoading: vocabularyStatsLoading } = useQuery<VocabularyStatsResponse>({
@@ -248,8 +286,8 @@ export default function TeacherLessonBank() {
   // Get the vocabulary category ID
   const vocabularyCategoryId = categories.find(c => c.name === 'vocabulary')?.id;
 
-  // Determine if we should show lessons (when category is selected or searching)
-  const showLessons = searchQuery.trim() !== '' || !!selectedMainCategory || !!selectedSubcategory;
+  // Determine if we should show lessons (default to true to show all lessons when browsing)
+  const showLessons = true; // Always show lessons to ensure reading lessons are visible
   
   // Get current category filter ID
   const getCurrentCategoryId = () => {
@@ -308,6 +346,45 @@ export default function TeacherLessonBank() {
     return false;
   });
 
+  // Get the reading lessons category ID (läsförståelse category)
+  const readingCategoryId = categories.find(c =>
+    c.name === 'lasforstaelse' ||
+    c.name === 'läsförståelse' ||
+    c.swedishName === 'Läsförståelse'
+  )?.id;
+
+  // Filter reading lessons based on search and filters
+  const filteredReadingLessons = readingLessons.filter((lesson) => {
+    // Always apply difficulty filter
+    const matchesDifficulty = difficultyFilter === 'all' || lesson.difficulty === difficultyFilter;
+
+    // If searching, show all matching reading lessons
+    if (searchQuery.trim() !== '') {
+      const matchesSearch =
+        lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (lesson.description && lesson.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchesSearch && matchesDifficulty;
+    }
+
+    // Get current category ID
+    const currentCategoryId = getCurrentCategoryId();
+
+    // If a specific category is selected
+    if (currentCategoryId) {
+      // Only show if it's the reading category or if searching
+      return currentCategoryId === readingCategoryId && matchesDifficulty;
+    }
+
+    // If no category is selected (browsing all), show all reading lessons
+    if (!selectedMainCategory && !selectedSubcategory) {
+      return matchesDifficulty;
+    }
+
+    // Don't show in other cases
+    return false;
+  });
+
   // Combine both types for unified display
   const allFilteredItems = [
     ...filteredTemplates,
@@ -362,15 +439,26 @@ export default function TeacherLessonBank() {
   // Handle vocabulary set selection
   const handleVocabularySetSelect = (vocabularySet: VocabularySet) => {
     const isSelected = selectedVocabularySets.some(item => item.vocabularySet.id === vocabularySet.id);
-    
+
     if (isSelected) {
       setSelectedVocabularySets(prev => prev.filter(item => item.vocabularySet.id !== vocabularySet.id));
     } else {
-      setSelectedVocabularySets(prev => [...prev, { 
-        vocabularySet, 
+      setSelectedVocabularySets(prev => [...prev, {
+        vocabularySet,
         wordCount: vocabularyWordCounts[vocabularySet.id] || 0,
         exerciseCount: vocabularyExerciseCounts[vocabularySet.id] || 0
       }]);
+    }
+  };
+
+  // Handle reading lesson selection
+  const handleReadingLessonSelect = (readingLesson: ReadingLesson) => {
+    const isSelected = selectedReadingLessons.some(item => item.readingLesson.id === readingLesson.id);
+
+    if (isSelected) {
+      setSelectedReadingLessons(prev => prev.filter(item => item.readingLesson.id !== readingLesson.id));
+    } else {
+      setSelectedReadingLessons(prev => [...prev, { readingLesson }]);
     }
   };
 
@@ -410,13 +498,14 @@ export default function TeacherLessonBank() {
 
   // Calculate total estimated time
   const totalEstimatedTime = selectedTemplates.reduce((sum, item) => sum + (item.template.estimatedDuration || 0), 0) +
-    selectedVocabularySets.reduce((sum, item) => sum + 15, 0); // Assume 15 min per vocabulary set
+    selectedVocabularySets.reduce((sum, item) => sum + 15, 0) + // Assume 15 min per vocabulary set
+    selectedReadingLessons.reduce((sum, item) => sum + (item.readingLesson.estimatedDuration || 30), 0); // Default 30 min per reading lesson
 
   // Get unique difficulties
   const availableDifficulties = Array.from(new Set(templates.map((t) => t.difficulty).filter(Boolean)));
 
   // Get total selected items count
-  const totalSelectedItems = selectedTemplates.length + selectedVocabularySets.length;
+  const totalSelectedItems = selectedTemplates.length + selectedVocabularySets.length + selectedReadingLessons.length;
 
   if (!user || (user.role !== 'LARARE' && user.role !== 'ADMIN')) {
     return (
@@ -936,7 +1025,7 @@ export default function TeacherLessonBank() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Add vocabulary set preview
+                            setPreviewVocabularySet(vocabularySet);
                           }}
                           data-testid={`button-preview-vocabulary-${vocabularySet.id}`}
                         >
@@ -954,6 +1043,87 @@ export default function TeacherLessonBank() {
                         >
                           <Settings className="h-4 w-4 mr-1" />
                           Anpassa
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Reading Lessons (Läsförståelseövningar) */}
+              {filteredReadingLessons.map((readingLesson) => {
+                const isSelected = selectedReadingLessons.some(item => item.readingLesson.id === readingLesson.id);
+
+                return (
+                  <Card
+                    key={`reading-${readingLesson.id}`}
+                    className={`relative cursor-pointer transition-all hover:shadow-md ${
+                      isSelected ? 'ring-2 ring-primary bg-primary/5' : ''
+                    }`}
+                    onClick={() => handleReadingLessonSelect(readingLesson)}
+                    data-testid={`card-reading-${readingLesson.id}`}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <BookOpen className="h-4 w-4 text-green-600" />
+                            <span className="text-xs text-muted-foreground font-medium">LÄSFÖRSTÅELSE</span>
+                          </div>
+                          <CardTitle className="text-lg line-clamp-2">
+                            {readingLesson.title}
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2 mt-1">
+                            {readingLesson.description || 'Ingen beskrivning'}
+                          </CardDescription>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 ml-2" />
+                        )}
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Läsförståelse
+                        </Badge>
+                        {readingLesson.difficulty && (
+                          <Badge
+                            variant="outline"
+                            className={getDifficultyColor(readingLesson.difficulty)}
+                          >
+                            {getDifficultyText(readingLesson.difficulty)}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {readingLesson.estimatedDuration || 30} min
+                        </div>
+                        {readingLesson.targetGrade && (
+                          <div className="flex items-center gap-1">
+                            <Target className="h-4 w-4" />
+                            {readingLesson.targetGrade}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Open reading lesson preview in new tab
+                            window.open(`/lasforstaelse/lektion/${readingLesson.id}?preview=true`, '_blank');
+                          }}
+                          data-testid={`button-preview-reading-${readingLesson.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Förhandsgranska
                         </Button>
                       </div>
                     </CardContent>

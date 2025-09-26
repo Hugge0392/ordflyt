@@ -84,7 +84,7 @@ export default function ReadingAdmin() {
   };
 
   const handleEditLesson = (lesson: any) => {
-    setLocation(`/lasforstaelse/skapa/edit/${lesson.id}`);
+    setLocation(`/lasforstaelse/skapa/${lesson.id}`);
   };
 
   return (
@@ -190,18 +190,16 @@ export default function ReadingAdmin() {
                           </Button>
                         )}
                         
-                        {lesson.isPublished && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            data-testid={`button-view-${lesson.id}`}
-                          >
-                            <Link href={`/lasforstaelse/${lesson.id}`}>
-                              <Eye className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          data-testid={`button-view-${lesson.id}`}
+                        >
+                          <Link href={`/lasforstaelse/lektion/${lesson.id}${!lesson.isPublished ? '?preview=true' : ''}`}>
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        </Button>
                         
                         <Button
                           variant="outline"
@@ -264,7 +262,7 @@ export default function ReadingAdmin() {
                           size="sm"
                           asChild
                         >
-                          <Link href={`/lasforstaelse/${lesson.id}`}>
+                          <Link href={`/lasforstaelse/lektion/${lesson.id}`}>
                             <Eye className="w-4 h-4" />
                           </Link>
                         </Button>
@@ -337,6 +335,16 @@ export default function ReadingAdmin() {
                       </div>
 
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          data-testid={`button-view-draft-${lesson.id}`}
+                        >
+                          <Link href={`/lasforstaelse/lektion/${lesson.id}?preview=true`}>
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"

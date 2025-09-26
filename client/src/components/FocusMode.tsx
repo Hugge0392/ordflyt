@@ -531,18 +531,8 @@ export default function FocusMode({
               /* Word definitions styling for rich content */
               .rich-focus-content .defined-word {
                 text-decoration: none !important;
-                background: linear-gradient(120deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.2) 100%) !important;
                 border-bottom: 2px dotted rgba(59, 130, 246, 0.6) !important;
-                padding: 0.1em 0.2em !important;
-                border-radius: 3px !important;
-                cursor: help !important;
-                transition: all 0.2s ease !important;
                 position: relative !important;
-              }
-              
-              .rich-focus-content .defined-word:hover {
-                background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%) !important;
-                border-bottom-color: rgba(59, 130, 246, 0.8) !important;
               }
             `}</style>
 

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, LogIn, UserPlus, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, LogIn, UserPlus, AlertTriangle, Home } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -167,6 +167,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      {/* Back to Home button */}
+      <div className="fixed top-4 left-4 z-10">
+        <Link href="/">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all"
+            data-testid="button-back-home"
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Huvudmeny
+          </Button>
+        </Link>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">

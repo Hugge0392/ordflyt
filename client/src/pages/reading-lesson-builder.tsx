@@ -322,7 +322,11 @@ export default function ReadingLessonBuilder() {
 
   // Save content manually
   const handleSaveContent = async () => {
-    if (!lesson || !editingLesson) return;
+    console.log('💾 Save starting...', { lesson: !!lesson, editingLesson: !!editingLesson });
+    if (!lesson || !editingLesson) {
+      console.error('💾 Save failed: Missing lesson or editingLesson');
+      return;
+    }
     
     // Check if there's any content (blocks, RichDoc, or HTML)
     const hasContent = localPages.some(page => 
@@ -384,6 +388,9 @@ export default function ReadingLessonBuilder() {
       };
     });
 
+    console.log('💾 About to save questions:', editingLesson.questions);
+    console.log('💾 Questions length:', editingLesson.questions?.length || 0);
+
     await updateMutation.mutateAsync({
       id: lesson.id,
       lesson: {
@@ -412,7 +419,7 @@ export default function ReadingLessonBuilder() {
         readingTime: newLessonForm.readingTime || lesson.readingTime,
         featuredImage: newLessonForm.featuredImage || lesson.featuredImage,
         preReadingQuestions: editingLesson.preReadingQuestions ?? [],
-        questions: [], // Clear global questions since they're now distributed to pages
+        questions: editingLesson.questions || [], // Keep all questions for sidebar display
         wordDefinitions: editingLesson.wordDefinitions ?? [],
         isPublished: newLessonForm.isPublished ? 1 : 0, // Convert boolean to number
         numberOfPages: newLessonForm.numberOfPages

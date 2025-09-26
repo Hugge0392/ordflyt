@@ -4,18 +4,27 @@ async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     // Handle 401 Unauthorized - clear auth state and redirect to login
     if (res.status === 401) {
+      // Skip redirect if dev bypass is active
+      const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+      if (isDevBypass) {
+        console.log('Dev bypass active, skipping 401 redirect');
+        // Still throw error but don't redirect
+        const text = (await res.text()) || res.statusText;
+        throw new Error(`${res.status}: ${text}`);
+      }
+
       // Clear stored CSRF token
       localStorage.removeItem('csrfToken');
-      
+
       // Clear any cached auth state in query client
       queryClient.setQueryData(["/api/auth/me"], null);
-      
+
       // Redirect to login page if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
-    
+
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -24,6 +33,15 @@ async function throwIfResNotOk(res: Response) {
 // Function to refresh CSRF token from /api/auth/me
 export async function refreshCsrfToken(): Promise<string | null> {
   try {
+    // Check for dev bypass mode
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+    if (isDevBypass) {
+      console.log('[refreshCsrfToken] Dev bypass active, using mock CSRF token');
+      const mockToken = 'dev-csrf-token';
+      localStorage.setItem('csrfToken', mockToken);
+      return mockToken;
+    }
+
     console.log('[refreshCsrfToken] Fetching CSRF token from /api/auth/me...');
     const res = await fetch('/api/auth/me', {
       credentials: "include",
@@ -36,7 +54,7 @@ export async function refreshCsrfToken(): Promise<string | null> {
 
     const data = await res.json();
     console.log('[refreshCsrfToken] Response data keys:', Object.keys(data));
-    
+
     if (data.csrfToken) {
       // Update localStorage with the new token
       localStorage.setItem('csrfToken', data.csrfToken);
@@ -45,7 +63,7 @@ export async function refreshCsrfToken(): Promise<string | null> {
     } else {
       console.warn('[refreshCsrfToken] No csrfToken in response data');
     }
-    
+
     return null;
   } catch (error) {
     console.error('[refreshCsrfToken] Error refreshing CSRF token:', error);

@@ -22,10 +22,14 @@ interface HoveredWord {
 
 export default function ReadingLessonViewer() {
   const { id } = useParams<{ id: string }>();
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreview = urlParams.get('preview') === 'true';
   const [currentPage, setCurrentPage] = useState(0);
   const [readingAnswers, setReadingAnswers] = useState<Record<number, Record<number, string>>>({});
   const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
-  const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
+  // Disabled hover functionality to prevent text movement
+  // const [hoveredWord, setHoveredWord] = useState<HoveredWord | null>(null);
+  const hoveredWord = null;
   const [showQuestions, setShowQuestions] = useState(true);
 
   // Questions panel state
@@ -76,8 +80,26 @@ export default function ReadingLessonViewer() {
 
   // Fetch lesson data
   const { data: lesson, isLoading, error } = useQuery<ReadingLesson>({
-    queryKey: [`/api/reading-lessons/${id}`],
+    queryKey: [`/api/reading-lessons/${id}`, { preview: isPreview }],
     enabled: !!id,
+    queryFn: async () => {
+      const url = `/api/reading-lessons/${id}${isPreview ? '?preview=true' : ''}`;
+      console.log('Fetching lesson from:', url, 'Preview mode:', isPreview);
+
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch lesson:', response.status, errorText);
+        throw new Error(`Failed to fetch lesson: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Lesson loaded successfully:', data.title, 'ID:', data.id);
+      return data;
+    }
   });
 
   // Save settings to localStorage when they change
@@ -126,7 +148,8 @@ export default function ReadingLessonViewer() {
     }
   }, [activeSettings, readingFocusMode]);
 
-  // Handle word hover for definitions
+  // Handle word hover for definitions - DISABLED to prevent text movement
+  /*
   const handleContentMouseOver = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.classList.contains("defined-word")) {
@@ -150,6 +173,7 @@ export default function ReadingLessonViewer() {
       setHoveredWord(null);
     }
   };
+  */
 
   // Create interactive content with word definitions
   const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
@@ -179,20 +203,7 @@ export default function ReadingLessonViewer() {
           .replace(/\sstyle=(["'])\s*\1/gi, "")
     );
 
-    if (!definitions.length) return processedContent;
-
-    // Add word definitions
-    definitions.forEach(({ word, definition }) => {
-      const regex = new RegExp(
-        `\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`,
-        "gi",
-      );
-      processedContent = processedContent.replace(
-        regex,
-        `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`,
-      );
-    });
-
+    // Word definitions completely disabled to prevent any hover effects or text movement
     return processedContent;
   };
   
@@ -329,9 +340,41 @@ export default function ReadingLessonViewer() {
       });
     }
 
-    // Add page-specific questions only for legacy format
-    // Skip if using blockPages or richPages (new formats with lesson-level questions only)
-    if (!lesson?.blockPages?.length && !lesson?.richPages?.length && lesson?.pages) {
+    // Add page-specific questions from all page formats
+    // Check blockPages first (newest format)
+    if (lesson?.blockPages?.length) {
+      lesson.blockPages.forEach((page, pageIndex) => {
+        if (hasPageQuestions(page)) {
+          page.questions.forEach((question, questionIndex) => {
+            allQuestions.push({
+              question,
+              type: "page",
+              pageIndex,
+              originalIndex: questionIndex,
+              globalIndex: allQuestions.length,
+            });
+          });
+        }
+      });
+    }
+    // Then check richPages
+    else if (lesson?.richPages?.length) {
+      lesson.richPages.forEach((page, pageIndex) => {
+        if (hasPageQuestions(page)) {
+          page.questions.forEach((question, questionIndex) => {
+            allQuestions.push({
+              question,
+              type: "page",
+              pageIndex,
+              originalIndex: questionIndex,
+              globalIndex: allQuestions.length,
+            });
+          });
+        }
+      });
+    }
+    // Finally check legacy pages
+    else if (lesson?.pages) {
       lesson.pages.forEach((page, pageIndex) => {
         if (hasPageQuestions(page)) {
           page.questions.forEach((question, questionIndex) => {
@@ -352,6 +395,14 @@ export default function ReadingLessonViewer() {
 
   const allQuestions = useMemo(() => getAllQuestions(), [lesson]);
   const totalQuestions = allQuestions.length;
+
+  console.log('🔍 Questions Debug:', {
+    lessonTitle: lesson?.title,
+    lessonQuestions: lesson?.questions,
+    questionsLength: lesson?.questions?.length,
+    totalQuestions,
+    showQuestionsPanel12
+  });
 
   // Navigation functions
   const goToPreviousQuestion = () => {
@@ -448,6 +499,31 @@ export default function ReadingLessonViewer() {
     setReadingFocusMode(false);
     setFocusAnimationState('inactive');
   };
+
+  if (!lesson && !isLoading && !error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="text-center py-12">
+          <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-xl font-semibold mb-2">
+            Läsförståelseövning hittades inte
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            Den begärda övningen existerar inte eller du har inte behörighet att visa den.
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            ID: {id} | Preview: {isPreview ? 'Ja' : 'Nej'}
+          </p>
+          <Link href="/lasforstaelse/admin">
+            <Button variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Tillbaka till admin
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -547,21 +623,25 @@ export default function ReadingLessonViewer() {
     );
   }
 
-  if (error || !lesson) {
+  if (error) {
+    console.error('Reading lesson viewer error:', error);
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center py-12">
           <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">
-            Läsförståelseövning hittades inte
+            Fel vid laddning av läsförståelseövning
           </h2>
           <p className="text-muted-foreground mb-4">
-            Den begärda övningen kunde inte laddas eller existerar inte.
+            {error.message || 'Den begärda övningen kunde inte laddas eller existerar inte.'}
           </p>
-          <Link href="/lasforstaelse">
+          <p className="text-sm text-muted-foreground mb-4">
+            ID: {id} | Preview: {isPreview ? 'Ja' : 'Nej'}
+          </p>
+          <Link href="/lasforstaelse/admin">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Tillbaka till läsförståelse
+              Tillbaka till admin
             </Button>
           </Link>
         </div>
@@ -605,6 +685,13 @@ export default function ReadingLessonViewer() {
 
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4">{lesson.title}</h1>
+              {isPreview && (
+                <div className="mb-4">
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+                    Förhandsvisning
+                  </Badge>
+                </div>
+              )}
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {lesson.description}
               </p>
@@ -677,8 +764,8 @@ export default function ReadingLessonViewer() {
             processRichDocWithDefinitions={processRichDocWithDefinitions}
             isRichContent={isRichContent}
             getPageContentForDefinitions={getPageContentForDefinitions}
-            handleContentMouseOver={handleContentMouseOver}
-            handleContentMouseOut={handleContentMouseOut}
+            handleContentMouseOver={() => {}}
+            handleContentMouseOut={() => {}}
             onToggleFocusMode={handleToggleFocusMode}
             totalQuestions={totalQuestions}
             currentQuestionIndex={currentQuestionIndex}
@@ -695,8 +782,8 @@ export default function ReadingLessonViewer() {
           />
         )}
 
-        {/* Word Definition Tooltip */}
-        {!readingFocusMode && hoveredWord && (
+        {/* Word Definition Tooltip - Disabled to prevent text movement */}
+        {/* {!readingFocusMode && hoveredWord && (
           <div
             className="fixed z-50 max-w-xs p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg pointer-events-none"
             style={{
@@ -708,7 +795,7 @@ export default function ReadingLessonViewer() {
             <div className="font-semibold">{hoveredWord.word}</div>
             <div className="mt-1">{hoveredWord.definition}</div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

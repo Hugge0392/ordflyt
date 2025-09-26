@@ -128,7 +128,9 @@
   transition: all 0.2s ease;
 }
 
-.ProseMirror > *:hover {
+/* Hover effect disabled for reading content to prevent text movement */
+/* Only apply hover in editor mode, not in reading mode */
+.rich-doc-editor .ProseMirror > *:hover {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 4px;
   padding-left: 2px;
@@ -999,11 +1001,33 @@ html, body {
   border: 1px solid #000000 !important;
 }
 
-/* Definerade ord – aldrig bakgrund */
-.defined-word {
+/* Definerade ord – INAKTIVERAT för att förhindra hover-effekter */
+/* .defined-word {
   background: transparent !important;
   text-decoration: underline dotted;
   text-underline-offset: .2em;
+} */
+
+/* VIKTIGT: Inaktivera ALLA hover-effekter för läsinnehåll */
+/* Detta förhindrar text från att flytta sig när musen förs över */
+.reading-content .ProseMirror > *:hover,
+.reading-content.accessibility-enhanced .ProseMirror > *:hover,
+.reading-lesson-viewer .ProseMirror > *:hover {
+  background: transparent !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-radius: 0 !important;
+  position: static !important;
+}
+
+.reading-content .ProseMirror > *:hover::before,
+.reading-content .ProseMirror > *:hover::after,
+.reading-content.accessibility-enhanced .ProseMirror > *:hover::before,
+.reading-content.accessibility-enhanced .ProseMirror > *:hover::after,
+.reading-lesson-viewer .ProseMirror > *:hover::before,
+.reading-lesson-viewer .ProseMirror > *:hover::after {
+  display: none !important;
+  content: none !important;
 }
 
 /* Universal inline-style neutralizer för läsytan */

@@ -32,6 +32,34 @@ import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
 import { pdfExportService } from "./pdfExportService";
 
+// Helper function to calculate estimated records for export jobs
+async function calculateEstimatedRecords(type: string, classId?: string, studentId?: string): Promise<number> {
+  try {
+    switch (type) {
+      case 'student':
+        if (studentId) {
+          const progress = await storage.getStudentProgressByStudentId(studentId);
+          return progress.length;
+        }
+        return 50; // default estimate
+      case 'class':
+        if (classId) {
+          const students = await storage.getStudentsByClassId(classId);
+          return students.length * 20; // estimate progress records per student
+        }
+        return 200; // default estimate
+      case 'teacher':
+        const classes = await storage.getTeacherClasses();
+        return classes.length * 100; // estimate records per class
+      default:
+        return 100;
+    }
+  } catch (error) {
+    console.warn('Failed to calculate estimated records, using default', error);
+    return 100;
+  }
+}
+
 // Analytics validation schemas
 const analyticsExportSchema = z.object({
   format: z.enum(['csv', 'json']).default('json'),
@@ -847,21 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single reading lesson
-  app.get("/api/reading-lessons/:id", async (req, res) => {
-    try {
-      const lesson = await storage.getReadingLessonById(req.params.id);
-      if (!lesson) {
-        return res.status(404).json({ message: "Reading lesson not found" });
-      }
-      res.json(lesson);
-    } catch (error) {
-      console.error("Error fetching reading lesson:", error);
-      res.status(500).json({ message: "Failed to fetch reading lesson" });
-    }
-  });
-
-  // Get published reading lessons
+  // Get published reading lessons (must be before the :id route)
   app.get("/api/reading-lessons/published", async (req, res) => {
     try {
       const lessons = await storage.getPublishedReadingLessons();
@@ -872,10 +886,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single reading lesson
+  // Get single reading lesson (handles both published and preview)
   app.get("/api/reading-lessons/:id", async (req, res) => {
     try {
-      const lesson = await storage.getReadingLesson(req.params.id);
+      const isPreview = req.query.preview === 'true';
+      const lesson = isPreview
+        ? await storage.getReadingLessonById(req.params.id) // Allow access to unpublished for preview
+        : await storage.getReadingLesson(req.params.id); // Only published lessons normally
+
       if (!lesson) {
         return res.status(404).json({ message: "Reading lesson not found" });
       }
@@ -885,6 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch reading lesson" });
     }
   });
+
 
   // Update reading lesson
   app.put("/api/reading-lessons/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
@@ -3153,7 +3172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         teacherId,
         schoolId,
-        estimatedRecords: 100, // TODO: Calculate based on scope
+        estimatedRecords: await calculateEstimatedRecords(validatedData.type, validatedData.classId, validatedData.studentId),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       };
 

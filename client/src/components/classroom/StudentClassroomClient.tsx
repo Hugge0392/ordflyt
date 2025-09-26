@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,7 +88,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timerIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const connect = async (): Promise<void> => {
+  const connect = useCallback(async (): Promise<void> => {
     // Only connect if user is a student
     if (!user || user.role !== 'ELEV') {
       return;
@@ -142,9 +142,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
     } catch (error) {
       console.error('Error connecting student to classroom WebSocket:', error);
     }
-  };
+  }, [user]); // Only depend on user, other functions will be stable
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -166,9 +166,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       classroomMode: 'instruction',
       lastMessage: null,
     });
-  };
+  }, []); // No dependencies needed
 
-  const scheduleReconnect = () => {
+  const scheduleReconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
@@ -177,7 +177,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       console.log('Attempting to reconnect student classroom WebSocket...');
       connect();
     }, 5000); // Reconnect after 5 seconds
-  };
+  }, [connect]);
 
   const handleWebSocketMessage = (message: StudentClassroomMessage) => {
     console.log('Student received classroom message:', message.type, message.data);

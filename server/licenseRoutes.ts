@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { hashPassword } from './auth';
+import { logger } from './logger';
 import { db } from './db';
 import { users, teacherRegistrations } from '@shared/schema';
 import { emailService } from './emailService';
@@ -82,7 +83,7 @@ const updateClassSchema = z.object({
 });
 
 // Middleware för att kontrollera aktiv licens
-async function requireActiveLicense(req: any, res: Response, next: Function) {
+async function requireActiveLicense(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -100,14 +101,14 @@ async function requireActiveLicense(req: any, res: Response, next: Function) {
     req.license = license;
     next();
   } catch (error) {
-    console.error('License check error:', error);
+    logger.error('License check error', { error: error.message, stack: error.stack });
     return res.status(500).json({ error: 'Serverfel vid licenskontroll' });
   }
 }
 
 // POST /api/license/activate - Combined Teacher Registration and License Activation
 // This is the endpoint that tests expect to use for teacher registration with license codes
-router.post('/activate', async (req: any, res: Response) => {
+router.post('/activate', async (req: Request, res: Response) => {
   const { 
     code,
     username, 
@@ -238,7 +239,7 @@ router.post('/activate', async (req: any, res: Response) => {
         newUser.username
       );
     } catch (emailError: any) {
-      console.error('Failed to send registration confirmation email:', emailError);
+      logger.error('Failed to send registration confirmation email', { error: emailError.message });
       // Don't fail the registration if email fails
     }
 
@@ -258,7 +259,7 @@ router.post('/activate', async (req: any, res: Response) => {
     });
 
   } catch (error: any) {
-    console.error('License activation registration error:', error);
+    logger.error('License activation registration error', { error: error.message, stack: error.stack });
     
     await logLicenseActivity(null, 'registration_with_license_failed', { 
       reason: 'server_error',
@@ -272,7 +273,7 @@ router.post('/activate', async (req: any, res: Response) => {
 });
 
 // POST /api/license/redeem - Lösa in engångskod
-router.post('/redeem', requireAuth, requireCsrf, async (req: any, res: Response) => {
+router.post('/redeem', requireAuth, requireCsrf, async (req: Request, res: Response) => {
   try {
     const { code } = redeemCodeSchema.parse(req.body);
     const userId = req.user.id;
@@ -362,7 +363,7 @@ router.post('/redeem', requireAuth, requireCsrf, async (req: any, res: Response)
     });
 
   } catch (error: any) {
-    console.error('Redeem error:', error);
+    logger.error('Redeem error', { error: error.message, stack: error.stack });
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -405,7 +406,7 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
     });
 
   } catch (error) {
-    console.error('License status error:', error);
+    logger.error('License status error', { error: error.message, stack: error.stack });
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -430,7 +431,7 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
     res.json({ classes: classesWithStudents });
 
   } catch (error) {
-    console.error('Get classes error:', error);
+    logger.error('Get classes error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -516,7 +517,7 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
     });
 
   } catch (error: any) {
-    console.error('Create class error:', error);
+    logger.error('Create class error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -545,7 +546,7 @@ router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, req
     res.json({ students });
 
   } catch (error) {
-    console.error('Get students error:', error);
+    logger.error('Get students error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -630,7 +631,7 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
     });
 
   } catch (error: any) {
-    console.error('Add students error:', error);
+    logger.error('Add students error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -674,7 +675,7 @@ router.patch('/students/:studentId', requireAuth, requireTeacherLicense, require
     });
 
   } catch (error: any) {
-    console.error('Update student error:', error);
+    logger.error('Update student error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -714,7 +715,7 @@ router.post('/students/:studentId/reset-password', requireAuth, requireTeacherLi
     });
 
   } catch (error) {
-    console.error('Reset password error:', error);
+    logger.error('Reset password error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -750,7 +751,7 @@ router.patch('/classes/:classId', requireAuth, requireTeacherLicense, requireSch
     });
 
   } catch (error: any) {
-    console.error('Update class error:', error);
+    logger.error('Update class error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -783,7 +784,7 @@ router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requir
     });
 
   } catch (error) {
-    console.error('Delete student error:', error);
+    logger.error('Delete student error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -809,7 +810,7 @@ router.get('/admin/codes', requireAuth, requireRole('ADMIN'), async (req: any, r
 
     res.json({ codes });
   } catch (error) {
-    console.error('Get codes error:', error);
+    logger.error('Get codes error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -873,7 +874,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, a
       }, userId, req.ip || 'unknown');
       
     } catch (error: any) {
-      console.error('Failed to send registration email:', error);
+      logger.error('Failed to send registration email:', error);
       emailError = error.message;
       
       // Log email failure but don't fail the code generation
@@ -907,7 +908,7 @@ router.post('/admin/generate', requireAuth, requireRole('ADMIN'), requireCsrf, a
     });
 
   } catch (error: any) {
-    console.error('Generate code error:', error);
+    logger.error('Generate code error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -960,7 +961,7 @@ router.delete('/admin/codes/:id', requireAuth, requireRole('ADMIN'), requireCsrf
     });
 
   } catch (error: any) {
-    console.error('Delete code error:', error);
+    logger.error('Delete code error:', error);
     res.status(500).json({ error: 'Serverfel vid borttagning av kod' });
   }
 });
@@ -996,7 +997,7 @@ router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), requireC
     });
 
   } catch (error: any) {
-    console.error('Delete license error:', error);
+    logger.error('Delete license error:', error);
     res.status(500).json({ error: 'Serverfel vid borttagning av licens' });
   }
 });
@@ -1031,7 +1032,7 @@ router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, req
     
     res.json({ students });
   } catch (error) {
-    console.error('Get class students error:', error);
+    logger.error('Get class students error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1104,7 +1105,7 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
       }
     });
   } catch (error) {
-    console.error('Add student error:', error);
+    logger.error('Add student error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1162,7 +1163,7 @@ router.put('/students/:studentId/reset-password', requireAuth, requireTeacherLic
       }
     });
   } catch (error) {
-    console.error('Reset student password error:', error);
+    logger.error('Reset student password error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1206,7 +1207,7 @@ router.delete('/students/:studentId', requireAuth, requireTeacherLicense, requir
       message: 'Elev borttagen'
     });
   } catch (error) {
-    console.error('Delete student error:', error);
+    logger.error('Delete student error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1270,7 +1271,7 @@ router.post('/classes/:classId/students', requireAuth, requireTeacherLicense, re
     });
     
   } catch (error: any) {
-    console.error('Add student error:', error);
+    logger.error('Add student error:', error);
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
@@ -1339,7 +1340,7 @@ router.put('/students/:studentId/tool-settings', requireAuth, requireTeacherLice
     });
     
   } catch (error) {
-    console.error('Update tool settings error:', error);
+    logger.error('Update tool settings error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1409,7 +1410,7 @@ router.get('/students/:id/password', requireAuth, requireTeacherLicense, require
     });
     
   } catch (error) {
-    console.error('Get student password error:', error);
+    logger.error('Get student password error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1481,7 +1482,7 @@ router.post('/students/:id/reset-password', requireAuth, requireTeacherLicense, 
       }
     });
   } catch (error) {
-    console.error('Reset student password error:', error);
+    logger.error('Reset student password error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1537,7 +1538,7 @@ router.delete('/students/:id', requireAuth, requireTeacherLicense, requireSchool
       message: 'Elev borttagen'
     });
   } catch (error) {
-    console.error('Delete student error:', error);
+    logger.error('Delete student error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }
 });
@@ -1589,7 +1590,7 @@ router.post('/students/:id/generate-setup-code', requireAuth, requireTeacherLice
     });
 
   } catch (error: any) {
-    console.error('Generate setup code error:', error);
+    logger.error('Generate setup code error:', error);
     res.status(500).json({ error: 'Serverfel vid generering av engångskod' });
   }
 });
@@ -1687,7 +1688,7 @@ router.post('/email-credentials', requireAuth, requireTeacherLicense, requireSch
             setupCode: clearCode
           };
         } catch (error) {
-          console.error(`Failed to handle setup code for student ${student.id}:`, error);
+          logger.error(`Failed to handle setup code for student ${student.id}:`, error);
           return {
             ...student,
             setupCode: 'Kunde inte hantera kod'
@@ -1803,7 +1804,7 @@ Genererat: ${new Date().toLocaleString('sv-SE')}
     });
 
   } catch (error: any) {
-    console.error('Email credentials error:', error);
+    logger.error('Email credentials error:', error);
     res.status(500).json({ 
       error: 'Serverfel vid e-postutskick',
       details: error.message 
