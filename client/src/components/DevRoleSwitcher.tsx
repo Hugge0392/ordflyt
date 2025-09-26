@@ -52,17 +52,16 @@ export default function DevRoleSwitcher() {
         }
 
         // Invalidate auth cache to force refresh (both regular users and students)
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/student/me'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/student/me'] });
+        
+        // Wait for the auth cache to actually update with new role data
+        console.log('DevRoleSwitcher: Waiting for auth state to update...');
+        await queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
         
         // Navigate to the appropriate page
-        console.log('DevRoleSwitcher: Redirecting to:', data.redirectPath);
-        
-        // Give a small delay to ensure cookies are set before redirect
-        setTimeout(() => {
-          console.log('DevRoleSwitcher: Attempting navigation to:', data.redirectPath);
-          navigate(data.redirectPath);
-        }, 500);
+        console.log('DevRoleSwitcher: Auth state updated. Redirecting to:', data.redirectPath);
+        navigate(data.redirectPath);
       } else {
         console.error('DevRoleSwitcher: Quick-login failed with status:', response.status);
         const errorData = await response.text();
