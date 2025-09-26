@@ -801,7 +801,7 @@ export default function Admin() {
                     </Link>
 
                     {/* Reading Admin */}
-                    <Link href="/admin/reading">
+                    <Link href="/lasforstaelse/admin">
                       <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-blue-200 hover:border-blue-300">
                         <CardContent className="p-4">
                           <div className="flex flex-col items-center text-center space-y-2">

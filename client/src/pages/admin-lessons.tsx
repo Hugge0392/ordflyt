@@ -24,7 +24,7 @@ export default function AdminLessons() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/lesson-builder">
+          <Link href="/lasforstaelse/admin">
             <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
               <CardHeader className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
