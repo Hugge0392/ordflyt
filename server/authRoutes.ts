@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "./db";
-import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema, studentAccounts, studentSessions, teacherClasses } from "@shared/schema";
+import { users, sessions, auditLog, failedLogins, emailVerificationTokens, teacherRegistrations, teacherLicenses, schools, teacherSchoolMemberships, passwordResetTokens, insertTeacherRegistrationSchema, insertEmailVerificationTokenSchema, studentAccounts, studentSessions, teacherClasses, classes, students } from "@shared/schema";
 import { eq, and, gte, isNull, isNotNull, or } from "drizzle-orm";
 import { findOneTimeCode, hashCode, redeemOneTimeCode, createTeacherLicense, logLicenseActivity, validateAndUseSetupCode, getStudentByUsername, updateStudentPassword } from "./licenseDb";
 import argon2 from "argon2";
@@ -1999,6 +1999,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         .limit(1);
         
       if (!user) {
+        console.log('Dev quick-login: Creating new user for role:', role);
         const hashedPassword = await hashPassword(password);
         const [newUser] = await db.insert(users).values({
           username,
@@ -2014,6 +2015,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         
         // If creating dev teacher, ensure they have a license and class
         if (role === 'LARARE') {
+          console.log('Dev quick-login: Starting LARARE setup for NEW user:', user.id);
           // Create or find dev school first
           let [school] = await db
             .select()
@@ -2051,6 +2053,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
           }
           
           // Create teacher class
+          console.log('Dev quick-login: Looking for existing teacher class for user:', user.id);
           let [teacherClass] = await db
             .select()
             .from(teacherClasses)
@@ -2058,6 +2061,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
             .limit(1);
             
           if (!teacherClass) {
+            console.log('Dev quick-login: Creating new teacher class "Dev Test Klass"');
             [teacherClass] = await db.insert(teacherClasses).values({
               name: 'Dev Test Klass',
               teacherId: user.id,
@@ -2065,6 +2069,47 @@ router.post("/api/dev/quick-login", async (req, res) => {
               term: 'Dev Term',
               description: 'Development test class'
             }).returning();
+            console.log('Dev quick-login: Created teacher class:', teacherClass);
+          } else {
+            console.log('Dev quick-login: Found existing teacher class:', teacherClass);
+          }
+          
+          // Add existing dev student to teacher class
+          console.log('Dev quick-login: Looking for dev student "elev"');
+          const [devStudent] = await db
+            .select()
+            .from(users)
+            .where(eq(users.username, 'elev'))
+            .limit(1);
+            
+          if (devStudent && teacherClass) {
+            console.log('Dev quick-login: Found dev student:', devStudent.id, 'for class:', teacherClass.id);
+            // Check if student is already in class
+            const [existingMembership] = await db
+              .select()
+              .from(students)
+              .where(and(
+                eq(students.userId, devStudent.id),
+                eq(students.classId, teacherClass.id)
+              ))
+              .limit(1);
+              
+            if (!existingMembership) {
+              console.log('Dev quick-login: Adding student "Anna Test" to class');
+              await db.insert(students).values({
+                alias: 'Anna Test',
+                classId: teacherClass.id,
+                userId: devStudent.id
+              });
+              console.log('Dev quick-login: Successfully added student to class');
+            } else {
+              console.log('Dev quick-login: Student already in class:', existingMembership);
+            }
+          } else {
+            console.log('Dev quick-login: Missing devStudent or teacherClass:', { 
+              hasDevStudent: !!devStudent, 
+              hasTeacherClass: !!teacherClass 
+            });
           }
           
           // Create teacher school membership
@@ -2084,6 +2129,149 @@ router.post("/api/dev/quick-login", async (req, res) => {
               isActive: true
             });
           }
+        }
+      }
+
+      // Ensure teacher has license and class (for both new and existing teachers)
+      if (role === 'LARARE') {
+        console.log('Dev quick-login: Setting up LARARE for existing user:', user.id);
+        
+        // Create or find dev school first
+        let [school] = await db
+          .select()
+          .from(schools)
+          .where(eq(schools.id, 'dev-school-id'))
+          .limit(1);
+          
+        if (!school) {
+          console.log('Dev quick-login: Creating dev school');
+          [school] = await db.insert(schools).values({
+            id: 'dev-school-id',
+            name: 'Dev Test Skola',
+            organizationNumber: '1234567890',
+            address: 'Test Address',
+            city: 'Test City',
+            postalCode: '12345',
+            contactEmail: 'test@dev.se',
+            contactPhone: '1234567890',
+            isActive: true
+          }).returning();
+        }
+        
+        // Create teacher license
+        let [license] = await db
+          .select()
+          .from(teacherLicenses)
+          .where(eq(teacherLicenses.teacherId, user.id))
+          .limit(1);
+          
+        if (!license) {
+          console.log('Dev quick-login: Creating teacher license');
+          [license] = await db.insert(teacherLicenses).values({
+            teacherId: user.id,
+            isActive: true,
+            activatedAt: new Date()
+          }).returning();
+        }
+        
+        // Create teacher class (for licensing)
+        console.log('Dev quick-login: Looking for existing teacher class for user:', user.id);
+        let [teacherClass] = await db
+          .select()
+          .from(teacherClasses)
+          .where(eq(teacherClasses.teacherId, user.id))
+          .limit(1);
+          
+        if (!teacherClass) {
+          console.log('Dev quick-login: Creating new teacher class "Dev Test Klass"');
+          [teacherClass] = await db.insert(teacherClasses).values({
+            name: 'Dev Test Klass',
+            teacherId: user.id,
+            licenseId: license.id,
+            term: 'Dev Term',
+            description: 'Development test class'
+          }).returning();
+          console.log('Dev quick-login: Created teacher class:', teacherClass);
+        } else {
+          console.log('Dev quick-login: Found existing teacher class:', teacherClass);
+        }
+        
+        // Create corresponding class in classes table (for student linking)
+        console.log('Dev quick-login: Looking for existing class for students for teacher:', user.id);
+        let [classRecord] = await db
+          .select()
+          .from(classes)
+          .where(eq(classes.teacherId, user.id))
+          .limit(1);
+          
+        if (!classRecord) {
+          console.log('Dev quick-login: Creating new class in classes table for student linking');
+          [classRecord] = await db.insert(classes).values({
+            name: 'Dev Test Klass',
+            teacherId: user.id,
+            term: 'Dev Term',
+            description: 'Development test class for student assignments'
+          }).returning();
+          console.log('Dev quick-login: Created class record:', classRecord);
+        } else {
+          console.log('Dev quick-login: Found existing class record:', classRecord);
+        }
+        
+        // Add existing dev student to teacher class
+        console.log('Dev quick-login: Looking for dev student "elev"');
+        const [devStudent] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, 'elev'))
+          .limit(1);
+          
+        if (devStudent && classRecord) {
+          console.log('Dev quick-login: Found dev student:', devStudent.id, 'for class:', classRecord.id);
+          // Check if student is already in class
+          const [existingMembership] = await db
+            .select()
+            .from(students)
+            .where(and(
+              eq(students.userId, devStudent.id),
+              eq(students.classId, classRecord.id)
+            ))
+            .limit(1);
+            
+          if (!existingMembership) {
+            console.log('Dev quick-login: Adding student "Anna Test" to class with ID:', classRecord.id);
+            await db.insert(students).values({
+              alias: 'Anna Test',
+              classId: classRecord.id,
+              userId: devStudent.id
+            });
+            console.log('Dev quick-login: Successfully added student to class');
+          } else {
+            console.log('Dev quick-login: Student already in class:', existingMembership);
+          }
+        } else {
+          console.log('Dev quick-login: Missing devStudent or classRecord:', { 
+            hasDevStudent: !!devStudent, 
+            hasClassRecord: !!classRecord 
+          });
+        }
+        
+        // Create teacher school membership
+        const [membership] = await db
+          .select()
+          .from(teacherSchoolMemberships)
+          .where(and(
+            eq(teacherSchoolMemberships.teacherId, user.id),
+            eq(teacherSchoolMemberships.schoolId, school.id)
+          ))
+          .limit(1);
+          
+        if (!membership) {
+          console.log('Dev quick-login: Creating school membership');
+          await db.insert(teacherSchoolMemberships).values({
+            teacherId: user.id,
+            schoolId: school.id,
+            isActive: true
+          });
         }
       }
 

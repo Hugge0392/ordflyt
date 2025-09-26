@@ -5,12 +5,14 @@ import { Settings, User, GraduationCap, Shield, LogOut, ChevronDown, ChevronUp }
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/queryClient';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 
 export default function DevRoleSwitcher() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [switching, setSwitching] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   
   // Check for student authentication using standard fetcher
   const { data: student } = useQuery({
@@ -58,8 +60,9 @@ export default function DevRoleSwitcher() {
         
         // Give a small delay to ensure cookies are set before redirect
         setTimeout(() => {
-          window.location.href = data.redirectPath;
-        }, 100);
+          console.log('DevRoleSwitcher: Attempting navigation to:', data.redirectPath);
+          navigate(data.redirectPath);
+        }, 500);
       } else {
         console.error('DevRoleSwitcher: Quick-login failed with status:', response.status);
         const errorData = await response.text();
@@ -86,7 +89,7 @@ export default function DevRoleSwitcher() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       
       // Navigate to home
-      window.location.href = '/';
+      navigate('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }

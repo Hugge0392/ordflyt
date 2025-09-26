@@ -2297,6 +2297,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Teacher endpoints for accessing progress data
   
+  // Get all teacher's classes with students
+  app.get("/api/teacher/classes", requireAuth, requireRole('LARARE'), async (req, res) => {
+    try {
+      const teacherId = req.user!.id;
+
+      // Get teacher's classes from classes table (not teacherClasses for licensing)
+      const teacherClasses = await db
+        .select({
+          id: schema.classes.id,
+          name: schema.classes.name,
+          term: schema.classes.term,
+          createdAt: schema.classes.createdAt
+        })
+        .from(schema.classes)
+        .where(eq(schema.classes.teacherId, teacherId));
+
+      // For each class, get the students
+      const classesWithStudents = await Promise.all(
+        teacherClasses.map(async (cls) => {
+          const students = await db
+            .select({
+              id: schema.users.id,
+              username: schema.users.username,
+              alias: schema.students.alias
+            })
+            .from(schema.students)
+            .innerJoin(schema.users, eq(schema.students.userId, schema.users.id))
+            .where(eq(schema.students.classId, cls.id));
+
+          return {
+            ...cls,
+            createdAt: cls.createdAt?.toISOString() || new Date().toISOString(),
+            description: undefined, // Add undefined description to match interface
+            students: students.map(student => ({
+              id: student.id,
+              username: student.username,
+              alias: student.alias || student.username
+            }))
+          };
+        })
+      );
+
+      res.json(classesWithStudents);
+    } catch (error) {
+      console.error("Error fetching teacher classes:", error);
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+  
   // Get class progress (for teachers to see progress of all students in a class)
   app.get("/api/teacher/classes/:classId/progress", requireAuth, requireTeacherLicense, async (req, res) => {
     try {

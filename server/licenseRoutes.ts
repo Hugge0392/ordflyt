@@ -385,7 +385,9 @@ router.post('/redeem', requireAuth, requireCsrf, async (req: any, res: Response)
 router.get('/status', requireAuth, async (req: any, res: Response) => {
   try {
     const userId = req.user.id;
+    console.log('License/status: Checking for user:', userId);
     const license = await getActiveLicense(userId);
+    console.log('License/status: Found license:', !!license);
 
     if (!license) {
       return res.json({ 
@@ -414,7 +416,9 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
 router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     const userId = req.user.id;
+    console.log('License/classes: Getting classes for user:', userId);
     const classes = await getTeacherClasses(userId);
+    console.log('License/classes: Found classes:', classes?.length || 0);
 
     // Hämta elever för varje klass
     const classesWithStudents = await Promise.all(
