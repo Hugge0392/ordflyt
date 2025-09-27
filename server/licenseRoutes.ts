@@ -414,7 +414,19 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
 // GET /api/license/classes - Hämta lärarens klasser
 router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
-    const userId = req.user.id;
+    let userId = req.user.id;
+
+    // Development bypass - override userId if dev headers are present
+    if (process.env.NODE_ENV !== 'production') {
+      const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+      const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+      if (devBypass === 'true' && devRole === 'LARARE') {
+        console.log('[licenseRoutes] Dev bypass active for /classes endpoint, using dev teacher ID');
+        userId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+      }
+    }
+
     const classes = await getTeacherClasses(userId);
 
     // Hämta elever för varje klass
@@ -534,7 +546,18 @@ router.post('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(
 router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     const { classId } = req.params;
-    const userId = req.user.id;
+    let userId = req.user.id;
+
+    // Development bypass - override userId if dev headers are present
+    if (process.env.NODE_ENV !== 'production') {
+      const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+      const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+      if (devBypass === 'true' && devRole === 'LARARE') {
+        console.log('[licenseRoutes] Dev bypass active for /classes/:classId/students endpoint, using dev teacher ID');
+        userId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+      }
+    }
 
     // Kontrollera att läraren äger klassen
     const ownsClass = await verifyClassOwnership(classId, userId);
@@ -1006,12 +1029,23 @@ router.delete('/admin/licenses/:id', requireAuth, requireRole('ADMIN'), requireC
 router.get('/classes/:classId/students', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     const { classId } = req.params;
-    const userId = req.user.id;
-    
+    let userId = req.user.id;
+
+    // Development bypass - override userId if dev headers are present
+    if (process.env.NODE_ENV !== 'production') {
+      const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+      const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+      if (devBypass === 'true' && devRole === 'LARARE') {
+        console.log('[licenseRoutes] Dev bypass active for /classes/:classId/students endpoint (duplicate), using dev teacher ID');
+        userId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+      }
+    }
+
     // Verify teacher owns this class
     const teacherClasses = await getTeacherClasses(userId);
     const ownsClass = teacherClasses.some(cls => cls.id === classId);
-    
+
     if (!ownsClass) {
       return res.status(403).json({ error: 'Ingen behörighet till denna klass' });
     }
@@ -1351,7 +1385,18 @@ router.put('/students/:studentId/tool-settings', requireAuth, requireTeacherLice
 router.get('/students/:id/password', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     const { id: studentId } = req.params;
-    const userId = req.user.id;
+    let userId = req.user.id;
+
+    // Development bypass - override userId if dev headers are present
+    if (process.env.NODE_ENV !== 'production') {
+      const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+      const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+      if (devBypass === 'true' && devRole === 'LARARE') {
+        console.log('[licenseRoutes] Dev bypass active for /students/:id/password endpoint, using dev teacher ID');
+        userId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+      }
+    }
     
     // Get student and verify teacher has access
     const [student] = await licenseDb

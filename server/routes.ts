@@ -1435,7 +1435,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get assignments for a teacher
   app.get("/api/assignments", requireAuth, requireTeacherLicense, async (req, res) => {
     try {
-      const teacherId = req.user?.id;
+      let teacherId = req.user?.id;
+
+      // Development bypass - override teacherId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+        if (devBypass === 'true' && devRole === 'LARARE') {
+          console.log('[routes] Dev bypass active for /api/assignments endpoint, using dev teacher ID');
+          teacherId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+        }
+      }
+
       if (!teacherId) {
         return res.status(401).json({ message: "Teacher ID required" });
       }
@@ -1526,9 +1538,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/assignments/class/:classId", requireAuth, requireTeacherLicense, async (req, res) => {
     try {
       const assignments = await storage.getLessonAssignmentsByClass(req.params.classId);
-      
+
       // Verify teacher owns these assignments
-      const teacherId = req.user?.id;
+      let teacherId = req.user?.id;
+
+      // Development bypass - override teacherId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+        if (devBypass === 'true' && devRole === 'LARARE') {
+          console.log('[routes] Dev bypass active for /api/assignments/class/:classId endpoint, using dev teacher ID');
+          teacherId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+        }
+      }
+
       const filteredAssignments = assignments.filter(assignment => assignment.teacherId === teacherId);
       
       res.json(filteredAssignments);
@@ -1921,7 +1945,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Teacher dashboard endpoints
   app.get("/api/teacher/dashboard-stats", requireAuth, requireRole('LARARE', 'ADMIN'), async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      let userId = req.user.id;
+
+      // Development bypass - override userId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+        if (devBypass === 'true' && devRole === 'LARARE') {
+          console.log('[routes] Dev bypass active for /api/teacher/dashboard-stats endpoint, using dev teacher ID');
+          userId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
+        }
+      }
       
       // This would normally come from license system, but let's provide basic stats
       const stats = {

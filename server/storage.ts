@@ -3791,6 +3791,96 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated;
   }
+
+  // Teacher feedback methods
+  async createTeacherFeedback(feedback: InsertTeacherFeedback): Promise<TeacherFeedback> {
+    const [newFeedback] = await db.insert(teacherFeedback).values(feedback).returning();
+    return newFeedback;
+  }
+
+  async getTeacherFeedback(teacherId: string): Promise<TeacherFeedback[]> {
+    return await db
+      .select()
+      .from(teacherFeedback)
+      .where(eq(teacherFeedback.teacherId, teacherId))
+      .orderBy(sql`${teacherFeedback.createdAt} DESC`);
+  }
+
+  async getStudentFeedback(studentId: string): Promise<TeacherFeedback[]> {
+    return await db
+      .select()
+      .from(teacherFeedback)
+      .where(eq(teacherFeedback.studentId, studentId))
+      .orderBy(sql`${teacherFeedback.createdAt} DESC`);
+  }
+
+  async getFeedbackByAssignment(assignmentId: string): Promise<TeacherFeedback[]> {
+    return await db
+      .select()
+      .from(teacherFeedback)
+      .where(eq(teacherFeedback.assignmentId, assignmentId))
+      .orderBy(sql`${teacherFeedback.createdAt} DESC`);
+  }
+
+  async getFeedbackByProgress(progressId: string): Promise<TeacherFeedback[]> {
+    return await db
+      .select()
+      .from(teacherFeedback)
+      .where(eq(teacherFeedback.progressId, progressId))
+      .orderBy(sql`${teacherFeedback.createdAt} DESC`);
+  }
+
+  async getTeacherFeedbackById(id: string): Promise<TeacherFeedback | undefined> {
+    const [result] = await db
+      .select()
+      .from(teacherFeedback)
+      .where(eq(teacherFeedback.id, id));
+    return result;
+  }
+
+  async updateTeacherFeedback(id: string, feedback: Partial<InsertTeacherFeedback>): Promise<TeacherFeedback> {
+    const [updated] = await db
+      .update(teacherFeedback)
+      .set({ ...feedback, updatedAt: new Date() })
+      .where(eq(teacherFeedback.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTeacherFeedback(id: string): Promise<void> {
+    await db.delete(teacherFeedback).where(eq(teacherFeedback.id, id));
+  }
+
+  async markFeedbackAsRead(id: string, studentId: string): Promise<TeacherFeedback> {
+    const [updated] = await db
+      .update(teacherFeedback)
+      .set({ studentHasRead: true, updatedAt: new Date() })
+      .where(and(eq(teacherFeedback.id, id), eq(teacherFeedback.studentId, studentId)))
+      .returning();
+    return updated;
+  }
+
+  async getFeedbackRequiringFollowUp(teacherId: string): Promise<TeacherFeedback[]> {
+    return await db
+      .select()
+      .from(teacherFeedback)
+      .where(and(
+        eq(teacherFeedback.teacherId, teacherId),
+        eq(teacherFeedback.requiresFollowUp, true)
+      ))
+      .orderBy(sql`${teacherFeedback.createdAt} DESC`);
+  }
+
+  async getUnreadFeedbackCount(studentId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(teacherFeedback)
+      .where(and(
+        eq(teacherFeedback.studentId, studentId),
+        eq(teacherFeedback.studentHasRead, false)
+      ));
+    return result[0]?.count || 0;
+  }
 }
 
 export const storage = new DatabaseStorage();
