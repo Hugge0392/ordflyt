@@ -238,15 +238,6 @@ export default function TeacherLessonBank() {
   // Fetch reading lessons (läsförståelseövningar)
   const { data: readingLessons = [], isLoading: readingLessonsLoading } = useQuery<ReadingLesson[]>({
     queryKey: ['/api/reading-lessons/published'],
-    queryFn: async () => {
-      const response = await fetch('/api/reading-lessons/published', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch published reading lessons');
-      }
-      return await response.json();
-    }
   });
 
   // Temporarily disabled vocabulary stats to debug React error
@@ -348,15 +339,18 @@ export default function TeacherLessonBank() {
 
   // Get the reading lessons category ID (läsförståelse category)
   const readingCategoryId = categories.find(c =>
+    c.name === 'reading' ||
     c.name === 'lasforstaelse' ||
     c.name === 'läsförståelse' ||
     c.swedishName === 'Läsförståelse'
   )?.id;
 
+
   // Filter reading lessons based on search and filters
   const filteredReadingLessons = readingLessons.filter((lesson) => {
     // Always apply difficulty filter
     const matchesDifficulty = difficultyFilter === 'all' || lesson.difficulty === difficultyFilter;
+
 
     // If searching, show all matching reading lessons
     if (searchQuery.trim() !== '') {
@@ -384,6 +378,7 @@ export default function TeacherLessonBank() {
     // Don't show in other cases
     return false;
   });
+
 
   // Combine both types for unified display
   const allFilteredItems = [
@@ -842,7 +837,7 @@ export default function TeacherLessonBank() {
           )}
 
           {/* Category Browser or Lesson Items Grid */}
-          {(templatesLoading || vocabularySetsLoading || categoriesLoading) ? (
+          {(templatesLoading || vocabularySetsLoading || categoriesLoading || readingLessonsLoading) ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">Laddar innehåll...</p>
             </div>
@@ -856,7 +851,7 @@ export default function TeacherLessonBank() {
               subcategories={getCurrentSubcategories()}
               breadcrumbs={breadcrumbs}
             />
-          ) : (filteredTemplates.length === 0 && filteredVocabularySets.length === 0) ? (
+          ) : (filteredTemplates.length === 0 && filteredVocabularySets.length === 0 && filteredReadingLessons.length === 0) ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -868,6 +863,7 @@ export default function TeacherLessonBank() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
               {/* Lesson Templates */}
               {filteredTemplates.map((template) => {
                 const isSelected = selectedTemplates.some(item => item.template.id === template.id);
