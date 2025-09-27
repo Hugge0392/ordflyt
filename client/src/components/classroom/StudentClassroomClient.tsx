@@ -179,7 +179,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
     }, 5000); // Reconnect after 5 seconds
   }, [connect]);
 
-  const handleWebSocketMessage = (message: StudentClassroomMessage) => {
+  const handleWebSocketMessage = useCallback((message: StudentClassroomMessage) => {
     console.log('Student received classroom message:', message.type, message.data);
 
     switch (message.type) {
@@ -216,9 +216,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       default:
         console.log('Unknown student message type:', message.type);
     }
-  };
+  }, []);
 
-  const handleScreenControl = (message: StudentClassroomMessage) => {
+  const handleScreenControl = useCallback((message: StudentClassroomMessage) => {
     const { action, message: lockMsg } = message.data;
     
     if (action === 'lock') {
@@ -245,9 +245,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
         description: 'Du kan nu fortsätta arbeta.',
       });
     }
-  };
+  }, [toast]);
 
-  const handleTimerControl = (message: StudentClassroomMessage) => {
+  const handleTimerControl = useCallback((message: StudentClassroomMessage) => {
     const { timer, action } = message.data;
     
     if (!timer.showOnStudentScreens) return;
@@ -304,9 +304,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
         activeTimers: updatedTimers,
       };
     });
-  };
+  }, []);
 
-  const handleClassroomMessage = (message: StudentClassroomMessage) => {
+  const handleClassroomMessage = useCallback((message: StudentClassroomMessage) => {
     const { title, content, messageType, isUrgent, displayDuration } = message.data;
     
     setClassroomState(prev => ({
@@ -327,9 +327,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       description: content,
       variant: isUrgent ? 'destructive' : 'default',
     });
-  };
+  }, [toast]);
 
-  const handleModeChange = (message: StudentClassroomMessage) => {
+  const handleModeChange = useCallback((message: StudentClassroomMessage) => {
     const { newMode } = message.data;
     
     setClassroomState(prev => ({
@@ -341,9 +341,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       title: 'Klassrumsläge ändrat',
       description: `Nytt läge: ${getModeDisplayName(newMode)}`,
     });
-  };
+  }, [toast]);
 
-  const handleEmergencyAttention = (message: StudentClassroomMessage) => {
+  const handleEmergencyAttention = useCallback((message: StudentClassroomMessage) => {
     const { message: urgentMsg } = message.data;
     
     setClassroomState(prev => ({
@@ -361,16 +361,16 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       description: urgentMsg || 'Titta på läraren omedelbart.',
       variant: 'destructive',
     });
-  };
+  }, [toast]);
 
-  const acknowledgeMessage = (messageId: string) => {
+  const acknowledgeMessage = useCallback((messageId: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'acknowledgment',
         data: { messageId, timestamp: Date.now() },
       }));
     }
-  };
+  }, []);
 
   const getModeDisplayName = (mode: string) => {
     const modeNames: Record<string, string> = {

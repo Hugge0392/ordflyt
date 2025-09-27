@@ -521,8 +521,37 @@ export async function requireAnyAuth(req: Request, res: Response, next: NextFunc
 
 // Authentication middleware
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Development bypass for testing
+  if (process.env.NODE_ENV !== 'production') {
+    const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+    const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+    if (devBypass === 'true' && devRole === 'LARARE') {
+      // Mock teacher user for development
+      req.user = {
+        id: '550e8400-e29b-41d4-a716-446655440002', // Real teacher ID that has Test Klass
+        username: 'dev.teacher',
+        email: 'dev.teacher@test.com',
+        role: 'LARARE',
+        passwordHash: 'mock-hash',
+        isActive: true,
+        createdAt: new Date(),
+        isVerified: true
+      } as any;
+      // Mock teacher context for development
+      req.teacherContext = {
+        schoolId: 'dev-school-id',
+        schoolName: 'Dev Test School',
+        isTeacher: true,
+        licenseId: 'dev-license-id'
+      };
+      req.deviceFingerprint = generateDeviceFingerprint(req);
+      return next();
+    }
+  }
+
   const sessionToken = req.cookies?.sessionToken;
-  
+
   if (!sessionToken) {
     return res.status(401).json({ error: 'Ej inloggad' });
   }
@@ -665,7 +694,17 @@ export function requireSchoolAccess(schoolIdParam?: string) {
     if (!req.user) {
       return res.status(401).json({ error: 'Ej inloggad' });
     }
-    
+
+    // Development bypass for testing
+    if (process.env.NODE_ENV !== 'production') {
+      const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+      const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+      if (devBypass === 'true' && devRole === 'LARARE') {
+        return next();
+      }
+    }
+
     // Admins have access to all schools
     if (req.user.role === 'ADMIN') {
       return next();
@@ -720,11 +759,21 @@ export async function requireTeacherLicense(req: Request, res: Response, next: N
   if (!req.user) {
     return res.status(401).json({ error: 'Ej inloggad' });
   }
-  
+
+  // Development bypass for testing
+  if (process.env.NODE_ENV !== 'production') {
+    const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+    const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+    if (devBypass === 'true' && devRole === 'LARARE') {
+      return next();
+    }
+  }
+
   if (req.user.role !== 'LARARE' && req.user.role !== 'ADMIN') {
     return res.status(403).json({ error: 'Lärarbehörighet krävs' });
   }
-  
+
   // Admins bypass license requirement
   if (req.user.role === 'ADMIN') {
     return next();

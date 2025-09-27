@@ -43,7 +43,7 @@ export function useAuth() {
     if (devRole === 'LARARE') {
       devMockData = {
         user: {
-          id: 'dev-teacher-id',
+          id: '550e8400-e29b-41d4-a716-446655440002', // Real teacher ID from database who has Test Klass
           username: 'dev.teacher',
           role: 'LARARE',
           email: 'teacher@dev.test'
@@ -82,10 +82,10 @@ export function useAuth() {
     } else if (devRole === 'ELEV') {
       devMockData = {
         user: {
-          id: 'dev-student-id',
-          username: 'dev.student',
+          id: 'a78c06fe-815a-4feb-adeb-1177699f4913', // Real student ID from database
+          username: 'testelev',
           role: 'ELEV',
-          email: 'student@dev.test'
+          email: 'testelev@dev.test'
         },
         csrfToken: 'dev-csrf-token'
       };

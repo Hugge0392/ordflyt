@@ -78,6 +78,16 @@ export async function apiRequest(
 ): Promise<any> {
   // Build headers
   const headers: Record<string, string> = {};
+
+  // Add development bypass headers if active
+  const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+  if (isDevBypass) {
+    const devRole = localStorage.getItem('devRole');
+    headers['X-Dev-Bypass'] = 'true';
+    if (devRole) {
+      headers['X-Dev-Role'] = devRole;
+    }
+  }
   
   // Add Content-Type for requests with data
   if (data) {
@@ -134,8 +144,20 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Build headers for development bypass
+    const headers: Record<string, string> = {};
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+    if (isDevBypass) {
+      const devRole = localStorage.getItem('devRole');
+      headers['X-Dev-Bypass'] = 'true';
+      if (devRole) {
+        headers['X-Dev-Role'] = devRole;
+      }
+    }
+
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

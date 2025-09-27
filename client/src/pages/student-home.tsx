@@ -44,8 +44,8 @@ import {
 
 // Mock student data - denna kommer senare från auth context
 const mockStudent = {
-  id: "student123",
-  name: "Anna Andersson",
+  id: "a78c06fe-815a-4feb-adeb-1177699f4913", // Real student ID from database
+  name: "Test Elev",
   avatarUrl: null,
   level: 3,
   experience: 750,
