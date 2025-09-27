@@ -847,15 +847,15 @@ export default function AssignmentPlayer() {
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">{assignment.title}</h1>
+                <h1 className="text-xl font-bold text-gray-800">{assignment?.title || 'Untitled Assignment'}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <Badge variant="outline">
-                    {getAssignmentTypeText(assignment.assignmentType)}
+                    {getAssignmentTypeText(assignment?.assignmentType || 'unknown')}
                   </Badge>
-                  {assignment.estimatedDuration && (
+                  {assignment?.estimatedDuration && (
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {assignment.estimatedDuration} min
+                      {assignment?.estimatedDuration} min
                     </span>
                   )}
                   {assignmentLessons.length > 1 && (
@@ -878,7 +878,7 @@ export default function AssignmentPlayer() {
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {assignment.description && (
+        {assignment?.description && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg">Instruktioner</CardTitle>
@@ -945,7 +945,7 @@ export default function AssignmentPlayer() {
                       >
                         <InteractivePreview
                           moment={moments[currentMoment]}
-                          onComplete={nextMoment}
+
                         />
                       </ErrorBoundary>
                     ) : (
