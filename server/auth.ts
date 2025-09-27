@@ -399,42 +399,64 @@ export async function checkStudentLoginAttempts(
 
 // Student authentication middleware
 export async function requireStudentAuth(req: Request, res: Response, next: NextFunction) {
+  // Development bypass - allow dev headers to bypass student authentication
+  if (process.env.NODE_ENV !== 'production') {
+    const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+    const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+    if (devBypass === 'true' && devRole === 'ELEV') {
+      console.log('[auth] Dev bypass active for requireStudentAuth, using dev student');
+
+      // Get the dev student account
+      const [student] = await db
+        .select()
+        .from(studentAccounts)
+        .where(eq(studentAccounts.id, 'a78c06fe-815a-4feb-adeb-1177699f4913'))
+        .limit(1);
+
+      if (student) {
+        req.student = student;
+        req.deviceFingerprint = generateDeviceFingerprint(req);
+        return next();
+      }
+    }
+  }
+
   const studentSessionToken = req.cookies?.studentSessionToken;
-  
+
   if (!studentSessionToken) {
     return res.status(401).json({ error: 'Ej inloggad som elev' });
   }
-  
+
   const studentSession = await validateStudentSession(studentSessionToken);
-  
+
   if (!studentSession) {
     res.clearCookie('studentSessionToken');
     return res.status(401).json({ error: 'Elevsessionen har upphört' });
   }
-  
+
   // Get student account
   const [student] = await db
     .select()
     .from(studentAccounts)
     .where(eq(studentAccounts.id, studentSession.studentId))
     .limit(1);
-    
+
   if (!student) {
     return res.status(401).json({ error: 'Elevkontot finns inte' });
   }
-  
+
   // Check if account is locked
   if (student.lockedUntil && new Date() < student.lockedUntil) {
-    return res.status(423).json({ 
-      error: 'Kontot är låst. Försök igen senare.', 
-      lockedUntil: student.lockedUntil.toISOString() 
+    return res.status(423).json({
+      error: 'Kontot är låst. Försök igen senare.',
+      lockedUntil: student.lockedUntil.toISOString()
     });
   }
-  
+
   req.student = student;
   req.studentSession = studentSession;
   req.deviceFingerprint = generateDeviceFingerprint(req);
-  
+
   next();
 }
 

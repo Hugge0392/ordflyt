@@ -80,7 +80,13 @@ export default function StudentHome() {
     enabled: true, // Enabled for exploration - will be controlled by auth context later
   });
 
-  // Fetch lesson templates
+  // Fetch student assignments (replaces lesson templates for the new design)
+  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+    queryKey: [`/api/students/${mockStudent.id}/assignments`],
+    enabled: true,
+  });
+
+  // Fetch lesson templates for fallback (if assignments API doesn't exist yet)
   const { data: lessons = [], isLoading: lessonsLoading } = useQuery<LessonTemplate[]>({
     queryKey: ["/api/lesson-templates"],
   });
@@ -162,7 +168,7 @@ export default function StudentHome() {
     }
   }, []);
 
-  if (categoriesLoading || lessonsLoading || vocabularySetsLoading) {
+  if (categoriesLoading || lessonsLoading || vocabularySetsLoading || assignmentsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-950 to-purple-100 dark:to-purple-900">
         <div className="text-center">
@@ -410,186 +416,153 @@ export default function StudentHome() {
           </Card>
         </div>
 
-        {/* Lesson Categories */}
+        {/* Mina Uppdrag */}
         <div>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            Välj en kategori
+            <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            Mina uppdrag
           </h2>
-          
-          {categories.length === 0 ? (
-            <Card className="border-2 border-dashed border-purple-200 bg-purple-50/50 col-span-full">
-              <CardContent className="p-12 text-center">
-                <BookOpen className="h-20 w-20 text-purple-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-purple-700 mb-3">Inga lektioner ännu! 📚</h3>
-                <div className="max-w-md mx-auto">
-                  <p className="text-purple-600 mb-4">
-                    Oj då! Det verkar som att dina lärare inte har lagt till några roliga lektioner än.
+
+          {/* Nya uppdrag */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-green-500" />
+              Nya uppdrag att göra
+            </h3>
+
+            {assignments.length === 0 ? (
+              <Card className="border-2 border-dashed border-green-200 bg-green-50/50">
+                <CardContent className="p-8 text-center">
+                  <Target className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-bold text-green-700 mb-3">Inga nya uppdrag ännu! ✨</h4>
+                  <p className="text-green-600 max-w-md mx-auto">
+                    Dina lärare har inte gett dig några nya uppdrag än. Kom tillbaka snart för nya äventyr!
                   </p>
-                  <div className="bg-white p-4 rounded-lg border border-purple-200 mb-4">
-                    <h4 className="font-medium text-purple-800 mb-2 flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Medan du väntar kan du:
-                    </h4>
-                    <ul className="text-sm text-purple-700 space-y-1">
-                      <li>🛍️ Kolla in butiken och se vad som finns</li>
-                      <li>👤 Fixa till din profil och avatar</li>
-                      <li>⭐ Utforska dina framsteg och achievements</li>
-                    </ul>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {assignments.slice(0, 5).map(assignment => (
+                  <Card key={assignment.id} className="hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200 dark:border-green-700 hover:border-green-300">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">Nytt uppdrag</span>
+                          </div>
+                          <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">{assignment.title}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{assignment.description || 'En rolig lektion att utforska!'}</p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <BookOpen className="w-3 h-3" />
+                              {assignment.timeLimit || 15} min
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Coins className="w-3 h-3 text-yellow-500" />
+                              10 mynt
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            className="text-xs bg-blue-100 text-blue-700 border-blue-200"
+                            data-testid={`badge-assignment-${assignment.id}`}
+                          >
+                            {assignment.assignmentType === 'reading_lesson' ? 'Läsning' :
+                             assignment.assignmentType === 'word_class_practice' ? 'Ordklass' :
+                             assignment.assignmentType === 'published_lesson' ? 'Lektion' : 'Uppgift'}
+                          </Badge>
+                          <Link href={`/assignment/${assignment.id}`}>
+                            <Button
+                              className="bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+                              data-testid={`button-start-assignment-${assignment.id}`}
+                            >
+                              <Target className="w-4 h-4 mr-2" />
+                              Starta uppdrag
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {assignments.length > 5 && (
+                  <Card className="border-dashed border-gray-300">
+                    <CardContent className="p-4 text-center">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                        +{assignments.length - 5} fler uppdrag väntar på dig!
+                      </p>
+                      <Button variant="outline" className="bg-white/70 dark:bg-gray-800/70">
+                        Visa alla uppdrag
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Påbörjade uppdrag */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-500" />
+              Påbörjade uppdrag
+            </h3>
+
+            {/* Mock data för påbörjade uppdrag - detta kommer från riktig progress tracking */}
+            <div className="space-y-4">
+              <Card className="hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-orange-200 dark:border-orange-700 hover:border-orange-300">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+                        <span className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">Påbörjad</span>
+                      </div>
+                      <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">Berättelser och karaktärer</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Fortsätt där du slutade!</p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          5 min kvar
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Trophy className="w-3 h-3 text-yellow-500" />
+                          65% klart
+                        </span>
+                      </div>
+                      <Progress value={65} className="h-2" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                        Pågående
+                      </Badge>
+                      <Link href="/lesson/mock-lesson-1">
+                        <Button
+                          variant="outline"
+                          className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                        >
+                          <Zap className="w-4 h-4 mr-2" />
+                          Fortsätt
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  <p className="text-sm text-purple-500">
-                    Kom tillbaka snart så kanske det finns nya äventyr att upptäcka! ✨
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map(category => {
-              const lessonsInCategory = getLessonsForCategory(category.id);
-              const vocabularySetsInCategory = getVocabularySetsForCategory(category.id);
-              const completedCount = getCompletedLessonsCount(category.id);
-              const totalLessons = getTotalLessonsForCategory(category.id);
-              
-              return (
-                <Card 
-                  key={category.id}
-                  className="group hover:shadow-lg dark:hover:shadow-gray-800/50 transition-all duration-300 cursor-pointer bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-white/20 dark:border-gray-700/20"
-                  onClick={() => {
-                    if (category.name === 'vocabulary') {
-                      setLocation('/vocabulary-lessons');
-                    } else {
-                      setSelectedCategory(selectedCategory === category.id ? null : category.id);
-                    }
-                  }}
-                  data-testid={`card-category-${category.name}`}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div 
-                        className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl group-hover:scale-110 transition-transform"
-                        style={{ backgroundColor: category.color || '#3B82F6' }}
-                      >
-                        {getIconComponent(category.icon || 'BookOpen')}
-                      </div>
-                      {completedCount > 0 && (
-                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                          {completedCount} klara
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-xl dark:text-gray-100">{category.swedishName}</CardTitle>
-                    <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
-                      {category.description}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>
-                        {lessonsInCategory.length > 0 && `${lessonsInCategory.length} mallar`}
-                        {lessonsInCategory.length > 0 && vocabularySetsInCategory.length > 0 && ', '}
-                        {vocabularySetsInCategory.length > 0 && `${vocabularySetsInCategory.length} ordkunskap`}
-                        {totalLessons === 0 && 'Inga lektioner'}
-                      </span>
-                      {totalLessons > 0 && (
-                        <span>{Math.min(100, Math.round((completedCount / totalLessons) * 100))}% klar</span>
-                      )}
-                    </div>
-                    
-                    {totalLessons > 0 && (
-                      <Progress value={(completedCount / totalLessons) * 100} className="h-2 mb-3" />
-                    )}
+                </CardContent>
+              </Card>
 
-                    {/* Show lessons when category is selected */}
-                    {selectedCategory === category.id && (
-                      <div className="mt-4 space-y-3 border-t dark:border-gray-700 pt-4">
-                        {/* Regular Lesson Templates */}
-                        {lessonsInCategory.slice(0, 2).map(lesson => (
-                          <div key={lesson.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <BookOpen className="h-3 w-3 text-blue-500" />
-                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">MALL</span>
-                              </div>
-                              <div className="font-medium text-sm text-gray-800 dark:text-gray-200">{lesson.title}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                {lesson.estimatedDuration} min • {lesson.rewardCoins || 0} mynt
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge 
-                                className={`text-xs ${getDifficultyColor(lesson.difficulty || 'medium')}`}
-                                data-testid={`badge-difficulty-${lesson.id}`}
-                              >
-                                {getDifficultyText(lesson.difficulty || 'medium')}
-                              </Badge>
-                              <Link href={`/lesson/${lesson.id}`}>
-                                <Button 
-                                  size="sm" 
-                                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                                  data-testid={`button-start-lesson-${lesson.id}`}
-                                >
-                                  Starta
-                                </Button>
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {/* Vocabulary Sets */}
-                        {vocabularySetsInCategory.slice(0, 2).map(vocabularySet => (
-                          <div key={vocabularySet.id} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Hash className="h-3 w-3 text-purple-500" />
-                                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">ORDKUNSKAP</span>
-                              </div>
-                              <div className="font-medium text-sm text-gray-800 dark:text-gray-200">{vocabularySet.title}</div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                15 min • Ordförråd
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-200">
-                                Ordkunskap
-                              </Badge>
-                              <Link href={`/vocabulary-exercise/${vocabularySet.id}`}>
-                                <Button 
-                                  size="sm" 
-                                  className="bg-purple-500 hover:bg-purple-600 text-white"
-                                  data-testid={`button-start-vocabulary-${vocabularySet.id}`}
-                                >
-                                  Starta
-                                </Button>
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {(lessonsInCategory.length + vocabularySetsInCategory.length) > 4 && (
-                          <Button variant="outline" size="sm" className="w-full mt-2 dark:border-gray-600 dark:hover:bg-gray-700">
-                            Visa alla {lessonsInCategory.length} lektioner
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {totalLessons === 0 && (
-                      <div className="text-center text-purple-500 text-sm py-4 bg-purple-50 rounded-lg border border-purple-200">
-                        <Sparkles className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-                        <h4 className="font-medium text-purple-700 mb-1">Inga äventyr här än! 🎈</h4>
-                        <p className="text-xs text-purple-600">
-                          Dina lärare jobbar säkert på att lägga till roliga lektioner här!
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+              {/* Tom state för påbörjade uppdrag */}
+              <Card className="border-2 border-dashed border-gray-200 bg-gray-50/50">
+                <CardContent className="p-6 text-center">
+                  <Zap className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">Inga fler påbörjade uppdrag</h4>
+                  <p className="text-xs text-gray-500">När du startar ett uppdrag utan att slutföra det syns det här.</p>
+                </CardContent>
+              </Card>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Call-to-action section */}
@@ -604,15 +577,15 @@ export default function StudentHome() {
                 Genomför lektioner, tjäna mynt och lås upp coola saker för din avatar och ditt rum.
               </p>
               <div className="flex gap-4 justify-center">
-                {lessons.length > 0 && (
-                  <Link href={`/lesson/${lessons[0].id}`}>
-                    <Button 
-                      size="lg" 
+                {assignments.length > 0 && (
+                  <Link href={`/assignment/${assignments[0].id}`}>
+                    <Button
+                      size="lg"
                       className="bg-blue-500 hover:bg-blue-600 text-white"
-                      data-testid="button-start-first-lesson"
+                      data-testid="button-start-first-assignment"
                     >
                       <Star className="w-5 h-5 mr-2" />
-                      Börja med första lektionen
+                      Börja med första uppdraget
                     </Button>
                   </Link>
                 )}

@@ -87,10 +87,12 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
   const { toast } = useToast();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timerIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const reconnectAttemptsRef = useRef<number>(0);
+  const maxReconnectAttempts = 3; // Limit reconnection attempts
 
   const connect = useCallback(async (): Promise<void> => {
-    // Only connect if user is a student
-    if (!user || user.role !== 'ELEV') {
+    // Only connect if user is a student and we haven't exceeded max attempts
+    if (!user || user.role !== 'ELEV' || reconnectAttemptsRef.current >= maxReconnectAttempts) {
       return;
     }
 
@@ -109,6 +111,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
         console.log('Student classroom WebSocket connected');
         setClassroomState(prev => ({ ...prev, isConnected: true }));
         wsRef.current = ws;
+        reconnectAttemptsRef.current = 0; // Reset counter on successful connection
       };
 
       ws.onmessage = (event) => {
@@ -129,9 +132,12 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
         timerIntervalsRef.current.forEach(interval => clearInterval(interval));
         timerIntervalsRef.current.clear();
 
-        // Auto-reconnect if not a deliberate close
-        if (event.code !== 1000 && event.code !== 1001) {
+        // Only auto-reconnect if it wasn't a deliberate close and we haven't exceeded attempts
+        if (event.code !== 1000 && event.code !== 1001 && reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectAttemptsRef.current += 1;
           scheduleReconnect();
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          console.log('Max reconnection attempts reached, stopping reconnection attempts');
         }
       };
 
@@ -141,6 +147,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
 
     } catch (error) {
       console.error('Error connecting student to classroom WebSocket:', error);
+      reconnectAttemptsRef.current += 1;
     }
   }, [user]); // Only depend on user, other functions will be stable
 
@@ -173,10 +180,13 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       clearTimeout(reconnectTimeoutRef.current);
     }
     
+    // Exponential backoff: 5s, 10s, 20s
+    const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current - 1), 20000);
+    
     reconnectTimeoutRef.current = setTimeout(() => {
-      console.log('Attempting to reconnect student classroom WebSocket...');
+      console.log(`Attempting to reconnect student classroom WebSocket... (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
       connect();
-    }, 5000); // Reconnect after 5 seconds
+    }, delay);
   }, [connect]);
 
   const handleWebSocketMessage = useCallback((message: StudentClassroomMessage) => {

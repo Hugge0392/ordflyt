@@ -1800,7 +1800,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]> {
-    return await db.select().from(lessonAssignments).where(eq(lessonAssignments.studentId, studentId));
+    // First get the student's class ID
+    const [student] = await db
+      .select({ classId: studentAccounts.classId })
+      .from(studentAccounts)
+      .where(eq(studentAccounts.id, studentId))
+      .limit(1);
+
+    if (!student) {
+      return []; // Student not found
+    }
+
+    // Get assignments that are either:
+    // 1. Directly assigned to this student (studentId = studentId)
+    // 2. Assigned to the student's class (classId = student's classId)
+    return await db
+      .select()
+      .from(lessonAssignments)
+      .where(
+        or(
+          eq(lessonAssignments.studentId, studentId),
+          eq(lessonAssignments.classId, student.classId)
+        )
+      );
   }
 
   async getLessonAssignment(id: string): Promise<LessonAssignment | undefined> {

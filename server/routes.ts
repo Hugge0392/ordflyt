@@ -3721,6 +3721,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // STUDENT ASSIGNMENTS
+  app.get("/api/students/:studentId/assignments", requireStudentAuth, async (req, res) => {
+    try {
+      let studentId = req.params.studentId;
+
+      // Development bypass - override studentId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+        if (devBypass === 'true' && devRole === 'ELEV') {
+          console.log('[routes] Dev bypass active for /api/students/:studentId/assignments endpoint, using dev student ID');
+          studentId = 'a78c06fe-815a-4feb-adeb-1177699f4913'; // Use our dev student ID
+        }
+      }
+
+      // Ensure student can only access their own assignments
+      if (req.student?.id !== studentId && process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const assignments = await storage.getLessonAssignmentsByStudent(studentId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Failed to fetch student assignments:", error);
+      res.status(500).json({ message: "Failed to fetch assignments" });
+    }
+  });
+
   // STUDENT CURRENCY
   app.get("/api/students/:studentId/currency", requireStudentAuth, async (req, res) => {
     try {
