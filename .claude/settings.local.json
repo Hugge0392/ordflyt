@@ -11,7 +11,9 @@
       "Bash(python3:*)",
       "Bash(npx tsx:*)",
       "Bash(xargs -r kill -9)",
-      "Bash(fuser:*)"
+      "Bash(fuser:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
