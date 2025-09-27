@@ -121,7 +121,7 @@ export default function StudentHome() {
   // Fetch completed assignments from API
   const { data: completedAssignments = [] } = useQuery({
     queryKey: [`/api/students/${studentId}/completed-assignments`],
-    enabled: isAuthenticated,
+    enabled: true, // Enable for both authenticated and unauthenticated users
     retry: 1,
   });
 
@@ -149,7 +149,7 @@ export default function StudentHome() {
     }
   ];
 
-  const displayCompletedAssignments = isAuthenticated ? completedAssignments : mockCompletedAssignments;
+  const displayCompletedAssignments = completedAssignments.length > 0 ? completedAssignments : mockCompletedAssignments;
 
   // Debug logging
   console.log('Student Home Debug:', {
