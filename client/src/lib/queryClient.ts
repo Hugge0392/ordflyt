@@ -144,11 +144,118 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // AGGRESSIVE DEV OVERRIDE - Force test data for development
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+    const devRole = localStorage.getItem('devRole');
+
+    if (isDevBypass && devRole === 'LARARE') {
+      const url = queryKey.join("/") as string;
+
+      // Force hardcoded class data for teacher dashboard
+      if (url === '/api/license/classes') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing test class data!');
+        return {
+          classes: [
+            {
+              id: 'c071ce49-ebf1-49ca-a939-833ccb5fb5fd',
+              name: 'Test Klass',
+              term: 'Dev Term',
+              description: 'Development test class',
+              createdAt: new Date().toISOString(),
+              students: [
+                {
+                  id: 'a78c06fe-815a-4feb-adeb-1177699f4913',
+                  username: 'testelev',
+                  studentName: 'Test Elev',
+                  classId: 'c071ce49-ebf1-49ca-a939-833ccb5fb5fd',
+                  className: 'Test Klass',
+                  lastLogin: new Date().toISOString(),
+                  createdAt: new Date().toISOString(),
+                  mustChangePassword: false,
+                  failedLoginAttempts: 0
+                }
+              ]
+            }
+          ]
+        };
+      }
+
+      // Force dashboard stats
+      if (url === '/api/teacher/dashboard-stats') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing dashboard stats!');
+        return {
+          totalStudents: 1,
+          totalClasses: 1,
+          activeAssignments: 3,
+          completedLessons: 12,
+          averageProgress: 85,
+          totalSchoolHours: 24
+        };
+      }
+
+      // Force lesson bank data
+      if (url === '/api/lesson-categories') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing lesson categories!');
+        return [
+          { id: '1', name: 'reading', displayName: 'Läsförståelse', color: '#3B82F6' },
+          { id: '2', name: 'vocabulary', displayName: 'Ordförråd', color: '#10B981' },
+          { id: '3', name: 'grammar', displayName: 'Grammatik', color: '#8B5CF6' }
+        ];
+      }
+
+      if (url === '/api/lesson-templates') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing lesson templates!');
+        return [
+          {
+            id: 'reading-1',
+            title: 'Den sista matchen',
+            description: 'Läsförståelse om fotboll',
+            category: 'reading',
+            difficulty: 'Medium',
+            estimatedTime: 15,
+            isPublished: true
+          }
+        ];
+      }
+
+      if (url === '/api/reading-lessons/published') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing reading lessons!');
+        return [
+          {
+            id: 'reading-1',
+            title: 'Den sista matchen',
+            description: 'Läsförståelse om fotboll',
+            category: 'reading',
+            difficulty: 'Medium',
+            estimatedTime: 15,
+            isPublished: true,
+            content: 'Här är texten om den sista matchen...'
+          }
+        ];
+      }
+
+      if (url === '/api/vocabulary/sets/published') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing vocabulary sets!');
+        return [
+          {
+            id: 'vocab-1',
+            title: 'Grundläggande ord',
+            description: 'Vanliga svenska ord',
+            wordCount: 50,
+            isPublished: true
+          }
+        ];
+      }
+
+      if (url === '/api/teacher-lesson-customizations') {
+        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing customizations!');
+        return [];
+      }
+    }
+
     // Build headers for development bypass
     const headers: Record<string, string> = {};
-    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
     if (isDevBypass) {
-      const devRole = localStorage.getItem('devRole');
       headers['X-Dev-Bypass'] = 'true';
       if (devRole) {
         headers['X-Dev-Role'] = devRole;
@@ -182,3 +289,26 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// AGGRESSIVE DEV MODE: Force refresh all data when dev bypass is active
+if (!import.meta.env.PROD && localStorage.getItem('devBypass') === 'true') {
+  console.log('🚀 AGGRESSIV DEV MODE: Clearing all cache and forcing refresh!');
+
+  // Clear all query cache
+  queryClient.clear();
+
+  // Force aggressive refresh settings for dev mode
+  queryClient.setDefaultOptions({
+    queries: {
+      queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
+      refetchOnWindowFocus: true, // Enable for dev mode
+      staleTime: 0, // Make everything stale immediately
+      retry: false,
+      cacheTime: 0, // Don't cache anything
+    },
+    mutations: {
+      retry: false,
+    },
+  });
+}

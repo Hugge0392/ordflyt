@@ -68,6 +68,8 @@ import {
   type InsertVocabularyExercise,
   type VocabularyAttempt,
   type InsertVocabularyAttempt,
+  type VocabularyStreak,
+  type InsertVocabularyStreak,
   type FlashcardProgress,
   type InsertFlashcardProgress,
   type FlashcardStreak,
@@ -232,8 +234,13 @@ export interface IStorage {
   // Student progress tracking methods
   createStudentProgress(progress: InsertStudentProgress): Promise<StudentProgress>;
   getStudentProgress(studentId: string): Promise<StudentProgress[]>;
+  getStudentProgressByStudentId(studentId: string): Promise<StudentProgress[]>;
   getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]>;
   getClassProgress(classId: string): Promise<StudentProgress[]>;
+  
+  // Teacher and class management methods
+  getTeacherClasses(teacherId?: string): Promise<any[]>;
+  getStudentsByClassId(classId: string): Promise<any[]>;
   
   // Student activity tracking methods
   logStudentActivity(activity: InsertStudentActivity): Promise<StudentActivity>;
@@ -910,11 +917,24 @@ export class MemStorage implements IStorage {
     return [];
   }
 
+  async getStudentProgressByStudentId(studentId: string): Promise<StudentProgress[]> {
+    return [];
+  }
+
   async getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]> {
     return [];
   }
 
   async getClassProgress(classId: string): Promise<StudentProgress[]> {
+    return [];
+  }
+
+  // Teacher and class management methods (not implemented in MemStorage - use DatabaseStorage)
+  async getTeacherClasses(teacherId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async getStudentsByClassId(classId: string): Promise<any[]> {
     return [];
   }
 
@@ -3342,6 +3362,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`${studentProgress.completedAt} DESC`);
   }
 
+  async getStudentProgressByStudentId(studentId: string): Promise<StudentProgress[]> {
+    return await db
+      .select()
+      .from(studentProgress)
+      .where(eq(studentProgress.studentId, studentId))
+      .orderBy(sql`${studentProgress.completedAt} DESC`);
+  }
+
   async getStudentProgressByLesson(studentId: string, lessonId: string): Promise<StudentProgress[]> {
     return await db
       .select()
@@ -3880,6 +3908,30 @@ export class DatabaseStorage implements IStorage {
         eq(teacherFeedback.studentHasRead, false)
       ));
     return result[0]?.count || 0;
+  }
+
+  // Teacher and class management methods
+  async getTeacherClasses(teacherId?: string): Promise<any[]> {
+    if (teacherId) {
+      return await db
+        .select()
+        .from(teacherClasses)
+        .where(eq(teacherClasses.teacherId, teacherId))
+        .orderBy(sql`${teacherClasses.createdAt} DESC`);
+    } else {
+      return await db
+        .select()
+        .from(teacherClasses)
+        .orderBy(sql`${teacherClasses.createdAt} DESC`);
+    }
+  }
+
+  async getStudentsByClassId(classId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(studentAccounts)
+      .where(eq(studentAccounts.classId, classId))
+      .orderBy(sql`${studentAccounts.createdAt} DESC`);
   }
 }
 
