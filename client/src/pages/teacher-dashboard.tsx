@@ -12,7 +12,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { WelcomeGuide } from '@/components/ui/welcome-guide';
 import { HelpTooltip, InfoTooltip } from '@/components/ui/help-tooltip';
 import { HelpMenu, commonGuides } from '@/components/ui/help-menu';
 import {
@@ -1397,43 +1396,6 @@ export default function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Teacher Welcome Guide */}
-      <WelcomeGuide
-        guideId="teacher-dashboard"
-        title="Välkommen till din Lärarpanel"
-        description="Här har du kontroll över dina klasser, elever och lektioner. Följ denna guide för att komma igång snabbt och effektivt."
-        badge="Lärare"
-        icon={<GraduationCap className="h-5 w-5" />}
-        className="mb-6"
-        steps={[
-          {
-            icon: <Users className="h-5 w-5 text-blue-600" />,
-            title: "Hantera elever",
-            description: "Skapa klasser, lägg till elever och hantera lösenord. Här kan du också se elevernas inloggningsstatus och aktivitet."
-          },
-          {
-            icon: <BookOpen className="h-5 w-5 text-green-600" />,
-            title: "Tilldela lektioner",
-            description: "Välj lektioner från biblioteket och tilldela dem till dina klasser. Följ elevernas framsteg i realtid."
-          },
-          {
-            icon: <BarChart3 className="h-5 w-5 text-purple-600" />,
-            title: "Analysera resultat",
-            description: "Se detaljerade rapporter över elevernas prestationer och identifiera områden för extra stöd."
-          },
-          {
-            icon: <Monitor className="h-5 w-5 text-orange-600" />,
-            title: "Klassrumskontroll",
-            description: "Använd realtidsövervakning för att se vad eleverna arbetar med och styr deras aktiviteter."
-          },
-          {
-            icon: <MessageSquare className="h-5 w-5 text-indigo-600" />,
-            title: "Ge feedback",
-            description: "Kommunicera med elever genom inbyggd feedback och skapa en positiv inlärningsmiljö."
-          }
-        ]}
-        data-testid="teacher-welcome-guide"
-      />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

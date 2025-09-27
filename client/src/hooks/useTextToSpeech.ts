@@ -243,6 +243,64 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
         throw new Error('Ingen text att läsa upp');
       }
 
+      // Check for development bypass mode
+      const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+
+      if (isDevBypass) {
+        console.log('🔊 Dev bypass active - using Web Speech API for TTS');
+
+        // Use browser's built-in Web Speech API as fallback
+        if (!('speechSynthesis' in window)) {
+          throw new Error('Webbläsaren stöder inte uppläsning');
+        }
+
+        // Stop any current speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+
+        // Try to find a Swedish voice
+        const voices = window.speechSynthesis.getVoices();
+        const swedishVoice = voices.find(voice =>
+          voice.lang.startsWith('sv') || voice.name.toLowerCase().includes('swedish')
+        );
+
+        if (swedishVoice) {
+          utterance.voice = swedishVoice;
+          console.log('🇸🇪 Using Swedish voice:', swedishVoice.name);
+        } else {
+          console.log('⚠️ No Swedish voice found, using default');
+        }
+
+        // Configure speech settings
+        utterance.rate = parseFloat(settings.rate);
+        utterance.pitch = parseFloat(settings.pitch);
+        utterance.volume = 1;
+
+        utterance.onstart = () => {
+          setIsPlaying(true);
+          setIsLoading(false);
+          console.log('🎵 Web Speech TTS started');
+        };
+
+        utterance.onend = () => {
+          setIsPlaying(false);
+          setCurrentPosition(0);
+          console.log('🔇 Web Speech TTS ended');
+        };
+
+        utterance.onerror = (event) => {
+          setIsPlaying(false);
+          setIsLoading(false);
+          setError(`Uppläsningsfel: ${event.error}`);
+          console.error('❌ Web Speech TTS error:', event.error);
+        };
+
+        // Start speech
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
+
       // Decide whether to use chunked or regular synthesis based on text length
       const useChunkedSynthesis = cleanedText.length > 500;
 
@@ -422,12 +480,30 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   }, [settings, cleanText, playNextChunk]);
 
   const pause = useCallback(() => {
+    // Check if we're using Web Speech API (dev bypass mode)
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+
+    if (isDevBypass && window.speechSynthesis) {
+      window.speechSynthesis.pause();
+      console.log('⏸️ Web Speech TTS paused');
+      return;
+    }
+
     if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
     }
   }, []);
 
   const resume = useCallback(() => {
+    // Check if we're using Web Speech API (dev bypass mode)
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+
+    if (isDevBypass && window.speechSynthesis) {
+      window.speechSynthesis.resume();
+      console.log('▶️ Web Speech TTS resumed');
+      return;
+    }
+
     if (audioRef.current && audioRef.current.paused) {
       audioRef.current.play().catch(err => {
         setError('Fel vid återupptagning av uppspelning');
@@ -437,6 +513,17 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
   }, []);
 
   const stop = useCallback(() => {
+    // Check if we're using Web Speech API (dev bypass mode)
+    const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+
+    if (isDevBypass && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      setCurrentPosition(0);
+      console.log('⏹️ Web Speech TTS stopped');
+      return;
+    }
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;

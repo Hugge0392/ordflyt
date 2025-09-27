@@ -72,10 +72,53 @@ export default function StudentShop() {
   const { data: shopItems = [], isLoading: itemsLoading, error: itemsError } = useQuery<ShopItem[]>({
     queryKey: ["/api/shop/items", selectedCategory, selectedSubcategory],
     queryFn: async () => {
+      // Check for development bypass
+      const isDevBypass = !import.meta.env.PROD && localStorage.getItem('devBypass') === 'true';
+
+      if (isDevBypass) {
+        console.log('🛍️ Dev bypass active - using mock shop items');
+        // Return mock shop items for development
+        return [
+          {
+            id: '1',
+            name: 'Cool T-shirt',
+            description: 'En snygg t-shirt för din avatar',
+            price: 50,
+            category: 'avatar_clothing',
+            subcategory: 'shirts',
+            imageUrl: '/api/placeholder/100/100',
+            rarity: 'common',
+            isAvailable: true
+          },
+          {
+            id: '2',
+            name: 'Fancy Hat',
+            description: 'En fin hatt som gör dig stilig',
+            price: 75,
+            category: 'avatar_clothing',
+            subcategory: 'accessories',
+            imageUrl: '/api/placeholder/100/100',
+            rarity: 'rare',
+            isAvailable: true
+          },
+          {
+            id: '3',
+            name: 'Magic Background',
+            description: 'En magisk bakgrund för ditt rum',
+            price: 100,
+            category: 'room_decoration',
+            subcategory: 'backgrounds',
+            imageUrl: '/api/placeholder/100/100',
+            rarity: 'epic',
+            isAvailable: true
+          }
+        ] as ShopItem[];
+      }
+
       const params = new URLSearchParams();
       if (selectedCategory) params.append('category', selectedCategory);
       if (selectedSubcategory) params.append('subcategory', selectedSubcategory);
-      
+
       const url = `/api/shop/items${params.toString() ? '?' + params.toString() : ''}`;
       const response = await fetch(url);
       if (!response.ok) {

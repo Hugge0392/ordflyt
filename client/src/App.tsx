@@ -40,6 +40,7 @@ import RoomDecorator from "@/pages/room-decorator";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
+import AssignmentPlayer from "@/pages/assignment-player";
 import PublishedLessonPage from "@/pages/lesson-player-published";
 import ReadingLessonBuilder from "@/pages/reading-lesson-builder";
 import ReadingLessonSelector from "@/pages/reading-lesson-selector";
@@ -156,6 +157,7 @@ function Router() {
       <Route path="/test/:testType" component={Test} />
       <Route path="/pirate-course" component={PirateCourse} />
       <Route path="/lesson/:id" component={LessonPlayer} />
+      <Route path="/assignment/:id" component={AssignmentPlayer} />
       <Route path="/published/:lessonId" component={PublishedLessonPage} />
       <Route path="/klasskamp" component={KlassKampPage} />
       <Route path="/klasskamp/host/:code" component={KlassKampHostPage} />

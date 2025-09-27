@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { WelcomeGuide } from "@/components/ui/welcome-guide";
 import { KidsHelpTooltip } from "@/components/ui/help-tooltip";
 import { HelpMenu, commonGuides } from "@/components/ui/help-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -281,46 +280,6 @@ export default function StudentHome() {
           </p>
         </div>
 
-        {/* Kids Welcome Guide */}
-        <WelcomeGuide
-          guideId="student-home"
-          userRole="student"
-          userId={user?.id || mockStudent.id}
-          title="Hej! 🌟"
-          description="Här gör du roliga lektioner. Du kan också tjäna mynt!"
-          badge="Superelev"
-          icon={<Sparkles className="h-5 w-5" />}
-          forChildren={true}
-          className="mb-8"
-          steps={[
-            {
-              icon: <BookOpen className="h-5 w-5" />,
-              title: "Kul lektioner väntar! 📚",
-              description: "Välj roliga lektioner som hjälper dig bli duktigare på svenska. Det är som att spela spel fast du lär dig massa!"
-            },
-            {
-              icon: <Coins className="h-5 w-5" />,
-              title: "Samla glänsande mynt! 💰",
-              description: "När du klarar uppgifter får du coola mynt som du kan använda i butiken för att köpa häftiga saker!"
-            },
-            {
-              icon: <ShoppingCart className="h-5 w-5" />,
-              title: "Shoppa i butiken! 🛍️",
-              description: "Använd dina mynt för att köpa nya kläder och accessoarer till din avatar. Gör dig unik och cool!"
-            },
-            {
-              icon: <User className="h-5 w-5" />,
-              title: "Piffa upp din avatar! 👤",
-              description: "Gå till din profil och ändra hur din avatar ser ut. Välj kläder, frisyr och allt möjligt kul!"
-            },
-            {
-              icon: <Trophy className="h-5 w-5" />,
-              title: "Bli en stjärna! 🏆",
-              description: "Ju mer du lär dig, desto fler nivåer klarar du! Visa alla hur duktig du är!"
-            }
-          ]}
-          data-testid="student-welcome-guide"
-        />
 
         {/* Quick stats */}
         <div className="grid md:grid-cols-3 gap-4 mb-8">
