@@ -35,6 +35,7 @@ import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import AdminVocabulary from "@/pages/admin-vocabulary";
 import AdminCategories from "@/pages/admin-categories";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
+import TeacherStudentProgress from "@/pages/teacher-student-progress";
 import AvatarBuilder from "@/pages/avatar-builder";
 import RoomDecorator from "@/pages/room-decorator";
 import PirateCourse from "@/pages/pirate-course";
@@ -209,6 +210,12 @@ function Router() {
       <Route path="/teacher/lesson-bank">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
           <TeacherLessonBank />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/teacher/student-progress">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <TeacherStudentProgress />
         </ProtectedRoute>
       </Route>
       

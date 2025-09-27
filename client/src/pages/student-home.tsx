@@ -10,14 +10,14 @@ import { KidsHelpTooltip } from "@/components/ui/help-tooltip";
 import { HelpMenu, commonGuides } from "@/components/ui/help-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
-import { 
-  BookOpen, 
-  Type, 
-  FileText, 
-  PenTool, 
-  Hash, 
-  ShoppingCart, 
-  Trophy, 
+import {
+  BookOpen,
+  Type,
+  FileText,
+  PenTool,
+  Hash,
+  ShoppingCart,
+  Trophy,
   Star,
   Coins,
   User,
@@ -31,7 +31,9 @@ import {
   Zap,
   GamepadIcon,
   Gift,
-  Target
+  Target,
+  CheckCircle,
+  Clock
 } from "lucide-react";
 import StudentNavigation from "@/components/StudentNavigation";
 import { 
@@ -53,6 +55,7 @@ const mockStudent = {
 
 export default function StudentHome() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeAssignmentTab, setActiveAssignmentTab] = useState<'new' | 'completed'>('new');
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   
@@ -79,11 +82,90 @@ export default function StudentHome() {
     enabled: true, // Enabled for exploration - will be controlled by auth context later
   });
 
+  // Use authenticated user or fallback to mock for development
+  const studentId = user?.id || mockStudent.id;
+  const isAuthenticated = !!user;
+
   // Fetch student assignments (replaces lesson templates for the new design)
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
-    queryKey: [`/api/students/${mockStudent.id}/assignments`],
+  const { data: assignments = [], isLoading: assignmentsLoading, error: assignmentsError } = useQuery({
+    queryKey: [`/api/students/${studentId}/assignments`],
     enabled: true,
+    retry: isAuthenticated ? 3 : 1, // Fewer retries if not authenticated
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Fallback: Create demo assignments from published reading lessons when not authenticated
+  const { data: readingLessons = [], isLoading: readingLessonsLoading } = useQuery({
+    queryKey: ['/api/reading-lessons/published'],
+    enabled: !isAuthenticated || assignments.length === 0,
+  });
+
+  // Create mock assignments from reading lessons for non-authenticated users
+  const mockAssignments = readingLessons.slice(0, 5).map(lesson => ({
+    id: lesson.id,
+    title: lesson.title,
+    description: lesson.description || 'En spännande läslektion att utforska!',
+    assignmentType: 'reading_lesson' as const,
+    timeLimit: lesson.readingTime || 15,
+    teacherId: 'demo',
+    classId: 'demo',
+    createdAt: lesson.createdAt,
+    isCompleted: false,
+    dueDate: null,
+    lessonId: lesson.id
+  }));
+
+  // Use real assignments if authenticated and available, otherwise use mock assignments
+  const displayAssignments = isAuthenticated && assignments.length > 0 ? assignments : mockAssignments;
+
+  // Fetch completed assignments from API
+  const { data: completedAssignments = [] } = useQuery({
+    queryKey: [`/api/students/${studentId}/completed-assignments`],
+    enabled: isAuthenticated,
+    retry: 1,
+  });
+
+  // Mock completed assignments for non-authenticated users
+  const mockCompletedAssignments = [
+    {
+      id: "completed-1",
+      title: "Grundläggande grammatik",
+      description: "Lär dig om substantiv, verb och adjektiv",
+      assignmentType: 'published_lesson' as const,
+      timeLimit: 20,
+      completedAt: new Date('2024-09-20'),
+      score: 85,
+      timeSpent: 1200
+    },
+    {
+      id: "completed-2",
+      title: "Ordklasser",
+      description: "Identifiera olika ordklasser i texter",
+      assignmentType: 'word_class_practice' as const,
+      timeLimit: 15,
+      completedAt: new Date('2024-09-18'),
+      score: 92,
+      timeSpent: 900
+    }
+  ];
+
+  const displayCompletedAssignments = isAuthenticated ? completedAssignments : mockCompletedAssignments;
+
+  // Debug logging
+  console.log('Student Home Debug:', {
+    isAuthenticated,
+    studentId,
+    assignmentsLength: assignments.length,
+    mockAssignmentsLength: mockAssignments.length,
+    displayAssignmentsLength: displayAssignments.length,
+    assignmentsError,
+    readingLessonsLength: readingLessons.length,
+    assignmentsLoading,
+    readingLessonsLoading
+  });
+
+  // Show loading state while essential data is being fetched
+  const isEssentialDataLoading = assignmentsLoading || (!isAuthenticated && readingLessonsLoading);
 
   // Fetch lesson templates for fallback (if assignments API doesn't exist yet)
   const { data: lessons = [], isLoading: lessonsLoading } = useQuery<LessonTemplate[]>({
@@ -167,12 +249,17 @@ export default function StudentHome() {
     }
   }, []);
 
-  if (categoriesLoading || lessonsLoading || vocabularySetsLoading || assignmentsLoading) {
+  if (categoriesLoading || lessonsLoading || vocabularySetsLoading || isEssentialDataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-950 to-purple-100 dark:to-purple-900">
         <div className="text-center">
           <div className="animate-spin text-4xl mb-4">🎯</div>
-          <div className="text-lg text-gray-600 dark:text-gray-300">Laddar dina lektioner...</div>
+          <div className="text-lg text-gray-600 dark:text-gray-300">
+            {isEssentialDataLoading ? 'Laddar dina uppdrag...' : 'Laddar dina lektioner...'}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {!isAuthenticated && readingLessonsLoading && 'Hämtar tillgängliga lektioner...'}
+          </div>
         </div>
       </div>
     );
@@ -382,14 +469,41 @@ export default function StudentHome() {
             Mina uppdrag
           </h2>
 
-          {/* Nya uppdrag */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-green-500" />
-              Nya uppdrag att göra
-            </h3>
+          {/* Tab navigation */}
+          <div className="flex mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => setActiveAssignmentTab('new')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeAssignmentTab === 'new'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              Nya uppdrag ({displayAssignments.length})
+            </button>
+            <button
+              onClick={() => setActiveAssignmentTab('completed')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeAssignmentTab === 'completed'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              Slutförda ({displayCompletedAssignments.length})
+            </button>
+          </div>
 
-            {assignments.length === 0 ? (
+          {/* Tab content */}
+          {activeAssignmentTab === 'new' ? (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-green-500" />
+                Nya uppdrag att göra
+              </h3>
+
+            {displayAssignments.length === 0 ? (
               <Card className="border-2 border-dashed border-green-200 bg-green-50/50">
                 <CardContent className="p-8 text-center">
                   <Target className="h-16 w-16 text-green-400 mx-auto mb-4" />
@@ -401,7 +515,7 @@ export default function StudentHome() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {assignments.slice(0, 5).map(assignment => (
+                {displayAssignments.slice(0, 5).map(assignment => (
                   <Card key={assignment.id} className="hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-green-200 dark:border-green-700 hover:border-green-300">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -461,7 +575,71 @@ export default function StudentHome() {
                 )}
               </div>
             )}
-          </div>
+            </div>
+          ) : (
+            // Completed assignments tab
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                Slutförda uppdrag
+              </h3>
+
+              {displayCompletedAssignments.length === 0 ? (
+                <Card className="border-2 border-dashed border-gray-200 bg-gray-50/50">
+                  <CardContent className="p-8 text-center">
+                    <CheckCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h4 className="text-lg font-bold text-gray-700 mb-3">Inga slutförda uppdrag än! 📚</h4>
+                    <p className="text-gray-600 max-w-md mx-auto">
+                      När du slutför uppdrag kommer de att synas här så du kan se dina framsteg!
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {displayCompletedAssignments.map(assignment => (
+                    <Card key={assignment.id} className="bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="text-xs font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">
+                                Slutförd {new Date(assignment.completedAt).toLocaleDateString('sv-SE')}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">{assignment.title}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{assignment.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                              <span className="flex items-center gap-1">
+                                <BookOpen className="w-3 h-3" />
+                                {assignment.timeLimit} min
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Trophy className="w-3 h-3 text-yellow-500" />
+                                {assignment.score}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge
+                              className="text-xs bg-green-100 text-green-700 border-green-200"
+                            >
+                              {assignment.assignmentType === 'reading_lesson' ? 'Läsning' :
+                               assignment.assignmentType === 'word_class_practice' ? 'Ordklass' :
+                               assignment.assignmentType === 'published_lesson' ? 'Lektion' : 'Uppgift'}
+                            </Badge>
+                            <div className="text-2xl font-bold text-green-600">
+                              {assignment.score >= 90 ? '🌟' : assignment.score >= 75 ? '⭐' : '✅'}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Påbörjade uppdrag */}
           <div>

@@ -28,6 +28,22 @@ import * as schema from "@shared/schema";
 import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ClassroomWebSocket } from "./classroom-websocket";
+
+// In-memory storage for student progress (would be replaced with database in production)
+interface StudentProgress {
+  studentId: string;
+  studentName?: string;
+  assignmentId: string;
+  assignmentTitle?: string;
+  lessonId?: string;
+  completedAt: string;
+  timeSpent: number;
+  score: number;
+  answers: any;
+  needsHelp?: boolean;
+}
+
+const studentProgressStorage = new Map<string, StudentProgress[]>();
 import { ttsService } from "./ttsService";
 import { registerMigrationRoutes } from "./migration/migrationRoutes";
 import { pdfExportService } from "./pdfExportService";
@@ -5910,6 +5926,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching flashcard session:", error);
       res.status(500).json({ error: "Failed to fetch flashcard session" });
+    }
+  });
+
+  // Student progress tracking API
+  app.post("/api/student-progress", async (req, res) => {
+    try {
+      const { studentId, assignmentId, lessonId, completedAt, timeSpent, score, answers } = req.body;
+
+      // Optional validation for authenticated users
+      if (req.user?.id && req.user.id !== studentId) {
+        return res.status(403).json({ error: "Du kan bara skicka in dina egna resultat" });
+      }
+
+      const progressData = {
+        studentId,
+        assignmentId,
+        lessonId,
+        completedAt: completedAt || new Date().toISOString(),
+        timeSpent: timeSpent || 0,
+        score: score || 0,
+        answers: answers || {},
+        needsHelp: (score || 0) < 75 // Mark as needing help if score is below 75%
+      };
+
+      // Save to in-memory storage
+      if (!studentProgressStorage.has(studentId)) {
+        studentProgressStorage.set(studentId, []);
+      }
+      const studentProgress = studentProgressStorage.get(studentId)!;
+
+      // Check if this assignment is already completed by this student
+      const existingIndex = studentProgress.findIndex(p => p.assignmentId === assignmentId);
+      if (existingIndex >= 0) {
+        // Update existing progress
+        studentProgress[existingIndex] = progressData;
+      } else {
+        // Add new progress
+        studentProgress.push(progressData);
+      }
+
+      console.log('Student progress saved:', progressData);
+      console.log(`Student ${studentId} completed assignment ${assignmentId} with score ${score}%`);
+
+      res.json({
+        message: "Framsteg sparat",
+        progressId: `progress_${Date.now()}`,
+        ...progressData
+      });
+    } catch (error) {
+      console.error("Error saving student progress:", error);
+      res.status(500).json({ error: "Kunde inte spara framsteg" });
+    }
+  });
+
+  // Get completed assignments for a student
+  app.get("/api/students/:studentId/completed-assignments", async (req, res) => {
+    try {
+      const { studentId } = req.params;
+
+      // Optional validation for authenticated users
+      if (req.user?.id && req.user.id !== studentId && req.user?.role !== 'teacher') {
+        return res.status(403).json({ error: "Åtkomst nekad" });
+      }
+
+      // Get completed assignments from in-memory storage
+      const studentProgress = studentProgressStorage.get(studentId) || [];
+
+      // Transform progress data to assignment format with lesson titles
+      const completedAssignments = studentProgress.map((progress) => {
+        // Try to get lesson title from assignment ID (simplified approach)
+        let lessonTitle = progress.assignmentTitle || "Okänd uppgift";
+
+        // Map known assignment IDs to titles
+        if (progress.assignmentId.includes('9d13a578')) {
+          lessonTitle = "Den sista matchen";
+        } else if (progress.assignmentId.includes('9b7ac70e')) {
+          lessonTitle = "Mobilförbud förbättrar studieresultatet";
+        } else if (progress.assignmentId.includes('87212bc9')) {
+          lessonTitle = "Lorem Ipsum text";
+        } else {
+          lessonTitle = `Uppgift ${progress.assignmentId.slice(0, 8)}...`;
+        }
+
+        return {
+          id: progress.assignmentId,
+          title: lessonTitle,
+          description: "Slutförd uppgift",
+          assignmentType: 'reading_lesson',
+          timeLimit: 30,
+          completedAt: new Date(progress.completedAt),
+          score: progress.score,
+          timeSpent: progress.timeSpent // Already in seconds
+        };
+      });
+
+      console.log(`Returning ${completedAssignments.length} completed assignments for student ${studentId}`);
+      res.json(completedAssignments);
+    } catch (error) {
+      console.error("Error fetching completed assignments:", error);
+      res.status(500).json({ error: "Kunde inte hämta slutförda uppgifter" });
+    }
+  });
+
+  // Teacher endpoint to view student progress
+  app.get("/api/teacher/student-progress", async (req, res) => {
+    try {
+      const { classId, studentId } = req.query;
+
+      // Collect all student progress from in-memory storage
+      const allStudentProgress: any[] = [];
+
+      for (const [currentStudentId, progressList] of studentProgressStorage.entries()) {
+        // If a specific studentId is requested, filter for that student
+        if (studentId && currentStudentId !== studentId) {
+          continue;
+        }
+
+        // Add each progress entry with student information
+        for (const progress of progressList) {
+          // Get lesson title from assignment ID
+          let lessonTitle = "Okänd uppgift";
+          if (progress.assignmentId.includes('9d13a578')) {
+            lessonTitle = "Den sista matchen";
+          } else if (progress.assignmentId.includes('9b7ac70e')) {
+            lessonTitle = "Mobilförbud förbättrar studieresultatet";
+          } else if (progress.assignmentId.includes('87212bc9')) {
+            lessonTitle = "Lorem Ipsum text";
+          }
+
+          allStudentProgress.push({
+            studentId: currentStudentId,
+            studentName: currentStudentId === 'mock-student-id' ? 'Test Elev' : `Elev ${currentStudentId.slice(0, 8)}`,
+            assignmentId: progress.assignmentId,
+            assignmentTitle: lessonTitle,
+            completedAt: new Date(progress.completedAt),
+            score: progress.score,
+            timeSpent: progress.timeSpent,
+            needsHelp: progress.needsHelp || false
+          });
+        }
+      }
+
+      console.log(`Returning ${allStudentProgress.length} progress entries for teacher view`);
+      res.json(allStudentProgress);
+    } catch (error) {
+      console.error("Error fetching student progress for teacher:", error);
+      res.status(500).json({ error: "Kunde inte hämta elevframsteg" });
     }
   });
 

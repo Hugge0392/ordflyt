@@ -418,6 +418,7 @@ export default function AssignmentPlayer() {
   const [match, params] = useRoute("/assignment/:id");
   const [currentMoment, setCurrentMoment] = useState(0);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [startTime] = useState(Date.now()); // Moved from line 736 to fix React Hooks violation
   const assignmentId = params?.id;
   const { user } = useAuth();
 
@@ -733,7 +734,7 @@ export default function AssignmentPlayer() {
                         currentMoment === moments.length - 1);
 
   // Track start time for time spent calculation
-  const [startTime] = useState(Date.now());
+  // useState(Date.now()) moved to top of component to fix React Hooks violation
 
   // Function to submit assignment with answers
   const submitAssignment = async () => {
@@ -758,7 +759,7 @@ export default function AssignmentPlayer() {
 
       const submissionData = {
         assignmentId: params.id,
-        studentId: mockStudent.id, // In real app, get from auth context
+        studentId: studentId, // Use the correct studentId (authenticated or mockStudent)
         assignmentType: assignment.assignmentType,
         answers: answers,
         completedAt: new Date().toISOString(),
@@ -798,8 +799,32 @@ export default function AssignmentPlayer() {
       const result = await response.json();
       console.log('✅ Assignment submitted successfully:', result);
 
+      // Also save to student progress (for tracking completed assignments)
+      try {
+        const progressData = {
+          studentId: studentId,
+          assignmentId: params.id,
+          lessonId: assignmentContent?.id || assignment?.lessonId,
+          completedAt: new Date().toISOString(),
+          timeSpent: Math.round((Date.now() - startTime) / 1000), // seconds
+          score: 100, // This would be calculated based on answers in real implementation
+          answers: submissionData
+        };
+
+        await fetch('/api/student-progress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(progressData),
+        });
+      } catch (progressError) {
+        console.warn('Failed to save progress data:', progressError);
+        // Don't fail the whole submission if progress saving fails
+      }
+
       // Show success message and navigate
-      alert('✅ Uppgift skickad!');
+      alert('🎉 Uppgift slutförd! Bra jobbat!');
       window.location.href = '/elev';
 
     } catch (error) {
