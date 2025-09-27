@@ -298,9 +298,9 @@ export default function TeacherClassesPage() {
       setGenerateCodeDialog(null);
 
       // Find the student data
-      const student = classesData?.find((cls: any) =>
+      const student = Array.isArray(classesData) ? classesData.find((cls: any) =>
         cls.students?.some((s: any) => s.id === studentId)
-      )?.students?.find((s: any) => s.id === studentId);
+      )?.students?.find((s: any) => s.id === studentId) : null;
 
       // Show the code result dialog
       setShowCodeResult({

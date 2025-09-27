@@ -346,10 +346,10 @@ export default function FocusMode({
               /* Låt textfärgen vinna, men rör inte bakgrunder generellt */
               .reading-content {
                 background-color: #242424 !important;
-                color: var(--accessibility-text-color) !important;
+                color: var(--accessibility-text-color, #ffffff) !important;
               }
               .reading-content * {
-                color: var(--accessibility-text-color) !important;
+                color: var(--accessibility-text-color, #ffffff) !important;
               }
 
               /* Bas: låt wrappen definiera typografi */
@@ -426,49 +426,49 @@ export default function FocusMode({
               
               /* Rich content specific styling for focus mode */
               .rich-focus-content {
-                background-color: var(--focus-bg-color) !important;
-                color: var(--focus-text-color) !important;
-                font-family: var(--focus-font-family) !important;
+                background-color: var(--focus-bg-color, #242424) !important;
+                color: var(--focus-text-color, #ffffff) !important;
+                font-family: var(--focus-font-family, system-ui, -apple-system, sans-serif) !important;
               }
-              
+
               .rich-focus-content * {
-                color: var(--focus-text-color) !important;
+                color: var(--focus-text-color, #ffffff) !important;
               }
               
               /* Rich content typography for focus mode */
               .rich-focus-content h1 {
-                font-size: calc(var(--focus-font-size) * 1.8) !important;
+                font-size: calc(var(--focus-font-size, 20px) * 1.8) !important;
                 line-height: 1.2 !important;
                 font-weight: bold !important;
                 margin: 0 0 0.8em 0 !important;
-                color: var(--focus-text-color) !important;
+                color: var(--focus-text-color, #ffffff) !important;
               }
-              
+
               .rich-focus-content h2 {
-                font-size: calc(var(--focus-font-size) * 1.5) !important;
+                font-size: calc(var(--focus-font-size, 20px) * 1.5) !important;
                 line-height: 1.3 !important;
                 font-weight: bold !important;
                 margin: 0 0 0.6em 0 !important;
-                color: var(--focus-text-color) !important;
+                color: var(--focus-text-color, #ffffff) !important;
               }
-              
+
               .rich-focus-content h3 {
-                font-size: calc(var(--focus-font-size) * 1.3) !important;
+                font-size: calc(var(--focus-font-size, 20px) * 1.3) !important;
                 line-height: 1.3 !important;
                 font-weight: bold !important;
                 margin: 0 0 0.5em 0 !important;
-                color: var(--focus-text-color) !important;
+                color: var(--focus-text-color, #ffffff) !important;
               }
-              
+
               .rich-focus-content p {
-                font-size: var(--focus-font-size) !important;
-                line-height: var(--focus-line-height) !important;
-                font-family: var(--focus-font-family) !important;
+                font-size: var(--focus-font-size, 20px) !important;
+                line-height: var(--focus-line-height, 1.8) !important;
+                font-family: var(--focus-font-family, system-ui, -apple-system, sans-serif) !important;
                 margin: 0 0 1.2em 0 !important;
                 text-align: justify !important;
                 hyphens: auto !important;
                 word-spacing: 0.1em !important;
-                color: var(--focus-text-color) !important;
+                color: var(--focus-text-color, #ffffff) !important;
               }
               
               .rich-focus-content ul,
