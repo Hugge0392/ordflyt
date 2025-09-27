@@ -390,10 +390,14 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
       connect();
     }
     
+    // Only disconnect on unmount, not on dependency changes
     return () => {
-      disconnect();
+      if (wsRef.current) {
+        wsRef.current.close(1000, 'Component unmount');
+        wsRef.current = null;
+      }
     };
-  }, [user]);
+  }, [user?.id, user?.role]); // Only depend on user id and role, not the whole user object
 
   return (
     <StudentClassroomContext.Provider value={{

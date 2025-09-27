@@ -193,62 +193,9 @@ export const getQueryFn: <T>(options: {
         };
       }
 
-      // Force lesson bank data
-      if (url === '/api/lesson-categories') {
-        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing lesson categories!');
-        return [
-          { id: '1', name: 'reading', displayName: 'Läsförståelse', color: '#3B82F6' },
-          { id: '2', name: 'vocabulary', displayName: 'Ordförråd', color: '#10B981' },
-          { id: '3', name: 'grammar', displayName: 'Grammatik', color: '#8B5CF6' }
-        ];
-      }
-
-      if (url === '/api/lesson-templates') {
-        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing lesson templates!');
-        return [
-          {
-            id: 'reading-1',
-            title: 'Den sista matchen',
-            description: 'Läsförståelse om fotboll',
-            category: 'reading',
-            difficulty: 'Medium',
-            estimatedTime: 15,
-            isPublished: true
-          }
-        ];
-      }
-
-      if (url === '/api/reading-lessons/published') {
-        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing reading lessons!');
-        return [
-          {
-            id: 'reading-1',
-            title: 'Den sista matchen',
-            description: 'Läsförståelse om fotboll',
-            category: 'reading',
-            difficulty: 'Medium',
-            estimatedTime: 15,
-            isPublished: true,
-            content: 'Här är texten om den sista matchen...'
-          }
-        ];
-      }
-
-      if (url === '/api/vocabulary/sets/published') {
-        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing vocabulary sets!');
-        return [
-          {
-            id: 'vocab-1',
-            title: 'Grundläggande ord',
-            description: 'Vanliga svenska ord',
-            wordCount: 50,
-            isPublished: true
-          }
-        ];
-      }
-
+      // Keep only the teacher-lesson-customizations override
       if (url === '/api/teacher-lesson-customizations') {
-        console.log('🚀 AGGRESSIV DEV OVERRIDE: Forcing customizations!');
+        console.log('🚀 DEV OVERRIDE: Forcing empty customizations!');
         return [];
       }
     }
