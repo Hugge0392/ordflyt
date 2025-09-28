@@ -415,6 +415,13 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
 router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
     let userId = req.user.id;
+    console.log(`[licenseRoutes] 🔍 GET /classes - Original user ID: ${userId}`);
+    console.log(`[licenseRoutes] 🔍 User object:`, {
+      id: req.user?.id,
+      username: req.user?.username,
+      role: req.user?.role,
+      isActive: req.user?.isActive
+    });
 
     // Development bypass - override userId if dev headers are present
     if (process.env.NODE_ENV !== 'production') {
@@ -427,6 +434,8 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
       }
     }
 
+    console.log(`[licenseRoutes] 🎯 Final teacher ID for query: ${userId}`);
+    
     const classes = await getTeacherClasses(userId);
 
     // Hämta elever för varje klass
@@ -440,9 +449,11 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
       })
     );
 
+    console.log(`[licenseRoutes] ✅ Returning ${classesWithStudents.length} classes with students`);
     res.json({ classes: classesWithStudents });
 
   } catch (error) {
+    console.error('[licenseRoutes] ❌ Get classes error:', error);
     logger.error('Get classes error:', error);
     res.status(500).json({ error: 'Serverfel' });
   }

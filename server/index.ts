@@ -8,6 +8,7 @@ import { securityHeaders, apiRateLimit } from "./auth";
 import { initializeDatabase } from "./initDatabase";
 import { checkProductionEnvironment, logRequestInfo } from "./productionCheck";
 import { ClassroomWebSocket } from "./classroom-websocket";
+import { startAutomaticBackups } from "./licenseDb";
 
 const app = express();
 
@@ -77,6 +78,10 @@ app.use((req, res, next) => {
   
   // Initialisera databasen med nödvändiga användare
   await initializeDatabase();
+  
+  // Starta automatiska säkerhetskopior för kritisk data
+  startAutomaticBackups();
+  console.log('🔐 Kritisk datasäkerhet aktiverad med automatiska backuper');
   
   const server = await registerRoutes(app);
 

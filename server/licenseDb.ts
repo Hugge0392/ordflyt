@@ -17,6 +17,219 @@ if (!process.env.DATABASE_URL) {
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const licenseDb = drizzle({ client: pool, schema });
 
+// Data backup and validation functions with persistent storage
+import fs from 'fs/promises';
+import path from 'path';
+
+// Create backup directory if it doesn't exist
+async function ensureBackupDir() {
+  const backupDir = path.join(process.cwd(), 'backups');
+  try {
+    await fs.access(backupDir);
+  } catch {
+    await fs.mkdir(backupDir, { recursive: true });
+    console.log('📁 Created backup directory:', backupDir);
+  }
+  return backupDir;
+}
+
+export async function backupCriticalData() {
+  console.log('🔄 Starting critical data backup...');
+  
+  try {
+    // Backup active teachers
+    const activeTeachers = await licenseDb
+      .select({
+        id: schema.users.id,
+        username: schema.users.username,
+        email: schema.users.email,
+        role: schema.users.role,
+        isActive: schema.users.isActive,
+        createdAt: schema.users.createdAt
+      })
+      .from(schema.users)
+      .where(eq(schema.users.role, 'LARARE'));
+    
+    // Backup active classes
+    const activeClasses = await licenseDb
+      .select()
+      .from(schema.teacherClasses)
+      .where(isNull(schema.teacherClasses.archivedAt));
+    
+    // Backup student accounts
+    const activeStudents = await licenseDb
+      .select()
+      .from(schema.studentAccounts)
+      .where(eq(schema.studentAccounts.isActive, true));
+    
+    // Backup student progress
+    const studentProgress = await licenseDb
+      .select()
+      .from(schema.studentLessonProgress);
+    
+    const backup = {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      counts: {
+        teachers: activeTeachers.length,
+        classes: activeClasses.length,
+        students: activeStudents.length,
+        progress: studentProgress.length
+      },
+      data: {
+        teachers: activeTeachers,
+        classes: activeClasses,
+        students: activeStudents,
+        progress: studentProgress
+      }
+    };
+    
+    // Write backup to persistent storage
+    const backupDir = await ensureBackupDir();
+    const filename = `critical-data-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    const filepath = path.join(backupDir, filename);
+    
+    await fs.writeFile(filepath, JSON.stringify(backup, null, 2), 'utf8');
+    
+    // Keep only last 10 backups to prevent disk overflow
+    await cleanupOldBackups(backupDir);
+    
+    console.log('✅ Critical data backup completed and saved:', {
+      counts: backup.counts,
+      filepath: filepath
+    });
+    
+    return { ...backup, filepath };
+    
+  } catch (error) {
+    console.error('❌ Critical data backup failed:', error);
+    throw error;
+  }
+}
+
+async function cleanupOldBackups(backupDir: string) {
+  try {
+    const files = await fs.readdir(backupDir);
+    const backupFiles = files
+      .filter(f => f.startsWith('critical-data-backup-') && f.endsWith('.json'))
+      .map(f => ({
+        name: f,
+        path: path.join(backupDir, f),
+        time: fs.stat(path.join(backupDir, f)).then(s => s.mtime)
+      }));
+    
+    if (backupFiles.length > 10) {
+      const filesWithTime = await Promise.all(
+        backupFiles.map(async f => ({ ...f, time: await f.time }))
+      );
+      
+      filesWithTime
+        .sort((a, b) => b.time.getTime() - a.time.getTime())
+        .slice(10) // Keep 10 newest, delete rest
+        .forEach(async (f) => {
+          await fs.unlink(f.path);
+          console.log('🗑️ Cleaned up old backup:', f.name);
+        });
+    }
+  } catch (error) {
+    console.warn('⚠️ Backup cleanup failed:', error);
+  }
+}
+
+// Schedule automatic backups every 6 hours
+let backupInterval: NodeJS.Timeout | null = null;
+
+export function startAutomaticBackups() {
+  if (backupInterval) {
+    clearInterval(backupInterval);
+  }
+  
+  // Run backup immediately on start
+  backupCriticalData().catch(error => {
+    console.error('❌ Initial backup failed:', error);
+  });
+  
+  // Schedule every 6 hours (21600000 ms)
+  backupInterval = setInterval(() => {
+    backupCriticalData().catch(error => {
+      console.error('❌ Scheduled backup failed:', error);
+    });
+  }, 6 * 60 * 60 * 1000);
+  
+  console.log('🕐 Automatic backups scheduled every 6 hours');
+}
+
+export function stopAutomaticBackups() {
+  if (backupInterval) {
+    clearInterval(backupInterval);
+    backupInterval = null;
+    console.log('⏹️ Automatic backups stopped');
+  }
+}
+
+export async function validateDataIntegrity() {
+  console.log('🔍 Validating data integrity...');
+  
+  try {
+    // Check for orphaned classes (classes without teachers)
+    const orphanedClasses = await licenseDb
+      .select({
+        id: schema.teacherClasses.id,
+        name: schema.teacherClasses.name,
+        teacherId: schema.teacherClasses.teacherId
+      })
+      .from(schema.teacherClasses)
+      .leftJoin(schema.users, eq(schema.teacherClasses.teacherId, schema.users.id))
+      .where(
+        and(
+          isNull(schema.teacherClasses.archivedAt),
+          isNull(schema.users.id)
+        )
+      );
+    
+    // Check for orphaned students (students without classes)
+    const orphanedStudents = await licenseDb
+      .select({
+        id: schema.studentAccounts.id,
+        studentName: schema.studentAccounts.studentName,
+        classId: schema.studentAccounts.classId
+      })
+      .from(schema.studentAccounts)
+      .leftJoin(schema.teacherClasses, eq(schema.studentAccounts.classId, schema.teacherClasses.id))
+      .where(
+        and(
+          eq(schema.studentAccounts.isActive, true),
+          isNull(schema.teacherClasses.id)
+        )
+      );
+    
+    const integrity = {
+      timestamp: new Date().toISOString(),
+      issues: {
+        orphanedClasses: orphanedClasses.length,
+        orphanedStudents: orphanedStudents.length
+      },
+      details: {
+        orphanedClasses,
+        orphanedStudents
+      }
+    };
+    
+    if (orphanedClasses.length > 0 || orphanedStudents.length > 0) {
+      console.warn('⚠️ Data integrity issues found:', integrity.issues);
+    } else {
+      console.log('✅ Data integrity check passed');
+    }
+    
+    return integrity;
+    
+  } catch (error) {
+    console.error('❌ Data integrity validation failed:', error);
+    throw error;
+  }
+}
+
 // Utility functions for ID generation and hashing
 export function generateSecureId(length: number = 32): string {
   return crypto.randomBytes(length).toString('hex');
@@ -167,6 +380,8 @@ export async function createTeacherClass(
   term?: string,
   description?: string
 ): Promise<schema.TeacherClass> {
+  console.log(`[licenseDb] 📝 Creating class "${name}" for teacher ${teacherId} with license ${licenseId}`);
+  
   const [teacherClass] = await licenseDb.insert(schema.teacherClasses).values({
     name,
     teacherId,
@@ -175,11 +390,20 @@ export async function createTeacherClass(
     description,
   }).returning();
 
+  console.log(`[licenseDb] ✅ Class created successfully:`, {
+    id: teacherClass.id,
+    name: teacherClass.name,
+    teacherId: teacherClass.teacherId,
+    createdAt: teacherClass.createdAt
+  });
+
   return teacherClass;
 }
 
 export async function getTeacherClasses(teacherId: string) {
-  return await licenseDb
+  console.log(`[licenseDb] 🔍 Getting classes for teacher ID: ${teacherId}`);
+  
+  const classes = await licenseDb
     .select()
     .from(schema.teacherClasses)
     .where(
@@ -188,6 +412,11 @@ export async function getTeacherClasses(teacherId: string) {
         isNull(schema.teacherClasses.archivedAt)
       )
     );
+    
+  console.log(`[licenseDb] ✅ Found ${classes.length} active classes for teacher ${teacherId}`);
+  console.log(`[licenseDb] 📋 Classes:`, classes.map(c => ({ id: c.id, name: c.name, created: c.createdAt })));
+  
+  return classes;
 }
 
 // Student accounts
