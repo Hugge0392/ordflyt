@@ -1977,10 +1977,11 @@ router.post("/api/dev/quick-login", async (req, res) => {
     } else {
       // Handle admin/teacher login
       let user: any;
+      let username: string = '';
 
       if (role === 'ADMIN') {
         // Handle admin login
-        const username = 'admin';
+        username = 'admin';
         const password = 'admin';
 
         [user] = await db
@@ -1995,6 +1996,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
           .from(users)
           .where(eq(users.id, '550e8400-e29b-41d4-a716-446655440002'))
           .limit(1);
+        username = user?.username || 'teacher'; // Set username for teacher
       }
         
       if (!user) {
