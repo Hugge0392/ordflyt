@@ -2115,7 +2115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.teacherClasses)
         .where(eq(schema.teacherClasses.teacherId, teacherId));
       
-      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      const hasAccess = teacherClasses.some(tc => tc.id === classId);
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied: You do not have access to this class" });
       }
@@ -2150,7 +2150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.teacherClasses)
         .where(and(
           eq(schema.teacherClasses.teacherId, teacherId),
-          eq(schema.teacherClasses.classId, studentAccount[0].classId)
+          eq(schema.teacherClasses.id, studentAccount[0].classId)
         ));
       
       if (teacherClasses.length === 0) {
@@ -2315,7 +2315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .from(schema.teacherClasses)
             .where(eq(schema.teacherClasses.teacherId, teacherId));
           
-          const hasClassAccess = teacherClasses.some(tc => tc.classId === classId);
+          const hasClassAccess = teacherClasses.some(tc => tc.id === classId);
           if (!hasClassAccess) {
             return res.status(403).json({ message: "Access denied: You do not have access to this class" });
           }
@@ -2341,7 +2341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .from(schema.teacherClasses)
             .where(and(
               eq(schema.teacherClasses.teacherId, teacherId),
-              eq(schema.teacherClasses.classId, studentAccount[0].classId)
+              eq(schema.teacherClasses.id, studentAccount[0].classId)
             ));
           
           if (teacherClassesForStudent.length === 0) {
@@ -2491,7 +2491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.teacherClasses)
         .where(eq(schema.teacherClasses.teacherId, teacherId));
       
-      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      const hasAccess = teacherClasses.some(tc => tc.id === classId);
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied: You do not have access to this class" });
       }
@@ -2516,7 +2516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.teacherClasses)
         .where(eq(schema.teacherClasses.teacherId, teacherId));
       
-      const hasAccess = teacherClasses.some(tc => tc.classId === classId);
+      const hasAccess = teacherClasses.some(tc => tc.id === classId);
       if (!hasAccess) {
         return res.status(403).json({ message: "Access denied: You do not have access to this class" });
       }
@@ -2551,7 +2551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.teacherClasses)
         .where(and(
           eq(schema.teacherClasses.teacherId, teacherId),
-          eq(schema.teacherClasses.classId, studentAccount[0].classId)
+          eq(schema.teacherClasses.id, studentAccount[0].classId)
         ));
       
       if (teacherClasses.length === 0) {

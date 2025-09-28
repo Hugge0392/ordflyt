@@ -996,34 +996,34 @@ export interface VocabularyMilestone {
 }
 
 // Insert schemas for vocabulary system
-export const insertVocabularySetSchema = createInsertSchema(vocabularySets, {
-  id: false,
-  createdAt: false,
-  updatedAt: false,
+export const insertVocabularySetSchema = createInsertSchema(vocabularySets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertVocabularyWordSchema = createInsertSchema(vocabularyWords, {
-  id: false,
-  createdAt: false,
-  updatedAt: false,
+export const insertVocabularyWordSchema = createInsertSchema(vocabularyWords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertVocabularyExerciseSchema = createInsertSchema(vocabularyExercises, {
-  id: false,
-  createdAt: false,
-  updatedAt: false,
+export const insertVocabularyExerciseSchema = createInsertSchema(vocabularyExercises).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertVocabularyAttemptSchema = createInsertSchema(vocabularyAttempts, {
-  id: false,
-  createdAt: false,
-  updatedAt: false,
+export const insertVocabularyAttemptSchema = createInsertSchema(vocabularyAttempts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-export const insertVocabularyStreakSchema = createInsertSchema(vocabularyStreaks, {
-  id: false,
-  createdAt: false,
-  updatedAt: false,
+export const insertVocabularyStreakSchema = createInsertSchema(vocabularyStreaks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // TypeScript types for vocabulary system
