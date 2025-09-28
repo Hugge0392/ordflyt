@@ -854,9 +854,15 @@ export default function AssignmentPlayer() {
       console.log('📥 Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ API Error:', errorText);
-        throw new Error(`Failed to submit assignment: ${response.statusText} - ${errorText}`);
+        const errorData = await response.json().catch(() => ({ error: 'Okänt fel' }));
+        console.error('❌ API Error:', errorData);
+        // Show specific error message from server
+        if (response.status === 404) {
+          alert(`❌ ${errorData.error || 'Uppgiften kunde inte hittas'}`);
+          return;
+        }
+        
+        throw new Error(errorData.error || `Failed to submit assignment: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -868,7 +874,15 @@ export default function AssignmentPlayer() {
 
     } catch (error) {
       console.error('❌ Error submitting assignment:', error);
-      alert('❌ Fel vid inlämning av uppgift. Försök igen.');
+      // Show the actual error message instead of generic one
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      
+      // If it contains Swedish error from server, show that
+      if (errorMessage.includes('Uppgiften finns inte') || errorMessage.includes('Uppgiften kunde inte hittas')) {
+        alert('❌ Uppgiften finns inte i systemet. Kontakta din lärare.');
+      } else {
+        alert(`❌ Fel vid inlämning av uppgift: ${errorMessage}`);
+      }
     }
   };
 
