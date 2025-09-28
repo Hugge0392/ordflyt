@@ -5981,20 +5981,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         needsHelp: (score || 0) < 75 // Mark as needing help if score is below 75%
       };
 
-      // First verify that the assignment exists
-      const assignmentExists = await db.execute(sql`
-        SELECT id FROM lesson_assignments 
-        WHERE id = ${assignmentId}
+      // First verify that the assignment exists and that the student has access to it
+      const assignmentCheck = await db.execute(sql`
+        SELECT la.id, la.title, la.is_active,
+               sa.class_id as student_class_id
+        FROM lesson_assignments la
+        LEFT JOIN student_accounts sa ON sa.id = ${studentId}
+        WHERE la.id = ${assignmentId}
+        AND la.is_active = true
+        AND (la.student_id = ${studentId} OR la.class_id = sa.class_id)
         LIMIT 1
       `);
-      
-      if (assignmentExists.rows.length === 0) {
-        console.error(`❌ Assignment not found: ${assignmentId}`);
-        return res.status(404).json({ 
-          error: "Uppgiften finns inte",
-          details: `Assignment ID ${assignmentId} was not found in the database`,
-          assignmentId: assignmentId
-        });
+
+      if (assignmentCheck.rows.length === 0) {
+        console.error(`❌ Assignment not found or access denied: ${assignmentId} for student: ${studentId}`);
+
+        // Check if assignment exists but student doesn't have access
+        const assignmentExists = await db.execute(sql`
+          SELECT id, is_active FROM lesson_assignments WHERE id = ${assignmentId} LIMIT 1
+        `);
+
+        if (assignmentExists.rows.length === 0) {
+          return res.status(404).json({
+            error: "Uppgiften finns inte",
+            details: `Assignment ID ${assignmentId} was not found in the database`,
+            assignmentId: assignmentId
+          });
+        } else {
+          return res.status(403).json({
+            error: "Du har inte behörighet att skicka in denna uppgift",
+            details: `Student ${studentId} does not have access to assignment ${assignmentId}`,
+            assignmentId: assignmentId
+          });
+        }
       }
       
       console.log(`✅ Assignment verified: ${assignmentId}`);

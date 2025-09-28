@@ -157,6 +157,7 @@ export interface IStorage {
   getLessonAssignments(teacherId: string): Promise<LessonAssignment[]>;
   getLessonAssignmentsByClass(classId: string): Promise<LessonAssignment[]>;
   getLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]>;
+  getCompletedLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]>;
   getLessonAssignment(id: string): Promise<LessonAssignment | undefined>;
   updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment>;
   deleteLessonAssignment(id: string): Promise<void>;
@@ -1811,23 +1812,81 @@ export class DatabaseStorage implements IStorage {
       return []; // Student not found
     }
 
-    // Get assignments that are either:
+    // Get all assignments that are either:
     // 1. Directly assigned to this student (studentId = studentId)
     // 2. Assigned to the student's class (classId = student's classId)
-    return await db
+    // AND filter out assignments that have already been completed by this student
+    const allAssignments = await db
       .select()
       .from(lessonAssignments)
       .where(
-        or(
-          eq(lessonAssignments.studentId, studentId),
-          eq(lessonAssignments.classId, student.classId)
+        and(
+          or(
+            eq(lessonAssignments.studentId, studentId),
+            eq(lessonAssignments.classId, student.classId)
+          ),
+          eq(lessonAssignments.isActive, true)
         )
       );
+
+    // Filter out assignments that have already been completed by this student
+    const assignmentsWithProgress = await db
+      .select({
+        assignmentId: studentLessonProgress.assignmentId,
+        status: studentLessonProgress.status
+      })
+      .from(studentLessonProgress)
+      .where(eq(studentLessonProgress.studentId, studentId));
+
+    const completedAssignmentIds = new Set(
+      assignmentsWithProgress
+        .filter(p => p.status === 'completed' || p.status === 'submitted')
+        .map(p => p.assignmentId)
+    );
+
+    // Return only assignments that haven't been completed yet
+    return allAssignments.filter(assignment =>
+      !completedAssignmentIds.has(assignment.id)
+    );
   }
 
   async getLessonAssignment(id: string): Promise<LessonAssignment | undefined> {
     const result = await db.select().from(lessonAssignments).where(eq(lessonAssignments.id, id));
     return result[0];
+  }
+
+  async getCompletedLessonAssignmentsByStudent(studentId: string): Promise<LessonAssignment[]> {
+    // Get completed assignments for this student
+    const completedAssignmentIds = await db
+      .select({
+        assignmentId: studentLessonProgress.assignmentId
+      })
+      .from(studentLessonProgress)
+      .where(
+        and(
+          eq(studentLessonProgress.studentId, studentId),
+          or(
+            eq(studentLessonProgress.status, 'completed'),
+            eq(studentLessonProgress.status, 'submitted')
+          )
+        )
+      );
+
+    if (completedAssignmentIds.length === 0) {
+      return [];
+    }
+
+    // Get the actual assignment details
+    const assignmentIds = completedAssignmentIds.map(p => p.assignmentId);
+    return await db
+      .select()
+      .from(lessonAssignments)
+      .where(
+        and(
+          sql`${lessonAssignments.id} = ANY(${assignmentIds})`,
+          eq(lessonAssignments.isActive, true)
+        )
+      );
   }
 
   async updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment> {
