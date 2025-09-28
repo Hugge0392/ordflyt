@@ -26,6 +26,26 @@ import { insertSentenceSchema, insertErrorReportSchema, insertPublishedLessonSch
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and, isNull, sql, desc } from "drizzle-orm";
+
+// Destructure commonly used tables from schema for easier access
+const { 
+  studentLessonProgress, 
+  lessonAssignments, 
+  studentAccounts,
+  teacherAccounts,
+  readingLessons,
+  lessonTemplates,
+  lessonCategories,
+  studentCurrency,
+  shopItems,
+  studentPurchases,
+  studentAvatar,
+  studentRoom,
+  vocabularySets,
+  vocabularyWords,
+  studentProgress: studentProgressTable,
+  blogPosts
+} = schema;
 import { KlassKampWebSocket } from "./klasskamp-websocket";
 import { ClassroomWebSocket } from "./classroom-websocket";
 
