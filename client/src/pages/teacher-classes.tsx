@@ -164,16 +164,38 @@ export default function TeacherClassesPage() {
   };
 
   // Kontrollera licensstatus först
-  const { data: licenseStatus, isLoading: isCheckingLicense } = useQuery({
+  const { data: licenseStatus, isLoading: isCheckingLicense, error: licenseError } = useQuery({
     queryKey: ['/api/license/status'],
     retry: false,
   });
 
-  // Hämta lärarens klasser
-  const { data: classesData, isLoading: isLoadingClasses } = useQuery({
+  // Debug logging for license status (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('License check:', {
+      isLoading: isCheckingLicense,
+      hasLicense: (licenseStatus as any)?.hasLicense,
+      licenseStatus,
+      error: licenseError
+    });
+  }
+
+  // Hämta lärarens klasser - förbättrad condition för att hantera caching problem
+  const { data: classesData, isLoading: isLoadingClasses, error: classesError } = useQuery({
     queryKey: ['/api/license/classes'],
-    enabled: (licenseStatus as any)?.hasLicense === true,
+    enabled: !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    staleTime: 0, // Ensure fresh data
+    refetchOnMount: true, // Always refetch when component mounts
   });
+
+  // Debug logging for classes (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Classes query:', {
+      isLoading: isLoadingClasses,
+      enabled: !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+      classesData,
+      error: classesError
+    });
+  }
 
   // Hämta elever för expanderad klass
   const { data: studentsData, isLoading: isLoadingStudents } = useQuery({
@@ -567,7 +589,8 @@ export default function TeacherClassesPage() {
     );
   }
 
-  if (!(licenseStatus as any)?.hasLicense) {
+  // Visa "Licens krävs" bara om vi verkligen vet att licensen saknas (inte under loading)
+  if (!isCheckingLicense && licenseStatus && (licenseStatus as any)?.hasLicense === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -837,11 +860,25 @@ export default function TeacherClassesPage() {
           </div>
 
           {/* Klasser */}
-          {isLoadingClasses ? (
+          {isLoadingClasses || (!classesData && (licenseStatus as any)?.hasLicense === true) ? (
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-4 text-gray-600">Laddar klasser...</p>
+                {classesError && (
+                  <p className="mt-2 text-red-600 text-sm">
+                    Fel vid laddning: {(classesError as any)?.message || 'Okänt fel'}
+                    <br />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] })}
+                    >
+                      Försök igen
+                    </Button>
+                  </p>
+                )}
               </CardContent>
             </Card>
           ) : (classesData as any)?.classes?.length === 0 ? (
