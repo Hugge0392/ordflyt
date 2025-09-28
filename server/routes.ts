@@ -3286,7 +3286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         teacherId,
         schoolId,
-        estimatedRecords: await calculateEstimatedRecords(validatedData.type, validatedData.classId, validatedData.studentId),
+        estimatedRecords: await calculateEstimatedRecords(validatedData.exportType, validatedData.classIds[0], validatedData.studentIds?.[0]),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       };
 
@@ -3297,7 +3297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobId: exportJob.id,
         teacherId,
         action: 'created',
-        details: { exportType: validatedData.exportType, format: validatedData.format },
+        details: JSON.stringify({ exportType: validatedData.exportType, format: validatedData.format }),
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
@@ -3867,8 +3867,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: description,
           sourceType: sourceType,
           sourceId: sourceId,
-          balanceBefore: currentCurrency.currentCoins,
-          balanceAfter: currentCurrency.currentCoins + amount
+          balanceBefore: currentCurrency.currentCoins || 0,
+          balanceAfter: (currentCurrency.currentCoins || 0) + amount
         });
 
       return updatedCurrency;
@@ -4134,7 +4134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(schema.studentCurrency)
         .where(eq(schema.studentCurrency.studentId, studentId));
 
-      if (!currency || currency.currentCoins < item.price) {
+      if (!currency || (currency.currentCoins || 0) < item.price) {
         return res.status(400).json({ message: "Inte tillräckligt med mynt" });
       }
 
@@ -4151,12 +4151,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
 
         // Update currency
-        const newBalance = currency.currentCoins - item.price;
+        const newBalance = (currency.currentCoins || 0) - item.price;
         await tx
           .update(schema.studentCurrency)
           .set({
             currentCoins: newBalance,
-            totalSpent: currency.totalSpent + item.price,
+            totalSpent: (currency.totalSpent || 0) + item.price,
             lastSpent: new Date(),
             updatedAt: new Date()
           })

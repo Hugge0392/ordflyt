@@ -38,7 +38,10 @@ export default function LoginPage() {
   // Caps Lock detection
   useEffect(() => {
     const detectCapsLock = (event: KeyboardEvent) => {
-      setIsCapsLockOn(event.getModifierState('CapsLock'));
+      // Safety check to ensure getModifierState exists and event is a proper KeyboardEvent
+      if (event && typeof event.getModifierState === 'function') {
+        setIsCapsLockOn(event.getModifierState('CapsLock'));
+      }
     };
 
     // Add event listeners for caps lock detection
