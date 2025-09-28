@@ -46,8 +46,28 @@ console.log('Security config loaded:', {
   hasSessionSecret: !!process.env.SESSION_SECRET,
   hasPepper: !!process.env.PASSWORD_PEPPER,
   pepperFallback: PEPPER.substring(0, 10) + '...',
-  sessionSecretPreview: SESSION_SECRET.substring(0, 10) + '...'
+  sessionSecretPreview: SESSION_SECRET.substring(0, 10) + '...',
+  teacherSessionDuration: TEACHER_SESSION_DURATION / 60000 + ' minutes',
+  productionMode: process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1'
 });
+
+// Session diagnostics for production troubleshooting
+export function logSessionDiagnostics(req: any, context: string) {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+  
+  if (isProduction) {
+    console.log(`[Session Diagnostics - ${context}]`, {
+      hasSessionToken: !!req.cookies?.sessionToken,
+      userAgent: req.headers['user-agent']?.substring(0, 50) + '...',
+      secureConnection: req.secure || req.headers['x-forwarded-proto'] === 'https',
+      host: req.headers.host,
+      origin: req.headers.origin,
+      sessionCookiePresent: !!req.cookies?.sessionToken,
+      cookieNames: Object.keys(req.cookies || {}),
+      timestamp: new Date().toISOString()
+    });
+  }
+}
 
 // Hash IP addresses for privacy
 export function hashIpAddress(ip: string): string {

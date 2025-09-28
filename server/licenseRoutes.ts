@@ -33,6 +33,7 @@ import {
   verifyStudentOwnership,
   licenseDb
 } from './licenseDb';
+import { logSessionDiagnostics } from './auth';
 import { requireAuth, requireRole, requireSchoolAccess, requireTeacherLicense, requireCsrf } from './auth';
 import { Request, Response } from 'express';
 import { oneTimeCodes, teacherLicenses, teacherClasses, studentAccounts } from '@shared/schema';
@@ -414,6 +415,9 @@ router.get('/status', requireAuth, async (req: any, res: Response) => {
 // GET /api/license/classes - Hämta lärarens klasser
 router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess(), async (req: any, res: Response) => {
   try {
+    // Log session diagnostics for production troubleshooting
+    logSessionDiagnostics(req, 'GET /classes - Teacher Classes Request');
+    
     let userId = req.user.id;
     console.log(`[licenseRoutes] 🔍 GET /classes - Original user ID: ${userId}`);
     console.log(`[licenseRoutes] 🔍 User object:`, {
