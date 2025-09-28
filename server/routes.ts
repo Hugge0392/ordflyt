@@ -5951,7 +5951,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Student progress tracking API
   app.post("/api/student-progress", async (req, res) => {
     try {
-      const { studentId, assignmentId, lessonId, completedAt, timeSpent, score, answers } = req.body;
+      let { studentId, assignmentId, lessonId, completedAt, timeSpent, score, answers } = req.body;
+
+      // Development bypass - override studentId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+
+        if (devBypass === 'true' && devRole === 'ELEV') {
+          console.log('[routes] Dev bypass active for /api/student-progress endpoint, using dev student ID');
+          studentId = 'a78c06fe-815a-4feb-adeb-1177699f4913'; // Use our dev student ID
+        }
+      }
 
       // Optional validation for authenticated users
       if (req.user?.id && req.user.id !== studentId) {
