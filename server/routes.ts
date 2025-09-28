@@ -6055,42 +6055,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/teacher/student-progress", async (req, res) => {
     try {
       const { classId, studentId } = req.query;
+      let teacherId = req.user?.id;
 
-      // Collect all student progress from in-memory storage
-      const allStudentProgress: any[] = [];
-
-      for (const [currentStudentId, progressList] of studentProgressStorage.entries()) {
-        // If a specific studentId is requested, filter for that student
-        if (studentId && currentStudentId !== studentId) {
-          continue;
-        }
-
-        // Add each progress entry with student information
-        for (const progress of progressList) {
-          // Get lesson title from assignment ID
-          let lessonTitle = "Okänd uppgift";
-          if (progress.assignmentId.includes('9d13a578')) {
-            lessonTitle = "Den sista matchen";
-          } else if (progress.assignmentId.includes('9b7ac70e')) {
-            lessonTitle = "Mobilförbud förbättrar studieresultatet";
-          } else if (progress.assignmentId.includes('87212bc9')) {
-            lessonTitle = "Lorem Ipsum text";
-          }
-
-          allStudentProgress.push({
-            studentId: currentStudentId,
-            studentName: currentStudentId === 'mock-student-id' ? 'Test Elev' : `Elev ${currentStudentId.slice(0, 8)}`,
-            assignmentId: progress.assignmentId,
-            assignmentTitle: lessonTitle,
-            completedAt: new Date(progress.completedAt),
-            score: progress.score,
-            timeSpent: progress.timeSpent,
-            needsHelp: progress.needsHelp || false
-          });
+      // Development bypass - override teacherId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+        if (devBypass === 'true' && devRole === 'LARARE') {
+          console.log('[routes] Dev bypass active for /api/teacher/student-progress endpoint, using dev teacher ID');
+          teacherId = '550e8400-e29b-41d4-a716-446655440002'; // Use our dev teacher ID
         }
       }
 
-      console.log(`Returning ${allStudentProgress.length} progress entries for teacher view`);
+      // Build query conditions
+      let whereConditions = [eq(studentLessonProgress.status, 'completed')];
+      
+      // Filter by specific student if requested
+      if (studentId && typeof studentId === 'string') {
+        whereConditions.push(eq(studentLessonProgress.studentId, studentId));
+      }
+      
+      // Filter by class if requested
+      if (classId && typeof classId === 'string') {
+        // Get assignments for this class first, then filter progress by those assignments
+        const classAssignments = await db
+          .select({ id: lessonAssignments.id })
+          .from(lessonAssignments)
+          .where(
+            and(
+              eq(lessonAssignments.classId, classId),
+              eq(lessonAssignments.teacherId, teacherId || '')
+            )
+          );
+        
+        const assignmentIds = classAssignments.map(a => a.id);
+        if (assignmentIds.length > 0) {
+          whereConditions.push(
+            sql`${studentLessonProgress.assignmentId} IN (${sql.join(assignmentIds.map(id => sql`${id}`), sql`, `)})`
+          );
+        } else {
+          // No assignments found for this class, return empty result
+          return res.json([]);
+        }
+      } else if (teacherId) {
+        // Filter by teacher's assignments if no specific class is requested
+        const teacherAssignments = await db
+          .select({ id: lessonAssignments.id })
+          .from(lessonAssignments)
+          .where(eq(lessonAssignments.teacherId, teacherId));
+        
+        const assignmentIds = teacherAssignments.map(a => a.id);
+        if (assignmentIds.length > 0) {
+          whereConditions.push(
+            sql`${studentLessonProgress.assignmentId} IN (${sql.join(assignmentIds.map(id => sql`${id}`), sql`, `)})`
+          );
+        } else {
+          // No assignments found for this teacher, return empty result
+          return res.json([]);
+        }
+      }
+
+      // Get student progress with full details from database
+      const progressQuery = await db
+        .select({
+          // Progress fields
+          progressId: studentLessonProgress.id,
+          studentId: studentLessonProgress.studentId,
+          assignmentId: studentLessonProgress.assignmentId,
+          lessonId: studentLessonProgress.lessonId,
+          status: studentLessonProgress.status,
+          score: studentLessonProgress.score,
+          maxScore: studentLessonProgress.maxScore,
+          timeSpent: studentLessonProgress.timeSpent,
+          completedAt: studentLessonProgress.completedAt,
+          progressData: studentLessonProgress.progressData,
+          // Assignment fields
+          assignmentTitle: lessonAssignments.title,
+          assignmentType: lessonAssignments.assignmentType,
+          // Student fields
+          studentFirstName: studentAccounts.firstName,
+          studentLastName: studentAccounts.lastName,
+          studentUsername: studentAccounts.username
+        })
+        .from(studentLessonProgress)
+        .leftJoin(lessonAssignments, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
+        .leftJoin(studentAccounts, eq(studentLessonProgress.studentId, studentAccounts.id))
+        .where(and(...whereConditions))
+        .orderBy(desc(studentLessonProgress.completedAt));
+
+      // Transform to expected format
+      const allStudentProgress = progressQuery.map((progress) => {
+        // Determine if student needs help based on score
+        const needsHelp = (progress.score || 0) < 70 || (progress.timeSpent || 0) > 1800; // Low score or took too long
+
+        // Build student name
+        let studentName = 'Okänd elev';
+        if (progress.studentFirstName && progress.studentLastName) {
+          studentName = `${progress.studentFirstName} ${progress.studentLastName}`;
+        } else if (progress.studentUsername) {
+          studentName = progress.studentUsername;
+        } else if (progress.studentId) {
+          studentName = `Elev ${progress.studentId.slice(0, 8)}`;
+        }
+
+        return {
+          studentId: progress.studentId,
+          studentName: studentName,
+          assignmentId: progress.assignmentId || progress.lessonId,
+          assignmentTitle: progress.assignmentTitle || `Lektion ${progress.lessonId?.slice(0, 8)}...` || "Okänd uppgift",
+          completedAt: progress.completedAt || new Date(),
+          score: progress.score || 0,
+          timeSpent: progress.timeSpent || 0,
+          needsHelp: needsHelp
+        };
+      });
+
+      console.log(`Returning ${allStudentProgress.length} progress entries for teacher view (from database)`);
       res.json(allStudentProgress);
     } catch (error) {
       console.error("Error fetching student progress for teacher:", error);
