@@ -5981,6 +5981,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         needsHelp: (score || 0) < 75 // Mark as needing help if score is below 75%
       };
 
+      // First verify that the assignment exists
+      const assignmentExists = await db.execute(sql`
+        SELECT id FROM lesson_assignments 
+        WHERE id = ${assignmentId}
+        LIMIT 1
+      `);
+      
+      if (assignmentExists.rows.length === 0) {
+        console.error(`❌ Assignment not found: ${assignmentId}`);
+        return res.status(404).json({ 
+          error: "Uppgiften finns inte",
+          details: `Assignment ID ${assignmentId} was not found in the database`,
+          assignmentId: assignmentId
+        });
+      }
+      
+      console.log(`✅ Assignment verified: ${assignmentId}`);
+      
       // Check if this assignment is already completed by this student
       const existing = await db.execute(sql`
         SELECT id FROM student_lesson_progress 
@@ -6048,7 +6066,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error saving student progress:", error);
-      res.status(500).json({ error: "Kunde inte spara framsteg" });
+      
+      // Enhanced error handling
+      if (error && typeof error === 'object' && 'code' in error) {
+        const dbError = error as any;
+        if (dbError.code === '23503') {
+          // Foreign key constraint violation
+          if (dbError.constraint?.includes('assignment_id')) {
+            return res.status(404).json({ 
+              error: "Uppgiften finns inte i systemet",
+              details: "The assignment ID does not exist in the database",
+              assignmentId: assignmentId
+            });
+          }
+        }
+      }
+      
+      res.status(500).json({ 
+        error: "Kunde inte spara framsteg",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
