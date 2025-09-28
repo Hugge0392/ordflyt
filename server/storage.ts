@@ -1878,15 +1878,27 @@ export class DatabaseStorage implements IStorage {
 
     // Get the actual assignment details
     const assignmentIds = completedAssignmentIds.map(p => p.assignmentId);
-    return await db
-      .select()
-      .from(lessonAssignments)
-      .where(
-        and(
-          sql`${lessonAssignments.id} = ANY(${assignmentIds})`,
-          eq(lessonAssignments.isActive, true)
+
+    // Use IN clause instead of ANY for better compatibility
+    const results = [];
+    for (const assignmentId of assignmentIds) {
+      const assignment = await db
+        .select()
+        .from(lessonAssignments)
+        .where(
+          and(
+            eq(lessonAssignments.id, assignmentId),
+            eq(lessonAssignments.isActive, true)
+          )
         )
-      );
+        .limit(1);
+
+      if (assignment.length > 0) {
+        results.push(assignment[0]);
+      }
+    }
+
+    return results;
   }
 
   async updateLessonAssignment(id: string, assignment: Partial<InsertLessonAssignment>): Promise<LessonAssignment> {
