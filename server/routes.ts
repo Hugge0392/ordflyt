@@ -5983,41 +5983,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get completed assignments for a student
   app.get("/api/students/:studentId/completed-assignments", async (req, res) => {
     try {
-      const { studentId } = req.params;
+      let studentId = req.params.studentId;
+
+      // Development bypass - override studentId if dev headers are present
+      if (process.env.NODE_ENV !== 'production') {
+        const devBypass = req.headers['x-dev-bypass'] || req.cookies?.devBypass;
+        const devRole = req.headers['x-dev-role'] || req.cookies?.devRole;
+        if (devBypass === 'true' && devRole === 'ELEV') {
+          console.log('[routes] Dev bypass active for /api/students/:studentId/completed-assignments endpoint, using dev student ID');
+          studentId = 'a78c06fe-815a-4feb-adeb-1177699f4913'; // Use our dev student ID
+        }
+      }
 
       // Optional validation for authenticated users
       if (req.user?.id && req.user.id !== studentId && req.user?.role !== 'teacher') {
         return res.status(403).json({ error: "Åtkomst nekad" });
       }
 
-      // Get completed assignments from in-memory storage
-      const studentProgress = studentProgressStorage.get(studentId) || [];
+      // Get completed assignments from database using studentLessonProgress table
+      const allProgress = await db
+        .select({
+          id: studentLessonProgress.id,
+          assignmentId: studentLessonProgress.assignmentId,
+          lessonId: studentLessonProgress.lessonId,
+          lessonType: studentLessonProgress.lessonType,
+          status: studentLessonProgress.status,
+          score: studentLessonProgress.score,
+          maxScore: studentLessonProgress.maxScore,
+          timeSpent: studentLessonProgress.timeSpent,
+          completedAt: studentLessonProgress.completedAt,
+          progressData: studentLessonProgress.progressData,
+          // Join with assignment for title
+          assignmentTitle: lessonAssignments.title,
+          assignmentType: lessonAssignments.assignmentType,
+          assignmentTimeLimit: lessonAssignments.timeLimit
+        })
+        .from(studentLessonProgress)
+        .leftJoin(lessonAssignments, eq(studentLessonProgress.assignmentId, lessonAssignments.id))
+        .where(
+          and(
+            eq(studentLessonProgress.studentId, studentId),
+            eq(studentLessonProgress.status, 'completed')
+          )
+        )
+        .orderBy(desc(studentLessonProgress.completedAt));
 
-      // Transform progress data to assignment format with lesson titles
-      const completedAssignments = studentProgress.map((progress) => {
-        // Try to get lesson title from assignment ID (simplified approach)
-        let lessonTitle = progress.assignmentTitle || "Okänd uppgift";
-
-        // Map known assignment IDs to titles
-        if (progress.assignmentId.includes('9d13a578')) {
-          lessonTitle = "Den sista matchen";
-        } else if (progress.assignmentId.includes('9b7ac70e')) {
-          lessonTitle = "Mobilförbud förbättrar studieresultatet";
-        } else if (progress.assignmentId.includes('87212bc9')) {
-          lessonTitle = "Lorem Ipsum text";
-        } else {
-          lessonTitle = `Uppgift ${progress.assignmentId.slice(0, 8)}...`;
-        }
-
+      // Transform progress data to assignment format for frontend
+      const completedAssignments = allProgress.map((progress) => {
         return {
-          id: progress.assignmentId,
-          title: lessonTitle,
+          id: progress.assignmentId || progress.lessonId || progress.id,
+          title: progress.assignmentTitle || `Lektion ${progress.lessonId?.slice(0, 8)}...` || "Okänd uppgift",
           description: "Slutförd uppgift",
-          assignmentType: 'reading_lesson',
-          timeLimit: 30,
-          completedAt: new Date(progress.completedAt),
-          score: progress.score,
-          timeSpent: progress.timeSpent // Already in seconds
+          assignmentType: progress.assignmentType || progress.lessonType || 'reading_lesson',
+          timeLimit: progress.assignmentTimeLimit || 30,
+          completedAt: progress.completedAt,
+          score: progress.score || 0,
+          maxScore: progress.maxScore,
+          timeSpent: progress.timeSpent || 0 // Time in seconds
         };
       });
 
