@@ -129,10 +129,27 @@ function StudentManagementSection() {
     retry: false,
   });
 
-  // Fetch teacher's classes and students - använd samma license-villkor som teacher-classes.tsx
+  // Debug logging for license status (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Teacher Dashboard License check:', {
+      isLoading: isCheckingLicense,
+      hasLicense: (licenseStatus as any)?.hasLicense,
+      licenseStatus,
+      error: licenseError,
+      isAuthenticated,
+      teacherContext
+    });
+  }
+
+  // Allow access if dev bypass is active
+  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
+
+  // Fetch teacher's classes and students - tillåt access i dev-läge eller med licens
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    enabled: isAuthenticated && teacherContext?.isTeacher && (
+      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
+    ),
     staleTime: 0, // Ensure fresh data
     refetchOnMount: true, // Always refetch when component mounts
     initialData: { classes: [] },
@@ -1224,7 +1241,9 @@ export default function TeacherDashboard() {
   // Fetch dashboard statistics
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
     queryKey: ['/api/teacher/dashboard-stats'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    enabled: isAuthenticated && teacherContext?.isTeacher && (
+      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
+    ),
     initialData: {
       totalStudents: 0,
       totalClasses: 0,
@@ -1238,14 +1257,18 @@ export default function TeacherDashboard() {
   // Fetch recent activity
   const { data: recentActivity } = useQuery({
     queryKey: ['/api/teacher/recent-activity'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    enabled: isAuthenticated && teacherContext?.isTeacher && (
+      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
+    ),
     initialData: []
   });
 
   // Fetch teacher's classes and students for preview dropdown
   const { data: dashboardClassesData } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    enabled: isAuthenticated && teacherContext?.isTeacher && (
+      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
+    ),
     initialData: { classes: [] },
   });
 
@@ -1311,7 +1334,8 @@ export default function TeacherDashboard() {
     );
   }
 
-  // License requirement check
+  // License requirement check - men bara om license status är explicit false
+  // Visa "Licens krävs" bara om vi verkligen vet att licensen saknas (inte under loading)
   if (!isCheckingLicense && licenseStatus && (licenseStatus as any)?.hasLicense === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
@@ -1337,9 +1361,6 @@ export default function TeacherDashboard() {
       </div>
     );
   }
-
-  // Allow access if dev bypass is active
-  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
 
   if (!isDevBypass && (!user || !teacherContext?.isTeacher)) {
     return (
