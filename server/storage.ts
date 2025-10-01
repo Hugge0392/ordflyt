@@ -4009,12 +4009,18 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(teacherClasses)
-        .where(eq(teacherClasses.teacherId, teacherId))
+        .where(
+          and(
+            eq(teacherClasses.teacherId, teacherId),
+            isNull(teacherClasses.archivedAt)
+          )
+        )
         .orderBy(sql`${teacherClasses.createdAt} DESC`);
     } else {
       return await db
         .select()
         .from(teacherClasses)
+        .where(isNull(teacherClasses.archivedAt))
         .orderBy(sql`${teacherClasses.createdAt} DESC`);
     }
   }

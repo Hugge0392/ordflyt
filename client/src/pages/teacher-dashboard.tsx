@@ -122,10 +122,19 @@ function StudentManagementSection() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated, teacherContext } = useAuth();
 
-  // Fetch teacher's classes and students
+  // Kontrollera licensstatus först
+  const { data: licenseStatus, isLoading: isCheckingLicense, error: licenseError } = useQuery({
+    queryKey: ['/api/license/status'],
+    enabled: isAuthenticated && teacherContext?.isTeacher,
+    retry: false,
+  });
+
+  // Fetch teacher's classes and students - använd samma license-villkor som teacher-classes.tsx
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
-    enabled: isAuthenticated && teacherContext?.isTeacher,
+    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
+    staleTime: 0, // Ensure fresh data
+    refetchOnMount: true, // Always refetch when component mounts
     initialData: { classes: [] },
   });
 
@@ -1215,7 +1224,7 @@ export default function TeacherDashboard() {
   // Fetch dashboard statistics
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
     queryKey: ['/api/teacher/dashboard-stats'],
-    enabled: isAuthenticated && teacherContext?.isTeacher,
+    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
     initialData: {
       totalStudents: 0,
       totalClasses: 0,
@@ -1229,14 +1238,14 @@ export default function TeacherDashboard() {
   // Fetch recent activity
   const { data: recentActivity } = useQuery({
     queryKey: ['/api/teacher/recent-activity'],
-    enabled: isAuthenticated && teacherContext?.isTeacher,
+    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
     initialData: []
   });
 
   // Fetch teacher's classes and students for preview dropdown
   const { data: dashboardClassesData } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
-    enabled: isAuthenticated && teacherContext?.isTeacher,
+    enabled: isAuthenticated && teacherContext?.isTeacher && !isCheckingLicense && (licenseStatus as any)?.hasLicense === true,
     initialData: { classes: [] },
   });
 
@@ -1284,6 +1293,47 @@ export default function TeacherDashboard() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Laddar lärarpanel...</p>
         </div>
+      </div>
+    );
+  }
+
+  // License check loading state
+  if (isCheckingLicense) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Kontrollerar licens...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // License requirement check
+  if (!isCheckingLicense && licenseStatus && (licenseStatus as any)?.hasLicense === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <GraduationCap className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-amber-800">Licens krävs</CardTitle>
+            </div>
+            <CardDescription>
+              Du behöver en aktiv lärarlicens för att komma åt lärarpanelen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/license">
+              <Button className="w-full">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Aktivera licens
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }

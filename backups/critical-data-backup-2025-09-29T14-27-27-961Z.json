@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-28T10:41:52.920Z",
+  "timestamp": "2025-09-29T14:27:27.955Z",
   "version": "1.0.0",
   "environment": "development",
   "counts": {
@@ -1400,19 +1400,16 @@
         "correctAnswers": 0,
         "totalQuestions": 0,
         "attemptCount": 0,
-        "timeSpent": 450,
+        "timeSpent": 0,
         "lastActivityAt": null,
         "startedAt": null,
-        "completedAt": "2025-09-28T10:08:27.383Z",
-        "progressData": {
-          "reflektion": "mycket bra svar",
-          "läsförståelse": "excellent"
-        },
+        "completedAt": "2025-09-28T11:11:23.753Z",
+        "progressData": {},
         "studentNotes": null,
         "needsHelp": false,
         "flaggedForReview": false,
         "createdAt": "2025-09-28T01:09:48.965Z",
-        "updatedAt": "2025-09-28T10:08:27.383Z"
+        "updatedAt": "2025-09-28T11:11:23.753Z"
       }
     ]
   }

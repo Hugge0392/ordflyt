@@ -172,3 +172,67 @@ När du arbetar med detta projekt:
 6. **Dokument era ändringar** - uppdatera relevanta kommentarer och dokumentation
 
 För komplex funktionalitet, börja alltid med att granska befintlig kod för liknande implementationer.
+
+## SEO-Optimering (ALLTID IMPLEMENTERA)
+
+### Intelligent Innehållsbaserad SEO
+Systemet ska **automatiskt** anpassa SEO-element baserat på sidans befintliga innehåll:
+
+#### 1. Title Tags - Intelligent Extraktion
+- **Analysera H1-taggar** och använd som bas för titel
+- **Identifiera återkommande fraser** i sidans text
+- **Behåll viktiga termer** som upprepas genom innehållet
+- **Format**: "[Huvudsakligt innehåll] | [Appnamn]"
+- **Längd**: 50-60 tecken, prioritera viktigaste orden först
+
+#### 2. Meta Descriptions - Innehållsdriven
+- **Sammanfatta från första stycket** eller huvudinnehåll
+- **Inkludera fraser som återkommer** på sidan
+- **Bevara användarens ordval** från original innehåll
+- **Längd**: 150-160 tecken
+- **Naturligt språk** som speglar sidans ton
+
+#### 3. URL Slugs - Baserade på Rubriker
+- **Extrahera från H1 eller page title**
+- **Använd användarens ursprungliga ordval**
+- **Konvertera till url-vänligt format** (bindestreck, gemener)
+- **Behåll svenska termer** som användaren valt
+
+#### 4. Automatisk Innehållsanalys
+```typescript
+// Funktion som analyserar sidinnehåll för SEO
+const extractSeoFromContent = (content: string, headings: string[]) => {
+  // Hitta mest förekommande fraser (2-3 ord)
+  const phrases = extractRepeatingPhrases(content);
+
+  // Använd H1 som bas för titel
+  const mainHeading = headings[0];
+
+  // Skapa titel från huvudrubrik + viktiga fraser
+  const title = generateTitle(mainHeading, phrases);
+
+  // Extrahera beskrivning från första meningsstycket
+  const description = extractDescription(content, phrases);
+
+  // Generera URL från huvudrubrik
+  const slug = generateSlug(mainHeading);
+
+  return { title, description, slug };
+};
+```
+
+#### 5. Rubrikstruktur-Optimering
+- **Analysera befintlig H1-H6 hierarki**
+- **Bevara användarens rubrikordning**
+- **Säkerställ endast en H1 per sida**
+- **Extrahera nyckelfraser från underrubriker**
+
+#### 6. Automatiska SEO-Kontroller
+- ✅ Extrahera titel från huvudinnehåll (H1/första stycket)
+- ✅ Identifiera återkommande viktiga fraser
+- ✅ Generera beskrivning från faktiskt sidinnehåll
+- ✅ Skapa URL-slug från huvudrubrik
+- ✅ Bevara användarens ordval och tonalitet
+- ✅ Anpassa längder för optimal visning
+
+**PRINCIP**: Systemet ska ALDRIG uppfinna nya nyckelord utan alltid basera SEO-optimering på det innehåll och de termer som användaren redan har skapat och prioriterat.

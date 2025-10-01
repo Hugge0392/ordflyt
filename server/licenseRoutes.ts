@@ -439,8 +439,12 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
     }
 
     console.log(`[licenseRoutes] 🎯 Final teacher ID for query: ${userId}`);
-    
+
+    // Add session diagnostics for class loading troubleshooting
+    logSessionDiagnostics(req, 'getTeacherClasses');
+
     const classes = await getTeacherClasses(userId);
+    console.log(`[licenseRoutes] 📚 Found ${classes.length} classes for teacher ${userId}`);
 
     // Hämta elever för varje klass
     const classesWithStudents = await Promise.all(

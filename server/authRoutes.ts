@@ -237,15 +237,18 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       httpOnly: true,
       secure: isProduction, // HTTPS only in production
       sameSite: isProduction ? 'lax' as const : 'strict' as const, // More lenient in production
-      maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 30 * 60 * 1000, // 1h for students, 30min for teachers/admins
+      maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 120 * 60 * 1000, // 1h for students, 2h for teachers/admins
       path: '/',
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
-    
+
     console.log('Setting session cookie for login with options:', {
       ...cookieOptions,
       domain: 'default (current domain)',
-      userRole: user.role
+      userRole: user.role,
+      isProduction,
+      sessionDuration: user.role === 'ELEV' ? '60 minutes' : '120 minutes',
+      host: req.headers.host
     });
     
     res.cookie('sessionToken', session.sessionToken, cookieOptions);
@@ -439,7 +442,7 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'lax' as const : 'strict' as const,
-      maxAge: 30 * 60 * 1000, // 30 minutes for teachers
+      maxAge: 120 * 60 * 1000, // 2 hours for teachers
       path: '/'
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
@@ -2088,7 +2091,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'strict',
-        maxAge: 30 * 60 * 1000, // 30 minutes for teachers/admin
+        maxAge: 120 * 60 * 1000, // 2 hours for teachers/admin
         path: '/'
       });
 

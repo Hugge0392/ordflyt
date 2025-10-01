@@ -31,7 +31,7 @@ declare global {
 
 // Constants for security
 const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
-const TEACHER_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for teachers/admins
+const TEACHER_SESSION_DURATION = 120 * 60 * 1000; // 2 hours for teachers/admins (increased from 30min)
 const STUDENT_SESSION_DURATION = 45 * 60 * 1000; // 45 minutes for students
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
 const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 20 : 100; // Increased to 20 attempts in production
@@ -54,7 +54,7 @@ console.log('Security config loaded:', {
 // Session diagnostics for production troubleshooting
 export function logSessionDiagnostics(req: any, context: string) {
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
-  
+
   if (isProduction) {
     console.log(`[Session Diagnostics - ${context}]`, {
       hasSessionToken: !!req.cookies?.sessionToken,
@@ -62,9 +62,14 @@ export function logSessionDiagnostics(req: any, context: string) {
       secureConnection: req.secure || req.headers['x-forwarded-proto'] === 'https',
       host: req.headers.host,
       origin: req.headers.origin,
+      referer: req.headers.referer,
       sessionCookiePresent: !!req.cookies?.sessionToken,
       cookieNames: Object.keys(req.cookies || {}),
-      timestamp: new Date().toISOString()
+      cookieCount: Object.keys(req.cookies || {}).length,
+      sessionLength: req.cookies?.sessionToken?.length || 0,
+      timestamp: new Date().toISOString(),
+      userId: req.user?.id || 'not authenticated',
+      userRole: req.user?.role || 'unknown'
     });
   }
 }
