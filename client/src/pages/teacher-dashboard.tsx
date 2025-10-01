@@ -122,6 +122,9 @@ function StudentManagementSection() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated, teacherContext } = useAuth();
 
+  // Dev bypass för utvecklingsläge
+  const isDevBypass = import.meta.env.DEV;
+
   // TEMPORÄRT: License-query borttagen för enklare utveckling
 
   // TEMPORÄR FIX: Enklare villkor för att testa
