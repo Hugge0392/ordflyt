@@ -1234,7 +1234,8 @@ export default function TeacherDashboard() {
   const previewStudent = null;
 
   // Allow access if dev bypass is active - MÅSTE vara tidigt i komponenten
-  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
+  // TEMPORÄRT: Aktivera dev bypass automatiskt i utvecklingsläge
+  const isDevBypass = import.meta.env.DEV; // Tillåt alla teacher-funktioner i dev-läge
 
   // DEBUG: Logga viktiga värden
   console.log('TeacherDashboard render:', {
@@ -1247,22 +1248,7 @@ export default function TeacherDashboard() {
     isDevBypass
   });
 
-  // TEMPORÄR DEBUG: Enkel return för att testa renderingen
-  if (true) {
-    return (
-      <div className="min-h-screen bg-white p-8">
-        <h1 className="text-4xl font-bold text-black">Teacher Dashboard Debug</h1>
-        <div className="mt-4 bg-gray-100 p-4 rounded">
-          <p>isLoading: {String(isLoading)}</p>
-          <p>isAuthenticated: {String(isAuthenticated)}</p>
-          <p>user: {user ? user.username : 'null'}</p>
-          <p>teacherContext: {teacherContext ? 'exists' : 'null'}</p>
-          <p>school: {school ? school.name : 'null'}</p>
-          <p>isDevBypass: {String(isDevBypass)}</p>
-        </div>
-      </div>
-    );
-  }
+  // DEBUG: Nu ska isDevBypass vara true och allt ska fungera
 
   // TEMPORÄR FIX: Enklare villkor för stats
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
