@@ -141,15 +141,10 @@ function StudentManagementSection() {
     });
   }
 
-  // Allow access if dev bypass is active
-  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
-
-  // Fetch teacher's classes and students - tillåt access i dev-läge eller med licens
+  // TEMPORÄR FIX: Enklare villkor för att testa
   const { data: classesData, isLoading: isLoadingClasses } = useQuery<ClassesResponse>({
     queryKey: ['/api/license/classes'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && (
-      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
-    ),
+    enabled: isAuthenticated && (teacherContext?.isTeacher || isDevBypass),
     staleTime: 0, // Ensure fresh data
     refetchOnMount: true, // Always refetch when component mounts
     initialData: { classes: [] },
@@ -1238,12 +1233,41 @@ export default function TeacherDashboard() {
   const isPreviewMode = false;
   const previewStudent = null;
 
-  // Fetch dashboard statistics
+  // Allow access if dev bypass is active - MÅSTE vara tidigt i komponenten
+  const isDevBypass = import.meta.env.DEV && localStorage.getItem('devBypass') === 'true';
+
+  // DEBUG: Logga viktiga värden
+  console.log('TeacherDashboard render:', {
+    user,
+    isAuthenticated,
+    isLoading,
+    teacherContext,
+    school,
+    hasSchoolAccess,
+    isDevBypass
+  });
+
+  // TEMPORÄR DEBUG: Enkel return för att testa renderingen
+  if (true) {
+    return (
+      <div className="min-h-screen bg-white p-8">
+        <h1 className="text-4xl font-bold text-black">Teacher Dashboard Debug</h1>
+        <div className="mt-4 bg-gray-100 p-4 rounded">
+          <p>isLoading: {String(isLoading)}</p>
+          <p>isAuthenticated: {String(isAuthenticated)}</p>
+          <p>user: {user ? user.username : 'null'}</p>
+          <p>teacherContext: {teacherContext ? 'exists' : 'null'}</p>
+          <p>school: {school ? school.name : 'null'}</p>
+          <p>isDevBypass: {String(isDevBypass)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // TEMPORÄR FIX: Enklare villkor för stats
   const { data: stats, isLoading: isLoadingStats } = useQuery<DashboardStats>({
     queryKey: ['/api/teacher/dashboard-stats'],
-    enabled: isAuthenticated && teacherContext?.isTeacher && (
-      isDevBypass || (!isCheckingLicense && (licenseStatus as any)?.hasLicense === true)
-    ),
+    enabled: isAuthenticated && (teacherContext?.isTeacher || isDevBypass),
     initialData: {
       totalStudents: 0,
       totalClasses: 0,
@@ -1320,7 +1344,9 @@ export default function TeacherDashboard() {
     );
   }
 
+  // TEMPORÄR FIX: Avaktivera license-checkar för att testa
   // License check loading state
+  /*
   if (isCheckingLicense) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
@@ -1361,6 +1387,7 @@ export default function TeacherDashboard() {
       </div>
     );
   }
+  */
 
   if (!isDevBypass && (!user || !teacherContext?.isTeacher)) {
     return (
