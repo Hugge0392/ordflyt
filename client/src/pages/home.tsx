@@ -96,7 +96,7 @@ function DevQuickLogin() {
 // Component to display recent blog posts
 function RecentBlogPosts() {
   const { data: blogData, isLoading, error } = useQuery<{ posts: BlogPost[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
-    queryKey: ['/api/blog/posts', { limit: 3, page: 1 }],
+    queryKey: ['/api/blog/posts?limit=3&page=1'],
   });
 
   // Always show section, handle loading and empty states
