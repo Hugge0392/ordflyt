@@ -30,9 +30,10 @@ declare global {
 }
 
 // Constants for security
-const SESSION_DURATION = 60 * 60 * 1000; // 1 hour for normal users
-const TEACHER_SESSION_DURATION = 120 * 60 * 1000; // 2 hours for teachers/admins (increased from 30min)
-const STUDENT_SESSION_DURATION = 45 * 60 * 1000; // 45 minutes for students
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for normal users
+const TEACHER_SESSION_DURATION = 14 * 24 * 60 * 60 * 1000; // 14 days for teachers
+const ADMIN_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for admins
+const STUDENT_SESSION_DURATION = 90 * 24 * 60 * 60 * 1000; // 90 days for students
 const CSRF_TOKEN_DURATION = 60 * 60 * 1000; // 1 hour
 const MAX_LOGIN_ATTEMPTS = process.env.NODE_ENV === 'production' ? 20 : 100; // Increased to 20 attempts in production
 const LOGIN_COOLDOWN = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 1 * 60 * 1000; // 1 minute in dev, 5 in production
@@ -187,7 +188,7 @@ export async function getTeacherSchoolContext(userId: string): Promise<{
   licenseId?: string;
 } | null> {
   try {
-    // First check if user is a teacher through licenses
+    // Check for active license
     const [license] = await db
       .select({
         id: teacherLicenses.id,
@@ -201,10 +202,6 @@ export async function getTeacherSchoolContext(userId: string): Promise<{
         )
       )
       .limit(1);
-
-    if (!license) {
-      return { isTeacher: false };
-    }
 
     // Check teacher-school memberships for school info
     const [membership] = await db
@@ -222,18 +219,20 @@ export async function getTeacherSchoolContext(userId: string): Promise<{
       )
       .limit(1);
 
+    // Always return isTeacher: true for users with LARARE role
+    // License is checked separately by requireTeacherLicense middleware
     if (membership) {
       return {
         schoolId: membership.schoolId,
         schoolName: membership.schoolName,
         isTeacher: true,
-        licenseId: license.id,
+        licenseId: license?.id,
       };
     }
 
     return {
       isTeacher: true,
-      licenseId: license.id,
+      licenseId: license?.id,
     };
   } catch (error) {
     console.error('Error fetching teacher school context:', error);
@@ -253,7 +252,9 @@ export async function createSession(
   // Users can now log in from multiple devices simultaneously
   
   const sessionToken = generateSecureToken();
-  const duration = (role === 'LARARE' || role === 'ADMIN') ? TEACHER_SESSION_DURATION : SESSION_DURATION;
+  const duration = role === 'ADMIN' ? ADMIN_SESSION_DURATION :
+                   role === 'LARARE' ? TEACHER_SESSION_DURATION :
+                   SESSION_DURATION;
   
   const [session] = await db.insert(sessions).values({
     userId,

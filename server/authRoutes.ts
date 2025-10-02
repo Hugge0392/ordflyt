@@ -233,11 +233,29 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
     
     // Set secure cookie with production-safe settings
     const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+
+    // Calculate maxAge based on role
+    let maxAge: number;
+    let durationLabel: string;
+    if (user.role === 'ELEV') {
+      maxAge = 90 * 24 * 60 * 60 * 1000; // 90 days for students
+      durationLabel = '90 days';
+    } else if (user.role === 'ADMIN') {
+      maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days for admins
+      durationLabel = '7 days';
+    } else if (user.role === 'LARARE') {
+      maxAge = 14 * 24 * 60 * 60 * 1000; // 14 days for teachers
+      durationLabel = '14 days';
+    } else {
+      maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days for other users
+      durationLabel = '7 days';
+    }
+
     const cookieOptions = {
       httpOnly: true,
       secure: isProduction, // HTTPS only in production
       sameSite: isProduction ? 'lax' as const : 'strict' as const, // More lenient in production
-      maxAge: user.role === 'ELEV' ? 60 * 60 * 1000 : 120 * 60 * 1000, // 1h for students, 2h for teachers/admins
+      maxAge,
       path: '/',
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
@@ -247,7 +265,7 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       domain: 'default (current domain)',
       userRole: user.role,
       isProduction,
-      sessionDuration: user.role === 'ELEV' ? '60 minutes' : '120 minutes',
+      sessionDuration: durationLabel,
       host: req.headers.host
     });
     
@@ -436,20 +454,21 @@ router.post("/api/auth/register", loginRateLimit, async (req, res) => {
     const deviceFingerprint = generateDeviceFingerprint(req);
     const sessionData = await createSession(newUser.id, ipAddress, userAgent, deviceFingerprint, 'LARARE');
 
-    // Set session cookie with production-safe settings  
+    // Set session cookie with production-safe settings
     const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
     const cookieOptions = {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'lax' as const : 'strict' as const,
-      maxAge: 120 * 60 * 1000, // 2 hours for teachers
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days for teachers
       path: '/'
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
-    
+
     console.log('Setting session cookie for registration with options:', {
       ...cookieOptions,
-      domain: 'default (current domain)'
+      domain: 'default (current domain)',
+      sessionDuration: '14 days'
     });
     
     res.cookie('sessionToken', sessionData.sessionToken, cookieOptions);
@@ -1572,7 +1591,7 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
       secure: isProduction,
       sameSite: isProduction ? 'lax' as const : 'strict' as const,
       path: '/',
-      maxAge: 45 * 60 * 1000 // 45 minutes
+      maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days for students
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
 
@@ -1702,7 +1721,7 @@ router.post("/api/student/login-with-code", loginRateLimit, async (req, res) => 
       secure: isProduction,
       sameSite: isProduction ? 'lax' as const : 'strict' as const,
       path: '/',
-      maxAge: 45 * 60 * 1000 // 45 minutes
+      maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days for students
       // Domain omitted to work with any deployment domain (replit.app, ordflyt.se, etc)
     };
 
@@ -1960,7 +1979,7 @@ router.post("/api/dev/quick-login", async (req, res) => {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'strict',
-        maxAge: 60 * 60 * 1000, // 1 hour for students
+        maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days for students
         path: '/'
       });
 
@@ -2087,11 +2106,12 @@ router.post("/api/dev/quick-login", async (req, res) => {
       
       // Set session cookie
       const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+      const devMaxAge = user.role === 'ADMIN' ? 7 * 24 * 60 * 60 * 1000 : 14 * 24 * 60 * 60 * 1000; // 7 days for admin, 14 days for teachers
       res.cookie('sessionToken', sessionData.sessionToken, {
         httpOnly: true,
         secure: isProduction,
         sameSite: 'strict',
-        maxAge: 120 * 60 * 1000, // 2 hours for teachers/admin
+        maxAge: devMaxAge,
         path: '/'
       });
 
