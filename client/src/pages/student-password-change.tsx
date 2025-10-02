@@ -101,9 +101,9 @@ export default function StudentPasswordChangePage() {
         description: response.message || "Ditt lösenord har uppdaterats framgångsrikt!",
       });
 
-      // Redirect to main game after successful password change
+      // Redirect to student home after successful password change
       setTimeout(() => {
-        setLocation("/spela");
+        setLocation("/elev");
       }, 1000);
 
     } catch (err: any) {

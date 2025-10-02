@@ -1537,20 +1537,42 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
     }
 
     // Verify password
+    console.log('[Student Login] Verifying password for student:', {
+      studentId: student.id,
+      username: student.username,
+      mustChangePassword: student.mustChangePassword,
+      hashLength: student.passwordHash.length,
+      passwordLength: password.length
+    });
+
     const passwordValid = await verifyPassword(password, student.passwordHash);
+
+    console.log('[Student Login] Password verification result:', {
+      studentId: student.id,
+      username: student.username,
+      valid: passwordValid
+    });
+
     if (!passwordValid) {
       // Increment failed login attempts
       const newFailedAttempts = (student.failedLoginAttempts || 0) + 1;
       const shouldLockAccount = newFailedAttempts >= 5; // Lock after 5 failed attempts
-      
+
+      console.log('[Student Login] Invalid password, incrementing failed attempts:', {
+        studentId: student.id,
+        username: student.username,
+        newFailedAttempts,
+        shouldLockAccount
+      });
+
       const updateData: any = {
         failedLoginAttempts: newFailedAttempts
       };
-      
+
       if (shouldLockAccount) {
         updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
       }
-      
+
       await db
         .update(studentAccounts)
         .set(updateData)
@@ -1558,11 +1580,11 @@ router.post("/api/student/login", loginRateLimit, async (req, res) => {
 
       await recordFailedLogin(username, ipAddress, deviceFingerprint, 'Invalid password');
       await logAuditEvent('STUDENT_LOGIN_ATTEMPT', null, false, ipAddress, userAgent, { studentId: student.id, studentUsername: student.username, reason: 'Invalid password', failedAttempts: newFailedAttempts });
-      
-      const errorMessage = shouldLockAccount 
+
+      const errorMessage = shouldLockAccount
         ? 'För många misslyckade inloggningsförsök. Kontot har låsts i 30 minuter.'
         : 'Felaktigt användarnamn eller lösenord';
-      
+
       return res.status(401).json({ error: errorMessage });
     }
 
@@ -1867,14 +1889,29 @@ router.post("/api/student/password", requireStudentAuth, async (req, res) => {
     // Hash new password
     const newPasswordHash = await hashPassword(newPassword);
 
+    console.log('[Student Password Change] Updating password for student:', {
+      studentId: req.student.id,
+      username: req.student.username,
+      mustChangePassword: req.student.mustChangePassword,
+      oldHashLength: req.student.passwordHash.length,
+      newHashLength: newPasswordHash.length
+    });
+
     // Update password and clear mustChangePassword flag
-    await db
+    const updateResult = await db
       .update(studentAccounts)
-      .set({ 
+      .set({
         passwordHash: newPasswordHash,
         mustChangePassword: false
       })
-      .where(eq(studentAccounts.id, req.student.id));
+      .where(eq(studentAccounts.id, req.student.id))
+      .returning();
+
+    console.log('[Student Password Change] Password updated successfully:', {
+      studentId: req.student.id,
+      updatedRows: updateResult.length,
+      newMustChangePassword: updateResult[0]?.mustChangePassword
+    });
 
     // Log password change (use null for user_id since students are not in users table)
     await logAuditEvent(
