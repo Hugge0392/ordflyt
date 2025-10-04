@@ -316,18 +316,17 @@ export default function TeacherClassesPage() {
     mutationFn: async (studentId: string) => {
       return apiRequest('POST', `/api/license/students/${studentId}/generate-setup-code`);
     },
-    onSuccess: (data, studentId) => {
+    onSuccess: (data) => {
       setGenerateCodeDialog(null);
 
-      // Find the student data
-      const student = Array.isArray(classesData) ? classesData.find((cls: any) =>
-        cls.students?.some((s: any) => s.id === studentId)
-      )?.students?.find((s: any) => s.id === studentId) : null;
-
-      // Show the code result dialog
+      // Use student data directly from the backend response
+      // Backend now returns: { setupCode, studentName, username }
       setShowCodeResult({
         isOpen: true,
-        student: student,
+        student: {
+          studentName: (data as any).studentName,
+          username: (data as any).username
+        },
         code: (data as any).setupCode
       });
     },
@@ -1097,6 +1096,22 @@ export default function TeacherClassesPage() {
                                     <p className="text-sm text-gray-500" data-testid={`student-username-${student.id}`}>
                                       Användarnamn: {student.username}
                                     </p>
+                                    {/* Setup Code Status */}
+                                    <div className="text-xs mt-1">
+                                      {student.hasActiveSetupCode ? (
+                                        <div className="flex items-center space-x-1 text-green-600">
+                                          <CheckCircle className="h-3 w-3" />
+                                          <span>
+                                            Aktiv engångskod (gäller till {student.setupCodeExpiresAt ? new Date(student.setupCodeExpiresAt).toLocaleDateString('sv-SE') : 'okänt'})
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center space-x-1 text-amber-600">
+                                          <AlertCircle className="h-3 w-3" />
+                                          <span>Ingen aktiv engångskod</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -1123,16 +1138,18 @@ export default function TeacherClassesPage() {
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button
-                                          variant="ghost"
+                                          variant={student.hasActiveSetupCode ? "ghost" : "default"}
                                           size="sm"
                                           onClick={() => setGenerateCodeDialog(student.id)}
                                           data-testid={`button-generate-code-${student.id}`}
+                                          className={!student.hasActiveSetupCode ? "bg-green-600 hover:bg-green-700 text-white" : ""}
                                         >
-                                          <Key className="h-4 w-4" />
+                                          <Key className="h-4 w-4 mr-1" />
+                                          <span className="text-xs">{student.hasActiveSetupCode ? 'Ny kod' : 'Generera'}</span>
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>Generera ny engångskod för inloggning</p>
+                                        <p>{student.hasActiveSetupCode ? 'Generera ny engångskod' : 'Generera engångskod för första inloggningen'}</p>
                                       </TooltipContent>
                                     </Tooltip>
                                     <Tooltip>

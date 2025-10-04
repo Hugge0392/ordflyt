@@ -272,10 +272,11 @@ export const studentAccounts = pgTable("student_accounts", {
 export const studentSetupCodes = pgTable("student_setup_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => studentAccounts.id, { onDelete: 'cascade' }),
-  codeHash: varchar("code_hash", { length: 255 }).notNull(), // hashed setup code
+  codeHash: varchar("code_hash", { length: 255 }).notNull(), // hashed setup code for validation
+  clearCode: varchar("clear_code", { length: 255 }), // plain text code for teacher viewing - only stored until used
   createdBy: varchar("created_by").notNull().references(() => users.id), // teacher who created the code
   createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(), // 24 hours from creation
+  expiresAt: timestamp("expires_at").notNull(), // 30 days from creation
   usedAt: timestamp("used_at"), // null until used
   isActive: boolean("is_active").default(true),
 }, (table) => ({

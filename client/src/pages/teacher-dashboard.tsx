@@ -194,27 +194,49 @@ function StudentManagementSection() {
       return apiRequest('POST', `/api/license/students/${studentId}/reset-password`);
     },
     onSuccess: (data, studentId) => {
-      // Cache the new password for immediate display
-      if (data.student?.newPassword) {
-        setStudentPasswords(prev => ({
-          ...prev,
-          [studentId]: data.student.newPassword
-        }));
-        setShowPasswords(prev => ({
-          ...prev,
-          [studentId]: true
-        }));
-      }
+      console.log('Reset password response:', data);
+      console.log('Student object:', data.student);
+      console.log('Setup code:', data.student?.setupCode);
+      console.log('New password:', data.student?.newPassword);
+      console.log('Legacy setupCode:', (data as any).setupCode);
+
+      const setupCode = data.student?.setupCode || data.student?.newPassword || (data as any).setupCode;
+      console.log('Final setupCode:', setupCode);
+
+      // Update the cache immediately with the new setup code
+      queryClient.setQueryData(['/api/license/classes'], (oldData: any) => {
+        if (!oldData?.classes) return oldData;
+
+        return {
+          ...oldData,
+          classes: oldData.classes.map((cls: any) => ({
+            ...cls,
+            students: cls.students?.map((student: any) =>
+              student.id === studentId
+                ? {
+                    ...student,
+                    setupCode: setupCode,
+                    mustChangePassword: true,
+                    hasActiveSetupCode: true
+                  }
+                : student
+            )
+          }))
+        };
+      });
+
+      // Also invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['/api/license/classes'] });
+
       toast({
-        title: 'Lösenord återställt',
-        description: `Nytt lösenord: ${data.student?.newPassword || 'Se kolumnen för lösenord'}`,
+        title: 'Engångskod genererad!',
+        description: setupCode ? `Ny engångskod: ${setupCode}` : 'Koden har genererats. Ladda om sidan om den inte visas.',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Fel vid återställning',
-        description: error.message || 'Kunde inte återställa lösenordet.',
+        title: 'Fel vid kodgenerering',
+        description: error.message || 'Kunde inte generera ny engångskod.',
         variant: 'destructive',
       });
     },
@@ -841,36 +863,29 @@ function StudentManagementSection() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <span className="font-mono text-sm">
-                            {showPasswords[student.id] ? 
-                              (studentPasswords[student.id] || 'Laddar...') : 
-                              '••••••••'
-                            }
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => togglePasswordVisibility(student.id)}
-                            data-testid={`button-toggle-password-${student.username}`}
-                          >
-                            {showPasswords[student.id] ? (
-                              <EyeOff className="h-3 w-3" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(
-                              studentPasswords[student.id] || 'Ej tillgängligt', 
-                              'Lösenord'
-                            )}
-                            disabled={!studentPasswords[student.id]}
-                            data-testid={`button-copy-password-${student.username}`}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
+                          {student.mustChangePassword && (student as any).setupCode ? (
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono text-lg text-blue-600 font-bold">
+                                {(student as any).setupCode}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard((student as any).setupCode, 'Engångskod')}
+                                data-testid={`button-copy-code-${student.username}`}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : student.mustChangePassword ? (
+                            <span className="text-sm text-amber-600">
+                              Ingen aktiv kod
+                            </span>
+                          ) : (
+                            <span className="text-sm text-green-600">
+                              ✓ Valt eget lösenord
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -905,7 +920,7 @@ function StudentManagementSection() {
                             data-testid={`button-reset-password-${student.username}`}
                           >
                             <RefreshCw className="h-3 w-3 mr-1" />
-                            Återställ
+                            Generera nytt engångslösenord
                           </Button>
                           
                           <Button

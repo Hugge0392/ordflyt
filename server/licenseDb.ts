@@ -461,12 +461,12 @@ export async function createStudentSetupCode(
   const clearCode = generateSetupCode();
   const codeHash = hashSetupCode(clearCode);
   const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 24); // Expire after 24 hours
+  expiresAt.setDate(expiresAt.getDate() + 30); // Expire after 30 days
 
   // Deactivate any existing active codes for this student
   await licenseDb
     .update(schema.studentSetupCodes)
-    .set({ isActive: false })
+    .set({ isActive: false, clearCode: null }) // Also clear old clearCodes
     .where(
       and(
         eq(schema.studentSetupCodes.studentId, studentId),
@@ -478,6 +478,7 @@ export async function createStudentSetupCode(
   const [setupCode] = await licenseDb.insert(schema.studentSetupCodes).values({
     studentId,
     codeHash,
+    clearCode, // Store clearCode for teacher viewing
     createdBy,
     expiresAt,
     isActive: true,
@@ -523,12 +524,13 @@ export async function validateAndUseSetupCode(
     return { valid: false };
   }
 
-  // Mark code as used
+  // Mark code as used and clear clearCode for security
   await licenseDb
     .update(schema.studentSetupCodes)
     .set({
       usedAt: new Date(),
       isActive: false,
+      clearCode: null, // Clear the plain text code once used
     })
     .where(eq(schema.studentSetupCodes.id, setupCode.id));
 
@@ -545,9 +547,10 @@ export async function validateAndUseSetupCode(
 export async function getActiveSetupCode(
   studentId: string,
   accessedBy: string
-): Promise<{ exists: boolean, expiresAt?: Date, createdAt?: Date }> {
+): Promise<{ exists: boolean, clearCode?: string, expiresAt?: Date, createdAt?: Date }> {
   const [setupCode] = await licenseDb
     .select({
+      clearCode: schema.studentSetupCodes.clearCode,
       expiresAt: schema.studentSetupCodes.expiresAt,
       createdAt: schema.studentSetupCodes.createdAt,
     })
@@ -574,6 +577,7 @@ export async function getActiveSetupCode(
 
   return {
     exists: true,
+    clearCode: setupCode.clearCode ?? undefined,
     expiresAt: setupCode.expiresAt ?? undefined,
     createdAt: setupCode.createdAt ?? undefined,
   };
