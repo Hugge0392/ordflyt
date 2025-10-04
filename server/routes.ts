@@ -1204,7 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get published blog posts (public)
-  app.get("/api/blog/public/posts", async (req, res) => {
+  app.get("/api/blog/posts", async (req, res) => {
     try {
       const validation = blogPostsQuerySchema.safeParse(req.query);
       if (!validation.success) {
@@ -1265,7 +1265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single blog post by slug (public)
-  app.get("/api/blog/public/posts/:slug", async (req, res) => {
+  app.get("/api/blog/posts/:slug", async (req, res) => {
     try {
       const slug = req.params.slug;
 
@@ -1383,207 +1383,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error subscribing to newsletter:", error);
       res.status(500).json({ message: "Subscription failed" });
-    }
-  });
-
-  // ===== ADMIN BLOG POST ENDPOINTS =====
-
-  // Get all blog posts (admin only - includes drafts)
-  app.get("/api/blog/posts", requireAuth, requireRole('ADMIN'), async (req, res) => {
-    try {
-      const { status } = req.query;
-
-      let whereCondition;
-      if (status && status !== 'all') {
-        whereCondition = eq(schema.blogPosts.status, status as any);
-      }
-
-      const posts = await db
-        .select()
-        .from(schema.blogPosts)
-        .where(whereCondition)
-        .orderBy(desc(schema.blogPosts.updatedAt));
-
-      res.json(posts);
-    } catch (error) {
-      console.error("Error fetching blog posts (admin):", error);
-      res.status(500).json({ message: "Failed to fetch blog posts" });
-    }
-  });
-
-  // Check if slug is available (admin)
-  app.get("/api/blog/posts/slug/:slug", requireAuth, requireRole('ADMIN'), async (req, res) => {
-    try {
-      const [post] = await db
-        .select({ id: schema.blogPosts.id, title: schema.blogPosts.title })
-        .from(schema.blogPosts)
-        .where(eq(schema.blogPosts.slug, req.params.slug))
-        .limit(1);
-
-      if (!post) {
-        return res.status(404).json({ message: "Slug available" });
-      }
-
-      res.json(post);
-    } catch (error) {
-      console.error("Error checking slug:", error);
-      res.status(500).json({ message: "Failed to check slug" });
-    }
-  });
-
-  // Get single blog post by ID (admin)
-  app.get("/api/blog/posts/:id", requireAuth, requireRole('ADMIN'), async (req, res) => {
-    try {
-      const [post] = await db
-        .select()
-        .from(schema.blogPosts)
-        .where(eq(schema.blogPosts.id, req.params.id))
-        .limit(1);
-
-      if (!post) {
-        return res.status(404).json({ message: "Blog post not found" });
-      }
-
-      res.json(post);
-    } catch (error) {
-      console.error("Error fetching blog post:", error);
-      res.status(500).json({ message: "Failed to fetch blog post" });
-    }
-  });
-
-  // Create new blog post (admin)
-  app.post("/api/blog/posts", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
-    try {
-      const validation = insertBlogPostSchema.safeParse({
-        ...req.body,
-        authorId: req.user!.id,
-        authorName: req.user!.username,
-      });
-
-      if (!validation.success) {
-        return res.status(400).json({
-          message: "Invalid blog post data",
-          errors: validation.error.errors,
-        });
-      }
-
-      const [newPost] = await db
-        .insert(schema.blogPosts)
-        .values(validation.data)
-        .returning();
-
-      res.status(201).json(newPost);
-    } catch (error) {
-      console.error("Error creating blog post:", error);
-      res.status(500).json({ message: "Failed to create blog post" });
-    }
-  });
-
-  // Update blog post (admin)
-  app.put("/api/blog/posts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
-    try {
-      const postId = req.params.id;
-
-      // Check if post exists
-      const [existing] = await db
-        .select()
-        .from(schema.blogPosts)
-        .where(eq(schema.blogPosts.id, postId))
-        .limit(1);
-
-      if (!existing) {
-        return res.status(404).json({ message: "Blog post not found" });
-      }
-
-      const validation = insertBlogPostSchema.partial().safeParse({
-        ...req.body,
-        lastEditedBy: req.user!.id,
-        updatedAt: new Date(),
-      });
-
-      if (!validation.success) {
-        return res.status(400).json({
-          message: "Invalid blog post data",
-          errors: validation.error.errors,
-        });
-      }
-
-      const [updatedPost] = await db
-        .update(schema.blogPosts)
-        .set(validation.data)
-        .where(eq(schema.blogPosts.id, postId))
-        .returning();
-
-      res.json(updatedPost);
-    } catch (error) {
-      console.error("Error updating blog post:", error);
-      res.status(500).json({ message: "Failed to update blog post" });
-    }
-  });
-
-  // Delete blog post (admin)
-  app.delete("/api/blog/posts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
-    try {
-      const postId = req.params.id;
-
-      const [deleted] = await db
-        .delete(schema.blogPosts)
-        .where(eq(schema.blogPosts.id, postId))
-        .returning();
-
-      if (!deleted) {
-        return res.status(404).json({ message: "Blog post not found" });
-      }
-
-      res.json({ message: "Blog post deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting blog post:", error);
-      res.status(500).json({ message: "Failed to delete blog post" });
-    }
-  });
-
-  // Duplicate blog post (admin)
-  app.post("/api/blog/posts/:id/duplicate", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
-    try {
-      const postId = req.params.id;
-
-      const [original] = await db
-        .select()
-        .from(schema.blogPosts)
-        .where(eq(schema.blogPosts.id, postId))
-        .limit(1);
-
-      if (!original) {
-        return res.status(404).json({ message: "Blog post not found" });
-      }
-
-      // Create duplicate with modified title and slug
-      const duplicateData = {
-        ...original,
-        id: undefined,
-        title: `${original.title} (Kopia)`,
-        slug: `${original.slug}-kopia-${Date.now()}`,
-        status: 'draft' as const,
-        isPublished: false,
-        publishedAt: null,
-        scheduledFor: null,
-        viewCount: 0,
-        downloadCount: 0,
-        shareCount: 0,
-        authorId: req.user!.id,
-        createdAt: undefined,
-        updatedAt: undefined,
-      };
-
-      const [duplicate] = await db
-        .insert(schema.blogPosts)
-        .values(duplicateData as any)
-        .returning();
-
-      res.status(201).json(duplicate);
-    } catch (error) {
-      console.error("Error duplicating blog post:", error);
-      res.status(500).json({ message: "Failed to duplicate blog post" });
     }
   });
 
