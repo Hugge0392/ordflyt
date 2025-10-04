@@ -1,4 +1,4 @@
-import { useQuery } from '@tantml:query/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'wouter';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import {
   ArrowLeft,
   Youtube,
 } from 'lucide-react';
-import RichDocRenderer from '@/components/rich-editor/RichDocRenderer';
+import { RichDocRenderer } from '@/components/rich-editor/RichDocRenderer';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 

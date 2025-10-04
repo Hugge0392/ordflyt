@@ -309,6 +309,7 @@ export default function BlogImageUploader({
             </div>
           </label>
         </div>
+        </>
       ) : (
         <Card>
           <CardContent className="pt-6">
@@ -360,7 +361,6 @@ export default function BlogImageUploader({
             </div>
           </CardContent>
         </Card>
-        </>
       )}
 
       {/* Media Library Modal */}

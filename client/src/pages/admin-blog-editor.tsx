@@ -28,7 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Link } from 'wouter';
-import RichDocEditor from '@/components/rich-editor/RichDocEditor';
+import { RichDocEditor } from '@/components/rich-editor/RichDocEditor';
 import BlogImageUploader from '@/components/BlogImageUploader';
 import FileUploader from '@/components/FileUploader';
 import VideoEmbedManager from '@/components/VideoEmbedManager';
