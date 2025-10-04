@@ -20,7 +20,7 @@ export default function StudentNavigation() {
   const { user, isAuthenticated } = useAuth();
 
   const studentId = user?.id;
-  const studentName = user?.username || 'Elev';
+  const studentName = user?.studentName || user?.username || 'Elev';
 
   // Fetch student currency - only if authenticated
   const { data: currency } = useQuery<StudentCurrency>({

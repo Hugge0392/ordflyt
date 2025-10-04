@@ -66,9 +66,9 @@ export default function StudentHome() {
     queryKey: ["/api/lesson-categories"],
   });
 
-  // Get student ID from authenticated user
+  // Get student ID and name from authenticated user
   const studentId = user?.id;
-  const studentName = user?.username || 'Elev';
+  const studentName = user?.studentName || user?.username || 'Elev';
 
   // Fetch student currency - only if authenticated
   const { data: currency, isLoading: currencyLoading, error: currencyError } = useQuery<StudentCurrency>({
@@ -108,38 +108,14 @@ export default function StudentHome() {
   // Use real assignments if authenticated and available, otherwise use mock assignments
   const displayAssignments = isAuthenticated && assignments.length > 0 ? assignments : mockAssignments;
 
-  // Fetch completed assignments from API
+  // Fetch completed assignments from API - only for authenticated students
   const { data: completedAssignments = [] } = useQuery({
     queryKey: [`/api/students/${studentId}/completed-assignments`],
-    enabled: true, // Enable for both authenticated and unauthenticated users
+    enabled: isAuthenticated && !!studentId,
     retry: 1,
   });
 
-  // Mock completed assignments for non-authenticated users
-  const mockCompletedAssignments = [
-    {
-      id: "completed-1",
-      title: "Grundläggande grammatik",
-      description: "Lär dig om substantiv, verb och adjektiv",
-      assignmentType: 'published_lesson' as const,
-      timeLimit: 20,
-      completedAt: new Date('2024-09-20'),
-      score: 85,
-      timeSpent: 1200
-    },
-    {
-      id: "completed-2",
-      title: "Ordklasser",
-      description: "Identifiera olika ordklasser i texter",
-      assignmentType: 'word_class_practice' as const,
-      timeLimit: 15,
-      completedAt: new Date('2024-09-18'),
-      score: 92,
-      timeSpent: 900
-    }
-  ];
-
-  const displayCompletedAssignments = completedAssignments.length > 0 ? completedAssignments : mockCompletedAssignments;
+  const displayCompletedAssignments = completedAssignments;
 
   // Debug logging
   console.log('Student Home Debug:', {
@@ -635,65 +611,8 @@ export default function StudentHome() {
             </div>
           )}
 
-          {/* Påbörjade uppdrag */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-orange-500" />
-              Påbörjade uppdrag
-            </h3>
-
-            {/* Mock data för påbörjade uppdrag - detta kommer från riktig progress tracking */}
-            <div className="space-y-4">
-              <Card className="hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-orange-200 dark:border-orange-700 hover:border-orange-300">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-                        <span className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">Påbörjad</span>
-                      </div>
-                      <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200 mb-1">Berättelser och karaktärer</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Fortsätt där du slutade!</p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
-                        <span className="flex items-center gap-1">
-                          <BookOpen className="w-3 h-3" />
-                          5 min kvar
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Trophy className="w-3 h-3 text-yellow-500" />
-                          65% klart
-                        </span>
-                      </div>
-                      <Progress value={65} className="h-2" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-200">
-                        Pågående
-                      </Badge>
-                      <Link href="/lesson/mock-lesson-1">
-                        <Button
-                          variant="outline"
-                          className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                        >
-                          <Zap className="w-4 h-4 mr-2" />
-                          Fortsätt
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tom state för påbörjade uppdrag */}
-              <Card className="border-2 border-dashed border-gray-200 bg-gray-50/50">
-                <CardContent className="p-6 text-center">
-                  <Zap className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">Inga fler påbörjade uppdrag</h4>
-                  <p className="text-xs text-gray-500">När du startar ett uppdrag utan att slutföra det syns det här.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          {/* Påbörjade uppdrag - Coming soon */}
+          {/* TODO: Implement in-progress assignments tracking */}
         </div>
 
         {/* Call-to-action section */}

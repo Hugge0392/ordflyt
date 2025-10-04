@@ -5,6 +5,7 @@ interface User {
   username: string;
   role: string;
   email?: string;
+  studentName?: string;
 }
 
 interface TeacherContext {
@@ -102,22 +103,43 @@ export function useAuth() {
       }
 
       try {
+        // First try regular user auth
         const response = await fetch("/api/auth/me", {
           credentials: "include"
         });
 
-        if (!response.ok) {
-          return null; // Not authenticated
+        if (response.ok) {
+          const data = await response.json();
+
+          // Store CSRF token if provided
+          if (data.csrfToken) {
+            localStorage.setItem("csrfToken", data.csrfToken);
+          }
+
+          return data;
         }
 
-        const data = await response.json();
+        // If regular auth fails, try student auth
+        const studentResponse = await fetch("/api/student/me", {
+          credentials: "include"
+        });
 
-        // Store CSRF token if provided
-        if (data.csrfToken) {
-          localStorage.setItem("csrfToken", data.csrfToken);
+        if (studentResponse.ok) {
+          const studentData = await studentResponse.json();
+
+          // Transform student data to match AuthData format
+          return {
+            user: {
+              id: studentData.student.id,
+              username: studentData.student.username,
+              role: 'ELEV',
+              studentName: studentData.student.studentName,
+            },
+            csrfToken: undefined // Students don't use CSRF tokens
+          };
         }
 
-        return data;
+        return null; // Not authenticated
       } catch {
         return null; // Not authenticated
       }
