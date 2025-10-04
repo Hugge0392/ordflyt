@@ -88,6 +88,14 @@ export const vocabularyAttemptStatusEnum = pgEnum('vocabulary_attempt_status', [
   'failed'
 ]);
 
+// Blog post status enum
+export const blogPostStatusEnum = pgEnum('blog_post_status', [
+  'draft',
+  'published',
+  'scheduled',
+  'archived'
+]);
+
 // Users table - core authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3060,7 +3068,7 @@ export const currencyTransactions = pgTable("currency_transactions", {
   createdAtIdx: index("currency_transactions_date_idx").on(table.createdAt),
 }));
 
-// =============================================================================  
+// =============================================================================
 // BLOG/LESSON MATERIALS SYSTEM
 // =============================================================================
 
@@ -3070,34 +3078,73 @@ export const blogPosts = pgTable("blog_posts", {
   title: varchar("title", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull(),
   excerpt: text("excerpt"), // Short description for previews
-  content: text("content").notNull(), // Full text content
-  
-  // Featured image and downloadable file
+  content: jsonb("content").notNull(), // Rich content with blocks (RichDoc format)
+
+  // Featured image and media
   heroImageUrl: varchar("hero_image_url"),
-  downloadFileUrl: varchar("download_file_url"),
-  downloadFileName: varchar("download_file_name"),
-  downloadFileType: varchar("download_file_type"), // pdf, pptx, docx, etc.
-  
+  heroImageAlt: varchar("hero_image_alt"),
+  galleryImages: jsonb("gallery_images").$type<Array<{url: string; alt: string; caption?: string}>>().default([]),
+
+  // Downloadable files
+  downloadFiles: jsonb("download_files").$type<Array<{url: string; name: string; type: string; size: number}>>().default([]),
+
+  // Video embeds (YouTube, Vimeo, etc.)
+  videoEmbeds: jsonb("video_embeds").$type<Array<{type: 'youtube' | 'vimeo'; videoId: string; title?: string}>>().default([]),
+
   // Categorization and metadata
   categoryId: varchar("category_id").references(() => lessonCategories.id),
   tags: jsonb("tags").$type<string[]>().default([]),
-  
+
   // SEO and social sharing
-  metaDescription: text("meta_description"),
+  metaTitle: varchar("meta_title", { length: 70 }), // SEO title (max 70 chars)
+  metaDescription: text("meta_description"), // SEO description (max 160 chars)
+  focusKeyword: varchar("focus_keyword"), // Primary SEO keyword
+  seoScore: integer("seo_score").default(0), // SEO quality score 0-100
+  readabilityScore: integer("readability_score").default(0), // Readability score 0-100
   socialImageUrl: varchar("social_image_url"),
-  
-  // Publishing
+  canonicalUrl: varchar("canonical_url"), // For duplicate content
+
+  // Table of Contents
+  enableTableOfContents: boolean("enable_table_of_contents").default(false),
+
+  // Related posts
+  relatedPostIds: jsonb("related_post_ids").$type<string[]>().default([]),
+
+  // Comments
+  enableComments: boolean("enable_comments").default(true),
+  commentCount: integer("comment_count").default(0),
+
+  // Publishing workflow
+  status: blogPostStatusEnum("status").default('draft'),
   isPublished: boolean("is_published").default(false),
   publishedAt: timestamp("published_at"),
-  
-  // Author info (for future multi-author support)
+  scheduledFor: timestamp("scheduled_for"), // For scheduling future posts
+
+  // Featured and sticky
+  isFeatured: boolean("is_featured").default(false),
+  isSticky: boolean("is_sticky").default(false), // Stays at top of list
+  featuredOrder: integer("featured_order"), // Order in featured section
+
+  // Trash system
+  isTrashed: boolean("is_trashed").default(false),
+  trashedAt: timestamp("trashed_at"),
+
+  // Author info
   authorName: varchar("author_name").default("Ordflyt Team"),
   authorId: varchar("author_id").references(() => users.id),
-  
+
   // Analytics
   viewCount: integer("view_count").default(0),
   downloadCount: integer("download_count").default(0),
-  
+  shareCount: integer("share_count").default(0),
+  averageTimeOnPage: integer("average_time_on_page").default(0), // seconds
+  readTime: integer("read_time").default(0), // minutes
+  wordCount: integer("word_count").default(0),
+
+  // Revision tracking
+  lastEditedBy: varchar("last_edited_by").references(() => users.id),
+  revisionCount: integer("revision_count").default(0),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
@@ -3105,6 +3152,68 @@ export const blogPosts = pgTable("blog_posts", {
   categoryIdx: index("blog_posts_category_idx").on(table.categoryId),
   publishedIdx: index("blog_posts_published_idx").on(table.isPublished, table.publishedAt),
   authorIdx: index("blog_posts_author_idx").on(table.authorId),
+  statusIdx: index("blog_posts_status_idx").on(table.status),
+  scheduledIdx: index("blog_posts_scheduled_idx").on(table.scheduledFor),
+}));
+
+// Blog comments
+export const blogComments = pgTable("blog_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blogPostId: varchar("blog_post_id").notNull().references(() => blogPosts.id, { onDelete: 'cascade' }),
+
+  // Author info
+  authorName: varchar("author_name", { length: 255 }).notNull(),
+  authorEmail: varchar("author_email", { length: 255 }).notNull(),
+  authorWebsite: varchar("author_website", { length: 500 }),
+
+  // Comment content
+  content: text("content").notNull(),
+
+  // Moderation
+  isApproved: boolean("is_approved").default(false),
+  isSpam: boolean("is_spam").default(false),
+
+  // Threading (replies)
+  parentCommentId: varchar("parent_comment_id").references((): any => blogComments.id, { onDelete: 'cascade' }),
+
+  // Metadata
+  userAgent: varchar("user_agent"),
+  ipAddress: varchar("ip_address"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  postIdx: index("blog_comments_post_idx").on(table.blogPostId),
+  approvedIdx: index("blog_comments_approved_idx").on(table.isApproved),
+  parentIdx: index("blog_comments_parent_idx").on(table.parentCommentId),
+  createdAtIdx: index("blog_comments_created_idx").on(table.createdAt),
+}));
+
+// Blog post revisions for version control
+export const blogPostRevisions = pgTable("blog_post_revisions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blogPostId: varchar("blog_post_id").notNull().references(() => blogPosts.id, { onDelete: 'cascade' }),
+
+  // Snapshot of post at this revision
+  title: varchar("title", { length: 255 }).notNull(),
+  content: jsonb("content").notNull(),
+  excerpt: text("excerpt"),
+
+  // Who made this change
+  authorId: varchar("author_id").references(() => users.id),
+  authorName: varchar("author_name"),
+
+  // Change description
+  changeDescription: text("change_description"),
+
+  // Metadata
+  revisionNumber: integer("revision_number").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  postIdx: index("blog_revisions_post_idx").on(table.blogPostId),
+  revisionIdx: index("blog_revisions_number_idx").on(table.blogPostId, table.revisionNumber),
+  createdAtIdx: index("blog_revisions_created_idx").on(table.createdAt),
 }));
 
 // Newsletter subscriptions for lesson material updates
@@ -3305,6 +3414,9 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
   updatedAt: true,
   viewCount: true,
   downloadCount: true,
+  shareCount: true,
+  averageTimeOnPage: true,
+  revisionCount: true,
 });
 
 export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterSubscriptions).omit({

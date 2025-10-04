@@ -34,6 +34,10 @@ import AdminEmailTest from "@/pages/admin-email-test";
 import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import AdminVocabulary from "@/pages/admin-vocabulary";
 import AdminCategories from "@/pages/admin-categories";
+import AdminBlog from "@/pages/admin-blog";
+import AdminBlogEditor from "@/pages/admin-blog-editor";
+import PublicBlog from "@/pages/public-blog";
+import PublicBlogPost from "@/pages/public-blog-post";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
 import TeacherStudentProgress from "@/pages/teacher-student-progress";
 import AvatarBuilder from "@/pages/avatar-builder";
@@ -169,10 +173,10 @@ function Router() {
       <Route path="/rich-editor-test" component={RichEditorTest} />
       
       {/* Lesson Materials / Blog (public) */}
-      <Route path="/lektionsmaterial" component={LessonMaterials} />
-      <Route path="/lektionsmaterial/:slug" component={LessonMaterialDetail} />
-      <Route path="/gratis-lektioner" component={LessonMaterials} />
-      <Route path="/gratis-lektioner/:slug" component={LessonMaterialDetail} />
+      <Route path="/lektionsmaterial" component={PublicBlog} />
+      <Route path="/lektionsmaterial/:slug" component={PublicBlogPost} />
+      <Route path="/gratis-lektioner" component={PublicBlog} />
+      <Route path="/gratis-lektioner/:slug" component={PublicBlogPost} />
       
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">
@@ -282,6 +286,16 @@ function Router() {
       <Route path="/admin/categories">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminCategories />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminBlog />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog/:id">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminBlogEditor />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">
