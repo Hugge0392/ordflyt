@@ -2,35 +2,34 @@ import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Home, 
-  Store, 
-  User, 
+import {
+  Home,
+  Store,
+  User,
   Settings,
   Gem,
   Trophy,
   BookOpen
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 import type { StudentCurrency } from '@shared/schema';
-
-// Mock student data - denna kommer senare från auth context
-const mockStudent = {
-  id: "student123",
-  name: "Anna Andersson",
-  level: 3,
-};
 
 export default function StudentNavigation() {
   const [location] = useLocation();
-  
-  // Fetch student currency
+  const { user, isAuthenticated } = useAuth();
+
+  const studentId = user?.id;
+  const studentName = user?.username || 'Elev';
+
+  // Fetch student currency - only if authenticated
   const { data: currency } = useQuery<StudentCurrency>({
-    queryKey: [`/api/students/${mockStudent.id}/currency`],
-    enabled: true,
+    queryKey: [`/api/students/${studentId}/currency`],
+    enabled: isAuthenticated && !!studentId,
   });
 
   const currentCoins = currency?.currentCoins ?? 0;
+  const studentLevel = currency?.level ?? 1;
 
   const navItems = [
     {
@@ -73,13 +72,13 @@ export default function StudentNavigation() {
           {/* Student Info */}
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold text-lg">
-              {mockStudent.name.charAt(0)}
+              {studentName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="font-bold text-gray-800">{mockStudent.name}</h2>
+              <h2 className="font-bold text-gray-800">{studentName}</h2>
               <div className="flex items-center gap-2 text-sm">
                 <Trophy className="h-4 w-4 text-yellow-500" />
-                <span className="text-gray-600">Nivå {mockStudent.level}</span>
+                <span className="text-gray-600">Nivå {studentLevel}</span>
               </div>
             </div>
           </div>

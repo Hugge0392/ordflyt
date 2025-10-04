@@ -43,20 +43,10 @@ import {
   type VocabularySet
 } from "@shared/schema";
 
-// Mock student data - denna kommer senare från auth context
-const mockStudent = {
-  id: "a78c06fe-815a-4feb-adeb-1177699f4913", // Real student ID from database
-  name: "Test Elev",
-  avatarUrl: null,
-  level: 3,
-  experience: 750,
-  experienceToNext: 1000
-};
-
 export default function StudentHome() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeAssignmentTab, setActiveAssignmentTab] = useState<'new' | 'completed'>('new');
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   
   const handleLogout = async () => {
@@ -76,15 +66,15 @@ export default function StudentHome() {
     queryKey: ["/api/lesson-categories"],
   });
 
-  // Fetch student currency - enabled for exploration
-  const { data: currency, isLoading: currencyLoading, error: currencyError } = useQuery<StudentCurrency>({
-    queryKey: [`/api/students/${mockStudent.id}/currency`],
-    enabled: true, // Enabled for exploration - will be controlled by auth context later
-  });
+  // Get student ID from authenticated user
+  const studentId = user?.id;
+  const studentName = user?.username || 'Elev';
 
-  // Use authenticated user or fallback to mock for development
-  const studentId = user?.id || mockStudent.id;
-  const isAuthenticated = !!user;
+  // Fetch student currency - only if authenticated
+  const { data: currency, isLoading: currencyLoading, error: currencyError } = useQuery<StudentCurrency>({
+    queryKey: [`/api/students/${studentId}/currency`],
+    enabled: isAuthenticated && !!studentId,
+  });
 
   // Fetch student assignments (replaces lesson templates for the new design)
   const { data: assignments = [], isLoading: assignmentsLoading, error: assignmentsError } = useQuery({
@@ -274,23 +264,23 @@ export default function StudentHome() {
             {/* Student profile */}
             <div className="flex items-center gap-4">
               <Avatar className="w-12 h-12 ring-4 ring-blue-200" data-testid="avatar-student">
-                <AvatarImage src={mockStudent.avatarUrl || undefined} />
+                <AvatarImage src={undefined} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white font-bold">
-                  {mockStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {studentName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100" data-testid="text-student-name">
-                  Hej, {mockStudent.name.split(' ')[0]}! 👋
+                  Hej, {studentName.split(' ')[0]}! 👋
                 </h2>
                 <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center gap-1">
                     <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span data-testid="text-student-level">Nivå {mockStudent.level}</span>
+                    <span data-testid="text-student-level">Nivå {currency?.level || 1}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Coins className="w-4 h-4 text-yellow-500" />
-                    <span data-testid="text-student-coins">{currency?.currentCoins || 150} mynt</span>
+                    <span data-testid="text-student-coins">{currency?.currentCoins || 0} mynt</span>
                   </div>
                 </div>
               </div>
@@ -301,7 +291,7 @@ export default function StudentHome() {
               <HelpMenu
                 availableGuides={commonGuides.student}
                 userRole="student"
-                userId={user?.id || mockStudent.id}
+                userId={user?.id || ''}
                 forChildren={true}
                 testId="student-help-menu"
               />
@@ -343,11 +333,11 @@ export default function StudentHome() {
           {/* Progress bar */}
           <div className="mt-4 max-w-md">
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-              <span>Nivå {mockStudent.level} framsteg</span>
-              <span>{mockStudent.experience}/{mockStudent.experienceToNext} XP</span>
+              <span>Nivå {currency?.level || 1} framsteg</span>
+              <span>{currency?.experience || 0}/{currency?.experienceToNext || 100} XP</span>
             </div>
-            <Progress 
-              value={(mockStudent.experience / mockStudent.experienceToNext) * 100} 
+            <Progress
+              value={((currency?.experience || 0) / (currency?.experienceToNext || 100)) * 100}
               className="h-2"
               data-testid="progress-student-level"
             />
@@ -373,27 +363,29 @@ export default function StudentHome() {
           <Card className="bg-gradient-to-br from-blue-100 dark:from-blue-900 to-blue-200 dark:to-blue-800 border-blue-200 dark:border-blue-700">
             <CardContent className="p-4 text-center relative">
               <div className="absolute top-2 right-2">
-                <KidsHelpTooltip 
+                <KidsHelpTooltip
                   content="Det här visar hur många lektioner du har klarat! Varje gång du slutför en lektion räknas den här. Ju fler du gör, desto smartare blir du! 🧠"
                   type="info"
                   testId="help-completed-lessons"
                 />
               </div>
-              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-completed-lessons">12</div>
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-300" data-testid="text-completed-lessons">
+                {displayCompletedAssignments.length}
+              </div>
               <div className="text-sm text-blue-600 dark:text-blue-400">Genomförda lektioner</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-100 dark:from-purple-900 to-purple-200 dark:to-purple-800 border-purple-200 dark:border-purple-700">
             <CardContent className="p-4 text-center relative">
               <div className="absolute top-2 right-2">
-                <KidsHelpTooltip 
+                <KidsHelpTooltip
                   content="Wow! Det här är alla mynt du har tjänat genom att vara duktig! Du kan använda mynten för att köpa coola saker i butiken! 🛍️"
                   type="tip"
                   testId="help-earned-coins"
                 />
               </div>
               <div className="text-2xl font-bold text-purple-700 dark:text-purple-300" data-testid="text-earned-coins">
-                {currency?.totalEarned || 580}
+                {currency?.totalEarned || 0}
               </div>
               <div className="text-sm text-purple-600 dark:text-purple-400">Intjänade mynt</div>
             </CardContent>
@@ -401,13 +393,15 @@ export default function StudentHome() {
           <Card className="bg-gradient-to-br from-green-100 dark:from-green-900 to-green-200 dark:to-green-800 border-green-200 dark:border-green-700">
             <CardContent className="p-4 text-center relative">
               <div className="absolute top-2 right-2">
-                <KidsHelpTooltip 
+                <KidsHelpTooltip
                   content="En streak betyder att du har gjort lektioner flera dagar i rad! Det är som att hålla elden brinnande - ju längre streak, desto mer fantastisk är du! 🔥"
                   type="help"
                   testId="help-active-streak"
                 />
               </div>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-active-streak">7</div>
+              <div className="text-2xl font-bold text-green-700 dark:text-green-300" data-testid="text-active-streak">
+                {currency?.streak || 0}
+              </div>
               <div className="text-sm text-green-600 dark:text-green-400">Dagars streak</div>
             </CardContent>
           </Card>

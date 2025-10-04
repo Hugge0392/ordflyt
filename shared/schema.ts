@@ -2902,6 +2902,14 @@ export const studentCurrency = pgTable("student_currency", {
   totalSpent: integer("total_spent").default(0),
   lastEarned: timestamp("last_earned"),
   lastSpent: timestamp("last_spent"),
+  // Level and experience system
+  level: integer("level").default(1),
+  experience: integer("experience").default(0),
+  experienceToNext: integer("experience_to_next").default(100),
+  // Streak tracking
+  streak: integer("streak").default(0),
+  longestStreak: integer("longest_streak").default(0),
+  lastActivityDate: timestamp("last_activity_date"),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   studentCurrencyIdx: uniqueIndex("student_currency_idx").on(table.studentId),
