@@ -39,11 +39,9 @@ import {
   RefreshCw,
   Search,
   Filter,
-  Download,
   Plus,
   Printer,
   Trash2,
-  MessageSquare,
   MapPin,
   Lightbulb,
   Library
@@ -56,16 +54,12 @@ import StudentResultsAnalytics from '@/components/analytics/StudentResultsAnalyt
 // Temporarily disabled due to WebSocket connection issues
 // import ClassroomControlPanel from '@/components/classroom/ClassroomControlPanel';
 // import { ClassroomWebSocketProvider } from '@/components/classroom/ClassroomWebSocketContext';
-import StudentWorkReview from '@/components/StudentWorkReview';
-import FeedbackList from '@/components/FeedbackList';
-import TeacherFeedbackForm from '@/components/TeacherFeedbackForm';
-import ExportDashboard from '@/components/export/ExportDashboard';
 import TeacherLessonBank from '@/pages/teacher-lesson-bank';
 // Temporarily disabled due to potential issues
 // import { usePreview } from '@/contexts/PreviewContext';
 
 // Dashboard section types
-type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'feedback' | 'export' | 'lessonbank';
+type DashboardSection = 'overview' | 'students' | 'assignments' | 'assign-lessons' | 'results' | 'classroom' | 'lessonbank';
 
 interface DashboardStats {
   totalStudents: number;
@@ -326,28 +320,6 @@ function StudentManagementSection() {
     return matchesClass && matchesSearch;
   });
 
-  const exportStudentData = () => {
-    const csvContent = [
-      ['Elevnamn', 'Användarnamn', 'Klass', 'Senaste inloggning', 'Skapad'],
-      ...filteredStudents.map(student => [
-        student.studentName,
-        student.username,
-        student.className,
-        student.lastLogin ? new Date(student.lastLogin).toLocaleString('sv-SE') : 'Aldrig',
-        new Date(student.createdAt).toLocaleDateString('sv-SE'),
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `elever_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const printStudentCredentials = () => {
     const studentsWithPasswords = filteredStudents.filter(student => 
@@ -750,16 +722,6 @@ function StudentManagementSection() {
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Skriv ut
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportStudentData}
-                data-testid="button-export-students"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportera
               </Button>
             </div>
           </div>
@@ -1203,13 +1165,6 @@ function StudentManagementSection() {
                 </div>
               </Link>
             </Button>
-            <Button variant="outline" className="h-auto p-4" onClick={exportStudentData}>
-              <div className="flex flex-col items-center space-y-2">
-                <Download className="h-6 w-6 text-green-600" />
-                <span className="font-medium">Exportera data</span>
-                <span className="text-xs text-gray-500">Ladda ner CSV-fil</span>
-              </div>
-            </Button>
             <Button variant="outline" className="h-auto p-4" disabled>
               <div className="flex flex-col items-center space-y-2">
                 <RefreshCw className="h-6 w-6 text-purple-600" />
@@ -1376,18 +1331,6 @@ export default function TeacherDashboard() {
       label: 'Klassrumsskärm',
       icon: Monitor,
       description: 'Klassrumskontroll och timer'
-    },
-    {
-      id: 'feedback' as DashboardSection,
-      label: 'Återkoppling',
-      icon: MessageSquare,
-      description: 'Ge feedback och granska elevarbeten'
-    },
-    {
-      id: 'export' as DashboardSection,
-      label: 'Dataexport',
-      icon: Download,
-      description: 'Exportera elevdata för föräldramöten och backup'
     }
   ];
 
@@ -1681,10 +1624,6 @@ export default function TeacherDashboard() {
             </CardContent>
           </Card>
         );
-      case 'feedback':
-        return <StudentWorkReview />;
-      case 'export':
-        return <ExportDashboard teacherId={user?.id} />;
       default:
         return renderOverview();
     }
