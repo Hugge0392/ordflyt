@@ -1232,6 +1232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           downloadFileName: schema.blogPosts.downloadFileName,
           downloadFileType: schema.blogPosts.downloadFileType,
           categoryId: schema.blogPosts.categoryId,
+          category: schema.blogPosts.category, // SEO category
+          focusKeyphrase: schema.blogPosts.focusKeyphrase, // SEO keyword
           tags: schema.blogPosts.tags,
           publishedAt: schema.blogPosts.publishedAt,
           authorName: schema.blogPosts.authorName,
@@ -1264,7 +1266,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single blog post by slug (public)
+  // Get single blog post by slug (public) - SEO URL with category path
+  app.get("/api/blog/:categoryParent/:categoryChild/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+
+      const post = await db
+        .select()
+        .from(schema.blogPosts)
+        .where(and(eq(schema.blogPosts.slug, slug), eq(schema.blogPosts.isPublished, true)))
+        .limit(1);
+
+      if (!post[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      // Increment view count
+      await db
+        .update(schema.blogPosts)
+        .set({ viewCount: sql`${schema.blogPosts.viewCount} + 1` })
+        .where(eq(schema.blogPosts.id, post[0].id));
+
+      res.json(post[0]);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
+  // Get single blog post by slug (public) - Legacy fallback
   app.get("/api/blog/posts/:slug", async (req, res) => {
     try {
       const slug = req.params.slug;

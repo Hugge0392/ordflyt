@@ -180,6 +180,7 @@ function Router() {
 
       {/* Blog (public) */}
       <Route path="/blogg" component={Blogg} />
+      <Route path="/blogg/:categoryParent/:categoryChild/:slug" component={BloggSlug} />
       <Route path="/blogg/:slug" component={BloggSlug} />
 
       {/* Teacher routes (requires LARARE role) */}

@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BLOG_CATEGORIES, PARENT_CATEGORIES, getCategoryDisplayName } from "@/lib/blogCategories";
 
 interface BlogPost {
   id: string;
@@ -43,6 +45,8 @@ export default function AdminBlog() {
   const [excerpt, setExcerpt] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  const [category, setCategory] = useState<string>("allmant");
+  const [focusKeyphrase, setFocusKeyphrase] = useState("");
 
   const { data: allPosts = [], isLoading: postsLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/admin/blog/posts"],
@@ -146,6 +150,8 @@ export default function AdminBlog() {
     setExcerpt("");
     setHeroImageUrl("");
     setMetaDescription("");
+    setCategory("allmant");
+    setFocusKeyphrase("");
   };
 
   const handleCreate = () => {
@@ -164,6 +170,8 @@ export default function AdminBlog() {
       excerpt: excerpt || undefined,
       heroImageUrl: heroImageUrl || undefined,
       metaDescription: metaDescription || undefined,
+      category,
+      focusKeyphrase: focusKeyphrase || undefined,
       isPublished: false, // Always create as draft initially
     };
 
@@ -255,6 +263,47 @@ export default function AdminBlog() {
                         placeholder="Titel på blogginlägget"
                       />
                       <p className="text-xs text-gray-500 mt-1">URL-slug genereras automatiskt från titeln</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="category">Kategori * (SEO)</Label>
+                        <Select value={category} onValueChange={setCategory}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj kategori" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {PARENT_CATEGORIES.map(parent => (
+                              <div key={parent.id}>
+                                <div className="px-2 py-1.5 text-sm font-semibold text-gray-500">
+                                  {parent.emoji} {parent.name}
+                                </div>
+                                {Object.entries(BLOG_CATEGORIES)
+                                  .filter(([_, cat]) => cat.parentCategory === parent.name)
+                                  .map(([id, cat]) => (
+                                    <SelectItem key={id} value={id} className="pl-6">
+                                      {cat.iconEmoji} {cat.displayName}
+                                    </SelectItem>
+                                  ))}
+                              </div>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {BLOG_CATEGORIES[category]?.seoKeywords[0] || 'Välj SEO-kategori'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="focusKeyphrase">Fokus-nyckelord (SEO)</Label>
+                        <Input
+                          id="focusKeyphrase"
+                          value={focusKeyphrase}
+                          onChange={(e) => setFocusKeyphrase(e.target.value)}
+                          placeholder="t.ex. läsförståelse övningar åk 6"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Primärt sökord för SEO</p>
+                      </div>
                     </div>
 
                     <div>

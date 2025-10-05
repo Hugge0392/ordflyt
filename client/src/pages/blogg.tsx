@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Calendar, Eye, ArrowRight } from "lucide-react";
+import { FileText, Calendar, Eye, ArrowRight, Filter } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
 import { getQueryFn } from "@/lib/queryClient";
+import { BLOG_CATEGORIES, PARENT_CATEGORIES, getCategoryDisplayName, getBlogPostUrl } from "@/lib/blogCategories";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BlogPost {
   id: string;
@@ -18,9 +21,15 @@ interface BlogPost {
   authorName: string;
   viewCount: number;
   tags?: string[];
+  category?: string;
+  focusKeyphrase?: string;
 }
 
 export default function Blogg() {
+  const [, setLocation] = useLocation();
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedParent, setSelectedParent] = useState<string>("all");
+
   const { data: response, isLoading } = useQuery<{
     posts: BlogPost[];
     pagination: {
@@ -34,7 +43,38 @@ export default function Blogg() {
     queryFn: getQueryFn({ on401: "returnNull" }), // Public endpoint, no auth required
   });
 
-  const posts = response?.posts || [];
+  const allPosts = response?.posts || [];
+
+  // Filter posts by category
+  const filteredPosts = selectedCategory === "all"
+    ? allPosts
+    : allPosts.filter(post => post.category === selectedCategory);
+
+  // Group posts by parent category
+  const postsByParent = PARENT_CATEGORIES.reduce((acc, parent) => {
+    const parentPosts = allPosts.filter(post => {
+      const category = BLOG_CATEGORIES[post.category || 'allmant'];
+      return category?.parentCategory === parent.name;
+    });
+    acc[parent.id] = parentPosts;
+    return acc;
+  }, {} as Record<string, BlogPost[]>);
+
+  // Update SEO meta tags
+  useEffect(() => {
+    if (selectedCategory !== "all") {
+      const category = BLOG_CATEGORIES[selectedCategory];
+      if (category) {
+        document.title = `${category.parentCategory} - ${category.displayName} | Ordflyt`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+          metaDesc.setAttribute('content', category.description);
+        }
+      }
+    } else {
+      document.title = 'Blogg - Tips och resurser för svenska språket | Ordflyt';
+    }
+  }, [selectedCategory]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -43,11 +83,36 @@ export default function Blogg() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center gap-3 mb-4">
             <FileText className="w-10 h-10" />
-            <h1 className="text-4xl md:text-5xl font-bold">Blogg</h1>
+            <h1 className="text-4xl md:text-5xl font-bold">Lektionsmaterial & Inspiration</h1>
           </div>
           <p className="text-xl text-blue-100 max-w-3xl">
-            Tips, inspiration och resurser för läsförståelse och språkutveckling
+            SEO-optimerade tips, färdiga lektioner och praktiska resurser för svenska språket
           </p>
+        </div>
+      </div>
+
+      {/* Category Filter Tabs */}
+      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
+        <div className="max-w-6xl mx-auto px-6">
+          <Tabs value={selectedParent} onValueChange={setSelectedParent} className="w-full">
+            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-transparent border-b-0 h-auto p-0">
+              <TabsTrigger
+                value="all"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-4 py-3"
+              >
+                Alla kategorier
+              </TabsTrigger>
+              {PARENT_CATEGORIES.map(parent => (
+                <TabsTrigger
+                  key={parent.id}
+                  value={parent.id}
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-4 py-3 whitespace-nowrap"
+                >
+                  {parent.emoji} {parent.name} {postsByParent[parent.id]?.length ? `(${postsByParent[parent.id].length})` : ''}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
       </div>
 
@@ -71,12 +136,14 @@ export default function Blogg() {
               </Card>
             ))}
           </div>
-        ) : posts.length === 0 ? (
+        ) : (selectedParent !== "all" ? postsByParent[selectedParent] : allPosts).length === 0 ? (
           <Card className="text-center py-16">
             <CardContent>
               <FileText className="w-20 h-20 mx-auto text-gray-400 mb-6" />
               <h2 className="text-2xl font-semibold text-gray-700 mb-3">
-                Inga blogginlägg ännu
+                {selectedParent !== "all"
+                  ? `Inga inlägg i ${PARENT_CATEGORIES.find(p => p.id === selectedParent)?.name} ännu`
+                  : "Inga blogginlägg ännu"}
               </h2>
               <p className="text-gray-500 mb-6">
                 Vi arbetar på att publicera spännande innehåll. Kom tillbaka snart!
@@ -85,8 +152,8 @@ export default function Blogg() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post) => (
-              <Link key={post.id} href={`/blogg/${post.slug}`}>
+            {(selectedParent !== "all" ? postsByParent[selectedParent] : allPosts).map((post) => (
+              <Link key={post.id} href={getBlogPostUrl(post.slug, post.category)}>
                 <Card className="hover:shadow-xl transition-all duration-300 cursor-pointer group h-full flex flex-col">
                   {post.heroImageUrl && (
                     <div className="w-full h-48 overflow-hidden rounded-t-lg">
@@ -98,6 +165,11 @@ export default function Blogg() {
                     </div>
                   )}
                   <CardHeader className="flex-grow">
+                    {post.category && BLOG_CATEGORIES[post.category] && (
+                      <Badge variant="secondary" className="w-fit mb-2 text-xs">
+                        {BLOG_CATEGORIES[post.category].iconEmoji} {getCategoryDisplayName(post.category)}
+                      </Badge>
+                    )}
                     <CardTitle className="text-xl group-hover:text-blue-600 transition-colors line-clamp-2">
                       {post.title}
                     </CardTitle>
@@ -105,6 +177,11 @@ export default function Blogg() {
                       <CardDescription className="line-clamp-3 mt-2">
                         {post.excerpt}
                       </CardDescription>
+                    )}
+                    {post.focusKeyphrase && (
+                      <div className="mt-2 text-xs text-gray-500 italic">
+                        🎯 {post.focusKeyphrase}
+                      </div>
                     )}
                   </CardHeader>
                   <CardContent>

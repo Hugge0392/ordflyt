@@ -88,6 +88,38 @@ export const vocabularyAttemptStatusEnum = pgEnum('vocabulary_attempt_status', [
   'failed'
 ]);
 
+// Blog category enum - SEO optimized categories
+export const blogCategoryEnum = pgEnum('blog_category', [
+  // Läsförståelse (Highest SEO priority)
+  'lasforstaelse-strategier',
+  'lasforstaelse-ovningar',
+  'lasforstaelse-texttyper',
+  'lasforstaelse-aldersanpassat',
+
+  // Grammatik
+  'grammatik-ordklasser',
+  'grammatik-meningsbyggnad',
+  'grammatik-interpunktion',
+
+  // Skrivande
+  'skrivande-genrer',
+  'skrivande-process',
+  'skrivande-verktyg',
+
+  // Källkritik
+  'kallkritik-metoder',
+  'kallkritik-digitala-kallor',
+  'kallkritik-faktagranskning',
+
+  // Pedagogik (För lärare)
+  'pedagogik-metodik',
+  'pedagogik-digitala-verktyg',
+  'pedagogik-bedomning',
+
+  // Allmänt
+  'allmant'
+]);
+
 // Users table - core authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3071,20 +3103,23 @@ export const blogPosts = pgTable("blog_posts", {
   slug: varchar("slug", { length: 255 }).notNull(),
   excerpt: text("excerpt"), // Short description for previews
   content: text("content").notNull(), // Full text content
-  
+
   // Featured image and downloadable file
   heroImageUrl: varchar("hero_image_url"),
   downloadFileUrl: varchar("download_file_url"),
   downloadFileName: varchar("download_file_name"),
   downloadFileType: varchar("download_file_type"), // pdf, pptx, docx, etc.
-  
-  // Categorization and metadata
-  categoryId: varchar("category_id").references(() => lessonCategories.id),
+
+  // Categorization and metadata - SEO optimized
+  category: blogCategoryEnum("category").default('allmant'), // Main SEO category
+  categoryId: varchar("category_id").references(() => lessonCategories.id), // Legacy reference
   tags: jsonb("tags").$type<string[]>().default([]),
-  
+
   // SEO and social sharing
   metaDescription: text("meta_description"),
   socialImageUrl: varchar("social_image_url"),
+  focusKeyphrase: varchar("focus_keyphrase"), // Primary SEO keyword
+  relatedLessonIds: jsonb("related_lesson_ids").$type<string[]>().default([]), // For internal linking
   
   // Publishing
   isPublished: boolean("is_published").default(false),

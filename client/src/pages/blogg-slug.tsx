@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useEffect } from "react";
 import { getQueryFn } from "@/lib/queryClient";
+import { BLOG_CATEGORIES, getCategoryDisplayName, getBlogPostApiUrl } from "@/lib/blogCategories";
 
 interface BlogPost {
   id: string;
@@ -21,6 +22,8 @@ interface BlogPost {
   authorName: string;
   viewCount: number;
   tags?: string[];
+  category?: string;
+  focusKeyphrase?: string;
 }
 
 // Helper function to render markdown-like content as HTML
@@ -82,9 +85,16 @@ export default function BloggSlug() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const slug = params.slug;
+  const categoryParent = params.categoryParent;
+  const categoryChild = params.categoryChild;
+
+  // Determine API URL based on whether we have category params (SEO URL) or not (legacy URL)
+  const apiUrl = categoryParent && categoryChild
+    ? `/api/blog/${categoryParent}/${categoryChild}/${slug}`
+    : `/api/blog/posts/${slug}`;
 
   const { data: post, isLoading, error } = useQuery<BlogPost>({
-    queryKey: [`/api/blog/posts/${slug}`],
+    queryKey: [apiUrl],
     queryFn: getQueryFn({ on401: "returnNull" }), // Public endpoint, no auth required
     enabled: !!slug,
   });
@@ -186,6 +196,26 @@ export default function BloggSlug() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-4xl mx-auto px-6 py-12">
+        {/* Breadcrumbs for SEO */}
+        <nav className="mb-6 flex items-center gap-2 text-sm text-gray-600">
+          <Link href="/" className="hover:text-blue-600">Hem</Link>
+          <span>/</span>
+          <Link href="/blogg" className="hover:text-blue-600">Blogg</Link>
+          {post.category && BLOG_CATEGORIES[post.category] && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/blogg?kategori=${BLOG_CATEGORIES[post.category].parentCategory.toLowerCase()}`}
+                className="hover:text-blue-600"
+              >
+                {BLOG_CATEGORIES[post.category].parentCategory}
+              </Link>
+              <span>/</span>
+              <span className="text-gray-900 font-medium">{BLOG_CATEGORIES[post.category].displayName}</span>
+            </>
+          )}
+        </nav>
+
         <Link href="/blogg">
           <Button variant="outline" size="sm" className="mb-6">
             <ArrowLeft className="w-4 h-4 mr-2" />
