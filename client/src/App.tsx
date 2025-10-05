@@ -35,6 +35,7 @@ import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import AdminVocabulary from "@/pages/admin-vocabulary";
 import AdminCategories from "@/pages/admin-categories";
 import AdminBlog from "@/pages/admin-blog";
+import AdminBlogPreview from "@/pages/admin-blog-preview";
 import Blogg from "@/pages/blogg";
 import BloggSlug from "@/pages/blogg-slug";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
@@ -294,6 +295,11 @@ function Router() {
       <Route path="/admin/blog">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminBlog />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog/preview/:slug">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminBlogPreview />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">

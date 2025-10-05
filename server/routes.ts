@@ -1372,6 +1372,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single blog post by slug (admin preview - includes unpublished)
+  app.get("/api/admin/blog/posts/:slug/preview", requireAuth, requireRole('ADMIN'), async (req, res) => {
+    try {
+      const slug = req.params.slug;
+
+      const post = await db
+        .select()
+        .from(schema.blogPosts)
+        .where(eq(schema.blogPosts.slug, slug))
+        .limit(1);
+
+      if (!post[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      res.json(post[0]);
+    } catch (error) {
+      console.error("Error fetching blog post preview:", error);
+      res.status(500).json({ message: "Failed to fetch blog post" });
+    }
+  });
+
   // Create new blog post (admin)
   app.post("/api/admin/blog/posts", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {

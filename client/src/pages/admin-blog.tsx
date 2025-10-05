@@ -91,8 +91,7 @@ export default function AdminBlog() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest("DELETE", `/api/admin/blog/posts/${id}`, {});
-      return response.json();
+      return await apiRequest("DELETE", `/api/admin/blog/posts/${id}`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
@@ -102,23 +101,26 @@ export default function AdminBlog() {
 
   const publishMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest("POST", `/api/admin/blog/posts/${id}/publish`, {});
-      return response.json();
+      return await apiRequest("POST", `/api/admin/blog/posts/${id}/publish`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
-      toast({ title: "Framgång", description: "Blogginlägg publicerat" });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] }); // Also invalidate public blog
+      toast({
+        title: "Publicerat!",
+        description: "Blogginlägget syns nu på /blogg"
+      });
     }
   });
 
   const unpublishMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest("POST", `/api/admin/blog/posts/${id}/unpublish`, {});
-      return response.json();
+      return await apiRequest("POST", `/api/admin/blog/posts/${id}/unpublish`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
-      toast({ title: "Framgång", description: "Blogginlägg dolt" });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] }); // Also invalidate public blog
+      toast({ title: "Dolt", description: "Blogginlägget syns inte längre publikt" });
     }
   });
 
@@ -383,7 +385,7 @@ export default function AdminBlog() {
                         </div>
 
                         <div className="flex gap-2 flex-wrap">
-                          <Link href={`/blogg/${post.slug}`}>
+                          <Link href={`/admin/blog/preview/${post.slug}`}>
                             <Button variant="outline" size="sm">
                               <Eye className="w-4 h-4" />
                             </Button>
