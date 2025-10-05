@@ -25,6 +25,30 @@ async function throwIfResNotOk(res: Response) {
       }
     }
 
+    // Try to parse JSON error response
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        const errorData = await res.json();
+        console.error(`[throwIfResNotOk] ${res.status} error:`, errorData);
+
+        // Format validation errors if present
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          const errorMessages = errorData.errors.map((e: any) =>
+            `${e.path?.join('.') || 'field'}: ${e.message}`
+          ).join(', ');
+          throw new Error(`${res.status}: ${errorData.message || 'Validation error'}. ${errorMessages}`);
+        }
+
+        throw new Error(`${res.status}: ${errorData.message || JSON.stringify(errorData)}`);
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith(`${res.status}:`)) {
+          throw e; // Re-throw our formatted error
+        }
+        // Fall through to text error
+      }
+    }
+
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }

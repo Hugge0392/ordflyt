@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-04T07:14:27.622Z",
+  "timestamp": "2025-10-05T07:04:23.200Z",
   "version": "1.0.0",
   "environment": "development",
   "counts": {
@@ -644,6 +644,19 @@
         "createdAt": "2025-09-24T20:45:00.530Z"
       },
       {
+        "id": "student-erik-124",
+        "username": "erik.7a",
+        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$E5rdl0k/11BOC4Sb5GI3sQ$YtJ+9KWj7q0jh21587izGZyDrDi5uWejCNFjS8NvEHk",
+        "studentName": "Erik Eriksson",
+        "classId": "class-7a-123",
+        "isActive": true,
+        "mustChangePassword": true,
+        "failedLoginAttempts": 0,
+        "lockedUntil": null,
+        "lastLogin": "2025-09-20T08:48:45.061Z",
+        "createdAt": "2025-09-14T22:49:19.175Z"
+      },
+      {
         "id": "cbe58911-badb-4776-b452-c6d0eadc1ee2",
         "username": "eriksad03",
         "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$AJo/VDkCS6MGPZzYJ7MFGg$s21NSA23k8cf5/lXX9R0BpQ+/7nCJu7hjAsitLHitKM",
@@ -672,7 +685,7 @@
       {
         "id": "9wYiLtZ0fetG",
         "username": "elev",
-        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$pfnZ2Gl2GBQ87E3J1RZl0g$3IGUkNcseefy5hTwH80YLjlKK8baE+SdriQv1jBGDdk",
+        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$hxWTWjzHxqBnEmVpw5/Vrg$YkneB9Z+kBD4CAxYQl3zNuhYD9HLBPmfMrVrA9+XjHk",
         "studentName": "Elev Test",
         "classId": "class-7a-123",
         "isActive": true,
@@ -681,6 +694,19 @@
         "lockedUntil": null,
         "lastLogin": null,
         "createdAt": "2025-09-20T18:08:40.621Z"
+      },
+      {
+        "id": "student-sara-125",
+        "username": "sara.7a",
+        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$x8oTi6fuzxQWZ2r4M8+VLA$QfJpDvJ+XThshmlKjGM2onWW0hUpt1knLW3vWfdcSyI",
+        "studentName": "Sara Svensson",
+        "classId": "class-7a-123",
+        "isActive": true,
+        "mustChangePassword": true,
+        "failedLoginAttempts": 0,
+        "lockedUntil": null,
+        "lastLogin": "2025-09-20T09:03:17.362Z",
+        "createdAt": "2025-09-14T22:49:19.175Z"
       },
       {
         "id": "49b2b7bc-e877-411a-abb1-3c4cefb73cd1",
@@ -798,32 +824,6 @@
         "lockedUntil": null,
         "lastLogin": null,
         "createdAt": "2025-09-21T18:53:44.485Z"
-      },
-      {
-        "id": "student-erik-124",
-        "username": "erik.7a",
-        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$lgmhyvxfose7dtj8gxQVnA$G9BxkX88sPXWU72ir3Uc1EO8fXqzybA+VKhZxzF0Gmw",
-        "studentName": "Erik Eriksson",
-        "classId": "class-7a-123",
-        "isActive": true,
-        "mustChangePassword": true,
-        "failedLoginAttempts": 0,
-        "lockedUntil": null,
-        "lastLogin": "2025-09-20T08:48:45.061Z",
-        "createdAt": "2025-09-14T22:49:19.175Z"
-      },
-      {
-        "id": "student-sara-125",
-        "username": "sara.7a",
-        "passwordHash": "$argon2id$v=19$m=65536,t=3,p=4$Tiys1xx8Y/xnfMSfuv7y9A$ITB1+NKbEhkAEbiwCw5DQmyr7SA7e+e8ij72mNjdHv8",
-        "studentName": "Sara Svensson",
-        "classId": "class-7a-123",
-        "isActive": true,
-        "mustChangePassword": true,
-        "failedLoginAttempts": 0,
-        "lockedUntil": null,
-        "lastLogin": "2025-09-20T09:03:17.362Z",
-        "createdAt": "2025-09-14T22:49:19.175Z"
       },
       {
         "id": "student-lars-126",

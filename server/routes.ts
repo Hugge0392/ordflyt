@@ -1326,6 +1326,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== ADMIN BLOG ENDPOINTS =====
+
+  // Helper function: Generate SEO-optimized slug from title
+  const generateSlug = (title: string): string => {
+    return title
+      .toLowerCase()
+      .replace(/å/g, 'a')
+      .replace(/ä/g, 'a')
+      .replace(/ö/g, 'o')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  // Helper function: Auto-generate meta description from content (first 150-160 chars)
+  const generateMetaDescription = (content: string): string => {
+    const textContent = content.replace(/<[^>]*>/g, ''); // Strip HTML
+    const sentences = textContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+
+    let description = '';
+    for (const sentence of sentences) {
+      const trimmed = sentence.trim();
+      if (description.length + trimmed.length < 160) {
+        description += (description ? '. ' : '') + trimmed;
+      } else {
+        break;
+      }
+    }
+
+    return description.slice(0, 160);
+  };
+
+  // Get all blog posts (admin - includes unpublished)
+  app.get("/api/admin/blog/posts", requireAuth, requireRole('ADMIN'), async (req, res) => {
+    try {
+      const posts = await db
+        .select()
+        .from(schema.blogPosts)
+        .orderBy(desc(schema.blogPosts.createdAt));
+
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching admin blog posts:", error);
+      res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  // Create new blog post (admin)
+  app.post("/api/admin/blog/posts", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const validation = insertBlogPostSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          message: "Invalid blog post data",
+          errors: validation.error.errors
+        });
+      }
+
+      const data = validation.data;
+
+      // Auto-generate slug from title if not provided
+      if (!data.slug) {
+        data.slug = generateSlug(data.title);
+      }
+
+      // Auto-generate meta description if not provided
+      if (!data.metaDescription && data.content) {
+        data.metaDescription = generateMetaDescription(data.content);
+      }
+
+      // Check if slug already exists
+      const existingSlug = await db
+        .select()
+        .from(schema.blogPosts)
+        .where(eq(schema.blogPosts.slug, data.slug))
+        .limit(1);
+
+      if (existingSlug[0]) {
+        // Add unique suffix to slug
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+
+      // Set author info from session
+      const user = (req as any).user;
+      data.authorId = user.id;
+      data.authorName = user.username || "Ordflyt Team";
+
+      const newPost = await db
+        .insert(schema.blogPosts)
+        .values(data)
+        .returning();
+
+      res.status(201).json(newPost[0]);
+    } catch (error) {
+      console.error("Error creating blog post:", error);
+      res.status(500).json({ message: "Failed to create blog post" });
+    }
+  });
+
+  // Update blog post (admin)
+  app.put("/api/admin/blog/posts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const validation = insertBlogPostSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          message: "Invalid blog post data",
+          errors: validation.error.errors
+        });
+      }
+
+      const data = validation.data;
+
+      // Auto-generate slug if title changed
+      if (data.title && !data.slug) {
+        data.slug = generateSlug(data.title);
+      }
+
+      // Auto-generate meta description if content changed but no meta provided
+      if (data.content && !data.metaDescription) {
+        data.metaDescription = generateMetaDescription(data.content);
+      }
+
+      // If slug changed, check uniqueness
+      if (data.slug) {
+        const existingSlug = await db
+          .select()
+          .from(schema.blogPosts)
+          .where(and(
+            eq(schema.blogPosts.slug, data.slug),
+            sql`${schema.blogPosts.id} != ${req.params.id}`
+          ))
+          .limit(1);
+
+        if (existingSlug[0]) {
+          return res.status(400).json({ message: "Slug already exists" });
+        }
+      }
+
+      const updatedPost = await db
+        .update(schema.blogPosts)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(schema.blogPosts.id, req.params.id))
+        .returning();
+
+      if (!updatedPost[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      res.json(updatedPost[0]);
+    } catch (error) {
+      console.error("Error updating blog post:", error);
+      res.status(500).json({ message: "Failed to update blog post" });
+    }
+  });
+
+  // Delete blog post (admin)
+  app.delete("/api/admin/blog/posts/:id", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const deleted = await db
+        .delete(schema.blogPosts)
+        .where(eq(schema.blogPosts.id, req.params.id))
+        .returning();
+
+      if (!deleted[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      res.json({ message: "Blog post deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting blog post:", error);
+      res.status(500).json({ message: "Failed to delete blog post" });
+    }
+  });
+
+  // Publish blog post (admin)
+  app.post("/api/admin/blog/posts/:id/publish", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const updatedPost = await db
+        .update(schema.blogPosts)
+        .set({
+          isPublished: true,
+          publishedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(schema.blogPosts.id, req.params.id))
+        .returning();
+
+      if (!updatedPost[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      res.json(updatedPost[0]);
+    } catch (error) {
+      console.error("Error publishing blog post:", error);
+      res.status(500).json({ message: "Failed to publish blog post" });
+    }
+  });
+
+  // Unpublish blog post (admin)
+  app.post("/api/admin/blog/posts/:id/unpublish", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const updatedPost = await db
+        .update(schema.blogPosts)
+        .set({
+          isPublished: false,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.blogPosts.id, req.params.id))
+        .returning();
+
+      if (!updatedPost[0]) {
+        return res.status(404).json({ message: "Blog post not found" });
+      }
+
+      res.json(updatedPost[0]);
+    } catch (error) {
+      console.error("Error unpublishing blog post:", error);
+      res.status(500).json({ message: "Failed to unpublish blog post" });
+    }
+  });
+
   // Newsletter subscription endpoint (public)
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {

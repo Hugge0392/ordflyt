@@ -86,70 +86,74 @@ export function RichTextEditor({
   const [content, setContent] = useState(value || '');
   const [showPreview, setShowPreview] = useState(false);
   const [images, setImages] = useState<{above: string[], below: string[]}>({above: [], below: []});
-  
-  // Update content when value prop changes
+  const isInitialMount = useRef(true);
+
+  // Update content when value prop changes (only if different)
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     if (value !== undefined && value !== content) {
       setContent(value);
     }
-  }, [value, content]);
-  
-  // Load images from initialPages
+  }, [value]);
+
+  // Load images from initialPages (only once)
   useEffect(() => {
     if (initialPages && initialPages.length > 0) {
       const allImagesAbove = initialPages.flatMap(page => page.imagesAbove || []);
       const allImagesBelow = initialPages.flatMap(page => page.imagesBelow || []);
       setImages({above: allImagesAbove, below: allImagesBelow});
     }
-  }, [initialPages]);
-  
-  // Call onChange when content changes
+  }, []);
+
+  // Call onChange when content changes (debounced)
   const lastContentRef = useRef<string>('');
-  const onChangeCallback = useCallback((htmlContent: string) => {
-    if (onChange) {
-      onChange(htmlContent);
-    }
-  }, [onChange]);
-  
+
   useEffect(() => {
-    if (content !== lastContentRef.current) {
-      lastContentRef.current = content;
-      const htmlContent = formatMarkdownToHTML(content);
-      onChangeCallback(htmlContent);
-    }
-  }, [content, onChangeCallback]);
+    const timeoutId = setTimeout(() => {
+      if (content !== lastContentRef.current && onChange) {
+        lastContentRef.current = content;
+        onChange(content); // Send raw content, not HTML
+      }
+    }, 100); // 100ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [content, onChange]);
   
   // Remove automatic page breaks since we now use separate pages
   // (This functionality is no longer needed)
   
-  // Call onPagesChange when content or images change
+  // Call onPagesChange when content or images change (debounced)
   const lastPagesRef = useRef<string>('');
-  const onPagesChangeCallback = useCallback((pagesData: any[]) => {
-    if (onPagesChange) {
-      onPagesChange(pagesData);
-    }
-  }, [onPagesChange]);
-  
+
   useEffect(() => {
-    const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
-    if (pagesKey !== lastPagesRef.current) {
-      lastPagesRef.current = pagesKey;
-      
-      // Split content by page breaks
-      const pageBreakMarker = '--- SIDBRYTNING ---';
-      const contentParts = content.split(pageBreakMarker);
-      
-      const pagesData = contentParts.map((pageContent, index) => ({
-        id: `page-${index}`,
-        content: formatMarkdownToHTML(pageContent.trim()),
-        imagesAbove: index === 0 ? images.above : [], // Only first page gets images above
-        imagesBelow: index === contentParts.length - 1 ? images.below : [], // Only last page gets images below
-        questions: [] // Initialize empty questions array for each page
-      }));
-      
-      onPagesChangeCallback(pagesData);
-    }
-  }, [content, images, onPagesChangeCallback]);
+    if (!onPagesChange) return;
+
+    const timeoutId = setTimeout(() => {
+      const pagesKey = `${content}-${images.above.join(',')}-${images.below.join(',')}`;
+      if (pagesKey !== lastPagesRef.current) {
+        lastPagesRef.current = pagesKey;
+
+        // Split content by page breaks
+        const pageBreakMarker = '--- SIDBRYTNING ---';
+        const contentParts = content.split(pageBreakMarker);
+
+        const pagesData = contentParts.map((pageContent, index) => ({
+          id: `page-${index}`,
+          content: formatMarkdownToHTML(pageContent.trim()),
+          imagesAbove: index === 0 ? images.above : [], // Only first page gets images above
+          imagesBelow: index === contentParts.length - 1 ? images.below : [], // Only last page gets images below
+          questions: [] // Initialize empty questions array for each page
+        }));
+
+        onPagesChange(pagesData);
+      }
+    }, 100); // 100ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [content, images, onPagesChange]);
   
   // Helper function for formatting
   const insertMarkdown = (prefix: string, suffix: string = '', placeholder: string = '') => {
@@ -185,26 +189,47 @@ export function RichTextEditor({
   // Handle image upload
   const handleImageUpload = async (file: File, position: 'above' | 'below') => {
     try {
+      // Get CSRF token
+      const csrfToken = localStorage.getItem('csrfToken');
+      if (!csrfToken) {
+        // Try to refresh CSRF token
+        const authRes = await fetch('/api/auth/me', { credentials: 'include' });
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          if (authData.csrfToken) {
+            localStorage.setItem('csrfToken', authData.csrfToken);
+          }
+        }
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      
+
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('csrfToken');
+      if (token) {
+        headers['X-CSRF-Token'] = token;
+      }
+
       const response = await fetch('/api/upload-direct', {
         method: 'POST',
+        credentials: 'include', // Include cookies for authentication
+        headers,
         body: formData
       });
-      
+
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      
+
       if (result.objectPath) {
         setImages(prev => ({
           ...prev,
           [position]: [...prev[position], result.objectPath]
         }));
-        
+
         toast({
           title: "Bild uppladdad!",
           description: `Bilden har lagts till ${position === 'above' ? 'ovanför' : 'under'} texten`
@@ -213,7 +238,7 @@ export function RichTextEditor({
     } catch (error) {
       console.error('Upload error:', error);
       toast({
-        title: "Uppladdning misslyckades", 
+        title: "Uppladdning misslyckades",
         description: "Kunde inte ladda upp bilden. Försök igen.",
         variant: "destructive"
       });

@@ -34,6 +34,9 @@ import AdminEmailTest from "@/pages/admin-email-test";
 import AdminLessonTemplates from "@/pages/admin-lesson-templates";
 import AdminVocabulary from "@/pages/admin-vocabulary";
 import AdminCategories from "@/pages/admin-categories";
+import AdminBlog from "@/pages/admin-blog";
+import Blogg from "@/pages/blogg";
+import BloggSlug from "@/pages/blogg-slug";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
 import TeacherStudentProgress from "@/pages/teacher-student-progress";
 import AvatarBuilder from "@/pages/avatar-builder";
@@ -173,7 +176,11 @@ function Router() {
       <Route path="/lektionsmaterial/:slug" component={LessonMaterialDetail} />
       <Route path="/gratis-lektioner" component={LessonMaterials} />
       <Route path="/gratis-lektioner/:slug" component={LessonMaterialDetail} />
-      
+
+      {/* Blog (public) */}
+      <Route path="/blogg" component={Blogg} />
+      <Route path="/blogg/:slug" component={BloggSlug} />
+
       {/* Teacher routes (requires LARARE role) */}
       <Route path="/teacher">
         <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
@@ -282,6 +289,11 @@ function Router() {
       <Route path="/admin/categories">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminCategories />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminBlog />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">

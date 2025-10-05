@@ -889,6 +889,21 @@ export default function Admin() {
                         </CardContent>
                       </Card>
                     </Link>
+
+                    {/* Blog */}
+                    <Link href="/admin/blog">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-purple-200 hover:border-purple-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                              <FileText className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Blogg</h3>
+                            <p className="text-xs text-gray-500">SEO & artiklar</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

@@ -21,7 +21,9 @@
       "Bash(psql:*)",
       "Bash(kill:*)",
       "Bash(npm run:*)",
-      "Read(//dev/**)"
+      "Read(//dev/**)",
+      "Bash(cat:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

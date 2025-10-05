@@ -3305,6 +3305,10 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
   updatedAt: true,
   viewCount: true,
   downloadCount: true,
+  publishedAt: true,
+  slug: true, // Auto-generated from title
+  authorId: true, // Auto-set from session
+  authorName: true, // Auto-set from session
 });
 
 export const insertNewsletterSubscriptionSchema = createInsertSchema(newsletterSubscriptions).omit({
