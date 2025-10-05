@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Calendar, Eye, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
+import { getQueryFn } from "@/lib/queryClient";
 
 interface BlogPost {
   id: string;
@@ -30,6 +31,7 @@ export default function Blogg() {
     };
   }>({
     queryKey: ["/api/blog/posts"],
+    queryFn: getQueryFn({ on401: "returnNull" }), // Public endpoint, no auth required
   });
 
   const posts = response?.posts || [];

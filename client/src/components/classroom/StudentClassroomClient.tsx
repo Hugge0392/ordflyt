@@ -83,7 +83,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
   });
 
   const wsRef = useRef<WebSocket | null>(null);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timerIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -91,8 +91,9 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
   const maxReconnectAttempts = 3; // Limit reconnection attempts
 
   const connect = useCallback(async (): Promise<void> => {
-    // Only connect if user is a student and we haven't exceeded max attempts
-    if (!user || user.role !== 'ELEV' || reconnectAttemptsRef.current >= maxReconnectAttempts) {
+    // Only connect if user is authenticated as a student and we haven't exceeded max attempts
+    if (!isAuthenticated || !user || user.role !== 'ELEV' || reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      // Silently return without logging when not a student
       return;
     }
 
@@ -396,10 +397,10 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
 
   // Auto-connect when user is available and is a student
   useEffect(() => {
-    if (user && user.role === 'ELEV') {
+    if (isAuthenticated && user && user.role === 'ELEV') {
       connect();
     }
-    
+
     // Only disconnect on unmount, not on dependency changes
     return () => {
       if (wsRef.current) {
@@ -407,7 +408,7 @@ export function StudentClassroomProvider({ children }: StudentClassroomProviderP
         wsRef.current = null;
       }
     };
-  }, [user?.id, user?.role]); // Only depend on user id and role, not the whole user object
+  }, [isAuthenticated, user?.id, user?.role]); // Only depend on auth status, user id and role
 
   return (
     <StudentClassroomContext.Provider value={{

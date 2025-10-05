@@ -119,24 +119,29 @@ export function useAuth() {
           return data;
         }
 
-        // If regular auth fails, try student auth
-        const studentResponse = await fetch("/api/student/me", {
-          credentials: "include"
-        });
+        // Only try student auth if we're on a student route or have a student session cookie
+        const isStudentRoute = window.location.pathname.startsWith('/elev');
+        const hasStudentCookie = document.cookie.includes('studentSessionToken');
 
-        if (studentResponse.ok) {
-          const studentData = await studentResponse.json();
+        if (isStudentRoute || hasStudentCookie) {
+          const studentResponse = await fetch("/api/student/me", {
+            credentials: "include"
+          });
 
-          // Transform student data to match AuthData format
-          return {
-            user: {
-              id: studentData.student.id,
-              username: studentData.student.username,
-              role: 'ELEV',
-              studentName: studentData.student.studentName,
-            },
-            csrfToken: undefined // Students don't use CSRF tokens
-          };
+          if (studentResponse.ok) {
+            const studentData = await studentResponse.json();
+
+            // Transform student data to match AuthData format
+            return {
+              user: {
+                id: studentData.student.id,
+                username: studentData.student.username,
+                role: 'ELEV',
+                studentName: studentData.student.studentName,
+              },
+              csrfToken: undefined // Students don't use CSRF tokens
+            };
+          }
         }
 
         return null; // Not authenticated

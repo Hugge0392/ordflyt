@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, Eye, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useEffect } from "react";
+import { getQueryFn } from "@/lib/queryClient";
 
 interface BlogPost {
   id: string;
@@ -84,6 +85,7 @@ export default function BloggSlug() {
 
   const { data: post, isLoading, error } = useQuery<BlogPost>({
     queryKey: [`/api/blog/posts/${slug}`],
+    queryFn: getQueryFn({ on401: "returnNull" }), // Public endpoint, no auth required
     enabled: !!slug,
   });
 

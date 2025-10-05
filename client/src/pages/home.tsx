@@ -6,6 +6,7 @@ import { Calendar, Download, ArrowRight, Shield, GraduationCap, User } from "luc
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useLocation } from "wouter";
+import { getQueryFn } from "@/lib/queryClient";
 
 // Development role switching component for quick access
 function DevQuickLogin() {
@@ -97,6 +98,7 @@ function DevQuickLogin() {
 function RecentBlogPosts() {
   const { data: blogData, isLoading, error } = useQuery<{ posts: BlogPost[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
     queryKey: ['/api/blog/posts?limit=3&page=1'],
+    queryFn: getQueryFn({ on401: "returnNull" }), // Public endpoint, no auth required
   });
 
   // Always show section, handle loading and empty states
