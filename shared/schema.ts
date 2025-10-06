@@ -3111,7 +3111,7 @@ export const blogPosts = pgTable("blog_posts", {
   downloadFileType: varchar("download_file_type"), // pdf, pptx, docx, etc.
 
   // Categorization and metadata - SEO optimized
-  category: blogCategoryEnum("category").default('allmant'), // Main SEO category
+  // category: blogCategoryEnum("category").default('allmant'), // Main SEO category - TEMP DISABLED until migration
   categoryId: varchar("category_id").references(() => lessonCategories.id), // Legacy reference
   tags: jsonb("tags").$type<string[]>().default([]),
 

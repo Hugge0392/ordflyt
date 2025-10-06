@@ -7,6 +7,14 @@ export function BlogHero() {
 
   return (
     <header className="hero relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white py-20 overflow-hidden">
+      {/* Animated gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 animate-gradient-shift" />
+
+      {/* Floating orbs */}
+      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl animate-float-slow" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl animate-float-slower" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl animate-pulse-slow" />
+
       {/* Background pattern */}
       <div
         className="hero__bg absolute inset-0 opacity-10"
@@ -52,13 +60,73 @@ export function BlogHero() {
           }
         }
 
+        @keyframes gradient-shift {
+          0%, 100% {
+            opacity: 0.3;
+            transform: translate(0, 0) scale(1);
+          }
+          50% {
+            opacity: 0.5;
+            transform: translate(10px, 10px) scale(1.05);
+          }
+        }
+
+        @keyframes float-slow {
+          0%, 100% {
+            transform: translate(0, 0);
+          }
+          50% {
+            transform: translate(20px, 20px);
+          }
+        }
+
+        @keyframes float-slower {
+          0%, 100% {
+            transform: translate(0, 0);
+          }
+          50% {
+            transform: translate(-30px, 15px);
+          }
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% {
+            opacity: 0.2;
+            transform: translate(-50%, -50%) scale(1);
+          }
+          50% {
+            opacity: 0.3;
+            transform: translate(-50%, -50%) scale(1.1);
+          }
+        }
+
         .animate-slideUp {
           animation: slideUp 300ms ease-out backwards;
+        }
+
+        .animate-gradient-shift {
+          animation: gradient-shift 8s ease-in-out infinite;
+        }
+
+        .animate-float-slow {
+          animation: float-slow 20s ease-in-out infinite;
+        }
+
+        .animate-float-slower {
+          animation: float-slower 25s ease-in-out infinite;
+        }
+
+        .animate-pulse-slow {
+          animation: pulse-slow 15s ease-in-out infinite;
         }
 
         @media (prefers-reduced-motion: reduce) {
           .animate-slideUp,
           .animate-bounce,
+          .animate-gradient-shift,
+          .animate-float-slow,
+          .animate-float-slower,
+          .animate-pulse-slow,
           .hero__bg {
             animation: none;
           }

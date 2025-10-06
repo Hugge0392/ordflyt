@@ -9,6 +9,7 @@ import { sv } from "date-fns/locale";
 import { useEffect } from "react";
 import { getQueryFn } from "@/lib/queryClient";
 import { BLOG_CATEGORIES, getCategoryDisplayName, getBlogPostApiUrl } from "@/lib/blogCategories";
+import { BlogPostingStructuredData, BreadcrumbStructuredData } from "@/components/blog/StructuredData";
 
 interface BlogPost {
   id: string;
@@ -193,8 +194,37 @@ export default function BloggSlug() {
     );
   }
 
+  // Build breadcrumb items for structured data
+  const breadcrumbItems = [
+    { name: "Hem", url: window.location.origin },
+    { name: "Blogg", url: `${window.location.origin}/blogg` }
+  ];
+
+  if (post.category && BLOG_CATEGORIES[post.category]) {
+    breadcrumbItems.push({
+      name: BLOG_CATEGORIES[post.category].parentCategory,
+      url: `${window.location.origin}/blogg?kategori=${BLOG_CATEGORIES[post.category].parentCategory.toLowerCase()}`
+    });
+    breadcrumbItems.push({
+      name: BLOG_CATEGORIES[post.category].displayName
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Structured Data */}
+      <BlogPostingStructuredData
+        title={post.title}
+        description={post.metaDescription || post.excerpt || ''}
+        image={post.heroImageUrl}
+        publishedAt={post.publishedAt}
+        updatedAt={post.publishedAt}
+        author={post.authorName}
+        url={window.location.href}
+        category={post.category}
+      />
+      <BreadcrumbStructuredData items={breadcrumbItems} />
+
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Breadcrumbs for SEO */}
         <nav className="mb-6 flex items-center gap-2 text-sm text-gray-600">
@@ -229,7 +259,8 @@ export default function BloggSlug() {
               <div className="w-full h-96 overflow-hidden">
                 <img
                   src={post.heroImageUrl}
-                  alt={post.title}
+                  alt={`Omslagsbild för: ${post.title}`}
+                  loading="eager"
                   className="w-full h-full object-cover"
                 />
               </div>

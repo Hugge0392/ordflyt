@@ -110,13 +110,15 @@ export function BlogSidebar({
       )}
 
       {/* Newsletter Subscription */}
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardHeader>
-          <CardTitle id="sub" className="text-lg">Prenumerera</CardTitle>
+      <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200/50 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/10 rounded-full blur-2xl" />
+        <CardHeader className="relative z-10">
+          <CardTitle id="sub" className="text-lg text-gray-800">Prenumerera</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <form onSubmit={handleSubscribe} aria-labelledby="sub" className="space-y-3">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-700 font-medium">
               Få de senaste artiklarna och lektionerna direkt i din inbox
             </p>
             <Input
@@ -127,10 +129,11 @@ export function BlogSidebar({
               placeholder="Din e-postadress"
               required
               aria-label="E-postadress för prenumeration"
+              className="border-blue-200 focus:border-blue-400"
             />
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
               data-cta="subscribe"
             >
               Prenumerera

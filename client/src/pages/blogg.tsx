@@ -6,6 +6,7 @@ import { BlogPostCard } from "@/components/blog/BlogPostCard";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { getBlogPostUrl } from "@/lib/blogCategories";
 import { useEffect } from "react";
+import { OrganizationStructuredData } from "@/components/blog/StructuredData";
 
 interface BlogPost {
   id: string;
@@ -57,7 +58,10 @@ export default function Blogg() {
   const allTags = ['texttyper', 'lässtrategier', 'åk 6', 'grammatik', 'ordklasser'];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
+      {/* Structured Data for Organization */}
+      <OrganizationStructuredData url={window.location.origin} />
+
       {/* Hero Section */}
       <BlogHero />
 
@@ -66,9 +70,9 @@ export default function Blogg() {
 
       {/* Main Content */}
       <div className="container max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
           {/* Blog Posts Grid */}
-          <section id="blog-index">
+          <section id="blog-index" className="order-2 lg:order-1">
             {isLoading ? (
               <div className="post-grid grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[...Array(6)].map((_, i) => (
@@ -97,24 +101,30 @@ export default function Blogg() {
             ) : (
               <ul
                 className="post-grid grid grid-cols-1 md:grid-cols-2 gap-6"
-                style={{
-                  animation: 'fadeInGrid 300ms ease-out'
-                }}
               >
-                {posts.map((post) => (
-                  <BlogPostCard
+                {posts.map((post, index) => (
+                  <div
                     key={post.id}
-                    {...post}
-                    href={getBlogPostUrl(post.slug, post.category)}
-                  />
+                    className="animate-fadeInUp"
+                    style={{
+                      animationDelay: `${index * 50}ms`
+                    }}
+                  >
+                    <BlogPostCard
+                      {...post}
+                      href={getBlogPostUrl(post.slug, post.category)}
+                    />
+                  </div>
                 ))}
               </ul>
             )}
           </section>
 
-          {/* Sidebar (Desktop only) */}
-          <div className="hidden lg:block">
-            <BlogSidebar popularPosts={popularPosts} tags={allTags} />
+          {/* Sidebar (Desktop only) - Right side */}
+          <div className="hidden lg:block order-1 lg:order-2">
+            <div className="sticky top-24">
+              <BlogSidebar popularPosts={popularPosts} tags={allTags} />
+            </div>
           </div>
         </div>
 
@@ -125,19 +135,23 @@ export default function Blogg() {
       </div>
 
       <style>{`
-        @keyframes fadeInGrid {
+        @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(30px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
 
+        .animate-fadeInUp {
+          animation: fadeInUp 600ms ease-out backwards;
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .post-grid {
+          .animate-fadeInUp {
             animation: none;
           }
         }

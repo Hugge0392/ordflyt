@@ -46,23 +46,31 @@ export function SEOHead({
     }
 
     // Open Graph
-    updateMeta('og:title', title, true);
+    updateMeta('og:title', `${title} | Ordflyt`, true);
     updateMeta('og:description', description, true);
     updateMeta('og:type', type, true);
+    updateMeta('og:locale', 'sv_SE', true);
     if (url) updateMeta('og:url', url, true);
-    if (image) updateMeta('og:image', image, true);
+    if (image) {
+      updateMeta('og:image', image, true);
+      updateMeta('og:image:alt', title, true);
+    }
 
     // Twitter Card
     updateMeta('twitter:card', 'summary_large_image');
-    updateMeta('twitter:title', title);
+    updateMeta('twitter:title', `${title} | Ordflyt`);
     updateMeta('twitter:description', description);
-    if (image) updateMeta('twitter:image', image);
+    if (image) {
+      updateMeta('twitter:image', image);
+      updateMeta('twitter:image:alt', title);
+    }
 
     // Article specific
     if (type === 'article') {
       if (publishedTime) updateMeta('article:published_time', publishedTime, true);
       if (modifiedTime) updateMeta('article:modified_time', modifiedTime, true);
       if (author) updateMeta('article:author', author, true);
+      updateMeta('article:section', 'Utbildning', true);
     }
 
     // Canonical URL
@@ -74,6 +82,18 @@ export function SEOHead({
         document.head.appendChild(canonical);
       }
       canonical.href = url;
+    }
+
+    // Add language alternate links for international SEO (if needed in the future)
+    let alternate = document.querySelector('link[rel="alternate"][hreflang="sv"]') as HTMLLinkElement;
+    if (!alternate && url) {
+      alternate = document.createElement('link');
+      alternate.rel = 'alternate';
+      alternate.hreflang = 'sv';
+      alternate.href = url;
+      document.head.appendChild(alternate);
+    } else if (alternate && url) {
+      alternate.href = url;
     }
   }, [title, description, image, url, type, publishedTime, modifiedTime, author, keywords]);
 

@@ -407,6 +407,110 @@ function generateReadingLessonHTML(lesson: any): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ===== SEO ENDPOINTS (MUST BE FIRST) =====
+
+  // robots.txt
+  app.get("/robots.txt", (req, res) => {
+    const robotsTxt = `User-agent: *
+Allow: /
+Allow: /blogg
+Allow: /blogg/*
+
+# Disallow admin and private areas
+Disallow: /admin
+Disallow: /larare
+Disallow: /elev
+Disallow: /api/
+
+# Sitemap
+Sitemap: ${req.protocol}://${req.get('host')}/sitemap.xml
+Sitemap: ${req.protocol}://${req.get('host')}/sitemap-blog.xml
+
+# Crawl-delay
+Crawl-delay: 1`;
+
+    res.type('text/plain');
+    res.send(robotsTxt);
+  });
+
+  // Main sitemap index
+  app.get("/sitemap.xml", (req, res) => {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const now = new Date().toISOString();
+
+    const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-blog.xml</loc>
+    <lastmod>${now}</lastmod>
+  </sitemap>
+</sitemapindex>`;
+
+    res.type('application/xml');
+    res.send(sitemapIndex);
+  });
+
+  // Blog sitemap
+  app.get("/sitemap-blog.xml", async (req, res) => {
+    try {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      // Get all published blog posts - gracefully handle schema differences
+      let posts: Array<{ slug: string; updatedAt: string | null; publishedAt: string | null }> = [];
+
+      try {
+        const result = await db
+          .select({
+            slug: schema.blogPosts.slug,
+            updatedAt: schema.blogPosts.updatedAt,
+            publishedAt: schema.blogPosts.publishedAt,
+          })
+          .from(schema.blogPosts)
+          .where(eq(schema.blogPosts.isPublished, true))
+          .orderBy(desc(schema.blogPosts.publishedAt));
+
+        posts = result;
+      } catch (dbError) {
+        console.warn("Database query failed, returning empty sitemap:", dbError);
+        posts = [];
+      }
+
+      const urls = posts.map(post => {
+        const url = `${baseUrl}/blogg/${post.slug}`;
+        const lastmod = post.updatedAt || post.publishedAt || new Date().toISOString();
+
+        return `  <url>
+    <loc>${url}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+      }).join('\n');
+
+      // Add main blog page
+      const mainBlogUrl = `  <url>
+    <loc>${baseUrl}/blogg</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${mainBlogUrl}
+${urls}
+</urlset>`;
+
+      res.type('application/xml');
+      res.send(sitemap);
+    } catch (error) {
+      console.error("Error generating blog sitemap:", error);
+      res.status(500).send("Failed to generate sitemap");
+    }
+  });
+
+  // ===== API ENDPOINTS =====
+
   // Get all word classes
   app.get("/api/word-classes", async (req, res) => {
     try {
@@ -1232,7 +1336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           downloadFileName: schema.blogPosts.downloadFileName,
           downloadFileType: schema.blogPosts.downloadFileType,
           categoryId: schema.blogPosts.categoryId,
-          category: schema.blogPosts.category, // SEO category
+          // category: schema.blogPosts.category, // SEO category - TEMPORARY: Commented out until migration
           focusKeyphrase: schema.blogPosts.focusKeyphrase, // SEO keyword
           tags: schema.blogPosts.tags,
           publishedAt: schema.blogPosts.publishedAt,

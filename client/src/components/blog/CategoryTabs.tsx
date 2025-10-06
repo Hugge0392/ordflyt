@@ -35,7 +35,7 @@ export function CategoryTabs({ activeCategory = "all", postCounts = {} }: Catego
             href="/blogg"
             role="tab"
             aria-selected={activeCategory === "all"}
-            className={`tab whitespace-nowrap px-6 py-4 font-semibold border-b-2 transition-all ${
+            className={`tab whitespace-nowrap px-6 py-4 font-semibold border-b-2 transition-all duration-200 hover:scale-105 ${
               activeCategory === "all"
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
@@ -51,7 +51,7 @@ export function CategoryTabs({ activeCategory = "all", postCounts = {} }: Catego
               href={`/blogg/${config.slug}`}
               role="tab"
               aria-selected={activeCategory === key}
-              className={`tab whitespace-nowrap px-6 py-4 font-semibold border-b-2 transition-all ${
+              className={`tab whitespace-nowrap px-6 py-4 font-semibold border-b-2 transition-all duration-200 hover:scale-105 ${
                 activeCategory === key
                   ? `text-[${config.color}]`
                   : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
