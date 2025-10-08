@@ -38,6 +38,7 @@ export default function AdminBlog() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // Form states for create/edit
   const [title, setTitle] = useState("");
@@ -50,6 +51,10 @@ export default function AdminBlog() {
   const [keywordInput, setKeywordInput] = useState("");
   const [category, setCategory] = useState<string>("allmant");
   const [focusKeyphrase, setFocusKeyphrase] = useState("");
+
+  // Import form states
+  const [importHtmlContent, setImportHtmlContent] = useState("");
+  const [importCategoryId, setImportCategoryId] = useState("");
 
   const { data: allPosts = [], isLoading: postsLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/admin/blog/posts"],
@@ -128,6 +133,31 @@ export default function AdminBlog() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] }); // Also invalidate public blog
       toast({ title: "Dolt", description: "Blogginlägget syns inte längre publikt" });
+    }
+  });
+
+  const importMutation = useMutation({
+    mutationFn: async (data: { htmlContent: string; categoryId: string; publishImmediately: boolean }) => {
+      return await apiRequest("POST", "/api/admin/blog/posts/import", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/blog/posts"] });
+      toast({ 
+        title: "Framgång!", 
+        description: "Blogginlägget har importerats och publicerats" 
+      });
+      setIsImportDialogOpen(false);
+      setImportHtmlContent("");
+      setImportCategoryId("");
+    },
+    onError: (error: any) => {
+      console.error('[importMutation] Error:', error);
+      toast({
+        title: "Fel",
+        description: error.message || "Kunde inte importera blogginlägg",
+        variant: "destructive"
+      });
     }
   });
 
@@ -271,13 +301,88 @@ export default function AdminBlog() {
                 <TabsTrigger value="drafts">Utkast ({draftPosts.length})</TabsTrigger>
               </TabsList>
 
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-purple-600 hover:bg-purple-700" onClick={resetForm}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Skapa nytt inlägg
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                      <Send className="w-4 h-4 mr-2" />
+                      Importera HTML
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Importera blogginlägg från HTML</DialogTitle>
+                      <DialogDescription>
+                        Klistra in SEO-optimerad HTML. Metadata extraheras automatiskt.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label htmlFor="importCategory">Välj kategori *</Label>
+                        <Select value={importCategoryId} onValueChange={setImportCategoryId}>
+                          <SelectTrigger id="importCategory">
+                            <SelectValue placeholder="Välj en kategori" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5b1791eb-c06a-4a64-85c0-b3a3ed6aeee3">Läsförståelse</SelectItem>
+                            <SelectItem value="f0d509a1-df45-49c6-a3b0-ec3d5f35eb8c">Grammatik</SelectItem>
+                            <SelectItem value="19c2d55e-176e-478c-8627-3aea3a563e23">Ordklasser</SelectItem>
+                            <SelectItem value="466db888-3463-4148-8526-f3be473c6b17">Skrivande</SelectItem>
+                            <SelectItem value="710a1a0a-694c-440d-be2e-78373ab2cc69">Ordkunskap</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="htmlContent">HTML-innehåll *</Label>
+                        <Textarea
+                          id="htmlContent"
+                          value={importHtmlContent}
+                          onChange={(e) => setImportHtmlContent(e.target.value)}
+                          placeholder="<h1>Titel här</h1><p>Innehåll...</p>..."
+                          className="font-mono text-sm min-h-[300px]"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                          HTML-filen ska innehålla:<br/>
+                          - <code className="bg-gray-100 px-1 rounded">h1</code>-tag för titel<br/>
+                          - <code className="bg-gray-100 px-1 rounded">p</code>-taggar för innehåll<br/>
+                          - SEO-metadata längst ner (Meta-beskrivning, Nyckelord)
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        onClick={() => {
+                          if (!importHtmlContent || !importCategoryId) {
+                            toast({
+                              title: "Fel",
+                              description: "HTML-innehåll och kategori är obligatoriska",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          importMutation.mutate({ 
+                            htmlContent: importHtmlContent, 
+                            categoryId: importCategoryId,
+                            publishImmediately: true 
+                          });
+                        }}
+                        disabled={importMutation.isPending}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        {importMutation.isPending ? "Importerar..." : "Importera och publicera"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-purple-600 hover:bg-purple-700" onClick={resetForm}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Skapa nytt inlägg
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Skapa nytt blogginlägg</DialogTitle>

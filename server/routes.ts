@@ -1729,6 +1729,74 @@ ${urls}
     }
   });
 
+  // Import blog post from HTML with SEO metadata (admin)
+  app.post("/api/admin/blog/posts/import", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
+    try {
+      const { htmlContent, categoryId, publishImmediately = true } = req.body;
+      
+      if (!htmlContent || !categoryId) {
+        return res.status(400).json({ message: "HTML content and category ID are required" });
+      }
+
+      // Extract title from h1 tag
+      const titleMatch = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : 'Untitled';
+
+      // Extract excerpt from first paragraph
+      const excerptMatch = htmlContent.match(/<p[^>]*>(.*?)<\/p>/i);
+      const excerpt = excerptMatch ? excerptMatch[1].replace(/<[^>]*>/g, '').substring(0, 200) : '';
+
+      // Extract meta description from SEO section
+      const metaDescMatch = htmlContent.match(/<strong>Meta-beskrivning:<\/strong><br>(.*?)(?:<\/p>|<p>)/i);
+      const metaDescription = metaDescMatch ? metaDescMatch[1].replace(/<[^>]*>/g, '').trim() : excerpt;
+
+      // Extract keywords from SEO section
+      const keywordsMatch = htmlContent.match(/<strong>Nyckelord:<\/strong><br>(.*?)(?:<\/p>|$)/i);
+      const tagsString = keywordsMatch ? keywordsMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const tags = tagsString ? tagsString.split(',').map(t => t.trim()) : [];
+
+      // Remove SEO metadata section from content
+      let content = htmlContent.replace(/<hr>.*$/i, '').trim();
+
+      // Auto-generate slug from title
+      const slug = generateSlug(title);
+
+      // Check if slug already exists
+      const existingSlug = await db
+        .select()
+        .from(schema.blogPosts)
+        .where(eq(schema.blogPosts.slug, slug))
+        .limit(1);
+
+      const finalSlug = existingSlug[0] ? `${slug}-${Date.now()}` : slug;
+
+      // Set author info from session
+      const user = (req as any).user;
+
+      const newPost = await db
+        .insert(schema.blogPosts)
+        .values({
+          title,
+          slug: finalSlug,
+          excerpt,
+          content,
+          categoryId,
+          tags,
+          metaDescription,
+          isPublished: publishImmediately,
+          publishedAt: publishImmediately ? new Date() : null,
+          authorId: user.id,
+          authorName: user.username || "Ordflyt Team",
+        })
+        .returning();
+
+      res.status(201).json(newPost[0]);
+    } catch (error) {
+      console.error("Error importing blog post:", error);
+      res.status(500).json({ message: "Failed to import blog post" });
+    }
+  });
+
   // Newsletter subscription endpoint (public)
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
