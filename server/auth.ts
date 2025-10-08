@@ -600,7 +600,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   const sessionToken = req.cookies?.sessionToken;
 
+  console.log('[requireAuth] Checking auth for:', req.path);
+  console.log('[requireAuth] Has sessionToken:', !!sessionToken);
+  console.log('[requireAuth] Cookies:', Object.keys(req.cookies || {}));
+
   if (!sessionToken) {
+    console.log('[requireAuth] No session token - returning 401');
     return res.status(401).json({ error: 'Ej inloggad' });
   }
   
