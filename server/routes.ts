@@ -1791,22 +1791,29 @@ ${urls}
       console.log('[Import] Extracted data:', { title, slug: finalSlug, excerpt, categoryId, tags, metaDescription });
       console.log('[Import] User info:', { userId: user?.id, username: user?.username });
 
+      // Prepare values object - only include categoryId if it's a valid string
+      const postValues: any = {
+        title,
+        slug: finalSlug,
+        excerpt,
+        content,
+        tags: tags.length > 0 ? tags : undefined,
+        metaDescription, // This column exists in DB
+        isPublished: publishImmediately,
+        publishedAt: publishImmediately ? new Date() : null,
+        authorId: user.id,
+        authorName: user.username || "Ordflyt Team",
+        // Note: metaTitle, keywords, focusKeyphrase don't exist in DB yet
+      };
+
+      // Only include categoryId if it's provided and not empty
+      if (categoryId && categoryId.trim() !== '') {
+        postValues.categoryId = categoryId;
+      }
+
       const newPost = await db
         .insert(schema.blogPosts)
-        .values({
-          title,
-          slug: finalSlug,
-          excerpt,
-          content,
-          categoryId: categoryId || null, // Make categoryId optional
-          tags: tags.length > 0 ? tags : undefined,
-          metaDescription, // This column exists in DB
-          isPublished: publishImmediately,
-          publishedAt: publishImmediately ? new Date() : null,
-          authorId: user.id,
-          authorName: user.username || "Ordflyt Team",
-          // Note: metaTitle, keywords, focusKeyphrase don't exist in DB yet
-        })
+        .values(postValues)
         .returning();
 
       console.log('[Import] Successfully created blog post:', newPost[0].id);
