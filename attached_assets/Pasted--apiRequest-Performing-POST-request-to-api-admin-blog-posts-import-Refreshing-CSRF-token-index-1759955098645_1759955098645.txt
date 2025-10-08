@@ -1,0 +1,59 @@
+[apiRequest] Performing POST request to /api/admin/blog/posts/import. Refreshing CSRF token...
+index-DVViw4ah.js:48 [refreshCsrfToken] Fetching CSRF token from /api/auth/me...
+index-DVViw4ah.js:48 [refreshCsrfToken] Response data keys: (3) ['user', 'csrfToken', 'teacherContext']
+index-DVViw4ah.js:48 [refreshCsrfToken] CSRF token refreshed successfully: Fuzf5yXM...
+index-DVViw4ah.js:48 [apiRequest] CSRF token obtained: Fuzf5yXM...
+index-DVViw4ah.js:48 [apiRequest] Making POST request to /api/admin/blog/posts/import with headers: (2) ['Content-Type', 'X-CSRF-Token']
+index-DVViw4ah.js:48  POST https://ordflyt.se/api/admin/blog/posts/import 500 (Internal Server Error)
+tt @ index-DVViw4ah.js:48
+await in tt
+mutationFn @ index-DVViw4ah.js:2202
+fn @ index-DVViw4ah.js:48
+p @ index-DVViw4ah.js:48
+start @ index-DVViw4ah.js:48
+execute @ index-DVViw4ah.js:48
+await in execute
+mutate @ index-DVViw4ah.js:48
+(anonymous) @ index-DVViw4ah.js:48
+onClick @ index-DVViw4ah.js:2202
+qG @ index-DVViw4ah.js:37
+QG @ index-DVViw4ah.js:37
+YG @ index-DVViw4ah.js:37
+o5 @ index-DVViw4ah.js:37
+JR @ index-DVViw4ah.js:37
+(anonymous) @ index-DVViw4ah.js:37
+TS @ index-DVViw4ah.js:40
+wR @ index-DVViw4ah.js:37
+rw @ index-DVViw4ah.js:37
+sS @ index-DVViw4ah.js:37
+hQ @ index-DVViw4ah.js:37Understand this error
+index-DVViw4ah.js:48 [apiRequest] Response status: 500
+index-DVViw4ah.js:48 [throwIfResNotOk] 500 error: {message: 'Failed to import blog post', error: 'insert or update on table "blog_posts" violates foreign key constraint "blog_posts_category_id_fkey"'}
+EL @ index-DVViw4ah.js:48
+await in EL
+tt @ index-DVViw4ah.js:48
+await in tt
+mutationFn @ index-DVViw4ah.js:2202
+fn @ index-DVViw4ah.js:48
+p @ index-DVViw4ah.js:48
+start @ index-DVViw4ah.js:48
+execute @ index-DVViw4ah.js:48
+await in execute
+mutate @ index-DVViw4ah.js:48
+(anonymous) @ index-DVViw4ah.js:48
+onClick @ index-DVViw4ah.js:2202
+qG @ index-DVViw4ah.js:37
+QG @ index-DVViw4ah.js:37
+YG @ index-DVViw4ah.js:37
+o5 @ index-DVViw4ah.js:37
+JR @ index-DVViw4ah.js:37
+(anonymous) @ index-DVViw4ah.js:37
+TS @ index-DVViw4ah.js:40
+wR @ index-DVViw4ah.js:37
+rw @ index-DVViw4ah.js:37
+sS @ index-DVViw4ah.js:37
+hQ @ index-DVViw4ah.js:37Understand this error
+index-DVViw4ah.js:2202 [importMutation] Error: Error: 500: Failed to import blog post
+    at EL (index-DVViw4ah.js:48:43431)
+    at async tt (index-DVViw4ah.js:48:45234)
+    at async Object.mutationFn (index-DVViw4ah.js:2202:15233)

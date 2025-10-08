@@ -1748,9 +1748,9 @@ ${urls}
 
       const { htmlContent, categoryId, publishImmediately = true } = req.body;
       
-      if (!htmlContent || !categoryId) {
-        console.log('[Import] Validation failed - missing required fields');
-        return res.status(400).json({ message: "HTML content and category ID are required" });
+      if (!htmlContent) {
+        console.log('[Import] Validation failed - missing HTML content');
+        return res.status(400).json({ message: "HTML content is required" });
       }
 
       // Extract title from h1 tag
@@ -1798,7 +1798,7 @@ ${urls}
           slug: finalSlug,
           excerpt,
           content,
-          categoryId,
+          categoryId: categoryId || null, // Make categoryId optional
           tags: tags.length > 0 ? tags : undefined,
           metaDescription, // This column exists in DB
           isPublished: publishImmediately,

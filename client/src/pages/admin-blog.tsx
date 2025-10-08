@@ -318,12 +318,13 @@ export default function AdminBlog() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div>
-                        <Label htmlFor="importCategory">Välj kategori *</Label>
+                        <Label htmlFor="importCategory">Välj kategori (valfritt)</Label>
                         <Select value={importCategoryId} onValueChange={setImportCategoryId}>
                           <SelectTrigger id="importCategory">
-                            <SelectValue placeholder="Välj en kategori" />
+                            <SelectValue placeholder="Ingen kategori" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="">Ingen kategori</SelectItem>
                             <SelectItem value="5b1791eb-c06a-4a64-85c0-b3a3ed6aeee3">Läsförståelse</SelectItem>
                             <SelectItem value="f0d509a1-df45-49c6-a3b0-ec3d5f35eb8c">Grammatik</SelectItem>
                             <SelectItem value="19c2d55e-176e-478c-8627-3aea3a563e23">Ordklasser</SelectItem>
@@ -331,6 +332,9 @@ export default function AdminBlog() {
                             <SelectItem value="710a1a0a-694c-440d-be2e-78373ab2cc69">Ordkunskap</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Lämna tomt om kategori-ID:n skiljer sig mellan utveckling och produktion
+                        </p>
                       </div>
                       
                       <div>
@@ -353,17 +357,17 @@ export default function AdminBlog() {
                     <DialogFooter>
                       <Button 
                         onClick={() => {
-                          if (!importHtmlContent || !importCategoryId) {
+                          if (!importHtmlContent) {
                             toast({
                               title: "Fel",
-                              description: "HTML-innehåll och kategori är obligatoriska",
+                              description: "HTML-innehåll är obligatoriskt",
                               variant: "destructive"
                             });
                             return;
                           }
                           importMutation.mutate({ 
                             htmlContent: importHtmlContent, 
-                            categoryId: importCategoryId,
+                            categoryId: importCategoryId || "",
                             publishImmediately: true 
                           });
                         }}
