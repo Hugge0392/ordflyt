@@ -1732,9 +1732,16 @@ ${urls}
   // Import blog post from HTML with SEO metadata (admin)
   app.post("/api/admin/blog/posts/import", requireAuth, requireRole('ADMIN'), requireCsrf, async (req, res) => {
     try {
+      console.log('[Import] Starting blog import with data:', { 
+        hasHtmlContent: !!req.body.htmlContent, 
+        categoryId: req.body.categoryId,
+        publishImmediately: req.body.publishImmediately 
+      });
+
       const { htmlContent, categoryId, publishImmediately = true } = req.body;
       
       if (!htmlContent || !categoryId) {
+        console.log('[Import] Validation failed - missing required fields');
         return res.status(400).json({ message: "HTML content and category ID are required" });
       }
 
@@ -1753,7 +1760,7 @@ ${urls}
       // Extract keywords from SEO section
       const keywordsMatch = htmlContent.match(/<strong>Nyckelord:<\/strong><br>(.*?)(?:<\/p>|$)/i);
       const tagsString = keywordsMatch ? keywordsMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-      const tags = tagsString ? tagsString.split(',').map(t => t.trim()) : [];
+      const tags = tagsString ? tagsString.split(',').map((t: string) => t.trim()) : [];
 
       // Remove SEO metadata section from content
       let content = htmlContent.replace(/<hr>.*$/i, '').trim();
@@ -1773,6 +1780,9 @@ ${urls}
       // Set author info from session
       const user = (req as any).user;
 
+      console.log('[Import] Extracted data:', { title, slug: finalSlug, excerpt, categoryId, tags, metaDescription });
+      console.log('[Import] User info:', { userId: user?.id, username: user?.username });
+
       const newPost = await db
         .insert(schema.blogPosts)
         .values({
@@ -1781,7 +1791,7 @@ ${urls}
           excerpt,
           content,
           categoryId,
-          tags,
+          tags: tags.length > 0 ? tags : undefined,
           metaDescription,
           isPublished: publishImmediately,
           publishedAt: publishImmediately ? new Date() : null,
@@ -1790,10 +1800,12 @@ ${urls}
         })
         .returning();
 
+      console.log('[Import] Successfully created blog post:', newPost[0].id);
       res.status(201).json(newPost[0]);
     } catch (error) {
-      console.error("Error importing blog post:", error);
-      res.status(500).json({ message: "Failed to import blog post" });
+      console.error("[Import] Error importing blog post:", error);
+      console.error("[Import] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ message: "Failed to import blog post", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
