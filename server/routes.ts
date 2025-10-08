@@ -1473,6 +1473,23 @@ ${urls}
       .replace(/^-+|-+$/g, '');
   };
 
+  // Helper function: Auto-generate meta title from title (max 60 chars)
+  const generateMetaTitle = (title: string): string => {
+    if (title.length <= 60) {
+      return title;
+    }
+
+    // Truncate at word boundary (max 57 chars + "...")
+    const truncated = title.slice(0, 57);
+    const lastSpace = truncated.lastIndexOf(' ');
+
+    if (lastSpace > 0) {
+      return truncated.slice(0, lastSpace) + '...';
+    }
+
+    return truncated + '...';
+  };
+
   // Helper function: Auto-generate meta description from content (first 150-160 chars)
   const generateMetaDescription = (content: string): string => {
     const textContent = content.replace(/<[^>]*>/g, ''); // Strip HTML
@@ -1546,6 +1563,11 @@ ${urls}
         data.slug = generateSlug(data.title);
       }
 
+      // Auto-generate meta title if not provided
+      if (!data.metaTitle && data.title) {
+        data.metaTitle = generateMetaTitle(data.title);
+      }
+
       // Auto-generate meta description if not provided
       if (!data.metaDescription && data.content) {
         data.metaDescription = generateMetaDescription(data.content);
@@ -1596,6 +1618,11 @@ ${urls}
       // Auto-generate slug if title changed
       if (data.title && !data.slug) {
         data.slug = generateSlug(data.title);
+      }
+
+      // Auto-generate meta title if title changed but no meta title provided
+      if (data.title && !data.metaTitle) {
+        data.metaTitle = generateMetaTitle(data.title);
       }
 
       // Auto-generate meta description if content changed but no meta provided

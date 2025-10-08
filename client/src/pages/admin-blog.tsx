@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BLOG_CATEGORIES, PARENT_CATEGORIES, getCategoryDisplayName } from "@/lib/blogCategories";
@@ -44,7 +44,10 @@ export default function AdminBlog() {
   const [content, setContent] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
   const [category, setCategory] = useState<string>("allmant");
   const [focusKeyphrase, setFocusKeyphrase] = useState("");
 
@@ -149,9 +152,30 @@ export default function AdminBlog() {
     setContent("");
     setExcerpt("");
     setHeroImageUrl("");
+    setMetaTitle("");
     setMetaDescription("");
+    setKeywords([]);
+    setKeywordInput("");
     setCategory("allmant");
     setFocusKeyphrase("");
+  };
+
+  const handleAddKeyword = () => {
+    if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
+      setKeywords([...keywords, keywordInput.trim()]);
+      setKeywordInput("");
+    }
+  };
+
+  const handleRemoveKeyword = (keyword: string) => {
+    setKeywords(keywords.filter(k => k !== keyword));
+  };
+
+  const handleKeywordInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddKeyword();
+    }
   };
 
   const handleCreate = () => {
@@ -169,7 +193,9 @@ export default function AdminBlog() {
       content,
       excerpt: excerpt || undefined,
       heroImageUrl: heroImageUrl || undefined,
+      metaTitle: metaTitle || undefined,
       metaDescription: metaDescription || undefined,
+      keywords: keywords.length > 0 ? keywords : undefined,
       category,
       focusKeyphrase: focusKeyphrase || undefined,
       isPublished: false, // Always create as draft initially
@@ -185,7 +211,10 @@ export default function AdminBlog() {
     setContent(post.content);
     setExcerpt(post.excerpt || "");
     setHeroImageUrl(post.heroImageUrl || "");
+    setMetaTitle((post as any).metaTitle || "");
     setMetaDescription(post.metaDescription || "");
+    setKeywords((post as any).keywords || []);
+    setFocusKeyphrase((post as any).focusKeyphrase || "");
     setIsEditDialogOpen(true);
   };
 
@@ -206,7 +235,10 @@ export default function AdminBlog() {
         content,
         excerpt: excerpt || undefined,
         heroImageUrl: heroImageUrl || undefined,
+        metaTitle: metaTitle || undefined,
         metaDescription: metaDescription || undefined,
+        keywords: keywords.length > 0 ? keywords : undefined,
+        focusKeyphrase: focusKeyphrase || undefined,
       }
     });
   };
@@ -265,45 +297,113 @@ export default function AdminBlog() {
                       <p className="text-xs text-gray-500 mt-1">URL-slug genereras automatiskt från titeln</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="category">Kategori * (SEO)</Label>
-                        <Select value={category} onValueChange={setCategory}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Välj kategori" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[300px]">
-                            {PARENT_CATEGORIES.map(parent => (
-                              <div key={parent.id}>
-                                <div className="px-2 py-1.5 text-sm font-semibold text-gray-500">
-                                  {parent.emoji} {parent.name}
-                                </div>
-                                {Object.entries(BLOG_CATEGORIES)
-                                  .filter(([_, cat]) => cat.parentCategory === parent.name)
-                                  .map(([id, cat]) => (
-                                    <SelectItem key={id} value={id} className="pl-6">
-                                      {cat.iconEmoji} {cat.displayName}
-                                    </SelectItem>
-                                  ))}
-                              </div>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {BLOG_CATEGORIES[category]?.seoKeywords[0] || 'Välj SEO-kategori'}
-                        </p>
-                      </div>
+                    <div className="border-l-4 border-blue-400 pl-4 bg-blue-50 p-3 rounded">
+                      <h3 className="text-sm font-semibold text-blue-900 mb-3">SEO-inställningar</h3>
 
-                      <div>
-                        <Label htmlFor="focusKeyphrase">Fokus-nyckelord (SEO)</Label>
-                        <Input
-                          id="focusKeyphrase"
-                          value={focusKeyphrase}
-                          onChange={(e) => setFocusKeyphrase(e.target.value)}
-                          placeholder="t.ex. läsförståelse övningar åk 6"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Primärt sökord för SEO</p>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="metaTitle">Meta-titel (SEO)</Label>
+                          <Input
+                            id="metaTitle"
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            placeholder="Lämna tom för att använda titeln"
+                            maxLength={60}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            {metaTitle.length}/60 tecken - visas i Google sökresultat
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="metaDesc">Meta-beskrivning (SEO)</Label>
+                          <Textarea
+                            id="metaDesc"
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            placeholder="Lämna tomt för automatisk generering från innehållet"
+                            rows={2}
+                            maxLength={160}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            {metaDescription.length}/160 tecken
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="focusKeyphrase">Fokus-nyckelord (primär SEO)</Label>
+                          <Input
+                            id="focusKeyphrase"
+                            value={focusKeyphrase}
+                            onChange={(e) => setFocusKeyphrase(e.target.value)}
+                            placeholder="t.ex. läsförståelse övningar åk 6"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Primärt sökord för SEO</p>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="keywords">Nyckelord</Label>
+                          <div className="flex gap-2 mb-2">
+                            <Input
+                              id="keywords"
+                              value={keywordInput}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              onKeyDown={handleKeywordInputKeyDown}
+                              placeholder="Skriv nyckelord och tryck Enter"
+                            />
+                            <Button type="button" onClick={handleAddKeyword} size="sm" variant="outline">
+                              Lägg till
+                            </Button>
+                          </div>
+                          {keywords.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {keywords.map((keyword) => (
+                                <Badge key={keyword} variant="secondary" className="gap-1">
+                                  {keyword}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveKeyword(keyword)}
+                                    className="ml-1 hover:bg-gray-300 rounded-full"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Lägg till relaterade sökord för bättre SEO
+                          </p>
+                        </div>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="category">Kategori * (SEO)</Label>
+                      <Select value={category} onValueChange={setCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Välj kategori" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {PARENT_CATEGORIES.map(parent => (
+                            <div key={parent.id}>
+                              <div className="px-2 py-1.5 text-sm font-semibold text-gray-500">
+                                {parent.emoji} {parent.name}
+                              </div>
+                              {Object.entries(BLOG_CATEGORIES)
+                                .filter(([_, cat]) => cat.parentCategory === parent.name)
+                                .map(([id, cat]) => (
+                                  <SelectItem key={id} value={id} className="pl-6">
+                                    {cat.iconEmoji} {cat.displayName}
+                                  </SelectItem>
+                                ))}
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {BLOG_CATEGORIES[category]?.seoKeywords[0] || 'Välj SEO-kategori'}
+                      </p>
                     </div>
 
                     <div>
@@ -335,21 +435,6 @@ export default function AdminBlog() {
                         onChange={(e) => setHeroImageUrl(e.target.value)}
                         placeholder="https://example.com/image.jpg (valfritt)"
                       />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="metaDesc">Meta-beskrivning</Label>
-                      <Textarea
-                        id="metaDesc"
-                        value={metaDescription}
-                        onChange={(e) => setMetaDescription(e.target.value)}
-                        placeholder="Lämna tomt för automatisk generering från innehållet"
-                        rows={2}
-                        maxLength={160}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {metaDescription.length}/160 tecken
-                      </p>
                     </div>
                   </div>
                   <DialogFooter>
@@ -522,6 +607,87 @@ export default function AdminBlog() {
               />
             </div>
 
+            <div className="border-l-4 border-blue-400 pl-4 bg-blue-50 p-3 rounded">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3">SEO-inställningar</h3>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="edit-metaTitle">Meta-titel (SEO)</Label>
+                  <Input
+                    id="edit-metaTitle"
+                    value={metaTitle}
+                    onChange={(e) => setMetaTitle(e.target.value)}
+                    placeholder="Lämna tom för att använda titeln"
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {metaTitle.length}/60 tecken - visas i Google sökresultat
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-metaDesc">Meta-beskrivning (SEO)</Label>
+                  <Textarea
+                    id="edit-metaDesc"
+                    value={metaDescription}
+                    onChange={(e) => setMetaDescription(e.target.value)}
+                    placeholder="Lämna tomt för automatisk generering"
+                    rows={2}
+                    maxLength={160}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {metaDescription.length}/160 tecken
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-focusKeyphrase">Fokus-nyckelord (primär SEO)</Label>
+                  <Input
+                    id="edit-focusKeyphrase"
+                    value={focusKeyphrase}
+                    onChange={(e) => setFocusKeyphrase(e.target.value)}
+                    placeholder="t.ex. läsförståelse övningar åk 6"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Primärt sökord för SEO</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-keywords">Nyckelord</Label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      id="edit-keywords"
+                      value={keywordInput}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyDown={handleKeywordInputKeyDown}
+                      placeholder="Skriv nyckelord och tryck Enter"
+                    />
+                    <Button type="button" onClick={handleAddKeyword} size="sm" variant="outline">
+                      Lägg till
+                    </Button>
+                  </div>
+                  {keywords.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {keywords.map((keyword) => (
+                        <Badge key={keyword} variant="secondary" className="gap-1">
+                          {keyword}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveKeyword(keyword)}
+                            className="ml-1 hover:bg-gray-300 rounded-full"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Lägg till relaterade sökord för bättre SEO
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="edit-excerpt">Utdrag</Label>
               <Textarea
@@ -551,21 +717,6 @@ export default function AdminBlog() {
                 onChange={(e) => setHeroImageUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="edit-metaDesc">Meta-beskrivning</Label>
-              <Textarea
-                id="edit-metaDesc"
-                value={metaDescription}
-                onChange={(e) => setMetaDescription(e.target.value)}
-                placeholder="Lämna tomt för automatisk generering"
-                rows={2}
-                maxLength={160}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {metaDescription.length}/160 tecken
-              </p>
             </div>
           </div>
           <DialogFooter>

@@ -3116,9 +3116,11 @@ export const blogPosts = pgTable("blog_posts", {
   tags: jsonb("tags").$type<string[]>().default([]),
 
   // SEO and social sharing
-  metaDescription: text("meta_description"),
+  metaTitle: varchar("meta_title", { length: 60 }), // Custom SEO title (max 60 chars)
+  metaDescription: text("meta_description"), // Custom SEO description (max 160 chars)
+  keywords: jsonb("keywords").$type<string[]>().default([]), // SEO keywords
+  focusKeyphrase: varchar("focus_keyphrase", { length: 100 }), // Primary SEO keyword
   // socialImageUrl: varchar("social_image_url"), // TEMP DISABLED until migration
-  // focusKeyphrase: varchar("focus_keyphrase"), // Primary SEO keyword - TEMP DISABLED until migration
   // relatedLessonIds: jsonb("related_lesson_ids").$type<string[]>().default([]), // For internal linking - TEMP DISABLED until migration
   
   // Publishing

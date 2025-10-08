@@ -18,13 +18,15 @@ interface BlogPost {
   excerpt?: string;
   content: string;
   heroImageUrl?: string;
+  metaTitle?: string;
   metaDescription?: string;
+  keywords?: string[];
+  focusKeyphrase?: string;
   publishedAt: string;
   authorName: string;
   viewCount: number;
   tags?: string[];
   category?: string;
-  focusKeyphrase?: string;
 }
 
 // Helper function to render markdown-like content as HTML
@@ -100,10 +102,12 @@ export default function BloggSlug() {
     enabled: !!slug,
   });
 
-  // Update document title and meta description for SEO
+  // Update document title and meta tags for SEO
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} | Ordflyt Blogg`;
+      // Use metaTitle if available, otherwise use regular title
+      const seoTitle = post.metaTitle || post.title;
+      document.title = `${seoTitle} | Ordflyt Blogg`;
 
       // Update meta description
       let metaDesc = document.querySelector('meta[name="description"]');
@@ -114,6 +118,17 @@ export default function BloggSlug() {
       }
       metaDesc.setAttribute('content', post.metaDescription || post.excerpt || '');
 
+      // Update keywords meta tag
+      if (post.keywords && post.keywords.length > 0) {
+        let metaKeywords = document.querySelector('meta[name="keywords"]');
+        if (!metaKeywords) {
+          metaKeywords = document.createElement('meta');
+          metaKeywords.setAttribute('name', 'keywords');
+          document.head.appendChild(metaKeywords);
+        }
+        metaKeywords.setAttribute('content', post.keywords.join(', '));
+      }
+
       // Update Open Graph tags for social sharing
       let ogTitle = document.querySelector('meta[property="og:title"]');
       if (!ogTitle) {
@@ -121,7 +136,7 @@ export default function BloggSlug() {
         ogTitle.setAttribute('property', 'og:title');
         document.head.appendChild(ogTitle);
       }
-      ogTitle.setAttribute('content', post.title);
+      ogTitle.setAttribute('content', seoTitle);
 
       let ogDesc = document.querySelector('meta[property="og:description"]');
       if (!ogDesc) {
