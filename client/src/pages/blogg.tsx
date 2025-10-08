@@ -36,7 +36,7 @@ export default function Blogg() {
     document.title = "Blogg - Lektionsmaterial & Inspiration | Ordflyt";
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'SEO-optimerade tips, färdiga lektioner och praktiska resurser för svenska språket. Utforska hundratals artiklar om läsförståelse, grammatik och mer.');
+      metaDesc.setAttribute('content', 'Färdiga lektioner, tips och praktiska resurser för svenskundervisning. Material för läsförståelse, grammatik och mer.');
     }
   }, []);
 

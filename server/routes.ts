@@ -1337,7 +1337,7 @@ ${urls}
           downloadFileType: schema.blogPosts.downloadFileType,
           categoryId: schema.blogPosts.categoryId,
           // category: schema.blogPosts.category, // SEO category - TEMPORARY: Commented out until migration
-          focusKeyphrase: schema.blogPosts.focusKeyphrase, // SEO keyword
+          // focusKeyphrase: schema.blogPosts.focusKeyphrase, // SEO keyword - TEMPORARY: Commented out until migration
           tags: schema.blogPosts.tags,
           publishedAt: schema.blogPosts.publishedAt,
           authorName: schema.blogPosts.authorName,
@@ -1707,12 +1707,12 @@ ${urls}
     try {
       const validation = insertNewsletterSubscriptionSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid subscription data", 
-          errors: validation.error.errors 
+        return res.status(400).json({
+          message: "Invalid subscription data",
+          errors: validation.error.errors
         });
       }
-      
+
       const { email, name, categories } = validation.data;
 
       // Check if already subscribed
@@ -1729,14 +1729,14 @@ ${urls}
           // Reactivate subscription
           await db
             .update(schema.newsletterSubscriptions)
-            .set({ 
-              isActive: true, 
+            .set({
+              isActive: true,
               unsubscribedAt: null,
               categories: categories || [],
               name: name || existing[0].name,
             })
             .where(eq(schema.newsletterSubscriptions.id, existing[0].id));
-          
+
           return res.json({ message: "Subscription reactivated!" });
         }
       }
@@ -1752,13 +1752,32 @@ ${urls}
         })
         .returning();
 
-      res.status(201).json({ 
-        message: "Successfully subscribed!", 
-        subscription: newSubscription[0] 
+      res.status(201).json({
+        message: "Successfully subscribed!",
+        subscription: newSubscription[0]
       });
     } catch (error) {
       console.error("Error subscribing to newsletter:", error);
       res.status(500).json({ message: "Subscription failed" });
+    }
+  });
+
+  // Get newsletter subscribers (admin only)
+  app.get("/api/newsletter/subscribers", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const subscribers = await db
+        .select()
+        .from(schema.newsletterSubscriptions)
+        .orderBy(desc(schema.newsletterSubscriptions.createdAt));
+
+      res.json(subscribers);
+    } catch (error) {
+      console.error("Error fetching newsletter subscribers:", error);
+      res.status(500).json({ message: "Failed to fetch subscribers" });
     }
   });
 

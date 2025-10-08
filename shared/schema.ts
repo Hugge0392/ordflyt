@@ -3117,9 +3117,9 @@ export const blogPosts = pgTable("blog_posts", {
 
   // SEO and social sharing
   metaDescription: text("meta_description"),
-  socialImageUrl: varchar("social_image_url"),
-  focusKeyphrase: varchar("focus_keyphrase"), // Primary SEO keyword
-  relatedLessonIds: jsonb("related_lesson_ids").$type<string[]>().default([]), // For internal linking
+  // socialImageUrl: varchar("social_image_url"), // TEMP DISABLED until migration
+  // focusKeyphrase: varchar("focus_keyphrase"), // Primary SEO keyword - TEMP DISABLED until migration
+  // relatedLessonIds: jsonb("related_lesson_ids").$type<string[]>().default([]), // For internal linking - TEMP DISABLED until migration
   
   // Publishing
   isPublished: boolean("is_published").default(false),

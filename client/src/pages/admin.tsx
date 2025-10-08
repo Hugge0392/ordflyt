@@ -904,6 +904,21 @@ export default function Admin() {
                         </CardContent>
                       </Card>
                     </Link>
+
+                    {/* Newsletter */}
+                    <Link href="/admin/newsletter">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-blue-200 hover:border-blue-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                              <Mail className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Nyhetsbrev</h3>
+                            <p className="text-xs text-gray-500">Prenumeranter</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

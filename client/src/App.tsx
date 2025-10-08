@@ -9,6 +9,7 @@ import PreviewModeBanner from "@/components/PreviewModeBanner";
 import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import LandingPage from "@/pages/landing";
 import Menu from "@/pages/menu";
 import StudentHome from "@/pages/student-home";
 import StudentShop from "@/pages/student-shop";
@@ -36,6 +37,7 @@ import AdminVocabulary from "@/pages/admin-vocabulary";
 import AdminCategories from "@/pages/admin-categories";
 import AdminBlog from "@/pages/admin-blog";
 import AdminBlogPreview from "@/pages/admin-blog-preview";
+import AdminNewsletter from "@/pages/admin-newsletter";
 import Blogg from "@/pages/blogg";
 import BloggSlug from "@/pages/blogg-slug";
 import TeacherLessonBank from "@/pages/teacher-lesson-bank";
@@ -80,7 +82,8 @@ function Router() {
   return (
     <Switch>
       {/* Public routes */}
-      <Route path="/" component={Home} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/home-old" component={Home} />
       <Route path="/login" component={LoginPage} />
       <Route path="/registrera" component={RegisterPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
@@ -120,19 +123,61 @@ function Router() {
           <RoomDecorator />
         </ProtectedRoute>
       </Route>
-      <Route path="/vocabulary-lessons" component={VocabularyLessons} />
-      <Route path="/elev/ordforrad" component={VocabularyExercise} />
-      <Route path="/vocabulary/exercise/:exerciseId" component={VocabularyExercise} />
-      <Route path="/vocabulary/flashcards/:setId" component={FlashcardSession} />
-      <Route path="/menu" component={Menu} />
-      <Route path="/grammatik" component={Menu} />
-      <Route path="/lasforstaelse" component={ReadingHome} />
-      <Route path="/lasforstaelse/ovningar" component={ReadingExercises} />
-      <Route path="/lasforstaelse/lektion/:id" component={ReadingLessonViewer} />
-      <Route path="/lasforstaelse/deckargator">
-        <ReadingPlaceholder type="deckargator" />
+      <Route path="/vocabulary-lessons">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <VocabularyLessons />
+        </ProtectedRoute>
       </Route>
-      <Route path="/lasforstaelse/skapa" component={ReadingLessonSelector} />
+      <Route path="/elev/ordforrad">
+        <ProtectedRoute allowedRoles={["ELEV", "ADMIN"]}>
+          <VocabularyExercise />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/vocabulary/exercise/:exerciseId">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <VocabularyExercise />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/vocabulary/flashcards/:setId">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <FlashcardSession />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/menu">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Menu />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/grammatik">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Menu />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <ReadingHome />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/ovningar">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <ReadingExercises />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/lektion/:id">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <ReadingLessonViewer />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/deckargator">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <ReadingPlaceholder type="deckargator" />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lasforstaelse/skapa">
+        <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
+          <ReadingLessonSelector />
+        </ProtectedRoute>
+      </Route>
       <Route path="/lasforstaelse/skapa/:id">
         <ProtectedRoute allowedRoles={["ADMIN", "LÄRARE"]}>
           <ReadingLessonBuilder />
@@ -144,30 +189,90 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/skrivande">
-        <Placeholder category="skrivande" />
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Placeholder category="skrivande" />
+        </ProtectedRoute>
       </Route>
       <Route path="/muntligt">
-        <Placeholder category="muntligt" />
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Placeholder category="muntligt" />
+        </ProtectedRoute>
       </Route>
       <Route path="/nordiska-sprak">
-        <Placeholder category="nordiska-sprak" />
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Placeholder category="nordiska-sprak" />
+        </ProtectedRoute>
       </Route>
       <Route path="/kallkritik">
-        <Placeholder category="kallkritik" />
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Placeholder category="kallkritik" />
+        </ProtectedRoute>
       </Route>
-      <Route path="/laslogg" component={ReadingLog} />
-      <Route path="/wordclass/:wordClass" component={WordClassLevels} />
-      <Route path="/practice/:wordClass/level/:level" component={Practice} />
-      <Route path="/practice/:wordClass?" component={Practice} />
-      <Route path="/test/:testType" component={Test} />
-      <Route path="/pirate-course" component={PirateCourse} />
-      <Route path="/lesson/:id" component={LessonPlayer} />
-      <Route path="/assignment/:id" component={AssignmentPlayer} />
-      <Route path="/published/:lessonId" component={PublishedLessonPage} />
-      <Route path="/klasskamp" component={KlassKampPage} />
-      <Route path="/klasskamp/host/:code" component={KlassKampHostPage} />
-      <Route path="/klasskamp/play/:code" component={KlassKampPlayPage} />
-      <Route path="/spela" component={SpelaPage} />
+      <Route path="/laslogg">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <ReadingLog />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/wordclass/:wordClass">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <WordClassLevels />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/practice/:wordClass/level/:level">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Practice />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/practice/:wordClass?">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Practice />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/test/:testType">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <Test />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/pirate-course">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <PirateCourse />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/lesson/:id">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <LessonPlayer />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/assignment/:id">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <AssignmentPlayer />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/published/:lessonId">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <PublishedLessonPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/klasskamp">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <KlassKampPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/klasskamp/host/:code">
+        <ProtectedRoute allowedRoles={["LARARE", "ADMIN"]}>
+          <KlassKampHostPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/klasskamp/play/:code">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <KlassKampPlayPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/spela">
+        <ProtectedRoute allowedRoles={["ELEV", "LARARE", "ADMIN"]}>
+          <SpelaPage />
+        </ProtectedRoute>
+      </Route>
       
       {/* Rich Editor Test Route */}
       <Route path="/rich-editor-test" component={RichEditorTest} />
@@ -301,6 +406,11 @@ function Router() {
       <Route path="/admin/blog/preview/:slug">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <AdminBlogPreview />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/newsletter">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminNewsletter />
         </ProtectedRoute>
       </Route>
       <Route path="/lasforstaelse/admin">

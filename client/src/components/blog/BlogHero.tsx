@@ -30,7 +30,7 @@ export function BlogHero() {
           Lektionsmaterial & Inspiration
         </h1>
         <p className="text-xl md:text-2xl text-blue-100 mb-6 max-w-3xl animate-slideUp" style={{ animationDelay: '100ms' }}>
-          SEO-optimerade tips, färdiga lektioner och praktiska resurser för svenska språket
+          Färdiga lektioner, tips och praktiska resurser för svenskundervisning
         </p>
         <button
           onClick={scrollToContent}
@@ -38,7 +38,7 @@ export function BlogHero() {
           style={{ animationDelay: '200ms' }}
           aria-label="Hoppa till artiklar"
         >
-          Utforska hundratals lektioner och artiklar om svenska språket
+          Utforska material för svenska språket
           <ChevronDown className="w-5 h-5 animate-bounce" />
         </button>
       </div>
