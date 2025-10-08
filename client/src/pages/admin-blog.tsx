@@ -688,6 +688,7 @@ export default function AdminBlog() {
                 </div>
               )}
             </TabsContent>
+          </div>
           </Tabs>
         </div>
       </div>
