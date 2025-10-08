@@ -75,26 +75,6 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
           return;
         }
 
-        // If not a student route but student auth wasn't tried, try it now
-        if (!isStudentRoute) {
-          const studentResponse = await fetch("/api/student/me", { credentials: "include" });
-
-          if (studentResponse.ok) {
-            const studentData = await studentResponse.json();
-
-            // Check if this route allows students
-            if (allowedRoles && allowedRoles.length > 0) {
-              if (!allowedRoles.includes("ELEV")) {
-                throw new Error("Unauthorized - students not allowed");
-              }
-            }
-
-            setIsAuthorized(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-
         // If all auth methods fail, redirect to login
         throw new Error("Not authenticated");
 

@@ -119,11 +119,10 @@ export function useAuth() {
           return data;
         }
 
-        // Only try student auth if we're on a student route or have a student session cookie
+        // Only try student auth if we're on a student route
         const isStudentRoute = window.location.pathname.startsWith('/elev');
-        const hasStudentCookie = document.cookie.includes('studentSessionToken');
 
-        if (isStudentRoute || hasStudentCookie) {
+        if (isStudentRoute) {
           const studentResponse = await fetch("/api/student/me", {
             credentials: "include"
           });
