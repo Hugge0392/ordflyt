@@ -1564,9 +1564,10 @@ ${urls}
       }
 
       // Auto-generate meta title if not provided
-      if (!data.metaTitle && data.title) {
-        data.metaTitle = generateMetaTitle(data.title);
-      }
+      // TEMPORARILY DISABLED: metaTitle column doesn't exist in DB yet
+      // if (!data.metaTitle && data.title) {
+      //   data.metaTitle = generateMetaTitle(data.title);
+      // }
 
       // Auto-generate meta description if not provided
       if (!data.metaDescription && data.content) {
@@ -1590,9 +1591,12 @@ ${urls}
       data.authorId = user.id;
       data.authorName = user.username || "Ordflyt Team";
 
+      // Remove fields that don't exist in DB yet
+      const { metaTitle, keywords, focusKeyphrase, ...dbData } = data as any;
+
       const newPost = await db
         .insert(schema.blogPosts)
-        .values(data)
+        .values(dbData)
         .returning();
 
       res.status(201).json(newPost[0]);
@@ -1621,9 +1625,10 @@ ${urls}
       }
 
       // Auto-generate meta title if title changed but no meta title provided
-      if (data.title && !data.metaTitle) {
-        data.metaTitle = generateMetaTitle(data.title);
-      }
+      // TEMPORARILY DISABLED: metaTitle column doesn't exist in DB yet
+      // if (data.title && !data.metaTitle) {
+      //   data.metaTitle = generateMetaTitle(data.title);
+      // }
 
       // Auto-generate meta description if content changed but no meta provided
       if (data.content && !data.metaDescription) {
@@ -1646,9 +1651,12 @@ ${urls}
         }
       }
 
+      // Remove fields that don't exist in DB yet
+      const { metaTitle, keywords, focusKeyphrase, ...dbData } = data as any;
+
       const updatedPost = await db
         .update(schema.blogPosts)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...dbData, updatedAt: new Date() })
         .where(eq(schema.blogPosts.id, req.params.id))
         .returning();
 
