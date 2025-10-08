@@ -54,7 +54,7 @@ export default function AdminBlog() {
 
   // Import form states
   const [importHtmlContent, setImportHtmlContent] = useState("");
-  const [importCategoryId, setImportCategoryId] = useState("");
+  const [importCategoryId, setImportCategoryId] = useState("none");
 
   const { data: allPosts = [], isLoading: postsLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/admin/blog/posts"],
@@ -324,7 +324,7 @@ export default function AdminBlog() {
                             <SelectValue placeholder="Ingen kategori" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Ingen kategori</SelectItem>
+                            <SelectItem value="none">Ingen kategori</SelectItem>
                             <SelectItem value="5b1791eb-c06a-4a64-85c0-b3a3ed6aeee3">Läsförståelse</SelectItem>
                             <SelectItem value="f0d509a1-df45-49c6-a3b0-ec3d5f35eb8c">Grammatik</SelectItem>
                             <SelectItem value="19c2d55e-176e-478c-8627-3aea3a563e23">Ordklasser</SelectItem>
@@ -367,7 +367,7 @@ export default function AdminBlog() {
                           }
                           importMutation.mutate({ 
                             htmlContent: importHtmlContent, 
-                            categoryId: importCategoryId || "",
+                            categoryId: importCategoryId === "none" ? "" : importCategoryId,
                             publishImmediately: true 
                           });
                         }}
