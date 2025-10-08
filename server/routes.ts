@@ -1792,11 +1792,12 @@ ${urls}
           content,
           categoryId,
           tags: tags.length > 0 ? tags : undefined,
-          metaDescription,
+          metaDescription, // This column exists in DB
           isPublished: publishImmediately,
           publishedAt: publishImmediately ? new Date() : null,
           authorId: user.id,
           authorName: user.username || "Ordflyt Team",
+          // Note: metaTitle, keywords, focusKeyphrase don't exist in DB yet
         })
         .returning();
 
