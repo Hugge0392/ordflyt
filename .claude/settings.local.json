@@ -32,7 +32,9 @@
       "Bash(git push:*)",
       "Bash(chmod:*)",
       "Bash(/tmp/test-student-login.sh:*)",
-      "Bash(env)"
+      "Bash(env)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ordflyt.vercel.app)"
     ],
     "deny": [],
     "ask": []
