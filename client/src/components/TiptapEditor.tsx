@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { 
@@ -51,6 +53,9 @@ export function TiptapEditor({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      Placeholder.configure({
+        placeholder,
+      }),
     ],
     content: value,
     onUpdate: ({ editor }) => {
@@ -62,6 +67,13 @@ export function TiptapEditor({
       },
     },
   });
+
+  // Sync value prop changes to editor content
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
+    }
+  }, [value, editor]);
 
   // Image upload handler
   const addImage = async () => {
