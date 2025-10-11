@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,86 +9,39 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const [, setLocation] = useLocation();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   // In development mode, bypass authentication completely
   const isDevelopment = !import.meta.env.PROD;
-
-  // Check if we have a dev bypass flag in localStorage
   const devBypass = isDevelopment && localStorage.getItem('devBypass') === 'true';
 
   useEffect(() => {
-    // If dev bypass is enabled, skip authentication
-    if (devBypass) {
-      console.log('Dev bypass enabled - skipping authentication');
-      setIsAuthorized(true);
-      setIsLoading(false);
+    // Skip auth check if dev bypass is enabled or still loading
+    if (devBypass || isLoading) {
       return;
     }
 
-    const checkAuth = async () => {
-      try {
-        // Check if we need to look for student or regular auth
-        const isStudentRoute = window.location.pathname.startsWith('/elev');
+    // If not authenticated, redirect to appropriate login page
+    if (!isAuthenticated) {
+      const isStudentRoute = window.location.pathname.startsWith('/elev');
+      const loginPath = isStudentRoute ? '/elev/login' : '/login';
+      console.log('ProtectedRoute: Not authenticated, redirecting to', loginPath);
+      setLocation(loginPath);
+      return;
+    }
 
-        // Try appropriate auth endpoint based on route
-        if (isStudentRoute) {
-          // For student routes, check student auth first
-          const studentResponse = await fetch("/api/student/me", { credentials: "include" });
-
-          if (studentResponse.ok) {
-            const studentData = await studentResponse.json();
-
-            // Check role authorization
-            if (allowedRoles && allowedRoles.length > 0) {
-              if (!allowedRoles.includes("ELEV")) {
-                throw new Error("Unauthorized - students not allowed");
-              }
-            }
-
-            setIsAuthorized(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // Try regular auth (for admin/teacher or as fallback)
-        const authResponse = await fetch("/api/auth/me", { credentials: "include" });
-
-        if (authResponse.ok) {
-          const data = await authResponse.json();
-
-          // Store CSRF token
-          if (data.csrfToken) {
-            localStorage.setItem("csrfToken", data.csrfToken);
-          }
-
-          // Check role authorization
-          if (allowedRoles && allowedRoles.length > 0) {
-            if (!allowedRoles.includes(data.user.role)) {
-              throw new Error("Unauthorized");
-            }
-          }
-
-          setIsAuthorized(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // If all auth methods fail, redirect to login
-        throw new Error("Not authenticated");
-
-      } catch (error) {
-        console.log("ProtectedRoute: Auth failed:", error);
-        setLocation("/login");
+    // Check role authorization if roles are specified
+    if (allowedRoles && allowedRoles.length > 0 && user) {
+      if (!allowedRoles.includes(user.role)) {
+        console.log('ProtectedRoute: Unauthorized role:', user.role, 'allowed:', allowedRoles);
+        setLocation('/unauthorized');
+        return;
       }
-    };
+    }
+  }, [isAuthenticated, isLoading, user, allowedRoles, devBypass, setLocation]);
 
-    checkAuth();
-  }, [setLocation, allowedRoles, devBypass]);
-
-  if (isLoading) {
+  // Show loading state while checking authentication
+  if (isLoading && !devBypass) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -97,8 +51,21 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     );
   }
 
-  if (!isAuthorized) {
+  // If dev bypass is enabled, always render
+  if (devBypass) {
+    return <>{children}</>;
+  }
+
+  // Only render if authenticated and authorized
+  if (!isAuthenticated) {
     return null;
+  }
+
+  // Check role authorization
+  if (allowedRoles && allowedRoles.length > 0 && user) {
+    if (!allowedRoles.includes(user.role)) {
+      return null;
+    }
   }
 
   return <>{children}</>;

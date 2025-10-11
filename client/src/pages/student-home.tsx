@@ -79,7 +79,7 @@ export default function StudentHome() {
   // Fetch student assignments (replaces lesson templates for the new design)
   const { data: assignments = [], isLoading: assignmentsLoading, error: assignmentsError } = useQuery({
     queryKey: [`/api/students/${studentId}/assignments`],
-    enabled: true,
+    enabled: isAuthenticated && !!studentId, // Only fetch when authenticated and studentId exists
     retry: isAuthenticated ? 3 : 1, // Fewer retries if not authenticated
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

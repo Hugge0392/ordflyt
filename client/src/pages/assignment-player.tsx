@@ -442,7 +442,7 @@ export default function AssignmentPlayer() {
   // Fetch the specific assignment
   const { data: assignments = [], isLoading: assignmentsLoading, error: assignmentsError } = useQuery<Assignment[]>({
     queryKey: [`/api/students/${studentId}/assignments`],
-    enabled: true,
+    enabled: !!studentId, // Only fetch when studentId exists (authenticated or mock)
     retry: isAuthenticated ? 3 : 1, // Fewer retries if not authenticated
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
