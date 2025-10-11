@@ -1,25 +1,14 @@
 {
-  "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "dist/public",
   "rewrites": [
     {
-      "source": "/api/:path*",
+      "source": "/api/(.*)",
       "destination": "/api/serverless"
     },
     {
       "source": "/(.*)",
       "destination": "/api/serverless"
     }
-  ],
-  "functions": {
-    "api/serverless.js": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 30
-    }
-  },
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
