@@ -14,11 +14,6 @@ replit.nix
 .env.development
 .env.test
 
-# Build
-client/src
-server/**/*.ts
-!dist/**
-
 # Git
 .git
 .gitignore
