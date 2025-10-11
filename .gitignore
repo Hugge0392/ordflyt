@@ -5,6 +5,12 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
+# Environment variables - never commit secrets
+.env
+.env.local
+.env.production
+.env.development
+
 # Cookie files with session tokens - security risk
 cookies*.txt
 *cookies.txt
