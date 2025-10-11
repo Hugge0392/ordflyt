@@ -1,36 +1,25 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": null,
   "outputDirectory": "dist/public",
-  "builds": [
+  "rewrites": [
     {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
+      "source": "/api/:path*",
+      "destination": "/api/serverless"
     },
     {
-      "src": "dist/public/**",
-      "use": "@vercel/static"
+      "source": "/(.*)",
+      "destination": "/api/serverless"
     }
   ],
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/dist/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.js"
+  "functions": {
+    "api/serverless.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
     }
-  ],
+  },
   "env": {
     "NODE_ENV": "production"
-  },
-  "regions": ["arn1"]
+  }
 }
