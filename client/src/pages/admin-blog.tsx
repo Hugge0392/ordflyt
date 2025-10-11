@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { QuillEditor } from "@/components/QuillEditor";
+import { TiptapEditor } from "@/components/TiptapEditor";
 import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -528,7 +528,7 @@ export default function AdminBlog() {
 
                     <div>
                       <Label htmlFor="content">Innehåll *</Label>
-                      <QuillEditor
+                      <TiptapEditor
                         value={content}
                         onChange={setContent}
                         placeholder="Skriv ditt blogginlägg här..."
@@ -811,7 +811,7 @@ export default function AdminBlog() {
 
             <div>
               <Label htmlFor="edit-content">Innehåll *</Label>
-              <QuillEditor
+              <TiptapEditor
                 value={content}
                 onChange={setContent}
                 placeholder="Skriv ditt blogginlägg här..."
