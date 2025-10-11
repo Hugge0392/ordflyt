@@ -31,7 +31,8 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(chmod:*)",
-      "Bash(/tmp/test-student-login.sh:*)"
+      "Bash(/tmp/test-student-login.sh:*)",
+      "Bash(env)"
     ],
     "deny": [],
     "ask": []
