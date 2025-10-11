@@ -34,7 +34,8 @@
       "Bash(/tmp/test-student-login.sh:*)",
       "Bash(env)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:ordflyt.vercel.app)"
+      "WebFetch(domain:ordflyt.vercel.app)",
+      "Bash(npx vite build:*)"
     ],
     "deny": [],
     "ask": []

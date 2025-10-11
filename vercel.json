@@ -3,12 +3,8 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/serverless"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/api/serverless"
+      "destination": "/api"
     }
   ]
 }
