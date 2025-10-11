@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-08T20:19:50.326Z",
+  "timestamp": "2025-10-11T21:25:31.834Z",
   "version": "1.0.0",
   "environment": "development",
   "counts": {
@@ -1381,7 +1381,7 @@
         "mustChangePassword": false,
         "failedLoginAttempts": 0,
         "lockedUntil": null,
-        "lastLogin": null,
+        "lastLogin": "2025-10-11T21:03:19.547Z",
         "createdAt": "2025-09-27T07:16:32.577Z"
       }
     ],

@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import crypto from 'crypto';
 import * as schema from "@shared/schema";
-import { eq, and, gt, isNull, or } from 'drizzle-orm';
+import { eq, and, gt, isNull, or, inArray } from 'drizzle-orm';
 import { hashPassword } from './auth';
 
 neonConfig.webSocketConstructor = ws;
@@ -581,6 +581,61 @@ export async function getActiveSetupCode(
     expiresAt: setupCode.expiresAt ?? undefined,
     createdAt: setupCode.createdAt ?? undefined,
   };
+}
+
+// BATCH version: Get active setup codes for multiple students at once (eliminates N+1 problem)
+export async function getActiveSetupCodesBatch(
+  studentIds: string[],
+  accessedBy: string
+): Promise<Map<string, { exists: boolean, clearCode?: string, expiresAt?: Date, createdAt?: Date }>> {
+  // If no studentIds, return empty map
+  if (studentIds.length === 0) {
+    return new Map();
+  }
+
+  // Fetch all setup codes for all students in ONE query
+  const setupCodes = await licenseDb
+    .select({
+      studentId: schema.studentSetupCodes.studentId,
+      clearCode: schema.studentSetupCodes.clearCode,
+      expiresAt: schema.studentSetupCodes.expiresAt,
+      createdAt: schema.studentSetupCodes.createdAt,
+    })
+    .from(schema.studentSetupCodes)
+    .where(
+      and(
+        inArray(schema.studentSetupCodes.studentId, studentIds),
+        eq(schema.studentSetupCodes.isActive, true),
+        isNull(schema.studentSetupCodes.usedAt),
+        gt(schema.studentSetupCodes.expiresAt, new Date())
+      )
+    );
+
+  // Log batch access (single log entry for all students)
+  await logLicenseActivity(null, 'setup_code_batch_accessed', {
+    studentCount: studentIds.length,
+    accessedBy,
+  }, accessedBy);
+
+  // Create a Map for O(1) lookup
+  const resultMap = new Map<string, { exists: boolean, clearCode?: string, expiresAt?: Date, createdAt?: Date }>();
+
+  // Initialize all students as not having codes
+  studentIds.forEach(id => {
+    resultMap.set(id, { exists: false });
+  });
+
+  // Update with actual codes found
+  setupCodes.forEach(setupCode => {
+    resultMap.set(setupCode.studentId, {
+      exists: true,
+      clearCode: setupCode.clearCode ?? undefined,
+      expiresAt: setupCode.expiresAt ?? undefined,
+      createdAt: setupCode.createdAt ?? undefined,
+    });
+  });
+
+  return resultMap;
 }
 
 export async function getStudentByUsername(username: string) {

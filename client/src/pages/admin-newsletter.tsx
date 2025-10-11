@@ -17,7 +17,7 @@ interface NewsletterSubscriber {
   email: string;
   name?: string;
   isActive: boolean;
-  subscribedAt: string;
+  createdAt: string;
   unsubscribedAt?: string;
   source?: string;
   totalEmailsSent?: number;
@@ -133,7 +133,7 @@ export default function AdminNewsletter() {
                   </div>
                   <div className="col-span-2 text-sm text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {format(new Date(subscriber.subscribedAt), 'dd MMM yyyy', { locale: sv })}
+                    {format(new Date(subscriber.createdAt), 'dd MMM yyyy', { locale: sv })}
                   </div>
                 </div>
               ))}

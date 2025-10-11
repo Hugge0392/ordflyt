@@ -129,11 +129,25 @@ export default function LoginPage() {
       });
 
       // Invalidate auth cache to trigger auth state update
+      // Important: Invalidate and refetch to ensure auth state is current before redirect
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
+      // Wait for the query to refetch to ensure auth state is updated
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+
+      // EAGER LOADING: Prefetch teacher's classes immediately after login for better UX
+      // This prevents the delay when navigating to teacher dashboard
+      if (result.user?.role === 'LARARE' || result.user?.role === 'TEACHER') {
+        console.log('[Login] Prefetching teacher classes for instant dashboard load...');
+        queryClient.prefetchQuery({
+          queryKey: ['/api/license/classes'],
+          staleTime: 5 * 60 * 1000, // Keep fresh for 5 minutes
+        });
+      }
 
       // Determine redirect path based on role if not provided
       let redirectPath = result.redirectPath;
-      
+
       // Handle must-change-password cases for students
       if ((result.student?.mustChangePassword || result.requirePasswordChange) && !redirectPath) {
         redirectPath = '/elev/password';
@@ -156,10 +170,10 @@ export default function LoginPage() {
         }
       }
 
-      // Redirect after successful login
+      // Redirect after successful login (wait a bit to ensure query has updated)
       setTimeout(() => {
         setLocation(redirectPath);
-      }, 500);
+      }, 200);
     } catch (err) {
       console.error("Login error:", err);
       setError("Ett fel uppstod vid inloggning. Försök igen senare.");

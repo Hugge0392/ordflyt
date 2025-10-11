@@ -6,7 +6,7 @@ import { logger } from './logger';
 import { db } from './db';
 import { users, teacherRegistrations } from '@shared/schema';
 import { emailService } from './emailService';
-import { 
+import {
   findOneTimeCode,
   redeemOneTimeCode,
   createTeacherLicense,
@@ -24,6 +24,7 @@ import {
   createStudentSetupCode,
   validateAndUseSetupCode,
   getActiveSetupCode,
+  getActiveSetupCodesBatch,
   getStudentsByClassId,
   updateStudent,
   updateTeacherClass,
@@ -446,30 +447,44 @@ router.get('/classes', requireAuth, requireTeacherLicense, requireSchoolAccess()
     const classes = await getTeacherClasses(userId);
     console.log(`[licenseRoutes] 📚 Found ${classes.length} classes for teacher ${userId}`);
 
-    // Hämta elever för varje klass
-    const classesWithStudents = await Promise.all(
-      classes.map(async (classData) => {
-        const students = await getStudentsByClassId(classData.id);
-
-        // För varje elev, hämta setupCode om den finns
-        const studentsWithSetupCodes = await Promise.all(
-          (students || []).map(async (student) => {
-            const setupCodeInfo = await getActiveSetupCode(student.id, userId);
-            return {
-              ...student,
-              setupCode: setupCodeInfo.clearCode, // Include clearCode for teacher viewing
-              hasActiveSetupCode: setupCodeInfo.exists,
-              setupCodeExpiresAt: setupCodeInfo.expiresAt,
-            };
-          })
-        );
-
-        return {
-          ...classData,
-          students: studentsWithSetupCodes
-        };
-      })
+    // Hämta elever för varje klass (OPTIMIZED: Batch fetch setup codes to eliminate N+1 problem)
+    // Step 1: Get all students for all classes
+    const classesWithStudentsTemp = await Promise.all(
+      classes.map(async (classData) => ({
+        classData,
+        students: await getStudentsByClassId(classData.id)
+      }))
     );
+
+    // Step 2: Collect all student IDs across all classes
+    const allStudentIds: string[] = [];
+    classesWithStudentsTemp.forEach(({ students }) => {
+      if (students && students.length > 0) {
+        students.forEach(student => allStudentIds.push(student.id));
+      }
+    });
+
+    // Step 3: Fetch ALL setup codes in ONE batch query (eliminates N+1 problem!)
+    const setupCodesMap = await getActiveSetupCodesBatch(allStudentIds, userId);
+    console.log(`[licenseRoutes] 🚀 Fetched ${setupCodesMap.size} setup codes in single batch query (was ${allStudentIds.length} individual queries before optimization)`);
+
+    // Step 4: Map setup codes back to each student
+    const classesWithStudents = classesWithStudentsTemp.map(({ classData, students }) => {
+      const studentsWithSetupCodes = (students || []).map(student => {
+        const setupCodeInfo = setupCodesMap.get(student.id) || { exists: false };
+        return {
+          ...student,
+          setupCode: setupCodeInfo.clearCode, // Include clearCode for teacher viewing
+          hasActiveSetupCode: setupCodeInfo.exists,
+          setupCodeExpiresAt: setupCodeInfo.expiresAt,
+        };
+      });
+
+      return {
+        ...classData,
+        students: studentsWithSetupCodes
+      };
+    });
 
     console.log(`[licenseRoutes] ✅ Returning ${classesWithStudents.length} classes with students`);
     res.json({ classes: classesWithStudents });
