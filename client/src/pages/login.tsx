@@ -130,10 +130,16 @@ export default function LoginPage() {
 
       // Invalidate auth cache to trigger auth state update
       // Important: Invalidate and refetch to ensure auth state is current before redirect
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-      // Wait for the query to refetch to ensure auth state is updated
-      await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+      // Use different endpoints for students vs regular users
+      if (result.student) {
+        // Student login - use student endpoint
+        await queryClient.invalidateQueries({ queryKey: ["/api/student/me"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/student/me"] });
+      } else {
+        // Regular user login - use auth endpoint
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+      }
 
       // EAGER LOADING: Prefetch teacher's classes immediately after login for better UX
       // This prevents the delay when navigating to teacher dashboard
