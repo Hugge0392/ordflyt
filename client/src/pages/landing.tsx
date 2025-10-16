@@ -371,7 +371,7 @@ export default function LandingPage() {
             <span>Digitalt läromedel för svenska</span>
           </div>
 
-          <h1 className="landing-title">Välkommen till Ordflyt</h1>
+          <h1 className="landing-title">Välkommen till FFFFF</h1>
 
           <p className="landing-subtitle">
             Ett modernt digitalt läromedel och lektionsbank för lärare i svenska och svenska som andraspråk i årskurs 4–6
