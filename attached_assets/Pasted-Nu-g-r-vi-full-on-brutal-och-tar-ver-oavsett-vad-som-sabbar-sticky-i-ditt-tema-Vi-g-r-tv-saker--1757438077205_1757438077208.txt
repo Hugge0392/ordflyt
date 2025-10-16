@@ -1,0 +1,174 @@
+Nu går vi full-on brutal och tar över – oavsett vad som sabbar sticky i ditt tema. Vi gör två saker:
+
+En liten hook som “pinnar” panelen med JS (fixed/absolute) när sticky blockeras.
+
+En CSS-patch som vinner över alla andra regler (!important, sist i filen).
+
+1) Byt ut panel-markupen och lägg till hooken
+
+I NormalMode.tsx — ersätt blocket där frågor-panelen renderas med detta (behåll ditt innehåll inuti panelen):
+
+import React, { useEffect, useLayoutEffect, useRef } from "react";
+
+function usePinPanelOnScroll(enabled = true, topPx = 24) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null); // kolumnens wrapper
+  const panelRef = useRef<HTMLDivElement | null>(null);   // själva panelen
+
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    const w = wrapperRef.current;
+    const p = panelRef.current;
+    if (!w || !p) return;
+
+    // säkerställ att wrappern kan vara ankare för absolute
+    w.style.position = w.style.position || "relative";
+
+    const apply = () => {
+      const wr = w.getBoundingClientRect();
+      const ph = p.offsetHeight;
+      const vw = window.innerWidth;
+
+      // disable under lg (<=1024px)
+      if (vw < 1024) {
+        p.classList.remove("pin-fixed", "pin-abs");
+        p.style.width = "";
+        return;
+      }
+
+      // hur långt vi kan rulla innan botten tar stopp
+      const pastTop = wr.top <= topPx;
+      const pastBottom = wr.bottom <= topPx + ph;
+
+      // sätt bredd när vi är fixed, så den inte hoppar
+      const width = Math.floor(wr.width);
+      p.style.setProperty("--pin-width", width + "px");
+
+      if (!pastTop) {
+        p.classList.remove("pin-fixed", "pin-abs");
+        p.style.width = "";
+      } else if (!pastBottom) {
+        p.classList.add("pin-fixed");
+        p.classList.remove("pin-abs");
+      } else {
+        p.classList.remove("pin-fixed");
+        p.classList.add("pin-abs");
+      }
+    };
+
+    apply();
+    const onScroll = () => apply();
+    const onResize = () => apply();
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    // om innehållet i panelen förändras i höjd
+    const mo = new MutationObserver(apply);
+    mo.observe(p, { childList: true, subtree: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      mo.disconnect();
+    };
+  }, [enabled, topPx]);
+
+  return { wrapperRef, panelRef };
+}
+
+
+Använd hooken när du renderar panelen:
+
+// högst upp i komponenten:
+const { wrapperRef, panelRef } = usePinPanelOnScroll(true, 24); // 24px = ~top-6
+
+// där panelen ligger:
+{showQuestionsPanel12 && lesson && totalQuestions > 0 && (
+  <div
+    ref={wrapperRef}
+    className="reading-questions-column order-2 lg:order-2 lg:self-start"
+  >
+    <div
+      ref={panelRef}
+      className="questions-panel-container border rounded-lg p-6"
+    >
+      {/* ...hela ditt panel-innehåll... */}
+    </div>
+  </div>
+)}
+
+
+Notera: Vi tar bort sticky-klassen helt från JSX. Vår hook sköter pinningen med fixed/absolute och struntar i alla konstiga föräldra-overflows som brukar döda sticky.
+
+2) Lägg denna CSS allra sist i index.css
+/* ======= PIN-PANEL – MÅSTE LIGGA SIST ======= */
+
+/* 0) Ingen förälder får döda Y-scroll för sticky/fixed-beräkningar */
+.reading-lesson-viewer,
+.reading-content,
+.reading-main-grid,
+.reading-questions-column {
+  overflow-y: visible !important;
+}
+
+/* 1) Under 1024px: låt panelen bete sig normalt */
+@media (max-width: 1023.98px) {
+  .reading-questions-column { position: static !important; }
+  .questions-panel-container { position: static !important; max-height: none !important; overflow: visible !important; }
+}
+
+/* 2) Desktop: vi styr helt med klasser från hooken */
+@media (min-width: 1024px) {
+  .reading-questions-column {
+    position: relative !important;        /* ankare för absolute-läget */
+    align-self: start !important;
+  }
+
+  /* FIXERAT läge medan man läser (stannar mot toppen) */
+  .questions-panel-container.pin-fixed {
+    position: fixed !important;
+    top: 24px !important;                  /* samma som hooken (24) */
+    width: var(--pin-width) !important;    /* bredd låst till wrappern */
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+    z-index: 10;
+  }
+
+  /* ABSOLUT läge när vi nått slutet av kolumnen */
+  .questions-panel-container.pin-abs {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+}
+
+/* 3) Överkör alla tidigare "position: static !important" mot panelen */
+@media (min-width: 1024px) {
+  .reading-questions-column .questions-panel-container { position: static !important; }
+  .reading-questions-column .questions-panel-container.pin-fixed { position: fixed !important; }
+  .reading-questions-column .questions-panel-container.pin-abs   { position: absolute !important; }
+}
+
+Varför det här håller (även när allt annat bråkar)
+
+Vi använder JS-mätning + position: fixed/absolute i stället för att hoppas på sticky. Sticky bryts av overflow/transform/contain på föräldrar. Här spelar det ingen roll – vi låser panelen direkt till viewporten.
+
+CSS-reglerna är sist och med !important, så de vinner över dina globala overrides.
+
+Panelens bredd låses till wrapperns bredd (--pin-width) så den inte “hoppar” när den blir fixed.
+
+När panelen är längre än fönstret får den egen scroll, men sitter kvar i toppen.
+
+Snabb checklista efter patch
+
+Lägg CSS-blocket allra sist i index.css.
+
+Starta om dev-server om nödvändigt.
+
+Desktop ≥1024px: scrolla — panelen ska sitta fast och gå över till “absolute” när du når slutet av textkolumnen.
+
+Mobil/tablet <1024px: panelen beter sig vanligt (ingen pinning).
+
+Det här är “hårdast” du kan gå utan att riva hela layouten. Testa rakt av – den kommer att fastna.
+
+ChatGPT kan begå misstag. K

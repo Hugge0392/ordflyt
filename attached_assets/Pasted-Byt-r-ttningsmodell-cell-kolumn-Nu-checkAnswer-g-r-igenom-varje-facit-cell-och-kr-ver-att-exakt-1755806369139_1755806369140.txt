@@ -1,0 +1,51 @@
+Byt rättningsmodell: cell → kolumn
+
+Nu: checkAnswer går igenom varje facit-cell och kräver att exakt samma ord ligger i samma rad och kolumn.
+
+Ska vara: räkna rätt om ordet ligger i rätt kolumn (Plural/Singular), oavsett rad. Radindex ska inte påverka.
+
+Skapa en tydlig “ord → kategori”-karta vid init
+
+När du bygger ordbanken från tabellen, lagra för varje ord vilken kolumnrubrik det kom ifrån (Plural eller Singular).
+
+Använd den kartan vid rättning: rätt om dropped.cellIndex === expectedColumnIndex(ordet).
+
+Härled rätt kolumnindex från rubrikerna (inte hårdkoda)
+
+Läs columns och matcha case-insensitivt/trim: rubrik som === “Plural” och “Singular” ger respektive index. Då fungerar det även om läraren byter ordning.
+
+Räkna “total” som antal ord, inte antal facit-celler
+
+Sätt total = antalet ord som ska sorteras (dvs ordbankens storlek vid start).
+
+Då blir procentsatsen korrekt även om vissa tabellceller är tomma i facit.
+
+Ignorera rad vid rättning
+
+Använd endast cellIndex (kolumn) för att avgöra rätt/fel. rowIndex ska inte ingå i jämförelsen.
+
+Behåll ordets identitet (ID) genom hela flödet
+
+När du lägger tillbaka ett ord i ordbanken skapar du nytt id (returned-…). Om du inför “ord→kategori” på ID, måste samma ID följa med ordet fram och tillbaka, annars tappar du mappningen.
+
+All rättning och dubbletthantering bör ske på id, inte bara text.
+
+Normalisera text innan jämförelse
+
+trim() och case-insensitiv jämförelse på både rubriker och ord (“Sås” vs “sås”). Det undviker falska fel.
+
+“Klar?”-logik kopplas till placerade ord
+
+Markera klart när alla ord är placerade (ordbanken tom), inte när alla facitceller råkar vara fyllda.
+
+Validera konfigurationen vid start
+
+Minst två kolumner där en tolkas som “Plural” och en som “Singular”.
+
+rows[].cells.length === columns.length.
+
+Antalet ord i ordbanken = antalet icke-tomma celler du vill att eleven ska sortera.
+
+Ge feedback per kategori
+
+Visa t.ex. “Plural: X/Y, Singular: A/B” + total %. Då syns direkt om något hamnat i fel kolumn, och du slipper förvirringen “75 % fast allt ser rätt ut”.

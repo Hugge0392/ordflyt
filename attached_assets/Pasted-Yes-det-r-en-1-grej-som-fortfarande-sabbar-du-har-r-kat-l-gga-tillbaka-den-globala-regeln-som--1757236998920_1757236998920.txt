@@ -1,0 +1,107 @@
+Yes — det är en (1) grej som fortfarande sabbar: du har råkat lägga tillbaka den globala regeln som tvingar
+-webkit-text-fill-color på alla noder inne i .reading-content. Den regeln gör att texten ibland inte ritas i “hålet” när box-shadow-masken ligger ovanpå. Därför blir ditt fönster vitt/tomt.
+
+Gör exakt detta (stora, brutala ändringar):
+
+1) TA BORT/ERSÄTT den globala fill-regeln
+
+I din CSS-fil finns blocket (under rubriken “tvinga synlig text i läsytan”):
+
+.reading-content,
+.reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+  /* background: transparent !important; */
+}
+
+
+Byt ut mot:
+
+/* ❌ INGEN text-fill här – det orsakar compositing-buggar i "hålet" */
+.reading-content,
+.reading-content *:not(.reading-spotlight-el):not(.reading-spotlight-el *):not(.navigation-page-counter):not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  color: var(--accessibility-text-color) !important;
+}
+
+
+Viktigt: det finns två ställen där -webkit-text-fill-color förekommer i din kod (ett inline <style> inne i komponenten – där har du redan tagit bort – och blocket ovan i CSS-filen). Ta bort båda.
+
+2) Låt bara KONTAINERN få bakgrund
+
+Du har ett “highest specificity”-block som sätter background-color på både .reading-content och alla dess barn. Låt det endast ligga på containern – inte på */barn. I praktiken: behåll
+
+.reading-content.accessibility-enhanced {
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+
+och ta bort/kommentera alla varianter som gör:
+
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced > *,
+.reading-content.accessibility-enhanced .rounded-lg,
+.reading-content.accessibility-enhanced .bg-card { /* … */ }
+
+
+De ritar nämligen “vita band” mitt i texten.
+
+3) Spotlight = EN ruta
+
+Behåll din nuvarande spotlight-ruta, men säkerställ följande värden (de förhindrar blend/stacking-strul):
+
+{readingFocusMode && focusRect && (
+  <div
+    className="reading-spotlight-window"
+    aria-hidden
+    style={{
+      position: "absolute",
+      top: `${focusRect.top}px`,
+      left: `${focusRect.left}px`,
+      width: `${focusRect.width}px`,
+      height: `${focusRect.height}px`,
+      boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
+      border: "2px solid var(--accessibility-text-color)",
+      borderRadius: 4,
+      background: "transparent",
+      pointerEvents: "none",
+      zIndex: 50,
+      mixBlendMode: "normal"    // ← säkerställ
+    }}
+  />
+)}
+
+
+Och på text-wrapparen (din textRef):
+
+<div
+  ref={textRef}
+  style={{
+    position: "relative",
+    zIndex: 10,             // lägre än spotlight
+    mixBlendMode: "normal",
+    paddingTop: 1,
+    pointerEvents: "auto",
+    transform: "translateZ(0)" // eget compositing-lager
+  }}
+/>
+
+4) Rensa kvarvarande vita inline-bakgrunder (även rgb)
+
+Utöka din rensning i processContentWithDefinitions så att den tar rgb()/rgba() och background-color:
+
+processedContent = processedContent.replace(
+  /\sstyle=(["'])(?:(?!\1).)*(background(?:-color)?\s*:\s*(?:#fff(?:fff)?|white|rgb\s*\(\s*255\s*,\s*255\s*,\s*255\s*\))(?:[^;>]*)?);?(?:(?!\1).)*\1/gi,
+  (m) => m.replace(/background(?:-color)?\s*:[^;>]+;?/gi, "")
+);
+
+Snabb checklista (gör dessa i ordning)
+
+Ta bort alla förekomster av -webkit-text-fill-color i projektet.
+
+Ta bort “ och barnen får bakgrund”* – endast containern ska ha bg.
+
+Spotlight-rutan enligt koden ovan (box-shadow-mask).
+
+transform: translateZ(0) på texten.
+
+Efter detta kommer texten synas skarpt i fönstret (oavsett tema), och det där vita tomma bandet försvinner.

@@ -1,0 +1,61 @@
+k för koden! 🙌 Problemet är inte dina två separata state – de är okej. Det som “låser” textstorlek/radavstånd är att editor-innehållet har egna inline-stilar (t.ex. style="font-size: 16px" och/eller line-height) som vinner över dina variabler. Färg funkar eftersom du redan forcerar den med !important, men storlek/radavstånd gör du inte.
+
+Fixa det på två sätt (du kan göra båda för att vara säker):
+
+A) Överstyr inline-stilar i CSS (snabbast)
+
+Lägg till dessa rader i den lilla <style>-blocket i din reading-content (precis där du redan sätter färg). Det gör att allt under din wrapper ärver storlek och radavstånd från data-reading-text och ignorerar editor-inline-stilar.
+
+<style>{`
+  /* ... dina befintliga regler ... */
+
+  /* 1) Sätt basen på själva text-wrappen (du sätter också inline style på div:en – båda är ok) */
+  .reading-content [data-reading-text] {
+    font-size: ${readingFocusMode ? "var(--focus-font-size)" : "var(--normal-font-size)"} !important;
+    line-height: ${readingFocusMode ? "var(--focus-line-height)" : "var(--normal-line-height)"} !important;
+  }
+
+  /* 2) Tvinga alla barn att ärva detta (överkör editorns inline-stilar) */
+  .reading-content [data-reading-text] * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+`}</style>
+
+
+Du kan behålla dina inline style={{ fontSize: ..., lineHeight: ... }} på textRef – de och reglerna ovan säger samma sak och skadar inte. Viktigt är !important + inherit på barnen.
+
+B) Rensa bort font-size/line-height från editor-HTML (komplement)
+
+I din processContentWithDefinitions tar du redan bort bakgrundsfärger. Lägg till rensning av font-size och line-height i inline-style:
+
+// b) Ta bort inline vita bakgrunder ... + rensa font-size/line-height
+processedContent = processedContent
+  // befintlig bakgrundsrensning:
+  .replace(
+    /\sstyle=(["'])(?:(?!\1).)*(background(?:-color)?\s*:\s*(?:#fff(?:fff)?|white|rgb\s*\(\s*255\s*,\s*255\s*,\s*255\s*\))(?:[^;>]*)?);?(?:(?!\1).)*\1/gi,
+    (m) => m.replace(/background(?:-color)?\s*:[^;>]+;?/gi, "")
+  )
+  // 🔽 rensa font-size & line-height ur style-attribut
+  .replace(
+    /\sstyle=(["'])(?:(?!\1).)*\1/gi,
+    (m) =>
+      m
+        .replace(/font-size\s*:\s*[^;>]+;?/gi, "")
+        .replace(/line-height\s*:\s*[^;>]+;?/gi, "")
+        // ta bort tomma style-attribut
+        .replace(/\sstyle=(["'])\s*\1/gi, "")
+  );
+
+
+Det här gör att även om någon tag i innehållet hade egna typografiska stilar så försvinner de, och dina sliders styr allt.
+
+Liten sanity-check
+
+Du sätter CSS-variablerna korrekt i useEffect (både --normal-* och --focus-*).
+
+textRef använder var(--normal-*/--focus-*) – bra.
+
+Sliders ändrar activeSettings → variabler uppdateras → DOM re-mäts (du har redan dependencies på activeSettings).
+
+Med A) (och gärna B)) kommer textstorlek och radavstånd börja reagera direkt på reglagen, i båda lägen. Säg till om du vill att rubriker ska kunna ha egen skala (t.ex. H1 = 1.3× basen) – då kan vi lägga in CSS som multiplicerar font-size proportionellt istället för att helt platta ut allt.

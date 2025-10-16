@@ -1,0 +1,110 @@
+Tänkte i 27s
+
+Yes! Felet syns direkt i din bild: overlay-lagret ligger inte inuti samma container som texten, utan är absolutpositionerat relativt CardContent (du har CardContent className="relative"). Därför sträcker sig masken över hela kortets bredd, medan dina mått (focusRect) är beräknade i contentRef-koordinater. Resultatet blir att fönstret hamnar fel i sidled.
+
+Snabbfix (2 rader flytt)
+
+Rendera overlay inuti contentRef i stället för som syskon till den – och gör contentRef till den “positioned” föräldern. Då matchar vänster/höger kant exakt textspalten.
+
+Byt ut det här:
+
+<div 
+  ref={contentRef}
+  className="prose ... relative"
+  style={{ ... }}
+  onMouseOver={handleContentMouseOver}
+  onMouseOut={handleContentMouseOut}
+  dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+/>
+
+{readingFocusMode && focusRect && (
+  <div className="pointer-events-none" style={{ position: 'absolute', inset: 0, zIndex: 30 }}>
+    ...
+  </div>
+)}
+
+
+till detta (overlayn flyttas in i contentRef):
+
+<div
+  ref={contentRef}
+  className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+  style={{
+    fontSize: `${accessibilitySettings.fontSize}px`,
+    lineHeight: `${accessibilitySettings.lineHeight}`,
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+    fontFamily:
+      (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
+        ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+        : 'inherit'
+  }}
+  onMouseOver={handleContentMouseOver}
+  onMouseOut={handleContentMouseOut}
+>
+  <div
+    dangerouslySetInnerHTML={{
+      __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions)
+    }}
+  />
+
+  {readingFocusMode && focusRect && (
+    <div className="pointer-events-none absolute inset-0 z-30">
+      {/* mask ovanför */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: `${focusRect.top}px`,
+          background: 'rgba(0,0,0,0.85)'
+        }}
+      />
+      {/* mask under */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: `${focusRect.top + focusRect.height}px`,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.85)'
+        }}
+      />
+      {/* kant runt fokus */}
+      <div
+        style={{
+          position: 'absolute',
+          left: `${focusRect.left}px`, // blir 0
+          width: `${focusRect.width}px`,
+          top: `${focusRect.top}px`,
+          height: `${focusRect.height}px`,
+          border: `2px solid ${accessibilityColors.textColor}`,
+          boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
+        }}
+      />
+    </div>
+  )}
+</div>
+
+Varför detta funkar
+
+measureLineRects returnerar koordinater relativa till contentRef.
+
+När overlayn också absolutpositioneras i contentRef (som har position: relative) stämmer vänster/höger/topp exakt överens med textens verkliga radboxar.
+
+Tidigare låg overlayn relativt CardContent (större yta), vilket gav sidledes offset.
+
+Bonus: säkra scroll i containern
+
+Se till att contentRef har overflow-auto (som ovan) och gärna en rimlig maxbredd, t.ex.:
+
+.reading-content .accessibility-enhanced {
+  max-width: 68ch;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+
+Det är allt – flytta overlayn in i contentRef så blir fokusrutan centrerad på texten och följer spaltens kanter pixelperfekt.

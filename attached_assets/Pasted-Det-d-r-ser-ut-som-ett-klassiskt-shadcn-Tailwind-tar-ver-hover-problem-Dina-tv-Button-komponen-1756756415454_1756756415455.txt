@@ -1,0 +1,130 @@
+Det där ser ut som ett klassiskt “shadcn/Tailwind tar över :hover”-problem. Dina två Button-komponenter (variant="outline") får per default klasser som sätter hover:bg-accent och hover:text-accent-foreground. Eftersom de är klass-baserade och du blandar in inline-styles kan de vinna i vissa lägen (särskilt om det finns !important eller ring/outline-effekter). Samma sak kan hända med fokusringar.
+
+Några snabba sätt att neutralisera allt “hover-goo”:
+
+1) Lägg en liten, riktad CSS-override
+
+Det här är robust och enkelt. Lägg i din globala CSS (t.ex. globals.css) eller i en modul som laddas på sidan:
+
+/* Neutralisera hover/focus/active för navigationsknapparna */
+.navigation-button {
+  background: #fff;
+  color: #000;
+  border: 1px solid #ccc;
+  box-shadow: none;
+}
+
+.navigation-button:hover,
+.navigation-button:focus,
+.navigation-button:active {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #ccc !important;
+  box-shadow: none !important;
+}
+
+/* Siffrorna (1, 2, 3 ...) ska inte “glow:a” vid hover */
+.page-number-button {
+  box-shadow: none;
+  outline: none;
+}
+
+.page-number-button:hover,
+.page-number-button:focus,
+.page-number-button:active {
+  filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
+Du använder redan className="navigation-button" respektive className="page-number-button" – så ovan blir direkt träff.
+
+2) Döda Tailwinds hover-klasser direkt på komponenten
+
+Komplettera className på dina Button-komponenter så här:
+
+<Button
+  variant="outline"
+  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+  disabled={currentPage === 0}
+  className="flex items-center gap-2 navigation-button
+             hover:bg-white hover:text-black hover:border-[#CCCCCC]
+             focus-visible:ring-0 focus-visible:outline-none
+             shadow-none hover:shadow-none active:shadow-none"
+  style={{ backgroundColor: '#FFFFFF', color: '#000000', borderColor: '#CCCCCC' }}
+>
+  <ChevronLeft className="h-4 w-4" />
+  Föregående sida
+</Button>
+
+<Button
+  variant="outline"
+  onClick={() => setCurrentPage(Math.min(pages.length - 1, currentPage + 1))}
+  disabled={currentPage === pages.length - 1 || !areAllCurrentPageQuestionsAnswered()}
+  className="flex items-center gap-2 navigation-button
+             hover:bg-white hover:text-black hover:border-[#CCCCCC]
+             focus-visible:ring-0 focus-visible:outline-none
+             shadow-none hover:shadow-none active:shadow-none"
+  style={{ backgroundColor: '#FFFFFF', color: '#000000', borderColor: '#CCCCCC' }}
+  title={!areAllCurrentPageQuestionsAnswered() ? 'Svara på alla frågor innan du går vidare' : ''}
+>
+  Nästa sida
+  <ChevronRight className="h-4 w-4" />
+</Button>
+
+
+Det viktiga här är att:
+
+Nolla alla “ring/outline”-effekter (focus-visible:ring-0 focus-visible:outline-none).
+
+Nolla skuggor (shadow-none hover:shadow-none active:shadow-none).
+
+Tvinga hover att vara samma som normal (hover:bg-white hover:text-black osv).
+
+3) (Alternativ) Skippa variant="outline" på just dessa
+
+variant="outline" injicerar många hover-/focus-klasser. Du kan byta till:
+
+<Button
+  variant="ghost"
+  className="border navigation-button hover:bg-white hover:text-black hover:border-[#CCCCCC] focus-visible:ring-0 shadow-none"
+  ...
+/>
+
+4) Om du misstänker overlay-problem
+
+Din egen tooltip är pointer-events: none (bra), så den ska inte blockera klick. Men om något annat (t.ex. ett absolut positionerat element) råkar ligga över knapparna, testa att ge knappraden en högre staplingsordning:
+
+<div className="flex items-center justify-between mt-6 pt-4 border-t relative z-50">
+  ...
+</div>
+
+5) Page number-knapparna
+
+Du har egna <button> där. Lägg till Tailwind för att helt slippa browser-fokus/hover:
+
+<button
+  key={index}
+  onClick={() => setCurrentPage(index)}
+  className="w-8 h-8 rounded-full text-sm font-medium page-number-button
+             focus:outline-none focus-visible:outline-none focus-visible:ring-0
+             shadow-none hover:shadow-none"
+  style={{
+    backgroundColor: index === currentPage ? '#000000' : '#E0E0E0',
+    color: index === currentPage ? '#FFFFFF' : '#000000',
+    border: 'none'
+  }}
+>
+  {index + 1}
+</button>
+
+Kort sammanfattning
+
+Lägg en liten CSS-override för .navigation-button och .page-number-button (enkelt och säkert), eller
+
+Sätt explicita Tailwind-klasser som neutraliserar hover, focus och shadow på komponenterna,
+
+Höj z-index på knappraden om något osynligt hamnat ovanpå.
+
+Kör du någon av dessa vägar försvinner den oönskade hover-effekten, och dina knappar behåller exakt den stil du satt. Vill du, kan jag också föreslå en minimal “neutral variant” av Button-komponenten så du slipper upprepa overrides.

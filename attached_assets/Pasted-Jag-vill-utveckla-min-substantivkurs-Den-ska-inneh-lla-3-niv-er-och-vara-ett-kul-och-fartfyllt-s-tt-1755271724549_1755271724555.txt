@@ -1,0 +1,55 @@
+Jag vill utveckla min substantivkurs. Den ska innehålla 3 nivåer och vara ett kul och fartfyllt sätt att utveckla sina kunskaper i substantivsens värld.  
+
+ 
+
+ 
+
+Nivå 1 – Matros (åk 4) 
+
+Introduktion: Visa en rubrik och kort text som förklarar temat (t.ex. “Substantiv är namn på saker och ting”) tillsammans med en piratillustration. Rendera detta med HTML (<h1>, <p>, <img> etc.) och använda CSS för layout. Lägg till en ”Nästa”-knapp med en click-eventlistener för att gå vidare  . Spela eventuellt upp ett piratljud (t.ex. ett skeppsvrål eller “Arrr!”) genom att infoga ett <audio src="pirate-intro.mp3"></audio>-element och anropa audio.play()   vid sidans inladdning. 
+
+Teoriavsnitt: Rendera förklarande text och bilder statiskt med HTML/CSS. Exempel: en sektion med rubrik och stycken som beskriver vad substantiv är, med illustrationer (t.ex. bilder på en skattkista med etiketten “skatt”). Använd <div>-container och CSS-klasser för att styla text och bilder. (Inga speciella event behövs här, möjligen en ”Fortsätt”-knapp med click-event för att gå vidare.) 
+
+Övning: 
+
+Para ihop-övning: Visa flera bilder och ord på skärmen (t.ex. föremål och deras namn). Markera orden eller bilderna som draggable="true" och definiera drop-zoner för rätt svar. Sätt upp eventlisteners för drag-&-släpp, t.ex. dragstart, dragover, drop eller åtminstone dragend  . När ett ord släpps i en zon kontrolleras om matchningen är korrekt. Spara resultatet i databasen, till exempel db["nivå1_övning1_matchning"] = sant/falskt . Spela upp ett positivt piratljud vid rätt par (t.ex. ett glädjetjut) och visa grönt/felrött för rätt eller fel svar. 
+
+Skriv-själv-övning: Visa en fråga (t.ex. “Skriv pluralformen av skepp”) och ett textfält (<input>). Lägg en input-lyssnare på fältet för att avläsa elevens text  , samt en ”Kontrollera”-knapp med click-listener. Vid klick validerar du svaret och sparar det i DB, t.ex. db["nivå1_övning_svar1"] = elevensSvar . Ge direkt feedback (”Rätt!”/”Fel!”) och spela eventuellt en ljudeffekt (piratskratt eller hojtat beröm). 
+
+Spelmoment: Skapa ett interaktivt spel, t.ex. ett drag-&-släpp-spel där eleven för över substantiv till en skattkista, eller ett memoryspel med substantivpar. Rendera spelet dynamiskt med JavaScript (skapa element via document.createElement, sätt klasser med classList, etc.). Använd addEventListener("click", ...) för klick på spelbrickor eller knappar  , och dragend för släpphändelser  . Vid interaktioner kan du spela animerade effekter: t.ex. använd CSS-@keyframes för att animera ett skepp som seglar över skärmen  . Lägg till ljud (kanondunder, applåder) vid rätt svar. Efter spelet sparar du t.ex. poäng: db["nivå1_spel_poäng"] = poäng och eventuellt db["nivå1_spel_avklarad"] = true . 
+
+Quiz (svårighet 1): Hämta frågebank från databasen där svårighet = 1. Du kan t.ex. spara frågor med prefix quiz_nivå1_ och läsa alla med for (let key of await db.list("quiz_nivå1_")) { let q = await db.get(key); } (motsvarande prefix-sökning) . Visa varje fråga med svarsalternativ (radio-knappar eller klickbara divar). Sätt click-listeners på alternativen för att hantera elevens val. Spara svaret i DB, exempelvis db["nivå1_quiz_q1_svar"] = valtSvar , och uppdatera poäng (poäng_nivå1). Efter sista frågan sätter du db["nivå1_avklarad"] = true och db["nivå1_poäng"] = totalaPoäng . Visa en avslutningsanimation (t.ex. skeppet seglar iväg, definierat med CSS-keyframes  ) och spela en segerlåt eller piratrop vid avslutad nivå. 
+
+Nivå 2 – Styrman (åk 5) 
+
+Introduktion: Ladda en ny introduktionssida med rubrik “Styrman – Fördjupning i substantiv”. Förklara vad som täcks (egennamn, genus, bestämd/obestämd form) med några meningar och en passande illustration (t.ex. en pirat i styrmanshytt). Rendera med HTML/CSS. Lägg till en ”Nästa”-knapp med click-listener för att gå vidare  . Spela upp ett nytt piratljud (t.ex. “Aye aye, kapten!”) när sidan visas. 
+
+Teoriavsnitt: Visa text som förklarar skillnaden mellan egennamn och vanliga substantiv, hur genus (n- och t-genus) fungerar, samt bestämd vs obestämd form. Inkludera exempel och illustrationer (t.ex. “en skatt” vs “skatten”). Formatera som statisk HTML/CSS (t.ex. <h2>-rubrik och <p>-paragrafer). 
+
+Övning: 
+
+Kategorisera: Gör en övning där eleven sorterar ord i t.ex. två kolumner (egennamn vs. andra substantiv). Använd drag-och-släpp eller klick: gör orden draggable="true" och lägg till dragstart/drop-event, eller lägg till click på ett val som flyttar ordet till kolumnen    . Kontrollera svaret och spara, t.ex. db["nivå2_övning_kategori"] = elevensSvar. 
+
+Formövning: Visa substantiv i obestämd form och låt eleven skriva den bestämda formen i ett textfält. Använd en input-lyssnare och en kontrollknapp. Vid knapptryck sparar du svaret, t.ex. db["nivå2_övning_svar1"] = elevensSvar   , och visar om det är rätt/fel. 
+
+Spelmoment: Skapa ett spel, t.ex. ett memoryspel med par av ord (t.ex. singular–plural eller obestämd–bestämd form). Rendera spelkort med HTML <div> och använd CSS för att vända kortet (t.ex. transform: rotateY(180deg)). Sätt en click-listener på varje kort för att vända det. När ett par matchar kan du spela ett ljud (piratgitarr eller applåd) och öka poängen. Spara poängen i DB, t.ex. db["nivå2_spel_poäng"] = aktuellPoäng . 
+
+Quiz (svårighet 2): Hämta frågor för nivå 2 (svårighet=2) från databasen (t.ex. prefix quiz_nivå2 ). Visa varje fråga med svarsalternativ och sätt click-listeners på alternativen. Spara svaret i DB (db["nivå2_quiz_qY_svar"] = elevensSvar) . Ge rätt uppgift poäng. Efter sista frågan sätter du db["nivå2_avklarad"] = true och db["nivå2_poäng"] = totalaPoäng. Visa t.ex. en animationssekvens med skeppet som seglar mot en ö, och spela ett segerråb när eleven klarar nivån. 
+
+Nivå 3 – Kapten (åk 6) 
+
+Introduktion: Visa rubriken “Kapten – Avancerade substantivformer”. Ge en kort repetition av tidigare nivåer och introducera ämnena genitiv (ägandeform), pluralformer och sammansättningar. Rendera med HTML/CSS. Lägg en knapp ”Starta nivå” med click-listener för att påbörja nivån  . Spela ett kraftfullt pirat- eller skeppsljud vid start. 
+
+Teoriavsnitt: Förklara substantivets alla former: olika pluralböjningar (starka och svaga), genitiv (piratens skatt → piratskatt) och hur sammansatta ord fungerar. Inkludera exempelbilder (t.ex. ett piratskepp med etiketten “piratskepp”). Formatera som statisk HTML. 
+
+Övning: 
+
+Plural-/genitiv-uppgifter: Ge ett substantiv (t.ex. “pirat”) och låt eleven skriva plural (“pirater”) eller genitiv (“pirats”) i ett textfält. Använd en input-lyssnare och en kontrollknapp. Spara elevens svar, t.ex. db["nivå3_övning_svar1"] = elevensSvar   . 
+
+Sammansättningsövning: Gör en interaktiv övning där eleven drar ihop två delar till ett sammansatt ord (t.ex. drag pirat- och -skatt så det bildar “piratskatt”). Skapa draggable-element för delarna och använd dragend när eleven släpper ihop dem  . Bygg det sammansatta ordet i koden, kontrollera om det är korrekt och spara svaret i DB. 
+
+Spelmoment: T.ex. ett kortspel där man parar ihop singular med dess plural eller genitivform. Rendera spelkort med HTML, använd click-listeners för att vända ett kort. Använd CSS-animation (t.ex. @keyframes) för en flip-animation när kortet vänds  . Spela ett fanfar-ljud vid rätt match och uppdatera db["nivå3_spel_poäng"] = aktuellPoäng. 
+
+Quiz (svårighet 3): Ladda frågor med svårighetsgrad 3 från DB (prefix quiz_nivå3 ). Ställ avancerade frågor (t.ex. böj plural, bilda genitiv). Använd click-listeners på svarsalternativen och spara varje svar i DB (db["nivå3_quiz_qZ_svar"] = elevensSvar) . Korrekt svar ger poäng. Efter sista frågan markerar du nivån som klar: db["nivå3_avklarad"] = true och db["nivå3_poäng"] = totalaPoäng. Visa en avslutningsanimation med kaptenen på bryggan och skeppet som seglar in i solnedgången, och spela en segermusik. 
+
+Allmän progression: Efter varje nivå kan du spara nivån som avklarad (nivåX_avklarad = true) och den uppnådda poängen (nivåX_poäng = värde) i databasen . Använd tydliga nyckelnamn (t.ex. "nivå1_avklarad", "nivå1_poäng") för att enkelt hämta användarens framsteg senare. Detta gör att eleven kan fortsätta där hen slutade och att framstegen ackumuleras korrekt. 

@@ -1,0 +1,77 @@
+1) Slopa accessibilityColors helt och använd CSS-variabler direkt
+
+Ta bort hela effekten updateColors + state accessibilityColors.
+Byt alla ställen där du använder state till CSS-var:
+
+- const [accessibilityColors, setAccessibilityColors] = useState({
+-   backgroundColor: "#ffffff",
+-   textColor: "#000000",
+- });
+
+... 
+
+<Card
+  className="reading-content ..."
+  style={
+    {
+-     backgroundColor: accessibilityColors.backgroundColor,
+-     color: accessibilityColors.textColor,
++     backgroundColor: "var(--accessibility-bg-color)",
++     color: "var(--accessibility-text-color)",
+      borderColor: "var(--accessibility-text-color)",
+      borderWidth: "0.5px",
+-     "--card-text-color": accessibilityColors.textColor,
++     "--card-text-color": "var(--accessibility-text-color)",
+    } as React.CSSProperties
+  }
+>
+
+
+Och i frågekortet/textarea:
+
+style={{
+-  backgroundColor: accessibilityColors.backgroundColor,
+-  color: accessibilityColors.textColor,
++  backgroundColor: "var(--accessibility-bg-color)",
++  color: "var(--accessibility-text-color)",
+   borderColor: "var(--accessibility-text-color)",
+}}
+
+
+Samt i fokusramen:
+
+border: `2px solid var(--accessibility-text-color)`,
+
+2) Sätt variablerna – det gör du redan
+
+Du har redan effekten som sätter:
+
+root.style.setProperty("--accessibility-bg-color", colors.bg);
+root.style.setProperty("--accessibility-text-color", colors.text);
+
+
+Behåll den. (Den är “källan till sanningen”.)
+
+3) Liten säkerhetsspärr mot lika färger
+
+Om någon (CSS/tema) skulle råka sätta samma färg på text och bakgrund, korrigera:
+
+useEffect(() => {
+  const cs = getComputedStyle(document.documentElement);
+  const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
+  const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
+  if (bg && tx && bg === tx) {
+    document.documentElement.style.setProperty(
+      "--accessibility-text-color",
+      bg === "#000000" ? "#ffffff" : "#000000"
+    );
+  }
+}, [accessibilitySettings.backgroundColor]);
+
+Varför detta löser problemet
+
+Overlayn ligger absolute i samma container och bygger på koordinater som vi nu mäter korrekt.
+
+När allt i komponenten (Card, text, inputs, ram) läser direkt från CSS-variablerna kan de inte hamna i osynk med en separat React-state.
+
+Din CSS med !important fortsätter gälla, men nu pekar allt på samma variabler → texten får rätt kontrast (t.ex. vit text på svart bakgrund).

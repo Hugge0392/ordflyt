@@ -1,0 +1,67 @@
+Tänkte i 48s
+
+Tack – nu förstår jag symptomet: fokus-masken ligger rätt, men själva texten renderas inte synligt i “hålet”. Det här händer när typografiklager eller arv gör att texten får samma färg som bakgrunden eller när ett overlay skapar en konstig stacking-/blend-effekt.
+
+Gör tre små ändringar som tillsammans eliminerar båda orsakerna:
+
+1) Ta bort prose och tvinga färgarv på allt innehåll
+
+prose har egna färgvariabler och selektorer som ofta vinner. Ta bort den klassen och låt allt ärva din textfärg.
+
+- className="prose max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
++ className="max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+
+
+Lägg till en liten “inherit”-regel (global CSS en gång, eller som style på containern om du vill):
+
+/* global.css (eller liknande) */
+.reading-content, .reading-content * {
+  color: var(--accessibility-text-color) !important;
+  background: transparent !important; /* motverkar ev. inline-bakgrunder från RTE */
+}
+
+
+Detta tar bort alla Tailwind-Typography färgöverskrivningar och ev. inline-stilar från RTE som målade vit text/liknande.
+
+2) Säkra att ingen blandnings-/stacking-bugg skymmer texten
+
+Ge overlay-behållaren isolerad stacking-context och normal blend. (Ibland – särskilt med dark mode/OS-kontrast – kan browsers blanda lager konstigt.)
+
+Byt i overlay-diven:
+
+- <div className="pointer-events-none absolute inset-0 z-30">
++ <div className="pointer-events-none absolute inset-0 z-30"
++      style={{ isolation: 'isolate', mixBlendMode: 'normal' }}>
+
+
+Och se till att text-wrappen själv har ett lägre z-index (under overlayn), men inget konstigt blend:
+
+<div
+  ref={textRef}
+  style={{
+-   position: "relative",
++   position: "relative",
++   zIndex: 10,
++   mixBlendMode: "normal",
+    paddingTop: 1,
+  }}
+/>
+
+
+Overlayn har z-30, texten zIndex:10 → overlayn ligger ovanpå (bra), men utan blending-artefakter – och där overlayn är transparent syns texten.
+
+3) Gör bakgrund/färg omöjligt att bli samma
+
+Behåll din “failsafe”, men flytta den så att den alltid körs när variablerna sätts:
+
+useEffect(() => {
+  const root = document.documentElement;
+  // ... sätt bg/text-färger här ...
++ // failsafe: om lika, invertera texten
++ const cs = getComputedStyle(root);
++ const bg = cs.getPropertyValue("--accessibility-bg-color").trim().toLowerCase();
++ const tx = cs.getPropertyValue("--accessibility-text-color").trim().toLowerCase();
++ if (bg && tx && bg === tx) {
++   root.style.setProperty("--accessibility-text-color", bg === "#000000" ? "#ffffff" : "#000000");
++ }
+}, [accessibilitySettings.backgroundColor, accessibilitySettings.fontSize, accessibilitySettings.lineHeight, accessibilitySettings.fontFamily]);

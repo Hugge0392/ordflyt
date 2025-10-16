@@ -1,0 +1,77 @@
+Okej — då är det inte <hr> som spökar. Den vita “korven” kommer från ett element i texten som fortfarande har egen vit bakgrund/border (vanligt när innehållet kommer från en rik text-editor). Lös det brutalt på två fronter:
+
+1) Hård reset av all bakgrund inne i läsrutan
+
+Lägg tillbaka (och förstärk) din reset-CSS. Viktigt att ta med ::before/::after också.
+
+<style>{`
+  .reading-content {
+    background-color: var(--accessibility-bg-color) !important;
+  }
+
+  /* döda ALL egen bakgrund/belysning i innehållet */
+  .reading-content *,
+  .reading-content *::before,
+  .reading-content *::after {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    mix-blend-mode: normal !important;
+    opacity: 1 !important;
+  }
+
+  /* om något behöver kant, använd textfärgen */
+  .reading-content * {
+    border-color: var(--accessibility-text-color) !important;
+  }
+
+  /* separators/linjer */
+  .reading-content hr,
+  .reading-content [role="separator"],
+  .reading-content .ql-divider,
+  .reading-content .divider {
+    display: none !important;
+  }
+`}</style>
+
+
+Poängen är att oavsett vad editorn har lagt in (dividers, box-shadows, highlight-plugins) så gör vi allt transparent och tar bort skuggor som annars ser ut som vita band i fokusläget.
+
+2) Sanera HTML: ta bort typiska “vita block”
+
+Utöka din processContentWithDefinitions precis innan du lägger på ordförklaringar:
+
+const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
+  let processedContent = content;
+
+  // a) Ta bort vanliga block som skapar vita fält
+  processedContent = processedContent
+    // horisontella linjer / editor-dividers
+    .replace(/<hr[^>]*>/gi, "")
+    .replace(/<div[^>]+role=["']separator["'][^>]*><\/div>/gi, "")
+    .replace(/<div[^>]*class=["'][^"']*(?:divider|separator|ql-divider)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, "")
+
+    // inputs/knappar (ibland råkar sådant följa med)
+    .replace(/<input[^>]*>/gi, "")
+    .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, "")
+    .replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, "");
+
+  // b) Ta bort inline vita bakgrunder som satts via style=""
+  processedContent = processedContent.replace(
+    /\sstyle=(["'])(?:(?!\1).)*background[^;>]*?(?:#fff|#ffffff|white)[^>]*\1/gi,
+    (m) => m.replace(/background[^;>]*;(?:\s*)?/gi, "")
+  );
+
+  if (!definitions.length) return processedContent;
+
+  // c) Ordförklaringar (som du hade)
+  definitions.forEach(({ word, definition }) => {
+    const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\\]\\/]/g, "\\$&")})\\b`, "gi");
+    processedContent = processedContent.replace(
+      regex,
+      `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
+    );
+  });
+
+  return processedContent;

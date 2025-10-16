@@ -1,0 +1,71 @@
+Snabba fel som ofta är boven
+
+Fel type på knappen (form-submit!)
+Om knappen ligger i ett <form> och saknar type, blir den type="submit" och triggar submit i stället för din onClick.
+Fix: sätt alltid type="button" på “skapa”-knappar.
+
+<button type="button" onClick={handleCreateQuestion}>Skapa ny fråga</button>
+
+
+onClick tappar referensen (stale closure / fel deps)
+Efter att du “lyft state”/lagt autosave kan useCallback sakna rätt dependencies → handlern använder gammal state.
+Fix:
+
+const handleCreateQuestion = useCallback(() => {
+  setQuestions(prev => [...prev, makeNewQuestion()]);
+}, [setQuestions, makeNewQuestion]); // inga hemliga deps
+
+
+Disabled/overlay fångar klick
+En “saving…”-overlay, pointer-events: none på container, eller ett osynligt element med hög z-index kan blocka klick.
+Fix: kontrollera i DevTools: hovera element – ser du att klick landar på overlay? Ta bort overlay eller sätt pointer-events:auto.
+
+Event stoppas uppåt (eller nedåt) i DOM
+En parent kan ha onClick/onSubmit som preventDefault()/stopPropagation().
+Fix: flytta logiken till knappen eller säkerställ att just knapparna får bubbla igenom.
+
+State muteras istället för att skapas immutabelt
+Om du muterar arrayn/objektet uppfattar React/Zustand inte ändringen → ingen render → “inget händer”.
+Fix:
+
+// Rätt
+setQuestions(prev => [...prev, newQ]);
+// Fel
+questions.push(newQ); setQuestions(questions);
+
+
+ID-krock (autosave + ny fråga får samma id)
+Om makeNewQuestion() ger krockande id → reducer/lagring ignorerar.
+Fix: använd stabila unika id:n (t.ex. crypto.randomUUID()).
+
+const makeNewQuestion = (type="open") => ({ id: crypto.randomUUID(), type, text:"", options:[] });
+
+
+Knappen blir “disabled” via loading-flagga
+Efter refaktor kan en global isSaving/isLoading råka disable:a alla knappar.
+Fix: lås inte skapa-knappar på isSaving, bara på verkligt blockerande lägen.
+
+Form som stoppas av validering
+Om knappen är submit och form:en har “required”-fält → klick gör “inget” pga HTML5-validering.
+Fix: type="button" (se #1).
+
+Fel tab-panel renderas / ej monterad
+Om du bytte till “keep mounted” kan du nu visa fel panel när activeId inte stämmer.
+Fix: kontrollera att activeTabId och knapparnas onClick använder rätt id.
+
+Felaktig versions/konflikt med autosave
+Direkt efter klick skriver autosave tillbaka “gammal” snapshot och överkör nyskapad fråga.
+Fix: gör autosave read-only mot state (debounce) och skriv aldrig in i state från autosave; eller versionera:
+
+const [version, setVersion] = useState(0);
+const handleCreate = () => { setQuestions(p=>[...p, makeNewQuestion()]); setVersion(v=>v+1); };
+useEffect(()=> { debouncedSave({ questions, version }); }, [questions, version]);
+
+
+Fel i reducer/if-sats (t.ex. filter på aktiv sida)
+“Skapa” kanske lägger i questions[activePageId], men activePageId är null efter refaktor.
+Fix: assert:a att activePageId finns innan skap, och visa annars fel.
+
+Felaktig import / död kodväg
+Efter flytt kan handleCreateQuestion importeras från fel modul/skuggas.
+Fix: logga i handlern – syns console.log("create")?

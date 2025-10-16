@@ -1,0 +1,124 @@
+1) Byt ut spotlighten i TSX till 4 scrims + frame
+
+I reading-lesson-viewer.tsx, ersätt hela blocket:
+
+{readingFocusMode && focusRect && (
+  <div
+    className="reading-spotlight-window"
+    aria-hidden
+    style={{ /* ... */ }}
+  />
+)}
+
+
+med detta:
+
+{readingFocusMode && focusRect && (
+  <>
+    {/* TOP */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${focusRect.top}px` }}
+    />
+    {/* BOTTOM */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{ position: "absolute", top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0 }}
+    />
+    {/* LEFT */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{ position: "absolute", top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`, height: `${focusRect.height}px` }}
+    />
+    {/* RIGHT */}
+    <div
+      className="rf-scrim"
+      aria-hidden
+      style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left + focusRect.width}px`, right: 0, height: `${focusRect.height}px` }}
+    />
+    {/* FRAME */}
+    <div
+      className="rf-frame"
+      aria-hidden
+      style={{ position: "absolute", top: `${focusRect.top}px`, left: `${focusRect.left}px`, width: `${focusRect.width}px`, height: `${focusRect.height}px` }}
+    />
+  </>
+)}
+
+
+Det här skapar en riktig öppning – inga blend-trick, inget box-shadow, inget som kan “fylla igen” hålet.
+
+2) Lägg in minimala, hårda stilar (antingen i inline <style> i samma container eller i index.css)
+/* Fokusmask – täckrutorna */
+.rf-scrim {
+  background: rgba(0,0,0,0.86) !important;
+  pointer-events: none !important;
+  z-index: 2147483646 !important;
+}
+
+/* Tunn ram runt fönstret */
+.rf-frame {
+  border: 2px solid var(--accessibility-text-color) !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
+3) Gör din “killswitch” kompatibel (så den inte råkar nolla masken)
+
+I index.css har du flera block som nollar bakgrunder i läsytan. Lägg till undantag för .rf-scrim och .rf-frame i dessa. Exempel – ändra:
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+till:
+
+.reading-content.accessibility-enhanced *:not(img):not(video):not(canvas)
+:not(.reading-spotlight-window):not(.rf-scrim):not(.rf-frame)
+:not(.navigation-page-counter)
+:not(.unique-prev-question-btn):not(.unique-next-question-btn) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+Gör samma undantag (:not(.rf-scrim):not(.rf-frame)) i de andra likadana “banhammer”-blocken där du nollar [class*="bg-"], *::before/::after, osv. (Tre ställen i filen enligt din dump.)
+
+4) Ta bort gamla box-shadow-grejerna
+
+Radera båda:
+
+JSX-elementet med className="reading-spotlight-window" (det ersatte vi).
+
+Alla CSS-regler för .reading-spotlight-window (onödigt nu och kan förvirra).
+
+5) Mini-härdning (valfritt men bra)
+
+Lägg till:
+
+.defined-word {
+  background: transparent !important;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+}
+
+Snabb kontroll
+
+Slå på Fokusläge → du ska se en horisontell öppning över valda rader.
+
+Piltangenter/Space rör bandet; topp/botten mörknar, mitten är klart.
+
+Ingen annan del av appen stoppar masken, eftersom vi undantagit .rf-* från dina globala “nuke”-regler.
+
+Om något fortfarande lägger en svart platta över allt: det är då ett annat absolut/fixed element i just den sidan. Ge mig dess klass (från Inspect), så ger jag en en-raders CSS som tvingar background: transparent !important; pointer-events:none !important; z-index:auto !important; på just den boven. Men 99% av gångerna löser ovan detta direkt.

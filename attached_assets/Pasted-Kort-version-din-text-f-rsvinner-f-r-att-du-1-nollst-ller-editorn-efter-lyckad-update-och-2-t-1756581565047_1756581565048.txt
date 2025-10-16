@@ -1,0 +1,131 @@
+Kort version: din text “försvinner” för att du (1) nollställer editorn efter lyckad update och (2) tvingar RichTextEditor att remountas via en key som ändras. Då tappas content-värdet i UI:t, medan dina frågor ligger kvar i separata states (localPages, questions) och därför “överlever”. Din manuella sparknapp krockar dessutom med updateMutation.onSuccess som rensar bort redigeringsläget precis när du sparar.
+
+Här är vad som händer och hur du fixar det:
+
+Vad som orsakar problemet
+
+updateMutation.onSuccess rensar tillståndet
+
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+  setSelectedLesson(null);
+  setEditingLesson(null);   // ← gör att editorn stängs/nollas
+  toast(...);
+}
+
+
+När din manuella “Spara innehåll”-knapp kör mutateAsync, triggas onSuccess ovan, som direkt sätter editingLesson till null. Din editor-vy bygger på editingLesson, så innehållet “försvinner” ur UI:t.
+
+Du byter key på RichTextEditor
+
+<RichTextEditor
+  key={`content-editor-${selectedLesson?.id || 'new'}`} // ← ändras när du sätter selectedLesson=null
+  value={editingLesson?.content || ""}
+/>
+
+
+När selectedLesson blir null efter spar, ändras key från content-editor-<id> till content-editor-new. React tolkar det som en helt ny komponent och mountar om editorn → innehållsvärdet startar om.
+
+Olika källor till sanningen för innehåll
+Du håller både editingLesson.content och currentEditorContent. Om editorn remountas/editingLesson rensas, kan de glida isär och knappen läser ett tomt värde.
+
+Snabba, konkreta fixar
+
+A) Rensa inte redigeringsläget efter update
+Antingen sluta nolla state helt, eller uppdatera det med svaret från servern.
+
+const updateMutation = useMutation({
+  mutationFn: async ({ id, lesson }: { id: string, lesson: Partial<InsertReadingLesson> }) => {
+    const res = await fetch(`/api/reading-lessons/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lesson) });
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    return res.json();
+  },
+  onSuccess: (updatedLesson) => {
+    queryClient.invalidateQueries({ queryKey: ["/api/reading-lessons"] });
+    // Behåll användaren i editorn och synka tillbaka serverns sanning:
+    setSelectedLesson(updatedLesson);
+    setEditingLesson(updatedLesson);
+    // (valfritt) synka din lokala editorbuffer:
+    setCurrentEditorContent(updatedLesson.content || "");
+    toast({ title: "Lektion uppdaterad!", description: "Ändringarna har sparats." });
+  },
+  ...
+});
+
+
+Vill du ibland stänga editorn (t.ex. efter “Spara lektion & stäng”), gör det explicit i just den knappen – inte generellt i onSuccess.
+
+B) Ta bort key på RichTextEditor
+Låt editorn vara kontrollerad av värdet, inte remountas på id-byte.
+
+<RichTextEditor
+  /* ta bort key */
+  value={currentEditorContent}
+  onChange={(content) => {
+    const safe = content ?? "";
+    setCurrentEditorContent(safe);
+    setEditingLesson(prev => prev ? { ...prev, content: safe } : prev);
+  }}
+  ...
+/>
+
+
+C) Initiera och återställ din editor-buffer rätt
+När du startar redigering eller skapar nytt:
+
+const handleEditLesson = (lesson: ReadingLesson) => {
+  ...
+  setEditingLesson({ ... });
+  setCurrentEditorContent(lesson.content || ""); // ← viktigt
+  ...
+};
+
+const handleCreateLesson = () => {
+  ...
+  setEditingLesson({ ... , content: "" });
+  setCurrentEditorContent(""); // ← viktigt
+};
+
+
+D) Manuella “Spara innehåll”-knappen ska använda buffern och inte stänga editorn
+Med onSuccess ovan som inte nollar state, funkar din nuvarande knapp. Banta också bort “DOM-scrape”-fallback – den behövs inte när du kontrollerar via currentEditorContent.
+
+const currentContent = currentEditorContent; // källan till sanningen
+if (!currentContent?.trim()) { toast(...); return; }
+
+await updateMutation.mutateAsync({
+  id: selectedLesson!.id,
+  lesson: {
+    content: currentContent,
+    // skicka även fält som krävs/inte får tappas:
+    title: editingLesson!.title,
+    gradeLevel: editingLesson!.gradeLevel,
+    description: editingLesson!.description,
+    subject: editingLesson!.subject,
+    readingTime: editingLesson!.readingTime,
+    featuredImage: editingLesson!.featuredImage,
+    preReadingQuestions: editingLesson!.preReadingQuestions ?? [],
+    questions: editingLesson!.questions ?? [],
+    wordDefinitions: editingLesson!.wordDefinitions ?? [],
+    isPublished: editingLesson!.isPublished,
+  }
+});
+
+
+E) (Valfritt) skilj på “spara innehåll” och “spara allt”
+Om du vill ha olika onSuccess-beteenden, ha två mutationer eller lägg en meta/flagga så onSuccess vet om redigeringen ska stanna öppet.
+
+F) Behåll localPages när du får serversvar
+Du gör redan detta hyggligt, men om serversvaret innehåller pages, synka försiktigt (t.ex. bara om sidan inte är “dirty”). Alternativt låt localPages vara källan till sanningen tills “Spara allt” körs.
+
+Minimal diff (sammanfattning)
+
+Ta bort key-prop på RichTextEditor.
+
+Gör currentEditorContent till primär state för editorvärdet och spegla in i editingLesson.content.
+
+Ändra updateMutation.onSuccess så att den inte gör setEditingLesson(null) / setSelectedLesson(null) utan uppdaterar med serversvar.
+
+Initiera currentEditorContent i handleEditLesson/handleCreateLesson.
+
+Med de ändringarna kommer texten i innehållsfliken att ligga kvar och din sparaknapp att fungera förväntat. Vill du, kan jag peka ut exakta rader i din fil där varje ändring ska in.

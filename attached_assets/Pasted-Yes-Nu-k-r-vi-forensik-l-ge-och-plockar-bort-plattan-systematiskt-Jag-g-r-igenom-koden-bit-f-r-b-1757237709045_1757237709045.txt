@@ -1,0 +1,271 @@
+Yes. Nu kör vi forensik-läge och plockar bort “plattan” systematiskt. Jag går igenom koden bit-för-bit, pekar ut exakt vad som fortfarande sabbar, och ger kopieringsklara patchar.
+
+1) ROT-ORSAK: den här regeln lägger tillbaka bakgrunder på allt
+
+I din CSS finns blocket “Full text formatting for main reading content – body text elements”:
+
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced .prose,
+.reading-content.accessibility-enhanced .prose p,
+.reading-content.accessibility-enhanced .prose div,
+.reading-content.accessibility-enhanced .prose span,
+...
+{
+  /* ⬇⬇⬇ DETTA är problemet ⬇⬇⬇ */
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+
+Det här har högre specificitet än din killswitch och målar bakgrund på varje p/div/span etc i .prose. Därför får du fortfarande band/plattor.
+
+✅ FIX A – ta bort bakgrundsrad i blocket (lämna färg/typsnitt)
+
+Byt blocket till detta (samma selektorer, ingen background-color):
+
+.reading-content.accessibility-enhanced,
+.reading-content.accessibility-enhanced .prose,
+.reading-content.accessibility-enhanced .prose p,
+.reading-content.accessibility-enhanced .prose div,
+.reading-content.accessibility-enhanced .prose span,
+.reading-content.accessibility-enhanced .prose strong,
+.reading-content.accessibility-enhanced .prose b,
+.reading-content.accessibility-enhanced .prose em,
+.reading-content.accessibility-enhanced .prose i,
+.reading-content.accessibility-enhanced .prose ul,
+.reading-content.accessibility-enhanced .prose ol,
+.reading-content.accessibility-enhanced .prose li,
+.reading-content.accessibility-enhanced .prose blockquote,
+.reading-content.accessibility-enhanced .prose a,
+.reading-content.accessibility-enhanced .prose code {
+  font-size: var(--accessibility-font-size) !important;
+  line-height: var(--accessibility-line-height) !important;
+  font-family: var(--accessibility-font-family) !important;
+  color: var(--accessibility-text-color) !important;
+  /* ❌ ingen background-color här */
+}
+
+✅ FIX B – “Prose-nuke” längst NED i filen (överstyr allt)
+
+Lägg till efter allt annat (sista raderna i CSS):
+
+/* PROSE-NUKE: gör *alla* textnoder i .prose transparenta */
+.reading-content.accessibility-enhanced .prose p,
+.reading-content.accessibility-enhanced .prose div,
+.reading-content.accessibility-enhanced .prose span,
+.reading-content.accessibility-enhanced .prose li,
+.reading-content.accessibility-enhanced .prose ul,
+.reading-content.accessibility-enhanced .prose ol,
+.reading-content.accessibility-enhanced .prose blockquote,
+.reading-content.accessibility-enhanced .prose pre,
+.reading-content.accessibility-enhanced .prose code,
+.reading-content.accessibility-enhanced .prose table,
+.reading-content.accessibility-enhanced .prose tr,
+.reading-content.accessibility-enhanced .prose td,
+.reading-content.accessibility-enhanced .prose th,
+.reading-content.accessibility-enhanced .prose em,
+.reading-content.accessibility-enhanced .prose strong,
+.reading-content.accessibility-enhanced .prose a {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+
+Varför behövs B när vi gjort A?
+För att säkert vinna över alla tidigare regler (inkl. utilities och plugins) med samma selektorer + !important och på slutet av filen.
+
+2) INLINE-STILAR i HTML: din regex missar rgba(), hsl(), gradients m.m.
+
+Du sanerar bara #fff, white, och rgb(255,255,255). Redaktörer spottar ofta ut rgba(255,255,255,1), hsl(0 0% 100%), linear-gradient(...) etc.
+
+✅ FIX C – sanera inline-stilar via DOM i stället för regex
+
+Byt början av processContentWithDefinitions så här:
+
+const processContentWithDefinitions = (content: string, definitions: WordDefinition[] = []) => {
+  // 0) DOM-baserad sanering av inline-stilar
+  const tmp = document.createElement("div");
+  tmp.innerHTML = content;
+
+  tmp.querySelectorAll<HTMLElement>("[style]").forEach((el) => {
+    const style = el.getAttribute("style") || "";
+
+    // Ta bort ALLA bakgrunder, skuggor och blend/filters
+    const cleaned = style
+      .replace(/background(?:-image|-color)?\s*:[^;"]*;?/gi, "")
+      .replace(/background\s*:\s*[^;"]*;?/gi, "")
+      .replace(/box-shadow\s*:[^;"]*;?/gi, "")
+      .replace(/backdrop-filter\s*:[^;"]*;?/gi, "")
+      .replace(/filter\s*:[^;"]*;?/gi, "")
+      .replace(/mix-blend-mode\s*:[^;"]*;?/gi, "");
+
+    if (cleaned.trim()) el.setAttribute("style", cleaned);
+    else el.removeAttribute("style");
+  });
+
+  let processedContent = tmp.innerHTML;
+
+  // 1) Ta bort <hr>/<divider> etc som du redan gör
+  processedContent = processedContent
+    .replace(/<hr[^>]*>/gi, "")
+    .replace(/<div[^>]+role=["']separator["'][^>]*><\/div>/gi, "")
+    .replace(/<div[^>]*class=["'][^"']*(?:divider|separator|ql-divider)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, "")
+    .replace(/<input[^>]*>/gi, "")
+    .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, "")
+    .replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, "");
+
+  // 2) (valfritt) – rensa explicit vita klassnamn från vissa editors
+  processedContent = processedContent.replace(
+    /\sclass=(['"])(?:(?!\1).)*\b(?:bg-white|ql-bg-white|bg-\[#[0-9a-fA-F]{3,6}\])\b(?:(?!\1).)*\1/gi,
+    (m) => m.replace(/\b(?:bg-white|ql-bg-white|bg-\[#[0-9a-fA-F]{3,6}\])\b/g, "")
+  );
+
+  // 3) Ordförklaringar (oförändrat)
+  if (!definitions.length) return processedContent;
+  definitions.forEach(({ word, definition }) => {
+    const regex = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "gi");
+    processedContent = processedContent.replace(
+      regex,
+      `<span class="defined-word" data-word="${word}" data-definition="${definition}">$1</span>`
+    );
+  });
+
+  return processedContent;
+};
+
+
+Det här tar bort alla varianter av background/box-shadow/filter/blend i inline style.
+
+3) HÅRDARE RESET för utility-klasser och pseudo-element
+
+Lägg detta strax efter PROSE-NUKE:
+
+/* Banhammer mot Tailwind/utility-klassers bakgrunder i läsytan */
+.reading-content.accessibility-enhanced [class*="bg-"],
+.reading-content.accessibility-enhanced [class*="shadow"],
+.reading-content.accessibility-enhanced [class*="backdrop-"],
+.reading-content.accessibility-enhanced [class*="mix-blend"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+/* Pseudo-element kan bära plattor */
+.reading-content.accessibility-enhanced *::before,
+.reading-content.accessibility-enhanced *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  backdrop-filter: none !important;
+}
+
+4) SÄKERSTÄLL LAGERORDNING
+
+Du har redan bra värden, men sätt överdrivet högt z-index på spotlight för att radera tvivel:
+
+.reading-spotlight-window {
+  z-index: 2147483647 !important; /* över allt i containern */
+}
+.reading-content.accessibility-enhanced { isolation: isolate !important; }
+
+
+Och låt inte texten vara över spotlight (behåll z-index:10 på texten, det är lugnt).
+
+5) SNABB “GUILTY FINDER”: logga alla som fortfarande målar bakgrund
+
+Klistra in detta i din komponent (exakt så) – det ritar magenta-outline på skyldiga och loggar dem i konsolen:
+
+function reportBackgroundOffenders(root: HTMLElement | null) {
+  if (!root) return;
+  const offenders: Array<{ el: Element; bg: string; bgi: string; bs: string }> = [];
+  root.querySelectorAll<HTMLElement>("*").forEach((el) => {
+    const cs = getComputedStyle(el);
+    const bg = cs.backgroundColor;
+    const bgi = cs.backgroundImage;
+    const bs = cs.boxShadow;
+    const hasBg = (bg && !/rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)|transparent/i.test(bg)) || (bgi && bgi !== "none");
+    const hasShadow = bs && bs !== "none";
+    if (hasBg || hasShadow) {
+      offenders.push({ el, bg, bgi, bs });
+      (el as HTMLElement).style.outline = "2px solid magenta";
+    }
+  });
+  console.table(
+    offenders.slice(0, 30).map((x) => ({
+      tag: x.el.tagName,
+      class: (x.el as HTMLElement).className,
+      bg: x.bg,
+      bgi: x.bgi,
+      shadow: x.bs,
+    }))
+  );
+}
+
+// Kör när fokusläget startar (eller efter render)
+useEffect(() => {
+  if (readingFocusMode) {
+    reportBackgroundOffenders(contentRef.current);
+  }
+}, [readingFocusMode, currentPage]);
+
+
+Nu ser du DIREKT vilka element som fortfarande målar bakgrund/skugga (de får lila kant). Hittar du något – vi lägger till en skräddarsydd nuke-regel för just den kombon.
+
+6) LILLA STÄDSTUREN I DITT BEFINTLIGA CSS
+
+I slutet av din CSS finns fortfarande regler som potentiellt lägger bakgrund på UI-element inuti läsytan (t.ex. Limited styling for sidebar):
+
+.reading-content.accessibility-enhanced .card-header,
+.reading-content.accessibility-enhanced .card-title,
+...
+{
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+
+Detta är okej för sidokolumn, men inuti .reading-content behöver vi aldrig att UI-element får platt bakgrund över texten. Antingen:
+
+Flytta dessa regler utanför .reading-content... (t.ex. till din questions-panel som inte är i läsytan), eller
+
+Lägg dem före PROSE-NUKE (som då överstyr inne i läsytan).
+
+7) CHECKLISTA (30 sek i DevTools)
+
+Inspektera ett “vitt band” i texten.
+
+Fliken Computed → background / background-color: vilken regel vinner?
+
+Se selektorn – matchar den .reading-content.accessibility-enhanced .prose ...?
+
+Om ja: PROSE-NUKE ovan (och att A-blocket saknar background-color) ska göra den transparent.
+
+Om en utility-klass syns (t.ex. bg-white, shadow-*): vår Banhammer tar den – annars lägg till den exakta klassen i en ny rad under Banhammern.
+
+Om något fortfarande ligger över spotlight: kolla dess z-index och position. Vi kan nolla det med:
+
+.reading-content.accessibility-enhanced .DIN-SELECTOR {
+  z-index: auto !important;
+  position: static !important;
+}
+
+Sammanfattning
+
+Ta bort background-color i “Full text formatting …” (punkt 1A).
+
+Lägg till PROSE-NUKE längst ner (punkt 1B) + Banhammer (punkt 3).
+
+Sanera inline-stilar via DOM (punkt 2).
+
+Överkurs: höj spotlightens z-index + offenders-loggern (punkt 4–5).
+
+Kör dessa fyra steg direkt – om någon platta överlever, kör “Guilty Finder”, klistra in exakt selector/klass den visar så skriver jag en ren avrättningsregel för just den.
+
+Is this conversation helpful so far?

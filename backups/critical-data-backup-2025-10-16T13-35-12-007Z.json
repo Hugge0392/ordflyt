@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-10-16T13:35:12.005Z",
+  "version": "1.0.0",
+  "environment": "development",
+  "counts": {
+    "teachers": 1,
+    "classes": 0,
+    "students": 0,
+    "progress": 0
+  },
+  "data": {
+    "teachers": [
+      {
+        "id": "d388dccf-84c2-475f-9dbb-dd1ad42998d2",
+        "username": "larare",
+        "email": "larare@test.se",
+        "role": "LARARE",
+        "isActive": true,
+        "createdAt": "2025-10-12T19:35:04.434Z"
+      }
+    ],
+    "classes": [],
+    "students": [],
+    "progress": []
+  }
+}

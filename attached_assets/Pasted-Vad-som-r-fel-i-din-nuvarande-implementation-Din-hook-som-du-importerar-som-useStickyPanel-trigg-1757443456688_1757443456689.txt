@@ -1,0 +1,192 @@
+Vad som är fel i din nuvarande implementation
+
+Din hook (som du importerar som useStickyPanel) triggas på scroll i vänsterspalten via readingContainerRef – men den spalten har visserligen overflow: auto !important, utan höjd → den skapar oftast ingen egen scroll, så hooken får inga scroll-events och inget händer. Det ser jag här: .reading-content.accessibility-enhanced { overflow: auto !important; } men ingen höjdbegränsning. 
+
+index (5)
+
+I komponenten sätter du ref:en på vänster text-container (ref={readingContainerRef}) som är syskon till panelen – inte förälder. Din nuvarande hook (den versionen du kör) jämför sannolikt container.scrollTop med panel.offsetTop, men offsetTop är i ett annat koordinatsystem (offsetParent för panelen) → den logiken är opålitlig när container och panel inte delar scroll. Se hur ref:en sätts på vänsterkolumnen: ref={readingContainerRef} i <div className="reading-text-container … reading-content accessibility-enhanced …">. 
+
+NormalMode (5)
+
+Du har ingen “hard” sticky i CSS på rätt element längre (vilket är bra), men du förlitar dig helt på hooken – och den lyssnar bara på en container. Om sidan istället skrollar i window, missar hooken det.
+
+Lösning som fungerar oavsett var skrollen sker (window eller intern container)
+
+Byt ut din hook helt med denna. Den:
+
+lyssnar på window och (om den finns) din vänstercontainers scroll,
+
+räknar sticky-tröskeln med getBoundingClientRect() (viewport-baserat, funkar även med interna scrollare),
+
+teleporterar inte panelen (ingen portal) – men sätter position: fixed + låser left och width från panelens wrapper,
+
+lägger en spacer (som du redan har) för att förhindra hopp.
+
+1) Ersätt ../hooks/useStickyPanel.ts med detta
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+type MaybeEl = HTMLElement | null;
+
+export default function useStickyPanel(
+  scrollContainerRef: React.RefObject<HTMLElement>, // får vara null: vi lyssnar alltid på window också
+  panelRef: React.RefObject<HTMLElement>,
+  topPx: number = 24,
+  minWidth: number = 1024
+) {
+  const [isSticky, setIsSticky] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  // wrapper = panelens förälder (<div class="questions-panel-wrapper"> ...)
+  const wrapperRef = useRef<MaybeEl>(null);
+
+  useLayoutEffect(() => {
+    const p = panelRef.current as MaybeEl;
+    if (!p) return;
+    wrapperRef.current = p.parentElement as MaybeEl;
+  }, [panelRef]);
+
+  useLayoutEffect(() => {
+    const p = panelRef.current as MaybeEl;
+    const w = wrapperRef.current as MaybeEl;
+    // Vi lyssnar alltid på window; PLUS ev. intern scroll-container
+    const scroller: (Window | HTMLElement)[] = [window];
+    if (scrollContainerRef.current) scroller.push(scrollContainerRef.current);
+
+    if (!p || !w) return;
+
+    // Se till att wrappern är en stabil referens i flow
+    if (getComputedStyle(w).position === "static") {
+      w.style.position = "relative";
+    }
+
+    let raf = 0;
+
+    const measure = () => {
+      raf = 0;
+
+      const vw = window.innerWidth;
+      const wr = w.getBoundingClientRect();
+      const ph = p.offsetHeight;
+
+      setPanelHeight(ph);
+
+      if (vw < minWidth) {
+        // Mobil: normal-läge
+        if (isSticky) setIsSticky(false);
+        // Nollställ inline-stilar
+        p.style.position = "";
+        p.style.top = "";
+        p.style.left = "";
+        p.style.width = "";
+        p.style.maxHeight = "";
+        p.style.overflowY = "";
+        p.style.zIndex = "";
+        w.style.minHeight = "";
+        return;
+      }
+
+      // Sticky när wrapperns topp når topPx
+      const shouldStick = wr.top <= topPx;
+      if (shouldStick) {
+        // Lås bredd + vänsterkant från wrappern varje gång (robust vid resize)
+        p.style.position = "fixed";
+        p.style.top = `${topPx}px`;
+        p.style.left = `${Math.round(wr.left)}px`;
+        p.style.width = `${Math.round(wr.width)}px`;
+        p.style.maxHeight = `calc(100vh - ${topPx + 8}px)`;
+        p.style.overflowY = "auto";
+        p.style.zIndex = "1000";
+        // Reservplats i layouten så inget hoppar
+        w.style.minHeight = `${ph}px`;
+      } else {
+        // Tillbaka till flow
+        p.style.position = "";
+        p.style.top = "";
+        p.style.left = "";
+        p.style.width = "";
+        p.style.maxHeight = "";
+        p.style.overflowY = "";
+        p.style.zIndex = "";
+        w.style.minHeight = "";
+      }
+      if (shouldStick !== isSticky) setIsSticky(shouldStick);
+    };
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(measure);
+    };
+
+    // Lyssna på window + ev. intern scrollcontainer
+    scroller.forEach(s => s.addEventListener("scroll", schedule, { passive: true }));
+    window.addEventListener("resize", schedule);
+
+    // Reagera på storleksförändringar
+    const ro = new ResizeObserver(schedule);
+    ro.observe(w);
+    ro.observe(p);
+
+    // Och DOM-innehållet i panelen
+    const mo = new MutationObserver(schedule);
+    mo.observe(p, { childList: true, subtree: true });
+
+    // Init
+    schedule();
+
+    return () => {
+      scroller.forEach(s => s.removeEventListener("scroll", schedule));
+      window.removeEventListener("resize", schedule);
+      ro.disconnect();
+      mo.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [panelRef, scrollContainerRef, topPx, minWidth, isSticky]);
+
+  return { isSticky, panelHeight };
+}
+
+
+Varför detta funkar hos dig:
+
+Vi mäter wrapperns position mot viewporten (getBoundingClientRect), inte offsetTop → korrekt även när vänsterkolumnen skrollar i egen container.
+
+Vi lyssnar på window + din vänstercontainers scroll → vi missar aldrig scrollhändelser, oavsett var skrollen faktiskt sker.
+
+Vi låser left + width varje gång i sticky-läget → inget “glid” vid resize eller när grid/breakpoints ändras.
+
+wrapper.minHeight = panelHeight → inget “hoppa över krönet” när panelen tas ur flödet.
+
+2) Din komponent är nästan rätt – behåll markupen
+
+I din nuvarande NormalMode (5).tsx:
+
+Du använder redan useStickyPanel(readingContainerRef, panelRef) ✔️
+
+Du har panel-spacer direkt över panelen ✔️
+
+readingContainerRef sitter på .reading-text-container … reading-content accessibility-enhanced ✔️ (den har overflow: auto !important i din CSS). 
+
+NormalMode (5)
+
+ 
+
+index (5)
+
+Lämna JSX:en som du har den nu – hooken ovan tar hand om resten.
+
+Enda finliret: om du har en fast top-navbar, byt topPx till dess höjd. Exempel:
+const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef, 64 /* top px */);
+
+3) Liten CSS-städning (valfritt)
+
+Du kan låta de gamla .pin-fixed/.pin-abs-reglerna ligga kvar – hooken använder inte de klasserna längre. Men se till att den här regeln finns (den har du redan), så panelen är skrollbar i fixed-läget:
+
+/* Panelens egen scroll i fixed-läge – hooken sätter även inline max-height */
+.questions-panel-container {
+  /* din befintliga utility: max-h-[calc(100vh-2rem)] overflow-y-auto */
+}
+
+
+Och behåll spacern:
+
+.panel-spacer { height: 0; visibility: hidden; }
+.panel-spacer.sticky-space { visibility: hidden; }

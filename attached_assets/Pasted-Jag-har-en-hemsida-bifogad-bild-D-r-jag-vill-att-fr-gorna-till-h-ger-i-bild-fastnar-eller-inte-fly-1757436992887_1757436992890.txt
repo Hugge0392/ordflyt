@@ -1,0 +1,60 @@
+Jag har en hemsida (bifogad bild) Där jag vill att frågorna till höger i bild fastnar eller inte flyttas med uppåt när den når taket på sidan så att man kan svara på frågorna medans man läser texten. Jag får inte till det och har försökt ett tag. Koden är bifogan. diven heter div
+  className="questions-panel-container
+Tänkte i 2m 11s
+ChatGPT sade:
+
+Du är nära – problemet är att din sticky-panel motverkas av din egen CSS och av att sticky ligger på inner-diven i stället för kolumnen.
+
+Vad som händer nu
+
+I NormalMode.tsx har du className="questions-panel-container sticky top-4 ...". 
+
+NormalMode
+
+I index.css har du en media-query som sätter position: static !important på .questions-panel-container under max-width: 1024px. Den regeln överstyr sticky precis på 1024px (samma breakpoint som Tailwinds lg:), så panelen slutar vara klistrig på många skärmar. 
+
+index
+
+Snabb fix (rekommenderad)
+
+Flytta sticky till kolumnen och låt panelen själv scrolla om den blir högre än fönstret.
+
+Ta bort (eller justera) CSS-regeln som sätter position: static !important.
+
+Ändra JSX:
+
+// före:
+<div className="reading-questions-column order-2 lg:order-2">
+  <div className="questions-panel-container sticky top-4 border rounded-lg p-6">
+
+// efter:
+<div className="reading-questions-column order-2 lg:order-2 lg:sticky lg:top-6 self-start">
+  <div className="questions-panel-container border rounded-lg p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
+
+
+Nu är det själva kolumnen som är sticky (stabilt i CSS Grid), medan innehållet får egen höjd/scroll. 
+
+NormalMode
+
+Justera CSS:
+
+/* Ta bort position: static som bryter sticky */
+@media (max-width: 1024px) {
+  .questions-panel-container {
+    /* position: static !important;  <-- ta bort denna rad */
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Alternativt: om du vill behålla "icke-sticky" på mindre skärmar,
+   låt regeln gälla kolumnen och sänk gränsen så den inte krockar
+   med Tailwinds lg (min-width: 1024px): */
+@media (max-width: 1023.98px) {
+  .reading-questions-column { position: static !important; }
+}
+
+
+index
+
+Det är allt. Efter detta kommer frågepanelen att “fastna” i toppen när du scrollar texten, och om panelen blir längre än fönstret kan man scrolla i den utan att den lämnar toppen. Om du har en fast toppmeny, justera bara lg:top-6 till din faktiska höjd (t.ex. lg:top-16).

@@ -1,0 +1,254 @@
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { BlockTypeMenuProps, BlockCommand } from '../types';
+import { useImageUpload } from './ImageUploadHandler';
+import {
+  Type,
+  Heading1,
+  Heading2,
+  Heading3,
+  Quote,
+  List,
+  ListOrdered,
+  Table,
+  Minus,
+  Code,
+  Image as ImageIcon
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export function BlockTypeMenu({ editor, show, position, onHide, onSelectType }: BlockTypeMenuProps) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const { openFileDialog, UploadDialog } = useImageUpload(editor);
+
+  const commands: BlockCommand[] = [
+    {
+      id: 'paragraph',
+      title: 'Text',
+      description: 'Vanlig text',
+      icon: Type,
+      command: () => {
+        onHide();
+        onSelectType('paragraph');
+      },
+      searchTerms: ['paragraph', 'text', 'p']
+    },
+    {
+      id: 'heading1',
+      title: 'Rubrik 1',
+      description: 'Stor huvudrubrik',
+      icon: Heading1,
+      command: () => {
+        onHide();
+        onSelectType('heading1');
+      },
+      searchTerms: ['heading', 'h1', 'title', 'rubrik']
+    },
+    {
+      id: 'heading2',
+      title: 'Rubrik 2',
+      description: 'Medium underrubrik',
+      icon: Heading2,
+      command: () => {
+        onHide();
+        onSelectType('heading2');
+      },
+      searchTerms: ['heading', 'h2', 'subtitle', 'rubrik']
+    },
+    {
+      id: 'heading3',
+      title: 'Rubrik 3',
+      description: 'Liten underrubrik',
+      icon: Heading3,
+      command: () => {
+        onHide();
+        onSelectType('heading3');
+      },
+      searchTerms: ['heading', 'h3', 'subtitle', 'rubrik']
+    },
+    {
+      id: 'bulletList',
+      title: 'Punktlista',
+      description: 'Skapa en lista med punkter',
+      icon: List,
+      command: () => {
+        onHide();
+        onSelectType('bulletList');
+      },
+      searchTerms: ['bullet', 'list', 'ul', 'punktlista', 'lista']
+    },
+    {
+      id: 'orderedList',
+      title: 'Numrerad lista',
+      description: 'Skapa en numrerad lista',
+      icon: ListOrdered,
+      command: () => {
+        onHide();
+        onSelectType('orderedList');
+      },
+      searchTerms: ['numbered', 'ordered', 'list', 'ol', 'numrerad', 'lista']
+    },
+    {
+      id: 'blockquote',
+      title: 'Citat',
+      description: 'Infoga ett citat',
+      icon: Quote,
+      command: () => {
+        onHide();
+        onSelectType('blockquote');
+      },
+      searchTerms: ['quote', 'blockquote', 'citation', 'citat']
+    },
+    {
+      id: 'codeBlock',
+      title: 'Kodblock',
+      description: 'Infoga kod med syntaxmarkering',
+      icon: Code,
+      command: () => {
+        onHide();
+        onSelectType('codeBlock');
+      },
+      searchTerms: ['code', 'codeblock', 'syntax', 'kod']
+    },
+    {
+      id: 'table',
+      title: 'Tabell',
+      description: 'Infoga en tabell',
+      icon: Table,
+      command: () => {
+        onHide();
+        onSelectType('table');
+      },
+      searchTerms: ['table', 'grid', 'tabell']
+    },
+    {
+      id: 'image',
+      title: 'Bild',
+      description: 'Infoga en bild',
+      icon: ImageIcon,
+      command: () => {
+        onHide();
+        onSelectType('image');
+      },
+      searchTerms: ['image', 'picture', 'photo', 'bild', 'foto']
+    },
+    {
+      id: 'divider',
+      title: 'Avdelare',
+      description: 'Horisontell linje',
+      icon: Minus,
+      command: () => {
+        onHide();
+        onSelectType('divider');
+      },
+      searchTerms: ['divider', 'hr', 'line', 'separator', 'avdelare', 'linje']
+    }
+  ];
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!show) return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % commands.length);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSelectedIndex(prev => prev === 0 ? commands.length - 1 : prev - 1);
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        commands[selectedIndex]?.command();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onHide();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [show, selectedIndex, commands, onHide]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onHide();
+      }
+    };
+
+    if (show) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [show, onHide]);
+
+  if (!show) {
+    return (
+      <>
+        <UploadDialog />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        ref={menuRef}
+        className="absolute z-50"
+        style={{
+          left: position.x,
+          top: position.y,
+          maxWidth: '280px',
+          minWidth: '240px',
+        }}
+        data-testid="block-type-menu"
+      >
+        <Card className="p-2 shadow-lg border bg-white dark:bg-gray-800 max-h-80 overflow-y-auto">
+          <div className="space-y-1">
+            {commands.map((command, index) => {
+              const Icon = command.icon;
+              return (
+                <Button
+                  key={command.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start h-auto p-3 text-left",
+                    index === selectedIndex && "bg-gray-100 dark:bg-gray-700"
+                  )}
+                  onClick={() => command.command()}
+                  data-testid={`block-type-${command.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded border bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {command.title}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {command.description}
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+
+          <div className="px-3 py-2 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-2">
+            ↑↓ för att navigera • Enter för att välja • Esc för att stänga
+          </div>
+        </Card>
+      </div>
+      
+      <UploadDialog />
+    </>
+  );
+}

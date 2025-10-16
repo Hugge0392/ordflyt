@@ -1,0 +1,291 @@
+Tack för bilderna och koden – jag ser exakt vad som händer. Ditt fokusfönster positioneras i procent av viewporten (vh) och dina “rader” är logiska strängar, inte verkliga layoutrader. När radlängd, typsnitt, radavstånd, sidans bredd eller zoom ändras så stämmer inte procent-beräkningen med de faktiska raderna i DOM → därför hamnar fönstret “mellan raderna” ibland.
+
+Nyckeln är att mäta faktiska radboxar i layouten och flytta fokusfönstret i pixlar utifrån dessa mått – inte i “konstruerade” rader eller vh-procent.
+
+Nedan är en minimal ändring du kan lägga till/ersätta i din komponent för att få pixelperfekt radfokus som följer verkliga rader, oavsett typsnitt, radavstånd, omslag, zoom, fönsterbredd osv.
+
+1) Lägg till ref + state för mätta rader
+import { useRef } from "react";
+
+// ...
+const contentRef = useRef<HTMLDivElement | null>(null);
+
+// Verkliga, mätta layoutrader:
+const [lineRects, setLineRects] = useState<DOMRect[]>([]);
+// Index för översta raden i fokusfönstret:
+const [currentReadingLine, setCurrentReadingLine] = useState(0);
+
+2) Mät riktiga rader med Range.getClientRects()
+
+Den här funktionen går igenom alla textnoder i din text, skapar en Range som flyttas tecken för tecken, och lägger till en ny rad varje gång rect.top byter värde (ny radbox i layouten). Den funkar i <div style="white-space: pre-wrap"> och med inline-element (t.ex. dina “tooltip-ord”).
+
+function getAllTextNodes(root: Node): Text[] {
+  const out: Text[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => {
+      // Hoppa över tomma textnoder (bara whitespace)
+      return /\S/.test(n.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }
+  });
+  let n: Node | null;
+  while ((n = walker.nextNode())) out.push(n as Text);
+  return out;
+}
+
+function measureLineRects(container: HTMLElement): DOMRect[] {
+  const rects: DOMRect[] = [];
+  const textNodes = getAllTextNodes(container);
+  const range = document.createRange();
+
+  for (const tn of textNodes) {
+    const len = tn.length;
+    let lastTop: number | null = null;
+
+    for (let i = 0; i < len; i++) {
+      range.setStart(tn, i);
+      range.setEnd(tn, i + 1);
+      const clientRects = range.getClientRects();
+      if (!clientRects || clientRects.length === 0) continue;
+
+      // En enskild glyph kan ha flera rects (ligaturer/omslag); ta första
+      const r = clientRects[0];
+      if (r.width === 0 || r.height === 0) continue;
+
+      if (lastTop === null || Math.abs(r.top - lastTop) > 0.5) {
+        // Ny radbox
+        rects.push(r);
+        lastTop = r.top;
+      } else {
+        // Samma rad – utöka bredden om vi vill (valfritt)
+        const prev = rects[rects.length - 1];
+        const left = Math.min(prev.left, r.left);
+        const right = Math.max(prev.right, r.right);
+        rects[rects.length - 1] = new DOMRect(
+          left,
+          prev.top,
+          right - left,
+          Math.max(prev.height, r.height)
+        );
+      }
+    }
+  }
+
+  // Sortera och normalisera till container-koordinater
+  const cont = container.getBoundingClientRect();
+  const normalized = rects
+    .filter(r => r.height > 0 && r.width > 0)
+    .sort((a, b) => a.top - b.top)
+    .map(r => new DOMRect(
+      r.left - cont.left,
+      r.top - cont.top + container.scrollTop, // gör dem scroll-stabila i container
+      r.width,
+      r.height
+    ));
+
+  // Slå ihop eventuella splittrade rader (t.ex. vid inline-block) om topp är ~samma
+  const merged: DOMRect[] = [];
+  for (const r of normalized) {
+    const last = merged[merged.length - 1];
+    if (last && Math.abs(last.top - r.top) < 0.5) {
+      const left = Math.min(last.left, r.left);
+      const right = Math.max(last.left + last.width, r.left + r.width);
+      merged[merged.length - 1] = new DOMRect(left, last.top, right - left, Math.max(last.height, r.height));
+    } else {
+      merged.push(r);
+    }
+  }
+  return merged;
+}
+
+3) Mät efter render + vid ändringar (font, radavstånd, storlek, sidbyte, resize)
+useEffect(() => {
+  if (!contentRef.current) return;
+
+  const measure = () => {
+    if (!contentRef.current) return;
+    setLineRects(measureLineRects(contentRef.current));
+    setCurrentReadingLine(0);
+  };
+
+  // Mät på nästa tick när HTML:en satts
+  const id = requestAnimationFrame(measure);
+
+  // Mät om vid resize/zoom och när observer upptäcker layoutförändring
+  const ro = new ResizeObserver(measure);
+  ro.observe(contentRef.current);
+
+  // När dina inställningar ändras → mät om
+  return () => {
+    cancelAnimationFrame(id);
+    ro.disconnect();
+  };
+}, [pages, currentPage, accessibilitySettings.fontSize, accessibilitySettings.lineHeight, accessibilitySettings.fontFamily]);
+
+
+Viktigt: behåll white-space: pre-wrap; i din textcontainer (du har det redan) så följer radbrytningarna CSS-layouternas regler.
+
+4) Flytta fokusfönstret efter pixlar – inte vh-procent
+
+Byt ut din procentbaserade overlay mot en overlay som använder container-koordinater och pixelmått från lineRects. Här stödjer vi 1/3/5 rader i fönstret.
+
+// Beräkna fokusfönstrets rektangel (täcker N rader)
+const focusRect = useMemo(() => {
+  if (!lineRects.length) return null;
+  const start = Math.min(currentReadingLine, Math.max(0, lineRects.length - 1));
+  const end = Math.min(start + readingFocusLines - 1, lineRects.length - 1);
+  const top = lineRects[start].top;
+  const bottom = lineRects[end].top + lineRects[end].height;
+  const height = bottom - top;
+
+  // Bredd = textcontainerns innehållsbredd
+  if (!contentRef.current) return null;
+  const cont = contentRef.current.getBoundingClientRect();
+  const width = cont.width;
+
+  return { top, height, left: 0, width };
+}, [lineRects, currentReadingLine, readingFocusLines]);
+
+
+Overlay-komponenten (inne i din CardContent) – ersätter din nuvarande procent-variant:
+
+{/* TEXTCONTAINER */}
+<div
+  ref={contentRef}
+  className="prose dark:prose-invert max-w-none min-h-[400px] accessibility-enhanced relative"
+  style={{
+    fontSize: `${accessibilitySettings.fontSize}px`,
+    lineHeight: `${accessibilitySettings.lineHeight}`,
+    whiteSpace: 'pre-wrap',
+    wordWrap: 'break-word',
+    fontFamily: (accessibilitySettings.fontFamily as string) === 'dyslexia-friendly'
+      ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+      : 'inherit'
+  }}
+  onMouseOver={handleContentMouseOver}
+  onMouseOut={handleContentMouseOut}
+  dangerouslySetInnerHTML={{ __html: processContentWithDefinitions(pages[currentPage] || '', lesson.wordDefinitions) }}
+/>
+
+{/* FOKUS-OVERLAY – absolut i samma container */}
+{readingFocusMode && focusRect && (
+  <div
+    className="pointer-events-none"
+    style={{
+      position: 'absolute',
+      inset: 0,
+      zIndex: 30
+    }}
+  >
+    {/* maska ovanför fokus */}
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        height: `${focusRect.top}px`,
+        background: 'rgba(0,0,0,0.85)'
+      }}
+    />
+    {/* maska under fokus */}
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: `${focusRect.top + focusRect.height}px`,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.85)'
+      }}
+    />
+    {/* kant runt fokus */}
+    <div
+      style={{
+        position: 'absolute',
+        left: `${focusRect.left}px`,
+        width: `${focusRect.width}px`,
+        top: `${focusRect.top}px`,
+        height: `${focusRect.height}px`,
+        border: `2px solid ${accessibilityColors.textColor}`,
+        boxShadow: '0 0 0 2px rgba(0,0,0,0.3)'
+      }}
+    />
+  </div>
+)}
+
+5) Tangenter/scroll: stega mellan verkliga rader och centrera dem
+useEffect(() => {
+  if (!readingFocusMode) return;
+
+  const stepDown = () => setCurrentReadingLine(i =>
+    Math.min(i + 1, Math.max(0, lineRects.length - readingFocusLines))
+  );
+  const stepUp = () => setCurrentReadingLine(i => Math.max(0, i - 1));
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.code === 'Space' || e.code === 'ArrowDown' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      stepDown();
+    } else if (e.code === 'ArrowUp' || e.code === 'ArrowLeft') {
+      e.preventDefault();
+      stepUp();
+    } else if (e.code === 'Escape') {
+      setReadingFocusMode(false);
+    }
+  };
+
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY > 0) stepDown(); else stepUp();
+  };
+
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('wheel', onWheel, { passive: false });
+  return () => {
+    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('wheel', onWheel);
+  };
+}, [readingFocusMode, lineRects.length, readingFocusLines]);
+
+
+Och centrera (mjuk scroll) fokusfönstret i containern, inte i viewporten:
+
+useEffect(() => {
+  if (!readingFocusMode || !focusRect || !contentRef.current) return;
+  const cont = contentRef.current;
+  const targetScrollTop = Math.max(0, focusRect.top + focusRect.height / 2 - cont.clientHeight / 2);
+  cont.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+}, [currentReadingLine, readingFocusMode, focusRect]);
+
+
+Om din text ligger i en lång sida (inte scrollas i själva Cardet) kan du istället scrolla window:
+
+const contRect = contentRef.current.getBoundingClientRect();
+window.scrollTo({ top: contRect.top + window.scrollY + targetScrollTop, behavior: 'smooth' });
+
+6) Små men viktiga UI-justeringar
+
+Se till att textcontainern verkligen är den “smala spalten” du vill fokusera. Sätt t.ex.:
+
+.reading-content .accessibility-enhanced {
+  max-width: 68ch;   /* fin läsbredd */
+  margin-inline: auto;
+  padding-inline: 1rem;
+  position: relative; /* krävs för absolut overlay */
+  overflow: auto;     /* så vi kan scrolla containern */
+}
+
+
+Låt vänster/höger mörk overlay följa containerns kanter (inte viewport). I koden ovan täcks allt utanför genom två block över/under; vill du även maskera utanför kolumnen kan du lägga en separat “global” overlay som täcker resten av sidan, men då är det enklast att bara låta själva textcardet ligga över en mörk bakgrund.
+
+Varför detta fungerar
+
+Vi mäter exakt var webbläsaren faktiskt bröt raderna (layout), i pixlar.
+
+Fokusfönstret placeras mot dessa mått. Inget “gissa” med meningar, teckenlängd eller vh.
+
+Det fungerar oavsett typsnitt, radavstånd, zoom, fönsterbredd, tooltip-ord, inline-bilder osv.
+
+Vi mäter om när något som påverkar layouten ändras (sidbyte, storlek, settings).
+
+Vill du, kan jag sätta ihop en liten minimal komponent som visar detta isolerat – men om du lyfter in bitarna ovan i din befintliga komponent ska fokusläget landa mitt på textlinjerna och stega perfekt rad för rad.

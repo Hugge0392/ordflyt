@@ -1,0 +1,66 @@
+Okej — nu byter vi taktik så det alltid funkar.
+
+Det som händer är att dina två “mask-divar” (ovan/under) hamnar över texten och i vissa kombinationer av färger/typografi renderas mitten som vitt. Vi ersätter dem med en spotlight-ruta som mörklägger allt utanför med en gigantisk box-shadow. Då rör vi inte texten alls i mitten.
+
+Gör två små ändringar:
+
+1) Tvinga textfärg inne i läsytan (säkert mot inline-stilar)
+
+Lägg detta precis ovanför <div ref={textRef} ...> i din komponent (inne i CardContent):
+
+<style>{`
+  .reading-content, .reading-content * {
+    color: var(--accessibility-text-color) !important;
+    -webkit-text-fill-color: var(--accessibility-text-color) !important;
+    background: transparent !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
+    text-shadow: none !important;
+  }
+`}</style>
+
+2) Byt ut overlay-blocket mot en spotlight med box-shadow
+
+Ersätt hela ditt block:
+
+{readingFocusMode && focusRect && (
+  <div className="pointer-events-none absolute inset-0 z-30" ...>
+    {/* mask ovanför */}
+    ...
+    {/* mask under */}
+    ...
+    {/* kant runt fokus */}
+    ...
+  </div>
+)}
+
+
+med detta:
+
+{readingFocusMode && focusRect && (
+  <div
+    className="pointer-events-none absolute z-30"
+    style={{
+      top: `${focusRect.top}px`,
+      left: `${focusRect.left}px`,
+      width: `${focusRect.width}px`,
+      height: `${focusRect.height}px`,
+
+      // Mörkare runtom – hål i mitten
+      boxShadow: "0 0 0 9999px rgba(0,0,0,0.85)",
+
+      // Visuell kant runt fokus
+      border: "2px solid var(--accessibility-text-color)",
+      borderRadius: "4px",
+
+      // Viktigt för att undvika konstiga blend-effekter
+      mixBlendMode: "normal",
+      isolation: "isolate",
+    }}
+  />
+)}
+
+
+Det är allt. Den här spotlight-lösningen lägger en enda rektangel där fokus ska vara och låter en massiv skugga mörklägga allt utanför. Själva texten under rörs inte – därför syns den alltid i “hålet”.
+
+Om det fortfarande ser vitt ut efter detta beror det nästan säkert på att texten i ditt RTE kommer in med color: #fff/-webkit-text-fill-color: transparent. CSS-snippet i steg 1 överstyr det.

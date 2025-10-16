@@ -1,0 +1,39 @@
+Aha! Nu ser jag vad som spökar: Tailwind Typography (prose) överstyr din textfärg.
+Du sätter color: var(--accessibility-text-color) på containern, men .prose p { color: var(--tw-prose-body) } vinner. I dark-mode blir det dessutom dark:prose-invert, så texten blir vit – och din bakgrund är (just nu) vit → vit text på vit bakgrund i fokusfönstret ⇒ ser ut som en tom vit remsa.
+
+Fixa på något av dessa två sätt (ta den du gillar):
+
+Snabbfix (rekommenderad): styr prose med variabler
+
+Behåll prose, ta bort dark:prose-invert, och sätt --tw-prose-* så att all typografi följer dina access-variabler.
+
+- className="prose dark:prose-invert max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
++ className="prose max-w-none min-h-[400px] reading-content accessibility-enhanced relative overflow-auto"
+  style={{
+    fontSize: `${accessibilitySettings.fontSize}px`,
+    lineHeight: `${accessibilitySettings.lineHeight}`,
+    whiteSpace: "pre-wrap",
+    wordWrap: "break-word",
+    backgroundColor: "var(--accessibility-bg-color)",
+    color: "var(--accessibility-text-color)",
++   /* Gör Tailwind Typography följsam mot dina färgvariabler */
++   // Bastext, listor, citat, headers, länkar m.m.
++   ['--tw-prose-body' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-headings' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-bullets' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-quotes' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-counters' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-captions' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-links' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-hr' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-code' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-th-borders' as any]: 'var(--accessibility-text-color)',
++   ['--tw-prose-td-borders' as any]: 'var(--accessibility-text-color)',
+    display: "flow-root",
+    fontFamily: (accessibilitySettings.fontFamily as string) === "dyslexia-friendly"
+      ? '"OpenDyslexic", "Comic Sans MS", cursive, sans-serif'
+      : "inherit",
+  }}
+
+
+Det här gör att texten alltid renderas i var(--accessibility-text-color) oavsett tema.

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+.npm
+
+# Development
+.replit
+replit.nix
+.upm
+.config
+.cache
+
+# Environment
+.env.local
+.env.development
+.env.test
+
+# Git
+.git
+.gitignore
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Backups
+backups/
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+*~
+

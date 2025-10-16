@@ -1,0 +1,83 @@
+Sluta “shuffle:a” på varje render
+
+Du skapar allWords med sort(() => Math.random() - 0.5) direkt i rendern. Varje state-ändring (t.ex. när draken äter/spottar) triggar en ny render → orden får ny ordning → de hoppar.
+
+Lösning: memoizera/frys rundans ordlista tills du medvetet startar en ny runda.
+
+Använd stabila keys
+
+Du använder key={i}. När listan blandas/ändras tolkar React samma ord som ett nytt element → extra omflyttningar/animationer.
+
+Lösning: använd ett stabilt värde (t.ex. själva ordet + ev. unikt suffix om dubbletter finns).
+
+Separera “runda” från “spelprogress”
+
+När du lägger till i wordsUsed minskar du availableTargetWords och bygger om allWords direkt i samma rendercykel → antalet och uppsättningen ord ändras mitt i rundan.
+
+Lösning: ha en egen state för “roundWords” som bara uppdateras när rundan byts, inte för varje drop.
+
+Layouten reflow: flex + center gör att allt flyttar sig
+
+Behållaren med flex flex-wrap gap-3 justify-center centrerar raden. När ett ord försvinner (opacity 0 / tas bort) räknas mitten om → alla chip flyttar sig.
+
+Lösningar (välj en):
+
+a) Använd CSS grid med fasta kolumner (stabilt raster).
+
+b) Byt justify-center till justify-start + fast bredd på chips → mindre skutt.
+
+c) Låt “borttagna” ord behålla sin plats (t.ex. visibility: hidden i stället för att ta bort/display: none) så att layouten inte packas om.
+
+Undvik att ändra elementens storlek vid fel-animation
+
+Klassen scale-125 på felord + animate-bounce ändrar visuellt utrymme i en tight flex-wrap → radbrytningar kan ändras och allt hoppar.
+
+Lösning: lås chip-mått (min-width/height) och flytta “felreaktionen” till en overlay/transform som inte påverkar layout (t.ex. absolut position inuti chip).
+
+“Ätna” ordet utan att ta bort noden genast
+
+När du sätter opacity-0 scale-0 eller tar bort ordet från listan direkt, reflowar allt.
+
+Lösning: kör en ut-animation, men låt elementet ligga kvar “osynligt” tills animationen är klar, och ta bort det först efteråt (fördröjd state-uppdatering/fasning mellan “visible → hidden → removed”).
+
+Drag-ghost och dragimage
+
+Browsern skapar en “ghost image” när du drar – ibland gör det att originalet ser ut att hoppa när hover/active-stilar kickar in.
+
+Lösning: sätt en egen drag-bild (eller en transparent) och disable:a hover-stilar på det element som är “dragged” (så att storlek/typsnitt inte växlar).
+
+Stabilisera dragonen/feedback så de inte triggar relayout
+
+Drakens container skalar/roterar (scale-110, rotate-12). Även om transform inte påverkar layout kan barnens bounding rect och överlapp ändra scrollbars/z-index och trigga repaint som syns som “hopp”.
+
+Lösning: lägg draken och pratbubblan i en absolut positionerad, egen “lager-container” med fast storlek och will-change: transform.
+
+Undvik att binda animationer till draggedWord på listan själv
+
+När draggedWord ändras, uppdaterar du klasslistan på alla chips (för att markera det dragna). Det orsakar mass-reflow.
+
+Lösning: håll en separat, lättviktig “drag state” och minimera klassändringar på icke-dragna element.
+
+Fixera chip-mått och radbrytning
+
+Ge chipsen konsekvent bredd/höjd/line-height för att undvika att olika ordlängder påverkar radbyten när ett grannchip försvinner/skalar.
+
+Bonus: sätt contain: layout paint; på chip-behållaren för att isolera reflow.
+
+Debouncea state som bara är visuellt
+
+setShowFeedback, dragonEating, dragonSpitting mm. uppdateras i snabb följd → flera renders.
+
+Lösning: samordna dem (t.ex. en “animationState”) så att endast en render sker per drop.
+
+Testa “positioned chips” om du vill ha noll reflow
+
+Absolutpositionera chipen i en relativ container (t.ex. fördelade x/y-coords) och animera med transform; layouten förblir statisk.
+
+Om du gör bara tre saker för snabb vinst:
+
+Frys/memoisera ordningen per runda (ingen shuffle i rendern).
+
+Använd stabila keys (ord-baserade) och grid med justify-start.
+
+Låt borttagna ord behålla sin plats tills ut-animationen är klar (visibility hidden / placeholder).

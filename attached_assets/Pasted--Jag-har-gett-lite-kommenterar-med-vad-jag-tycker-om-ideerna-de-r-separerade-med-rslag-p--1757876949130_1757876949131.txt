@@ -1,0 +1,38 @@
+
+Jag har gett lite kommenterar med vad jag tycker om ideerna. de är separerade med - 
+
+örslag på förbättringar för bättre användarupplevelse:
+1. Kommunikation & Meddelanden
+Meddelandesystem mellan lärare och elever - de behöver inte ha chattfunktion, men läraren ska kunna lämna feedback
+Påminnelser och notifikationer när elever slutfört uppgifter - det ska vara tydligt under lektoner vilka som har genomfört lektionen
+Enkla besked som läraren kan skicka till hela klassen - behövs ej 
+2. Schemaläggning & Planering
+Kalenderfunktion för att schemalägga lektioner - kan läggas till ifall det behövs
+Möjlighet att sätta deadlines för uppgifter - kan läggas till 
+Översikt över kommande lektioner och bedömningar  -  behövs ej
+3. Föräldrakommunikation
+Automatiska framstegsrapporter till föräldrar  -  behövs ej
+Enkel export av elevresultat för utvecklingssamtal  - kan läggas till 
+Översikt av elevens arbete att dela med vårdnadshavare  -  behövs ej
+4. Anpassning & Tillgänglighet
+Mer detaljerade inställningar per elev (inte bara AI-hjälp och röst) -  behövs ej
+Möjlighet att skapa "lärarkommentarer" på elevernas arbete  -   kan läggas till
+Individuella mål och uppföljning -  behövs ej 
+5. Resurser & Material
+Bibliotek där läraren kan spara egna material -  behövs ej
+Möjlighet att skapa egna enkla övningar eller frågor  -  behövs ej
+Delning mellan lärare på samma skola  -  behövs ej
+6. Datahantering
+Backup och export av klassdata  -  kan läggas till 
+Arkivering av gamla klasser  -  behövs ej, men det ska sparas i systemet alla elevers resultat
+GDPR-kompatibel datahantering
+7. Analysverktyg
+Visuella grafer över klassens framsteg   kan läggas till 
+Identifiera elever som behöver extra stöd   -  kan läggas till
+Jämförelse mellan olika övningstyper   - kan läggas till 
+
+
+kom på att det ska vara tydligt vilken skola läraren tillhör då mycket av arktiveringen sker under den då lärare slutar här och där 
+
+
+Skapa allt detta som vi pratat om. Efter allt har fixas kollar du till och testar så att det implementeras på rätt sätt. 

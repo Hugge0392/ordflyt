@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(netstat:*)",
+      "Bash(lsof:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsx:*)",
+      "Bash(xargs -r kill -9)",
+      "Bash(fuser:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(pkill:*)",
+      "Bash(awk:*)",
+      "Bash(npm start)",
+      "Bash(npm run build:*)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(psql:*)",
+      "Bash(kill:*)",
+      "Bash(npm run:*)",
+      "Read(//dev/**)",
+      "Bash(cat:*)",
+      "Read(//tmp/**)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pm2 list:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(chmod:*)",
+      "Bash(/tmp/test-student-login.sh:*)",
+      "Bash(env)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ordflyt.vercel.app)",
+      "Bash(npx vite build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

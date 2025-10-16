@@ -1,0 +1,141 @@
+Att den “flashar till” och sen försvinner betyder nästan alltid att något skriver över listan direkt efter att du lagt till frågan. Här är de vanligaste bovarna + snabba fixar du kan klistra in.
+
+Troliga orsaker
+
+Autosave/rehydration-race
+Du skapar en fråga ⇒ UI uppdateras ⇒ en useEffect laddar “gammal” snapshot från localStorage/IndexedDB och ersätter state ⇒ din nya post försvinner.
+
+Extern prop skriver över internt state
+Du visar questions från en prop (t.ex. server/parent) som precis efter klick re-renderar med en gammal version (utan din nya fråga).
+
+Reducer/mergelogik som ersätter istället för att merg:a
+“LOAD_QUESTIONS” sätter state = payload i stället för att merg:a, eller filtrerar bort “tomma” frågor.
+
+Fel key i list-renderingen
+Använder index som key eller ett icke-stabilt id ⇒ React mountar om/ersätter noden vid varje uppdatering.
+
+Filter/selector som gömmer “nya” rader
+T.ex. visar bara frågor med text.length > 0 → nya frågor (tomma) blinkar och försvinner när en selector/useMemo körs.
+
+StrictMode/ dubbel mount + icke-idempotent init
+I dev kan init/rehydration köra två gånger och råka nolla.
+
+Snabba fixar (copy/paste)
+1) Gör rehydrering engångs och merge i stället för replace
+// kör bara en gång per pageId
+useEffect(() => {
+  const raw = localStorage.getItem(`questions:${activePageId}`);
+  if (!raw) return;
+  try {
+    const saved = JSON.parse(raw);
+    // ✅ MERGE per id i stället för att ersätta hela listan
+    setQuestions(prev => {
+      const byId = new Map(prev.map(q => [q.id, q]));
+      for (const q of saved) if (!byId.has(q.id)) byId.set(q.id, q);
+      return Array.from(byId.values());
+    });
+  } catch (e) { console.error(e); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [activePageId]); // inte beroende av questions!
+
+2) Spara efter add – och låt autosave aldrig skriva tillbaka in i state
+// Autosave ska bara läsa state och skriva till storage – inte uppdatera state.
+useEffect(() => {
+  const t = setTimeout(() => {
+    localStorage.setItem(`questions:${activePageId}`, JSON.stringify(questions));
+  }, 400);
+  return () => clearTimeout(t);
+}, [questions, activePageId]);
+
+const addQuestion = () => setQuestions(prev => {
+  const q = { id: crypto.randomUUID(), type: "open", text: "", options: [] };
+  return [...prev, q];
+});
+
+3) Skydda mot “prop overwrite” (single source of truth)
+
+Om du får questions som prop från förälder/server, koppla loss visningen från propen när du börjar redigera:
+
+const [localQs, setLocalQs] = useState(propQs);
+useEffect(() => {
+  // bara uppdatera om vi INTE har lokal förändring
+  if (!hasLocalChanges) setLocalQs(propQs);
+}, [propQs, hasLocalChanges]);
+
+4) Använd stabila keys i listor
+{questions.map(q => (
+  <QuestionRow key={q.id} question={q} />
+))}
+
+
+(Använd aldrig index som key.)
+
+5) Visa även “tomma” nyskapade frågor (eller markera dem)
+const visible = questions.filter(q =>
+  q.pageId === activePageId && (showEmpty || q.text.trim().length >= 0)
+);
+// eller showEmpty=true på sidan där du skapar.
+
+6) Idempotent init (Strict Mode-säkert)
+const inited = useRef(false);
+useEffect(() => {
+  if (inited.current) return;
+  inited.current = true;
+  // rehydrera här
+}, []);
+
+Minimal diagnoscheck (1 minut)
+
+Lägg tre loggar och kolla ordning:
+
+const addQuestion = () => {
+  console.log("CLICK add");                // 1
+  setQuestions(prev => {
+    const next = [...prev, { id: crypto.randomUUID(), type:"open", text:"" }];
+    console.log("STATE after add", next);  // 2
+    return next;
+  });
+};
+
+useEffect(() => {
+  console.log("EFFECT questions changed", questions); // 3
+}, [questions]);
+
+useEffect(() => {
+  console.log("REHYDRATE fired"); // ⚠️ Om den körs efter klick → race
+  // ...rehydrate...
+}, [activePageId]); // ska INTE bero på questions
+
+
+Om du ser REHYDRATE fired efter “STATE after add” och listan blir kortare – då är det #1 (race/replace).
+
+“Bug brief” till din AI-generator
+
+Problem:
+Ny fråga visas en bråkdels sekund men försvinner.
+
+Åtgärder:
+
+Gör rehydrering/initial load engångs per pageId och merge:a per id, inte ersätta hela listan.
+
+Se till att autosave aldrig skriver tillbaka in i state; den ska bara persistera.
+
+Använd stabila id som React keys – aldrig index.
+
+Ta bort filter som gömmer tomma nya frågor (eller tillåt tomma).
+
+Gör init idempotent för Strict Mode.
+
+Om questions kommer som prop: “forka” till lokalt state och synka bara när du inte har lokala ändringar.
+
+Acceptanskriterier:
+
+Efter klick ligger nya frågan kvar på skärmen och i state.
+
+Rehydrerad data mergas med nya frågor (inga försvinner).
+
+Flera snabba klick skapar flera frågor utan att någon blinkar bort.
+
+Reload visar samma lista (autosave fungerar).
+
+Om du vill, klistra in din useEffect för rehydrering/autosave + list-renderingen, så pekar jag exakt var den skriver över.

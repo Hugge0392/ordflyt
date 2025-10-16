@@ -1,0 +1,205 @@
+React Hook: useStickyPanel
+
+Denna hook sköter den “sticky” funktionaliteten för frågepanelen. Den lyssnar på scroll-händelser i en intern scroll-container och använder en ResizeObserver för att hantera storleksförändringar av panelen. På desktop (bredd ≥ 1024px) kommer panelen att fixeras (position: fixed) med top: 24px när användaren scrollar förbi panelens ursprungliga position. På mobil (smalare än 1024px) inaktiveras sticky-beteendet (hanteras via CSS). Hooken returnerar tillståndet isSticky samt panelens höjd (panelHeight) för att kunna använda i layouten (t.ex. spacer-elementets höjd).
+
+import { useEffect, useLayoutEffect, useState } from 'react';
+
+interface StickyPanelHook {
+  isSticky: boolean;
+  panelHeight: number;
+}
+
+function useStickyPanel(
+  containerRef: React.RefObject<HTMLElement>,
+  panelRef: React.RefObject<HTMLElement>
+): StickyPanelHook {
+  const [isSticky, setIsSticky] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const panel = panelRef.current;
+    if (!container || !panel) return;
+
+    // Beräkna initial offset för panelen och tröskel för när den ska bli "sticky"
+    const initialOffset = panel.offsetTop;
+    const stickyThreshold = Math.max(initialOffset - 24, 0);
+    // Spara initial panelhöjd
+    setPanelHeight(panel.offsetHeight);
+
+    // Håll reda på senaste sticky-status för att undvika onödiga state-uppdateringar
+    let lastSticky = false;
+
+    const onScroll = () => {
+      const scrollTop = container.scrollTop;
+      const shouldStick = scrollTop > stickyThreshold;
+      if (shouldStick !== lastSticky) {
+        setIsSticky(shouldStick);
+        lastSticky = shouldStick;
+      }
+    };
+
+    container.addEventListener('scroll', onScroll);
+
+    // Observera panelens storlek (höjd/bredd) ifall innehållet ändras
+    const resizeObserver = new ResizeObserver(() => {
+      if (panelRef.current) {
+        setPanelHeight(panelRef.current.offsetHeight);
+      }
+    });
+    resizeObserver.observe(panel);
+
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      resizeObserver.disconnect();
+    };
+  }, [containerRef, panelRef]);
+
+  // Justera panelens position och bredd när den blir sticky (för att behålla rätt placering)
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (isSticky) {
+      // Sätt fix läge på panelen: behåll horisontell position och bredd
+      const rect = panel.getBoundingClientRect();
+      panel.style.position = 'fixed';
+      panel.style.top = '24px';
+      panel.style.left = `${rect.left}px`;
+      panel.style.width = `${rect.width}px`;
+      panel.style.zIndex = '100'; // Lägg ovanför ev. innehåll
+    } else {
+      // Återställ panelens positionering när den inte är sticky
+      panel.style.position = '';
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.width = '';
+      panel.style.zIndex = '';
+    }
+  }, [isSticky, panelRef]);
+
+  return { isSticky, panelHeight };
+}
+
+export default useStickyPanel;
+
+CSS för layout och sticky-panel
+
+CSS:en nedan definierar tvåkolumnslayouten samt sticky-beteendet. På desktop (min-width: 1024px) ligger kolumnerna sida vid sida; frågepanelen (.questions-panel-container) blir “sticky” via den dynamiska klassen/tillståndet och position: fixed tillämpas via JS (hooken ovan). För att undvika layout-hopp används ett osynligt spacer-element med samma höjd som panelen när den är fixerad. På mobil (max-width: 1023px) staplas kolumnerna och sticky-funktionaliteten inaktiveras (panelen visas under texten i normal flödesposition).
+
+/* Grundläggande tvåkolumnslayout */
+.columns {
+  display: flex;
+  align-items: flex-start;
+}
+.text-column {
+  flex: 1 1 auto;
+  /* eventuell styling för textkolumnen */
+}
+.questions-panel-wrapper {
+  flex: 0 0 auto; /* behåll fast bredd för högerspalten */
+  /* Sätt eventuell fast bredd för panelens kolumn */
+  width: 300px; /* exempel på bredd för frågepanelen */
+  position: relative; /* för kontext om vi skulle använda absolut positionering */
+}
+
+/* Frågepanel container – standardläge */
+.questions-panel-container {
+  /* Panelen är normalt i flow, bredvid första stycket */
+  /* Exempel på styling för panelens innehåll */
+  background: #fff;
+  /* Ingen explicit position här – JS lägger till fixed vid behov */
+}
+
+/* Spacer-element som reserverar utrymme när panelen är fixad */
+.panel-spacer {
+  height: 0;
+}
+
+/* Desktop: sticky-behavior */
+@media (min-width: 1024px) {
+  .questions-panel-container {
+    /* eventuellt position: relative här om behövs */
+  }
+  /* När panelen är sticky (JS lägger position:fixed inline), spacer tar panelens höjd */
+  .panel-spacer.sticky-space {
+    /* Height sätts dynamiskt via inline style eller JS; alternativt via CSS variable om man föredrar */
+    width: 1px; /* liten bredd för att ta minimalt horisontellt utrymme */
+    visibility: hidden;
+  }
+}
+
+/* Mobil: kolumner staplas, ingen sticky */
+@media (max-width: 1023px) {
+  .columns {
+    display: block;
+  }
+  .questions-panel-wrapper {
+    width: auto;
+  }
+  .questions-panel-container {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100%;
+  }
+  .panel-spacer {
+    display: none;
+  }
+}
+
+JSX – Exempel på användning
+
+Nedan är ett exempel på en React-komponent som använder hooken och CSS:en ovan. Strukturen innehåller en scroll-container (readingContainerRef) som omsluter två kolumner: en vänster textkolumn och en höger kolumn för frågepanelen. Vi inkluderar ett spacer-<div> precis ovanför panelen för att behålla utrymmet när panelen blir fixerad. Refs sätts på scroll-container (ref={readingContainerRef}) och panel-elementet (ref={panelRef}) och skickas in i hooken. Hooken returnerar isSticky och panelHeight som används för att applicera korrekt höjd på spacer-elementet och för att toggla sticky-klass eller styling vid behov.
+
+import React, { useRef } from 'react';
+import useStickyPanel from './useStickyPanel';
+
+const ReadingAssignment: React.FC = () => {
+  const readingContainerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Använd hooken för att få sticky-status och panelhöjd
+  const { isSticky, panelHeight } = useStickyPanel(readingContainerRef, panelRef);
+
+  return (
+    <div 
+      className="reading-container" 
+      ref={readingContainerRef} 
+      style={{ height: '100vh', overflowY: 'auto' }}
+    >
+      <div className="columns">
+        {/* Vänster kolumn med löptext */}
+        <div className="text-column">
+          <p>... Lång läsuppgiftstext ...</p>
+          <p>... fler stycken ...</p>
+          {/* ... */}
+        </div>
+
+        {/* Höger kolumn med frågepanel */}
+        <div className="questions-panel-wrapper">
+          {/* Spacer-element för att undvika layoutskutt när panelen blir fixed */}
+          <div 
+            className={`panel-spacer ${isSticky ? 'sticky-space' : ''}`} 
+            style={{ height: isSticky ? `${panelHeight}px` : 0 }}
+          />
+          {/* Själva panelen med frågor */}
+          <div className="questions-panel-container" ref={panelRef}>
+            {/* Innehållet i frågepanelen */}
+            <h3>Frågor</h3>
+            <ul>
+              <li>Fråga 1...</li>
+              <li>Fråga 2...</li>
+              <li>Fråga 3...</li>
+              {/* ... */}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ReadingAssignment;
+
+
+I koden ovan scrollas endast .reading-container (vänsterkolumnens behållare) tack vare overflowY: auto. När användaren scrollar i den, ser useStickyPanel till att frågepanelen till höger beter sig som en “sticky” ruta: den hålls alltid synlig i viewportens högra kolumn. Panelen fixeras med top: 24px när man scrollar ner (och återgår till sin plats bredvid första stycket när man scrollar upp igen till toppen). Spacer-div:en ovanför panelen säkerställer att layouten inte hoppar tillbaks när panelen tas ur flödet (d.v.s. behåller utrymmet som panelen normalt upptar). På mobil visas frågorna under texten i vanlig flow (ingen sticky), vilket hanteras via media queries i CSS. Detta ger en komplett och robust lösning för önskat beteende.

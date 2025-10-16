@@ -1,0 +1,281 @@
+1) Server: gör presign robust + städa routes
+1.1 /api/objects/upload → returnera även objectPath
+
+Vi använder din befintliga ObjectStorageService och återanvänder normalizeObjectEntityPath.
+
+server/routes.ts – byt ut POST /api/objects/upload till:
+
+ app.post("/api/objects/upload", async (req, res) => {
+   const objectStorageService = new ObjectStorageService();
+   try {
+-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+-    res.json({ uploadURL });
++    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
++    // Gör om direkt till ett /objects-Path så klienten slipper extra API-anrop
++    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
++    res.json({ uploadURL, objectPath });
+   } catch (error) {
+     console.error("Error generating upload URL:", error);
+     res.status(500).json({ error: "Failed to generate upload URL" });
+   }
+ });
+
+1.2 Ta bort dubletter av /api/lesson-images och /objects/*
+
+I slutet av routes.ts finns dubbla definitioner av båda. Behåll en av varje. Rekommenderat:
+
+Behåll den första GET /objects/:objectPath(*) (den som använder klassen och har ObjectNotFoundError-gren).
+
+Ta bort den andra GET /objects/:objectPath(*).
+
+Ta bort båda varianterna av PUT /api/lesson-images (vi behöver inte den längre när objectPath returneras vid presign).
+
+Om du vill lämna kvar /api/lesson-images för bakåtkompatibilitet, låt den bara ta emot imageURL och returnera { objectPath: normalize(imageURL) }. Men det behövs inte i nya flödet.
+
+1.3 Säkerställ body parser
+
+Se till att du någonstans innan registerRoutes(app) har:
+
+app.use(express.json({ limit: "10mb" }));
+
+
+(Om du redan har det i din bootstrap – bra, då kan du ignorera detta.)
+
+2) Klient: cacha presign per fil + skriv objectPath direkt i blocket
+2.1 ObjectUploader.tsx: cacha presign i file.meta
+
+Anledningen: din tidigare implementation ropade onGetUploadParameters(file) i både endpoint och headers → två presigns. Vi cache:ar svaret (inkl. objectPath) i file.meta._signedUpload.
+
+Patcha client/src/components/ObjectUploader.tsx:
+
+-  .use(XHRUpload, {
+-    endpoint: (file: any) => {
+-      // This will be called per file to get the endpoint
+-      return onGetUploadParameters(file).then(params => params.url);
+-    },
+-    method: 'PUT',
+-    formData: false,
+-    fieldName: 'file',
+-    bundle: false,
+-    headers: async (file: any) => {
+-      try {
+-        const params = await onGetUploadParameters(file);
+-        console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
+-        return params.headers || {};
+-      } catch (error) {
+-        console.error("Error getting headers:", error);
+-        return {};
+-      }
+-    },
+-  })
++  .use(XHRUpload, {
++    endpoint: async (file: any) => {
++      if (!file.meta) file.meta = {};
++      if (!file.meta._signedUpload) {
++        file.meta._signedUpload = await onGetUploadParameters(file);
++      }
++      return file.meta._signedUpload.url;
++    },
++    method: 'PUT',
++    formData: false,
++    bundle: false,
++    headers: async (file: any) => {
++      try {
++        if (!file.meta) file.meta = {};
++        if (!file.meta._signedUpload) {
++          file.meta._signedUpload = await onGetUploadParameters(file);
++        }
++        const params = file.meta._signedUpload;
++        console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
++        return params.headers || {};
++      } catch (error) {
++        console.error("Error getting headers:", error);
++        return {};
++      }
++    },
++  })
+
+
+Obs: Vi tog bort fieldName: 'file' för att vi inte kör multipart – vi PUT:ar rå body.
+
+2.2 RichTextEditor.tsx: presign en gång, använd objectPath direkt
+
+onGetUploadParameters ska hämta både uploadURL och objectPath från /api/objects/upload.
+
+Vi skickar tillbaka dem till ObjectUploader så de hamnar i file.meta._signedUpload.
+
+onComplete läser objectPath från file.meta och sätter blockets content.
+
+Patcha client/src/components/RichTextEditor.tsx:
+
+A) Uppdatera typen från onGetUploadParameters (lokalt i komponenten):
+-  const handleImageUpload = (blockId: string) => {
++  const handleImageUpload = (blockId: string) => {
+     return async (file: any) => {
+       try {
+         console.log("Getting upload parameters for file:", file.name);
+         
+         const response = await fetch("/api/objects/upload", {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+           },
+         });
+         
+         if (!response.ok) {
+           const errorText = await response.text();
+           console.error("Upload prep failed:", response.status, errorText);
+           throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+         }
+         
+-        const data = await response.json();
+-        console.log("Got upload URL:", data.uploadURL.substring(0, 100) + "...");
+-        
+-        return {
+-          method: "PUT" as const,
+-          url: data.uploadURL,
+-          headers: {
+-            'Content-Type': file.type || 'application/octet-stream',
+-          },
+-        };
++        const data = await response.json();
++        console.log("Got upload URL:", String(data.uploadURL).substring(0, 100) + "...");
++        // Lägg även objectPath i svaret så ObjectUploader kan cacha det i file.meta
++        return {
++          method: "PUT" as const,
++          url: data.uploadURL,
++          headers: {
++            // Sätt endast om din signer inte kräver blank content-type.
++            'Content-Type': file.type || 'application/octet-stream',
++          },
++          // Dessa extra fält plockas upp av ObjectUploader (file.meta._signedUpload)
++          objectPath: data.objectPath,
++        } as any;
+       } catch (error) {
+         console.error("Upload preparation error:", error);
+         toast({
+           title: "Fel",
+           description: `Kunde inte förbereda bilduppladdning: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+           variant: "destructive",
+         });
+         throw error;
+       }
+     };
+   };
+
+B) Skriv blockets content direkt från objectPath (slopa /api/lesson-images)
+-  const handleImageUploadComplete = (blockId: string) => {
+-    return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
++  const handleImageUploadComplete = (blockId: string) => {
++    return (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+       console.log("Upload completed:", result);
+       
+       if (result.failed && result.failed.length > 0) {
+         // ...oförändrat fel-case...
+         return;
+       }
+       
+       if (result.successful && result.successful.length > 0) {
+-        const uploadURL = result.successful?.[0]?.uploadURL;
+-        if (uploadURL) {
+-          console.log("Processing uploaded image URL:", uploadURL);
+-          
+-          // Process the upload URL to get the object path
+-          fetch("/api/lesson-images", {
+-            method: "PUT",
+-            headers: {
+-              "Content-Type": "application/json",
+-            },
+-            body: JSON.stringify({ imageURL: uploadURL }),
+-          })
+-          .then(response => {
+-            if (!response.ok) {
+-              throw new Error(`HTTP ${response.status}`);
+-            }
+-            return response.json();
+-          })
+-          .then(data => {
+-            console.log("Image processed:", data);
+-            const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
+-            updateBlock(blockId, { content: imagePath });
+-            toast({
+-              title: "Bild uppladdad!",
+-              description: "Bilden har lagts till i din text.",
+-            });
+-          })
+-          .catch(error => {
+-            console.error("Error processing image:", error);
+-            toast({
+-              title: "Fel",
+-              description: `Kunde inte bearbeta bilden: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+-              variant: "destructive",
+-            });
+-          });
+-        }
++        const first = result.successful[0] as any;
++        // Hämta objectPath som vi cachade i file.meta._signedUpload via ObjectUploader
++        const objectPath =
++          (first?.meta && first.meta._signedUpload && first.meta._signedUpload.objectPath) ||
++          (first?.response && first.response.objectPath) ||
++          null;
++
++        if (!objectPath) {
++          console.warn("Upload ok, men saknar objectPath i resultatet. Kontrollera presign-responsen.");
++          toast({
++            title: "Uppladdning klar",
++            description: "Kunde inte läsa in sökvägen till objektet automatiskt.",
++          });
++          return;
++        }
++
++        updateBlock(blockId, { content: objectPath });
++        toast({
++          title: "Bild uppladdad!",
++          description: "Bilden har lagts till i din text.",
++        });
+       }
+     };
+   };
+
+
+Viktigt: Vi tar bort all logik med split('/objects')[1] och slutar anropa /api/lesson-images.
+
+2.3 Enkel CSS för bildskalning (om inte redan)
+
+I din bild-rendering använder du className="max-w-full h-auto" — det är bra. Lägg gärna ett globalt fallback:
+
+img { max-width: 100%; height: auto; display: block; }
+
+3) (Valfritt men nice) – stöd för paste & drag-drop direkt i editor
+
+Du kan lägga till klistra-in/drag-drop av image File i textblocken på sikt. Men börja gärna med uppladdningsknappen som nu. (Vill du ha patch för paste/dnd senare, säg till.)
+
+4) Sanity-check (kör detta manuellt)
+
+Öppna editorn → lägg till Bild-block → klicka ladda upp
+
+Du ska få upp Uppy-modalen, välja bild.
+
+Endast ett POST-anrop till /api/objects/upload per fil.
+
+Se nätverket
+
+En PUT till https://storage.googleapis.com/... sker.
+
+Status 200/201.
+
+Efter klar upload
+
+Blockets content blir något som börjar på /objects/.
+
+<img src="/objects/..."> visar bilden utan 404.
+
+Uppdatera sidan
+
+Bilden laddas fortfarande (dvs. din /objects/* route fungerar).
+
+Felscenarion
+
+Välj en för stor fil → tydligt fel.
+
+Avbryt i modal → ingen hängning.

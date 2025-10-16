@@ -1,0 +1,102 @@
+index-BMxyrfs3.js:48  GET https://ordflyt.se/api/admin/blog/posts 500 (Internal Server Error)
+(anonymous) @ index-BMxyrfs3.js:48
+a @ index-BMxyrfs3.js:48
+p @ index-BMxyrfs3.js:48
+start @ index-BMxyrfs3.js:48
+fetch @ index-BMxyrfs3.js:48
+am @ index-BMxyrfs3.js:48
+onSubscribe @ index-BMxyrfs3.js:48
+subscribe @ index-BMxyrfs3.js:48
+(anonymous) @ index-BMxyrfs3.js:48
+mO @ index-BMxyrfs3.js:38
+Nb @ index-BMxyrfs3.js:40
+Xu @ index-BMxyrfs3.js:40
+L5 @ index-BMxyrfs3.js:40
+Fc @ index-BMxyrfs3.js:38
+TY @ index-BMxyrfs3.js:40
+Jc @ index-BMxyrfs3.js:40
+WO @ index-BMxyrfs3.js:40
+C @ index-BMxyrfs3.js:25
+D @ index-BMxyrfs3.js:25Understand this error
+index-BMxyrfs3.js:48 [throwIfResNotOk] 500 error: {message: 'Failed to fetch blog posts'}
+EL @ index-BMxyrfs3.js:48
+await in EL
+(anonymous) @ index-BMxyrfs3.js:48
+await in (anonymous)
+a @ index-BMxyrfs3.js:48
+p @ index-BMxyrfs3.js:48
+start @ index-BMxyrfs3.js:48
+fetch @ index-BMxyrfs3.js:48
+am @ index-BMxyrfs3.js:48
+onSubscribe @ index-BMxyrfs3.js:48
+subscribe @ index-BMxyrfs3.js:48
+(anonymous) @ index-BMxyrfs3.js:48
+mO @ index-BMxyrfs3.js:38
+Nb @ index-BMxyrfs3.js:40
+Xu @ index-BMxyrfs3.js:40
+L5 @ index-BMxyrfs3.js:40
+Fc @ index-BMxyrfs3.js:38
+TY @ index-BMxyrfs3.js:40
+Jc @ index-BMxyrfs3.js:40
+WO @ index-BMxyrfs3.js:40
+C @ index-BMxyrfs3.js:25
+D @ index-BMxyrfs3.js:25Understand this error
+index-BMxyrfs3.js:48 [apiRequest] Performing POST request to /api/admin/blog/posts/import. Refreshing CSRF token...
+index-BMxyrfs3.js:48 [refreshCsrfToken] Fetching CSRF token from /api/auth/me...
+index-BMxyrfs3.js:48 [refreshCsrfToken] Response data keys: (3) ['user', 'csrfToken', 'teacherContext']
+index-BMxyrfs3.js:48 [refreshCsrfToken] CSRF token refreshed successfully: 0bakd7ZD...
+index-BMxyrfs3.js:48 [apiRequest] CSRF token obtained: 0bakd7ZD...
+index-BMxyrfs3.js:48 [apiRequest] Making POST request to /api/admin/blog/posts/import with headers: (2) ['Content-Type', 'X-CSRF-Token']
+index-BMxyrfs3.js:48  POST https://ordflyt.se/api/admin/blog/posts/import 500 (Internal Server Error)
+tt @ index-BMxyrfs3.js:48
+await in tt
+mutationFn @ index-BMxyrfs3.js:2202
+fn @ index-BMxyrfs3.js:48
+p @ index-BMxyrfs3.js:48
+start @ index-BMxyrfs3.js:48
+execute @ index-BMxyrfs3.js:48
+await in execute
+mutate @ index-BMxyrfs3.js:48
+(anonymous) @ index-BMxyrfs3.js:48
+onClick @ index-BMxyrfs3.js:2202
+qG @ index-BMxyrfs3.js:37
+QG @ index-BMxyrfs3.js:37
+YG @ index-BMxyrfs3.js:37
+o5 @ index-BMxyrfs3.js:37
+JR @ index-BMxyrfs3.js:37
+(anonymous) @ index-BMxyrfs3.js:37
+TS @ index-BMxyrfs3.js:40
+wR @ index-BMxyrfs3.js:37
+rw @ index-BMxyrfs3.js:37
+sS @ index-BMxyrfs3.js:37
+hQ @ index-BMxyrfs3.js:37Understand this error
+index-BMxyrfs3.js:48 [apiRequest] Response status: 500
+index-BMxyrfs3.js:48 [throwIfResNotOk] 500 error: {message: 'Failed to import blog post', error: 'column "meta_title" does not exist'}
+EL @ index-BMxyrfs3.js:48
+await in EL
+tt @ index-BMxyrfs3.js:48
+await in tt
+mutationFn @ index-BMxyrfs3.js:2202
+fn @ index-BMxyrfs3.js:48
+p @ index-BMxyrfs3.js:48
+start @ index-BMxyrfs3.js:48
+execute @ index-BMxyrfs3.js:48
+await in execute
+mutate @ index-BMxyrfs3.js:48
+(anonymous) @ index-BMxyrfs3.js:48
+onClick @ index-BMxyrfs3.js:2202
+qG @ index-BMxyrfs3.js:37
+QG @ index-BMxyrfs3.js:37
+YG @ index-BMxyrfs3.js:37
+o5 @ index-BMxyrfs3.js:37
+JR @ index-BMxyrfs3.js:37
+(anonymous) @ index-BMxyrfs3.js:37
+TS @ index-BMxyrfs3.js:40
+wR @ index-BMxyrfs3.js:37
+rw @ index-BMxyrfs3.js:37
+sS @ index-BMxyrfs3.js:37
+hQ @ index-BMxyrfs3.js:37Understand this error
+index-BMxyrfs3.js:2202 [importMutation] Error: Error: 500: Failed to import blog post
+    at EL (index-BMxyrfs3.js:48:43431)
+    at async tt (index-BMxyrfs3.js:48:45234)
+    at async Object.mutationFn (index-BMxyrfs3.js:2202:15233)

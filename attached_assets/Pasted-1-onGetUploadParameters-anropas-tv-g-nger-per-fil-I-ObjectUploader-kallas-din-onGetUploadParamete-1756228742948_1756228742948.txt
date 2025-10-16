@@ -1,0 +1,166 @@
+1) onGetUploadParameters anropas två gånger per fil
+
+I ObjectUploader kallas din onGetUploadParameters(file) både i endpoint och i headers. Det skapar ofta två olika presignade PUT-URL:er (de har kort TTL och blir unika). Uppy försöker ladda upp mot URL A men hämtar headers från URL B → signaturen kan bli ogiltig.
+
+Fix
+
+Hämta en gång och cacha den per fil (via file.meta).
+
+Använd den cachen för både endpoint och headers.
+
+// ObjectUploader.tsx (ersätt uppy-initblocket)
+const [uppy] = useState(() =>
+  new Uppy({
+    restrictions: { maxNumberOfFiles, maxFileSize },
+    autoProceed: false,
+    debug: true,
+  })
+    .use(XHRUpload, {
+      endpoint: async (file: any) => {
+        if (!file.meta || !file.meta._signedUpload) {
+          file.meta = file.meta || {};
+          file.meta._signedUpload = await onGetUploadParameters(file);
+        }
+        return file.meta._signedUpload.url;
+      },
+      method: "PUT",
+      formData: false,
+      bundle: false,
+      headers: async (file: any) => {
+        if (!file.meta || !file.meta._signedUpload) {
+          file.meta = file.meta || {};
+          file.meta._signedUpload = await onGetUploadParameters(file);
+        }
+        const params = file.meta._signedUpload;
+        console.log("XHR Upload to:", params.url.substring(0, 100) + "...");
+        return params.headers || {};
+      },
+    })
+    // ...resten som förut
+);
+
+2) Du förlitar dig på result.successful[0].uploadURL
+
+Vid PUT till en presignad GCS-URL returneras ofta ingen body. Uppy kan ha uploadURL = request-URL, men det är inte garanterat. Om den saknas gör din kod inget → bilden “försvinner”.
+
+Två robusta sätt
+
+A. Låt backend returnera både uploadURL och den färdiga objectPath redan vid förberedelsen.
+B. Spara den presignade URL:en i file.meta (se fix ovan) och använd den efter complete.
+
+Rekommenderad (A): ändra endpoint-responsen
+// server/routes.ts  (i POST /api/objects/upload)
+app.post("/api/objects/upload", async (req, res) => {
+  const objectStorageService = new ObjectStorageService();
+  try {
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+
+    // Derivera ett /objects-path redan nu (utan att behöva roundtrip efteråt)
+    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+    res.json({ uploadURL, objectPath });
+  } catch (error) {
+    console.error("Error generating upload URL:", error);
+    res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+
+Och i editorn:
+
+// RichTextEditor.tsx -> handleImageUpload
+return {
+  method: "PUT" as const,
+  url: data.uploadURL,
+  headers: { "Content-Type": file.type || "application/octet-stream" },
+  // bonus: spara objectPath i meta via uppy (se punkt 1) om du vill
+};
+
+
+I onComplete – använd helst objectPath utan extra roundtrip:
+
+const handleImageUploadComplete = (blockId: string) => (result) => {
+  if (result.failed?.length) {
+    // ...toast fel...
+    return;
+  }
+  const first = result.successful?.[0];
+  // A) om du sparar objectPath i file.meta:
+  const objectPath = (first?.meta as any)?._signedUpload?.objectPath;
+
+  // B) fallback: om du fortsatt vill ringa /api/lesson-images (behövs egentligen inte längre):
+  // ...men se fix i punkt 4 nedan...
+
+  if (objectPath) {
+    updateBlock(blockId, { content: objectPath });
+    toast({ title: "Bild uppladdad!", description: "Bilden har lagts till i din text." });
+  } else {
+    // Fallback: försök använda successful[0].response?.url eller .uploadURL
+    const url = (first as any)?.response?.url || (first as any)?.uploadURL;
+    if (url) {
+      updateBlock(blockId, { content: url }); // eller normalisera via backend vid behov
+    } else {
+      console.warn("Saknar objectPath och uploadURL i Uppy-resultatet.");
+    }
+  }
+};
+
+3) split('/objects')[1] kan ge undefined
+
+Du gör:
+
+const imagePath = `/objects${data.objectPath.split('/objects')[1]}`;
+
+
+Om data.objectPath inte innehåller /objects (t.ex. om normaliseringen gav /bucket/dir/...) blir split()[1] = undefined → du renderar /objectsundefined → 404.
+
+Fix
+
+Använd värdet som backend gav rakt av:
+
+updateBlock(blockId, { content: data.objectPath });
+
+
+(eller kontrollera med ett säkert fallback)
+
+4) Dubbla routes för /api/lesson-images och /objects
+
+Du definierar samma endpoints två gånger i routes.ts. I Express vinner den senare definitionen. Det kan skapa förvirring och olika logik körs beroende på ordning.
+
+Fix
+
+Ta bort duplikaten. Behåll en PUT /api/lesson-images (den som du vill använda) och en GET /objects/:objectPath(*).
+
+5) Body-parser
+
+PUT /api/lesson-images läser req.body.imageURL, men i den här filen syns inte app.use(express.json()). Om den inte sätts i din server-bootstrap kommer req.body vara undefined → du får 400 ”imageURL is required”.
+
+Fix
+
+Se till att (en gång) innan registerRoutes(app):
+
+app.use(express.json({ limit: "10mb" }));
+
+6) Content-Type i signeringen
+
+Du skickar headers: { 'Content-Type': file.type } vid PUT. Det är rätt om signaturen inte låser Content-Type till något annat. Din signer (sidecar) verkar inte specificera headers, vilket brukar vara okej. Om du ser 403 Signature mismatch – testa att:
+
+antingen inte skicka Content-Type alls,
+
+eller uppdatera signer så att den explicit signerar med samma Content-Type.
+
+7) Bildvisning
+
+Du serverar bilder via GET /objects/... som proxar från GCS. Det är bra. Se till att CSS finns så de skalar rätt:
+
+img { max-width: 100%; height: auto; display: block; }
+
+Samlad minimal ändring (”mest effekt för minst kod”)
+
+Cacha presigned-URL per fil i ObjectUploader (punkt 1).
+
+Låt /api/objects/upload returnera både uploadURL och objectPath, och använd objectPath direkt i onComplete (punkt 2 + 3).
+
+Ta bort dubbletter av routes (punkt 4).
+
+Säkerställ express.json() (punkt 5).

@@ -1,0 +1,42 @@
+Aha—nu ser jag det på din bild: rutan är “öppen”, men texten i själva innehållet är vit (eller genomskinlig) så du ser bara vit bakgrund genom hålet. Det händer nästan alltid när RTE-innehållet har inline-stilar (t.ex. style="color: #fff"), eller när typografi-lager sätter färg som vinner över din variabel.
+
+Lös det brutalt och säkert: tvinga all text i läsytan att ärva din variabel, även om det finns inline-stilar. Lägg till detta i din globala CSS (eller i en modul som laddas globalt):
+
+/* --- Läsfokus: tvinga synlig text i läsytan --- */
+.reading-content, .reading-content * {
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important; /* Safari/WebKit */
+  background: transparent !important;          /* tar bort ev. vita bakgrunder i spans */
+  opacity: 1 !important;                       /* ifall något råkat sätta låg opacity */
+  mix-blend-mode: normal !important;           /* stoppa ev. blend-effekter på barn */
+  text-shadow: none !important;                /* undvik “osynlig” text via skugga */
+}
+
+
+Det här neutraliserar alla färger som RTE eller klistrad text kan ha satt (även inline style="color: ..."), så texten blir alltid var(--accessibility-text-color).
+
+För säkerhets skull: lämna gärna dina overlay-divar som du har dem nu (de är OK). Det viktiga är att texten under inte längre är vit.
+
+Om du vill slippa global påverkan kan du istället lägga en scoped <style> direkt i din komponent precis före textRef:
+
+<style>{`
+  .reading-content, .reading-content * {
+    color: var(--accessibility-text-color) !important;
+    -webkit-text-fill-color: var(--accessibility-text-color) !important;
+    background: transparent !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
+    text-shadow: none !important;
+  }
+`}</style>
+
+
+(Placera den inuti CardContent men ovanför <div ref={textRef} ...>.)
+
+Varför detta behövs
+
+RTE/klistrad text bär ofta med sig style="color:#fff" eller motsv. Då blir hålet vitt även om dina färgvariabler säger svart text.
+
+Tailwind Typography (prose) kan också vinna; du har redan tagit bort den, men inline-stilar trumfar fortfarande.
+
+Regeln ovan slår ut allt det.

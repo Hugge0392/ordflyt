@@ -1,0 +1,185 @@
+Du är nära! Som koden är nu är endast sidbundna frågor (lesson.pages[currentPage]?.questions) interaktiva. De “allmänna” frågorna (lesson.questions) renderas som statiskt innehåll (ingen onClick, ingen textarea), vilket gör att det ser ut som att “frågeboxarna inte syns”/inte går att svara.
+
+Nedan får du en minimal, tydlig fix:
+
+1) Lägg till state för allmänna svar
+// precis under readingAnswers
+const [generalAnswers, setGeneralAnswers] = useState<Record<number, string>>({});
+const handleGeneralAnswerChange = (questionIndex: number, answer: string) => {
+  setGeneralAnswers(prev => ({ ...prev, [questionIndex]: answer }));
+};
+
+2) Gör de allmänna frågorna klickbara/skrivbara
+
+Byt ut hela blocket som renderar allmänna frågor (delen efter kommentaren
+{/* Show general questions only if no reading questions for current page */}) mot detta:
+
+{!(lesson.pages && lesson.pages[currentPage]?.questions && lesson.pages[currentPage]?.questions!.length > 0) &&
+  lesson.questions && lesson.questions.map((question, index) => {
+    const isAnswered = !!(generalAnswers[index]?.trim());
+    return (
+      <div key={index} className="p-4 border-b pb-4 last:border-b-0">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-bold text-lg">Uppgift {index + 1}</h3>
+          {isAnswered && <Badge variant="default" className="text-xs bg-green-500">✓ Besvarad</Badge>}
+        </div>
+        <h4 className="font-medium mb-3">
+          {question.question}
+        </h4>
+
+        {question.type === 'multiple_choice' && question.options && (
+          <div className="space-y-3">
+            {question.options.map((option: string, optionIndex: number) => {
+              const optionValue = String.fromCharCode(65 + optionIndex);
+              const isSelected = generalAnswers[index] === optionValue;
+
+              return (
+                <div key={optionIndex}>
+                  <button
+                    type="button"
+                    onClick={() => handleGeneralAnswerChange(index, optionValue)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#000000',
+                      border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
+                    <span style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                      color: isSelected ? '#3b82f6' : '#000000',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      flexShrink: '0'
+                    }}>
+                      {optionValue}
+                    </span>
+                    <span>{option}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {question.type === 'true_false' && (
+          <div className="space-y-3">
+            {['Sant', 'Falskt'].map((option, optionIndex) => {
+              const optionValue = option;
+              const isSelected = generalAnswers[index] === optionValue;
+
+              return (
+                <div key={optionIndex}>
+                  <button
+                    type="button"
+                    onClick={() => handleGeneralAnswerChange(index, optionValue)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#000000',
+                      border: '2px solid ' + (isSelected ? '#3b82f6' : '#d1d5db'),
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px'
+                    }}
+                  >
+                    <span style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? '#ffffff' : '#f3f4f6',
+                      color: isSelected ? '#3b82f6' : '#000000',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      flexShrink: '0'
+                    }}>
+                      {option.charAt(0)}
+                    </span>
+                    <span>{option}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {question.type === 'open_ended' && (
+          <div className="space-y-2">
+            <textarea
+              value={generalAnswers[index] || ''}
+              onChange={(e) => handleGeneralAnswerChange(index, e.target.value)}
+              placeholder="Skriv ditt svar här..."
+              style={{
+                width: '100%',
+                height: '80px',
+                padding: '12px',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                border: '2px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontFamily: 'inherit',
+                resize: 'vertical'
+              }}
+              rows={3}
+            />
+          </div>
+        )}
+      </div>
+    );
+  })
+}
+
+3) (Valfritt) Gör “Visa frågor”-knappen användbar
+
+Just nu gör den inget. Lägg till ett toggle:
+
+const [showQuestions, setShowQuestions] = useState(true);
+
+
+Byt onClick={() => {}} till:
+
+onClick={() => setShowQuestions(v => !v)}
+
+
+Och kapsla in frågekortet med:
+
+{showQuestions && (
+  <Card className="questions-card ..."> ... </Card>
+)}
+
+4) Snabb koll för “osynliga” fält p.g.a. färger/overlay
+
+Om du fortfarande “inte ser” fälten:
+
+Du sätter kortets bakgrund/text efter tillgänglighetsläget. Dina knappar/textarea har hårdkodad vit bakgrund (#ffffff). Det är oftast bra (kontrast!), men om du byter till “vit på svart” i inställningarna blir den ändå tydlig.
+
+Se till att inget absolut-positionerat element (t.ex. tooltip) ligger över frågekortet. Du använder position: fixed + hög z-index i tooltipen. Det är ok, men om den hamnar ovanpå, försvinner hover när man lämnar ordet. (Det gör den redan – du nollställer hoveredWord på mouseOut, bra.)
+
+Det här räcker för att:
+
+kunna klicka på alternativ i allmänna frågor,
+
+skriva i öppna svar,
+
+och dölja/visa frågepanelet om du vill.
+
+Vill du även spara svaren till backend eller validera alla frågor (både sidbundna och allmänna) innan “Lämna in”, säg till så lägger jag till det också.

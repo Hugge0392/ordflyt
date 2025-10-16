@@ -1,0 +1,85 @@
+Aha—din “spotlight” ligger över texten. Eftersom vi nollade bakgrunder för alla element i .reading-content *, blir själva spotlight-diven visuell men texten under syns inte genom “hålet” (box-shadow-tricket räcker inte här, och vår reset gör saken värre).
+
+Gör två små ändringar:
+
+1) Låt reseten inte gälla spotlight-masken
+
+Byt din reset-CSS till att exkludera en klass vi sätter på mask-delarna:
+
+/* inne i <style> i reading-content */
+.reading-content {
+  background-color: var(--accessibility-bg-color) !important;
+}
+
+/* döda ALL egen bakgrund i innehållet – men INTE spotlight-masken */
+.reading-content *:not(.reading-spotlight-mask),
+.reading-content *:not(.reading-spotlight-mask)::before,
+.reading-content *:not(.reading-spotlight-mask)::after {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+/* färg/kant */
+.reading-content * {
+  border-color: var(--accessibility-text-color) !important;
+  color: var(--accessibility-text-color) !important;
+  -webkit-text-fill-color: var(--accessibility-text-color) !important;
+}
+
+/* ta bort dividers */
+.reading-content hr,
+.reading-content [role="separator"],
+.reading-content .ql-divider,
+.reading-content .divider {
+  display: none !important;
+}
+
+2) Byt spotlight från “box-shadow-hål” till fyra gardiner
+
+Det här garanterar att mitten är helt tom (ingen overlay ovanpå texten). Lägg det där du idag renderar din overlay:
+
+{readingFocusMode && focusRect && (
+  <>
+    {/* toppgardin */}
+    <div
+      className="reading-spotlight-mask pointer-events-none absolute z-30"
+      style={{ top: 0, left: 0, right: 0, height: `${focusRect.top}px`,
+               background: "rgba(0,0,0,0.85)" }}
+    />
+    {/* botten */}
+    <div
+      className="reading-spotlight-mask pointer-events-none absolute z-30"
+      style={{ top: `${focusRect.top + focusRect.height}px`, left: 0, right: 0, bottom: 0,
+               background: "rgba(0,0,0,0.85)" }}
+    />
+    {/* vänster */}
+    <div
+      className="reading-spotlight-mask pointer-events-none absolute z-30"
+      style={{ top: `${focusRect.top}px`, left: 0, width: `${focusRect.left}px`,
+               height: `${focusRect.height}px`, background: "rgba(0,0,0,0.85)" }}
+    />
+    {/* höger */}
+    <div
+      className="reading-spotlight-mask pointer-events-none absolute z-30"
+      style={{ top: `${focusRect.top}px`,
+               left: `${focusRect.left + focusRect.width}px`, right: 0,
+               height: `${focusRect.height}px`, background: "rgba(0,0,0,0.85)" }}
+    />
+    {/* bara en ram runt fokusfönstret */}
+    <div
+      className="pointer-events-none absolute z-30"
+      style={{
+        top: `${focusRect.top}px`,
+        left: `${focusRect.left}px`,
+        width: `${focusRect.width}px`,
+        height: `${focusRect.height}px`,
+        border: "2px solid var(--accessibility-text-color)",
+        borderRadius: "4px"
+      }}
+    />
+  </>
+)}
