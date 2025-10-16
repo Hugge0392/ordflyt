@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "dotenv -e .env -- tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/app.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/app.js",
-    "vercel-build": "vite build && esbuild server/app.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/app.js",
+    "vercel-build": "vite build && esbuild server/app.ts server/static.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "dotenv -e .env -- drizzle-kit push"

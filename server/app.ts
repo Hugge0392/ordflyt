@@ -2,7 +2,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
-import { serveStatic } from "./vite";
+import { serveStatic } from "./static";
 import authRoutes from "./authRoutes";
 import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
