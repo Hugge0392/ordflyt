@@ -18,19 +18,23 @@ export async function initializeDatabase() {
       .where(eq(users.username, 'admin'))
       .limit(1);
 
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+    
     if (!existingAdmin) {
-      console.log('Skapar admin-användare...');
+      console.log('Ingen admin-användare hittades');
       
       // Använd miljövariabel för lösenord, fallback till 'admin' i utveckling
-      const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
       const adminPassword = process.env.ADMIN_PASSWORD || (isProduction ? null : 'admin');
       
       if (!adminPassword) {
-        console.error('⚠️  ADMIN_PASSWORD miljövariabel krävs i produktion för att skapa admin-användare');
-        console.log('🔧  Sätt ADMIN_PASSWORD i dina "Published app secrets" och publicera igen');
+        console.warn('⚠️  ADMIN_PASSWORD environment variable is not set in production');
+        console.warn('   Admin user will be created automatically on first login attempt');
+        console.warn('   Just try to login with username: admin, password: <ADMIN_PASSWORD>');
+        console.warn('   See ADMIN_LOGIN_FIX.md for instructions');
         return;
       }
       
+      console.log('Skapar admin-användare...');
       const adminPasswordHash = await hashPassword(adminPassword);
       await db.insert(users).values({
         username: 'admin',
@@ -42,12 +46,17 @@ export async function initializeDatabase() {
       });
       
       if (isProduction) {
-        console.log('✅ Produktions-admin skapad med säkert lösenord');
+        console.log('✅ Produktions-admin skapad med säkert lösenord från ADMIN_PASSWORD');
       } else {
         console.log('✅ Utvecklings-admin skapad (admin/admin)');
       }
     } else {
-      console.log('Admin-användare finns redan');
+      console.log('✅ Admin-användare finns redan');
+      
+      // In production, verify that the admin password matches ADMIN_PASSWORD
+      if (isProduction && process.env.ADMIN_PASSWORD) {
+        console.log('   Admin password will be auto-synced with ADMIN_PASSWORD on next login if needed');
+      }
     }
 
     // I utvecklingsläge, skapa även test-användare

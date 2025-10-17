@@ -154,52 +154,79 @@ router.post("/api/auth/login", loginRateLimit, async (req, res) => {
       const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
       const adminPassword = process.env.ADMIN_PASSWORD;
       
-      if (isProduction && adminPassword && password === adminPassword) {
-        if (!user) {
-          // Create admin user if it doesn't exist
-          console.log('🔧 On-demand admin bootstrap triggered - creating admin user');
-          
-          try {
-            const adminPasswordHash = await hashPassword(adminPassword);
-            const [newAdmin] = await db.insert(users).values({
-              username: 'admin',
-              passwordHash: adminPasswordHash,
-              role: 'ADMIN',
-              isActive: true,
-              emailVerified: false,
-              email: 'admin@ordflyt.se'
-            }).returning();
+      console.log('🔐 Admin login attempt:', {
+        isProduction,
+        hasAdminPassword: !!adminPassword,
+        userExists: !!user,
+        validPassword,
+        passwordMatchesEnv: adminPassword ? password === adminPassword : false
+      });
+      
+      if (isProduction && adminPassword) {
+        // If the password matches ADMIN_PASSWORD, create or update the admin user
+        if (password === adminPassword) {
+          if (!user) {
+            // Create admin user if it doesn't exist
+            console.log('🔧 On-demand admin bootstrap triggered - creating admin user');
             
-            await logAuditEvent('ADMIN_BOOTSTRAP_LOGIN', newAdmin.id, true, ipAddress, userAgent, { 
-              reason: 'On-demand admin creation during login' 
-            });
+            try {
+              const adminPasswordHash = await hashPassword(adminPassword);
+              const [newAdmin] = await db.insert(users).values({
+                username: 'admin',
+                passwordHash: adminPasswordHash,
+                role: 'ADMIN',
+                isActive: true,
+                emailVerified: false,
+                email: 'admin@ordflyt.se'
+              }).returning();
+              
+              await logAuditEvent('ADMIN_BOOTSTRAP_LOGIN', newAdmin.id, true, ipAddress, userAgent, { 
+                reason: 'On-demand admin creation during login' 
+              });
+              
+              console.log('✅ Admin user created successfully via on-demand bootstrap');
+              user = newAdmin;
+              validPassword = true;
+            } catch (error) {
+              console.error('❌ Failed to create admin user via bootstrap:', error);
+            }
+          } else if (!validPassword) {
+            // Admin user exists but password doesn't match - update it
+            console.log('🔧 Admin password mismatch - updating to ADMIN_PASSWORD');
             
-            console.log('✅ Admin user created successfully via on-demand bootstrap');
-            user = newAdmin;
-            validPassword = true;
-          } catch (error) {
-            console.error('❌ Failed to create admin user via bootstrap:', error);
+            try {
+              const adminPasswordHash = await hashPassword(adminPassword);
+              await db.update(users)
+                .set({ 
+                  passwordHash: adminPasswordHash,
+                  isActive: true // Ensure admin is active
+                })
+                .where(eq(users.username, 'admin'));
+              
+              await logAuditEvent('ADMIN_PASSWORD_UPDATE', user.id, true, ipAddress, userAgent, { 
+                reason: 'Admin password updated to match ADMIN_PASSWORD' 
+              });
+              
+              console.log('✅ Admin password updated successfully');
+              validPassword = true;
+              // Refresh user object to get updated data
+              [user] = await db
+                .select()
+                .from(users)
+                .where(eq(users.username, 'admin'))
+                .limit(1);
+            } catch (error) {
+              console.error('❌ Failed to update admin password:', error);
+            }
+          } else {
+            console.log('✅ Admin password already correct');
           }
-        } else if (!validPassword) {
-          // Admin user exists but password doesn't match - update it
-          console.log('🔧 Admin password mismatch - updating to ADMIN_PASSWORD');
-          
-          try {
-            const adminPasswordHash = await hashPassword(adminPassword);
-            await db.update(users)
-              .set({ passwordHash: adminPasswordHash })
-              .where(eq(users.username, 'admin'));
-            
-            await logAuditEvent('ADMIN_PASSWORD_UPDATE', user.id, true, ipAddress, userAgent, { 
-              reason: 'Admin password updated to match ADMIN_PASSWORD' 
-            });
-            
-            console.log('✅ Admin password updated successfully');
-            validPassword = true;
-          } catch (error) {
-            console.error('❌ Failed to update admin password:', error);
-          }
+        } else {
+          console.log('❌ Password does not match ADMIN_PASSWORD environment variable');
         }
+      } else if (isProduction && !adminPassword) {
+        console.error('❌ CRITICAL: ADMIN_PASSWORD environment variable is not set in production!');
+        console.error('   Please set ADMIN_PASSWORD in Replit Secrets and redeploy');
       }
     }
     

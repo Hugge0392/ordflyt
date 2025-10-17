@@ -24,20 +24,39 @@ export function checkProductionEnvironment() {
     console.log('🚀 Running in PRODUCTION mode');
     console.log('🌐 Expected domain: ordflyt.se');
     
+    let hasAllRequiredSecrets = true;
+    
     if (!process.env.SESSION_SECRET) {
-      console.warn('⚠️  SESSION_SECRET not set in production!');
+      console.error('❌ CRITICAL: SESSION_SECRET not set in production!');
+      hasAllRequiredSecrets = false;
     }
     
     if (!process.env.PASSWORD_PEPPER) {
-      console.warn('⚠️  PASSWORD_PEPPER not set in production!');
+      console.error('❌ CRITICAL: PASSWORD_PEPPER not set in production!');
+      hasAllRequiredSecrets = false;
     }
     
     if (!process.env.ADMIN_PASSWORD) {
-      console.warn('⚠️  ADMIN_PASSWORD not set in production!');
-      console.log('📝  Set ADMIN_PASSWORD in your "Published app secrets" and republish');
+      console.error('❌ CRITICAL: ADMIN_PASSWORD not set in production!');
+      console.error('   Admin login will NOT work until this is set!');
+      console.error('');
+      console.error('   📝 TO FIX IN VERCEL:');
+      console.error('   1. Go to Vercel Dashboard → Your Project');
+      console.error('   2. Settings → Environment Variables');
+      console.error('   3. Add: ADMIN_PASSWORD = <your-secure-password>');
+      console.error('   4. Check "Production" checkbox');
+      console.error('   5. Redeploy: Deployments → ... → Redeploy');
+      console.error('   6. Login with username: admin, password: <your-secure-password>');
+      console.error('');
+      hasAllRequiredSecrets = false;
     }
     
-    console.log('✅ Production environment configured properly');
+    if (hasAllRequiredSecrets) {
+      console.log('✅ Production environment configured properly');
+    } else {
+      console.error('⚠️  WARNING: Production environment is MISSING required secrets!');
+      console.error('   See ADMIN_LOGIN_FIX.md for detailed instructions');
+    }
   } else {
     console.log('🛠️  Running in DEVELOPMENT mode');
   }

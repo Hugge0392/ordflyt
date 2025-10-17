@@ -838,7 +838,6 @@ ${urls}
   });
   
   app.post("/api/upload-direct", requireAuth, requireCsrf, upload.single('file'), async (req: any, res) => {
-    const objectStorageService = new ObjectStorageService();
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -846,8 +845,10 @@ ${urls}
       
       console.log("Direct upload received:", req.file.originalname, "size:", req.file.size);
       
-      // Check if we're in local development without Google Cloud Storage
+      // Check environment
       const isLocalDev = process.env.NODE_ENV !== 'production' && !process.env.REPLIT_DEPLOYMENT;
+      const isReplit = !!process.env.REPLIT_DEPLOYMENT;
+      const isVercel = process.env.VERCEL === '1' || (process.env.NODE_ENV === 'production' && !isReplit);
       
       if (isLocalDev) {
         // LOCAL DEVELOPMENT: Save to local filesystem
@@ -886,31 +887,63 @@ ${urls}
         });
       }
       
-      // PRODUCTION: Use Google Cloud Storage
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
-      const { randomUUID } = await import('crypto');
-      const objectId = randomUUID();
-      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-      
-      const { bucketName, objectName } = parseObjectPath(fullPath);
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
-      
-      // Upload directly to bucket
-      await file.save(req.file.buffer, {
-        metadata: {
+      if (isVercel) {
+        // VERCEL: Use Vercel Blob Storage
+        const { put } = await import('@vercel/blob');
+        
+        const { randomUUID } = await import('crypto');
+        const objectId = randomUUID();
+        const filename = `${objectId}-${req.file.originalname}`;
+        
+        console.log("Uploading to Vercel Blob:", filename);
+        
+        const blob = await put(filename, req.file.buffer, {
+          access: 'public',
           contentType: req.file.mimetype || 'application/octet-stream',
-        },
-      });
+        });
+        
+        console.log("Vercel Blob upload successful, URL:", blob.url);
+        
+        return res.json({ 
+          success: true, 
+          objectPath: blob.url,
+          url: blob.url,
+          filename: req.file.originalname
+        });
+      }
       
-      const objectPath = `/objects/uploads/${objectId}`;
-      console.log("Direct upload successful, objectPath:", objectPath);
+      if (isReplit) {
+        // REPLIT: Use Replit Object Storage (Google Cloud Storage)
+        const objectStorageService = new ObjectStorageService();
+        const privateObjectDir = objectStorageService.getPrivateObjectDir();
+        const { randomUUID } = await import('crypto');
+        const objectId = randomUUID();
+        const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+        
+        const { bucketName, objectName } = parseObjectPath(fullPath);
+        const bucket = objectStorageClient.bucket(bucketName);
+        const file = bucket.file(objectName);
+        
+        // Upload directly to bucket
+        await file.save(req.file.buffer, {
+          metadata: {
+            contentType: req.file.mimetype || 'application/octet-stream',
+          },
+        });
+        
+        const objectPath = `/objects/uploads/${objectId}`;
+        console.log("Replit Object Storage upload successful, objectPath:", objectPath);
+        
+        return res.json({ 
+          success: true, 
+          objectPath,
+          url: objectPath
+        });
+      }
       
-      res.json({ 
-        success: true, 
-        objectPath,
-        url: objectPath
-      });
+      // Fallback error
+      throw new Error('No storage backend configured');
+      
     } catch (error) {
       console.error("Direct upload error:", error);
       res.status(500).json({ error: "Upload failed", details: error instanceof Error ? error.message : String(error) });

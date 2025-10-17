@@ -8,12 +8,16 @@ import licenseRoutes from './licenseRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
 import { initializeDatabase } from "./initDatabase";
 import { startAutomaticBackups } from "./licenseDb";
+import { checkProductionEnvironment } from "./productionCheck";
 
 let isInitialized = false;
 let app: express.Application;
 
 async function initializeApp() {
   if (isInitialized) return app;
+
+  // Check production environment configuration
+  checkProductionEnvironment();
 
   app = express();
 

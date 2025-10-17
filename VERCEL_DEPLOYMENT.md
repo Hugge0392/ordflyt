@@ -37,6 +37,7 @@ Gå till ditt Vercel-projekt → Settings → Environment Variables och lägg ti
 | `SESSION_SECRET` | `<random-32-byte-hex>` | För session-säkerhet |
 | `PASSWORD_PEPPER` | `<random-32-byte-hex>` | För lösenords-hashing |
 | `ADMIN_PASSWORD` | `<ditt-admin-lösenord>` | Lösenord för admin-konto |
+| `BLOB_READ_WRITE_TOKEN` | Auto-sätts av Vercel | För bilduppladdning (se Blob Storage setup) |
 | `POSTMARK_API_TOKEN` | `<din-postmark-token>` | För att skicka e-post |
 | `FROM_EMAIL` | `noreply@dindomän.se` | Avsändar-email |
 | `FRONTEND_URL` | `https://dindomän.vercel.app` | Din Vercel-URL |
@@ -77,20 +78,41 @@ git push origin main
 
 ## Efter deployment
 
-### 1. Kör databasmigrationer
-Efter första deployment, kör:
+### 1. Sätt upp Vercel Blob Storage (för bilduppladdning)
+
+**VIKTIGT:** För att kunna ladda upp bilder i bloggskaparverktyget måste du aktivera Vercel Blob Storage!
+
+1. Gå till ditt projekt i Vercel Dashboard
+2. Klicka på **"Storage"** tab
+3. Klicka **"Create Database"** → välj **"Blob"**
+4. Klicka **"Continue"** och sedan **"Create"**
+5. Klicka på din nya Blob store
+6. Gå till **"Connect Project"** tab
+7. Välj ditt projekt (ordflyt) och klicka **"Connect"**
+
+Detta kommer automatiskt lägga till `BLOB_READ_WRITE_TOKEN` environment variable!
+
+**Se `VERCEL_BLOB_SETUP.md` för detaljerad guide.**
+
+### 2. Kör databasmigrationer
+Efter första deployment, kör från din dator:
 ```bash
+# Sätt DATABASE_URL från Vercel
+$env:DATABASE_URL="<din-production-database-url>"
+
+# Kör migrationen
 npm run db:push
 ```
 
 Detta skapar alla databastabeller.
 
-### 2. Testa applikationen
+### 3. Testa applikationen
 1. Besök din Vercel-URL
 2. Logga in med admin-kontot (användarnamn: `admin`, lösenord: `ADMIN_PASSWORD` från env vars)
 3. Verifiera att allt fungerar
+4. **Testa bilduppladdning** i bloggskaparverktyget
 
-### 3. Konfigurera domän (valfritt)
+### 4. Konfigurera domän (valfritt)
 I Vercel:
 1. Gå till Settings → Domains
 2. Lägg till din egen domän
