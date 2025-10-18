@@ -14,7 +14,7 @@ import { TiptapEditor } from "@/components/TiptapEditor";
 import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff, X, Upload, Image as ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BLOG_CATEGORIES, PARENT_CATEGORIES, getCategoryDisplayName } from "@/lib/blogCategories";
+import { BLOG_CONFIG } from "@/lib/blogConfig";
 
 interface BlogPost {
   id: string;
