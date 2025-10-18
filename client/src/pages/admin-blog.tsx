@@ -547,31 +547,19 @@ export default function AdminBlog() {
                     </div>
 
                     <div>
-                      <Label htmlFor="category">Kategori * (SEO)</Label>
+                      <Label htmlFor="category">Kategori *</Label>
                       <Select value={category} onValueChange={setCategory}>
                         <SelectTrigger>
                           <SelectValue placeholder="Välj kategori" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {PARENT_CATEGORIES.map(parent => (
-                            <div key={parent.id}>
-                              <div className="px-2 py-1.5 text-sm font-semibold text-gray-500">
-                                {parent.emoji} {parent.name}
-                              </div>
-                              {Object.entries(BLOG_CATEGORIES)
-                                .filter(([_, cat]) => cat.parentCategory === parent.name)
-                                .map(([id, cat]) => (
-                                  <SelectItem key={id} value={id} className="pl-6">
-                                    {cat.iconEmoji} {cat.displayName}
-                                  </SelectItem>
-                                ))}
-                            </div>
+                        <SelectContent>
+                          {Object.entries(BLOG_CONFIG.categories).map(([key, config]) => (
+                            <SelectItem key={key} value={key}>
+                              {config.icon} {config.name}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {BLOG_CATEGORIES[category]?.seoKeywords[0] || 'Välj SEO-kategori'}
-                      </p>
                     </div>
 
                     <div>
