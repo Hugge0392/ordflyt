@@ -46,8 +46,14 @@ async function initializeApp() {
   // Initialize database
   await initializeDatabase();
 
-  // Start automatic backups
-  startAutomaticBackups();
+  // Start automatic backups (only on Replit, not on Vercel serverless)
+  const isReplit = !!process.env.REPLIT_DEPLOYMENT;
+  if (isReplit) {
+    startAutomaticBackups();
+    console.log('🔐 Automatic backups enabled (Replit)');
+  } else {
+    console.log('ℹ️ Automatic backups disabled (Vercel serverless)');
+  }
 
   // Register all routes
   await registerRoutes(app);

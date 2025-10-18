@@ -2004,10 +2004,7 @@ ${urls}
   });
 
   // Get newsletter subscribers (admin only)
-  app.get("/api/newsletter/subscribers", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ message: "Admin access required" });
-    }
+  app.get("/api/newsletter/subscribers", requireAuth, requireRole('ADMIN'), async (req, res) => {
 
     try {
       const subscribers = await db

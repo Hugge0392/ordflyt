@@ -48,8 +48,14 @@ export async function getApp(): Promise<express.Application> {
     // Initialize database
     await initializeDatabase();
 
-    // Start automatic backups
-    startAutomaticBackups();
+    // Start automatic backups (only where file system is available)
+    const isServerless = process.env.VERCEL === '1';
+    if (!isServerless) {
+      startAutomaticBackups();
+      console.log('🔐 Automatic backups enabled');
+    } else {
+      console.log('ℹ️ Automatic backups disabled (serverless environment)');
+    }
 
     // Register all routes
     await registerRoutes(app);
