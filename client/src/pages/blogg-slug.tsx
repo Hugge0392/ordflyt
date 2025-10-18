@@ -352,25 +352,40 @@ export default function BloggSlug() {
                 }
                 
                 /* File download link styling for blog content */
-                .blog-content a[download] {
+                .blog-content a[download],
+                .blog-content a[download]:link,
+                .blog-content a[download]:visited,
+                .prose a[download],
+                .prose a[download]:link,
+                .prose a[download]:visited {
                   display: inline-flex !important;
-                  align-items: center;
-                  gap: 0.5rem;
-                  padding: 0.75rem 1.5rem;
-                  background-color: #2563eb;
-                  color: white !important;
-                  border-radius: 0.5rem;
+                  align-items: center !important;
+                  gap: 0.5rem !important;
+                  padding: 0.75rem 1.5rem !important;
+                  background-color: #2563eb !important;
+                  color: #ffffff !important;
+                  border-radius: 0.5rem !important;
                   text-decoration: none !important;
-                  transition: all 0.2s;
-                  margin: 1rem 0;
-                  font-weight: 500;
-                  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+                  transition: all 0.2s !important;
+                  margin: 1rem 0 !important;
+                  font-weight: 500 !important;
+                  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
                 }
                 
-                .blog-content a[download]:hover {
-                  background-color: #1d4ed8;
-                  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+                .blog-content a[download]:hover,
+                .prose a[download]:hover {
+                  background-color: #1d4ed8 !important;
+                  color: #ffffff !important;
+                  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
                   transform: translateY(-1px);
+                  text-decoration: none !important;
+                }
+                
+                /* SVG icons inside download links should be white */
+                .blog-content a[download] svg,
+                .prose a[download] svg {
+                  color: #ffffff !important;
+                  stroke: #ffffff !important;
                 }
                 
                 /* Ensure images in blog content are responsive */

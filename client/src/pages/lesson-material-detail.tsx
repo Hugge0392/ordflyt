@@ -379,6 +379,39 @@ export default function LessonMaterialDetail() {
               <div dangerouslySetInnerHTML={{ __html: post.content }} />
             </div>
 
+            <style>{`
+              /* File download link styling */
+              .prose a[download],
+              .prose a[download]:link,
+              .prose a[download]:visited {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                padding: 0.75rem 1.5rem !important;
+                background-color: #2563eb !important;
+                color: #ffffff !important;
+                border-radius: 0.5rem !important;
+                text-decoration: none !important;
+                transition: all 0.2s !important;
+                margin: 1rem 0 !important;
+                font-weight: 500 !important;
+                box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+              }
+              
+              .prose a[download]:hover {
+                background-color: #1d4ed8 !important;
+                color: #ffffff !important;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+                transform: translateY(-1px);
+                text-decoration: none !important;
+              }
+              
+              .prose a[download] svg {
+                color: #ffffff !important;
+                stroke: #ffffff !important;
+              }
+            `}</style>
+
             {/* Tags */}
             {post.tags?.length > 0 && (
               <div className="mt-8">
