@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PopularPost {
   title: string;
@@ -20,6 +21,8 @@ export function BlogSidebar({
   tags = []
 }: BlogSidebarProps) {
   const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +35,54 @@ export function BlogSidebar({
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement subscription
-    console.log('Subscribe:', email);
+    
+    if (!email) {
+      toast({
+        title: "E-post krävs",
+        description: "Vänligen ange din e-postadress",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          categories: [],
+          source: 'blog_sidebar'
+        }),
+      });
+
+      const data = await response.json().catch(() => ({ message: "Ett fel uppstod" }));
+
+      if (response.ok) {
+        toast({
+          title: "Tack! 🎉",
+          description: data.message || "Du har prenumererat på nyhetsbrev!"
+        });
+        setEmail("");
+      } else {
+        toast({
+          title: "Ett fel uppstod",
+          description: data.message || "Kunde inte prenumerera",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      toast({
+        title: "Ett fel uppstod",
+        description: "Kunde inte ansluta till servern",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -133,10 +182,11 @@ export function BlogSidebar({
             />
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300"
               data-cta="subscribe"
             >
-              Prenumerera
+              {isSubmitting ? "Prenumererar..." : "Prenumerera"}
             </Button>
           </form>
         </CardContent>
