@@ -70,20 +70,25 @@ export default function Blogg() {
 
       {/* Main Content */}
       <div className="container max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
           {/* Blog Posts Grid */}
           <section id="blog-index" className="order-2 lg:order-1">
             {isLoading ? (
-              <div className="post-grid grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="bg-white rounded-lg overflow-hidden">
-                      <div className="h-48 bg-gray-200" />
-                      <div className="p-6 space-y-3">
-                        <div className="h-4 bg-gray-200 rounded w-1/4" />
-                        <div className="h-6 bg-gray-200 rounded w-3/4" />
-                        <div className="h-4 bg-gray-200 rounded w-full" />
-                        <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  <div key={i} className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm">
+                    <div className="aspect-[16/10] bg-gray-200" />
+                    <div className="p-6 space-y-3">
+                      <div className="h-4 bg-gray-200 rounded-full w-20" />
+                      <div className="h-6 bg-gray-200 rounded w-3/4" />
+                      <div className="h-4 bg-gray-200 rounded w-full" />
+                      <div className="h-4 bg-gray-200 rounded w-5/6" />
+                      <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-gray-200 rounded w-24" />
+                          <div className="h-3 bg-gray-200 rounded w-20" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -99,24 +104,15 @@ export default function Blogg() {
                 </p>
               </div>
             ) : (
-              <ul
-                className="post-grid grid grid-cols-1 md:grid-cols-2 gap-6"
-              >
-                {posts.map((post, index) => (
-                  <div
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {posts.map((post) => (
+                  <BlogPostCard
                     key={post.id}
-                    className="animate-fadeInUp"
-                    style={{
-                      animationDelay: `${index * 50}ms`
-                    }}
-                  >
-                    <BlogPostCard
-                      {...post}
-                      href={getBlogPostUrl(post.slug, post.category)}
-                    />
-                  </div>
+                    {...post}
+                    href={getBlogPostUrl(post.slug, post.category)}
+                  />
                 ))}
-              </ul>
+              </div>
             )}
           </section>
 
