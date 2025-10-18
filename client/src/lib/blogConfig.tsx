@@ -56,8 +56,8 @@ export function getCategoryColorVar(slug: string): string {
 // Get category icon component
 export function getCategoryIcon(slug: string, color?: string) {
   const iconProps = {
-    className: "w-6 h-6",
-    strokeWidth: 2,
+    className: "w-5 h-5",
+    strokeWidth: 2.5,
     style: color ? { color } : undefined
   };
 
@@ -72,6 +72,8 @@ export function getCategoryIcon(slug: string, color?: string) {
       return <Search {...iconProps} />;
     case "pedagogik":
       return <Lightbulb {...iconProps} />;
+    case "allmant":
+      return <FileText {...iconProps} />;
     default:
       return <FileText {...iconProps} />;
   }
