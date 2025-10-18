@@ -302,6 +302,7 @@ export default function AdminBlog() {
     setMetaDescription(post.metaDescription || "");
     setKeywords((post as any).keywords || []);
     setFocusKeyphrase((post as any).focusKeyphrase || "");
+    setCategory((post as any).category || "allmant");
     setIsEditDialogOpen(true);
   };
 
@@ -326,6 +327,7 @@ export default function AdminBlog() {
         metaDescription: metaDescription || undefined,
         keywords: keywords.length > 0 ? keywords : undefined,
         focusKeyphrase: focusKeyphrase || undefined,
+        category: category,
       }
     });
   };
@@ -772,6 +774,23 @@ export default function AdminBlog() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titel på blogginlägget"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-category">Kategori</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="edit-category">
+                  <SelectValue placeholder="Välj kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lasforstaelse">📘 Läsförståelse</SelectItem>
+                  <SelectItem value="grammatik">🔤 Grammatik</SelectItem>
+                  <SelectItem value="skrivande">✍️ Skrivande</SelectItem>
+                  <SelectItem value="kallkritik">💬 Källkritik</SelectItem>
+                  <SelectItem value="pedagogik">💡 Pedagogik</SelectItem>
+                  <SelectItem value="allmant">📄 Allmänt</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="border-l-4 border-blue-400 pl-4 bg-blue-50 p-3 rounded">
