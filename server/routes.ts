@@ -893,9 +893,12 @@ ${urls}
         
         const { randomUUID } = await import('crypto');
         const objectId = randomUUID();
-        const filename = `${objectId}-${req.file.originalname}`;
         
-        console.log("Uploading to Vercel Blob:", filename);
+        // Get file extension from original filename
+        const fileExt = req.file.originalname.split('.').pop() || 'jpg';
+        const filename = `${objectId}.${fileExt}`;
+        
+        console.log("Uploading to Vercel Blob:", filename, "Original:", req.file.originalname);
         
         const blob = await put(filename, req.file.buffer, {
           access: 'public',
