@@ -151,21 +151,22 @@ export default function LessonMaterialDetail() {
         body: JSON.stringify({
           email: newsletterEmail,
           categories: post?.categoryId ? [post.categoryId] : [],
+          source: 'blog_page'
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ message: "Ett fel uppstod" }));
       
       if (response.ok) {
         toast({
           title: "Tack!",
-          description: data.message
+          description: data.message || "Du har prenumererat på nyhetsbrev!"
         });
         setNewsletterEmail("");
       } else {
         toast({
           title: "Ett fel uppstod",
-          description: data.message,
+          description: data.message || "Kunde inte prenumerera",
           variant: "destructive"
         });
       }

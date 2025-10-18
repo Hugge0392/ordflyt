@@ -1944,10 +1944,12 @@ ${urls}
   // Newsletter subscription endpoint (public)
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
+      console.log('Newsletter subscription request:', req.body);
       const validation = insertNewsletterSubscriptionSchema.safeParse(req.body);
       if (!validation.success) {
+        console.log('Newsletter validation failed:', validation.error.errors);
         return res.status(400).json({
-          message: "Invalid subscription data",
+          message: "Ogiltig data. Kontrollera e-postadressen.",
           errors: validation.error.errors
         });
       }

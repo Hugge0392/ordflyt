@@ -13,11 +13,15 @@ export default function LandingPage() {
       const res = await fetch("/api/newsletter/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ 
+          email,
+          categories: [],
+          source: "landing_page"
+        }),
       });
       if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || "Kunde inte registrera e-post");
+        const errorData = await res.json().catch(() => ({ message: "Kunde inte registrera e-post" }));
+        throw new Error(errorData.message || "Kunde inte registrera e-post");
       }
       return res.json();
     },
