@@ -16,7 +16,7 @@ interface BlogPostCardProps {
   href: string;
 }
 
-// Calculate reading time based on word count
+// Calculate reading time based on word count (updated for blog redesign)
 function calculateReadingTime(excerpt?: string): number {
   if (!excerpt) return 3;
   const words = excerpt.split(/\s+/).length;
