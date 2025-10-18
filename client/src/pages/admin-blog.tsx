@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "wouter";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, refreshCsrfToken } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { TiptapEditor } from "@/components/TiptapEditor";
-import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff, X } from "lucide-react";
+import { ArrowLeft, FileText, Edit, Eye, Trash2, Plus, Send, EyeOff, X, Upload, Image as ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BLOG_CATEGORIES, PARENT_CATEGORIES, getCategoryDisplayName } from "@/lib/blogCategories";
@@ -51,10 +51,67 @@ export default function AdminBlog() {
   const [keywordInput, setKeywordInput] = useState("");
   const [category, setCategory] = useState<string>("allmant");
   const [focusKeyphrase, setFocusKeyphrase] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Import form states
   const [importHtmlContent, setImportHtmlContent] = useState("");
   const [importCategoryId, setImportCategoryId] = useState("none");
+
+  // Hero image upload handler
+  const handleHeroImageUpload = async () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      try {
+        setIsUploadingImage(true);
+        const csrfToken = await refreshCsrfToken();
+        if (!csrfToken) {
+          throw new Error('Could not get CSRF token');
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/upload-direct', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.objectPath) {
+          setHeroImageUrl(result.objectPath);
+          toast({
+            title: "Bild uppladdad!",
+            description: "Bilden har lagts till som huvudbild"
+          });
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Uppladdning misslyckades",
+          description: "Kunde inte ladda upp bilden. Försök igen.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsUploadingImage(false);
+      }
+    };
+  };
 
   const { data: allPosts = [], isLoading: postsLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/admin/blog/posts"],
@@ -820,13 +877,50 @@ export default function AdminBlog() {
             </div>
 
             <div>
-              <Label htmlFor="edit-heroImage">Huvudbild URL</Label>
-              <Input
-                id="edit-heroImage"
-                value={heroImageUrl}
-                onChange={(e) => setHeroImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-              />
+              <Label htmlFor="edit-heroImage">Huvudbild (Preview)</Label>
+              
+              {/* Show current image if exists */}
+              {heroImageUrl && (
+                <div className="mb-3 relative group">
+                  <img 
+                    src={heroImageUrl} 
+                    alt="Preview" 
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setHeroImageUrl("")}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleHeroImageUpload}
+                  disabled={isUploadingImage}
+                  className="flex-1"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isUploadingImage ? "Laddar upp..." : "Ladda upp bild"}
+                </Button>
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  id="edit-heroImage"
+                  value={heroImageUrl}
+                  onChange={(e) => setHeroImageUrl(e.target.value)}
+                  placeholder="Eller ange bild-URL manuellt"
+                  className="text-sm"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
