@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
 import { useEffect } from "react";
 import { getQueryFn } from "@/lib/queryClient";
-import { BLOG_CATEGORIES, getCategoryDisplayName, getBlogPostApiUrl } from "@/lib/blogCategories";
+import { BLOG_CONFIG } from "@/lib/blogConfig";
 import { BlogPostingStructuredData, BreadcrumbStructuredData } from "@/components/blog/StructuredData";
 
 interface BlogPost {
@@ -215,13 +215,11 @@ export default function BloggSlug() {
     { name: "Blogg", url: `${window.location.origin}/blogg` }
   ];
 
-  if (post.category && BLOG_CATEGORIES[post.category]) {
+  if (post.category && BLOG_CONFIG.categories[post.category as keyof typeof BLOG_CONFIG.categories]) {
+    const categoryConfig = BLOG_CONFIG.categories[post.category as keyof typeof BLOG_CONFIG.categories];
     breadcrumbItems.push({
-      name: BLOG_CATEGORIES[post.category].parentCategory,
-      url: `${window.location.origin}/blogg?kategori=${BLOG_CATEGORIES[post.category].parentCategory.toLowerCase()}`
-    });
-    breadcrumbItems.push({
-      name: BLOG_CATEGORIES[post.category].displayName
+      name: categoryConfig.name,
+      url: `${window.location.origin}/blogg?kategori=${post.category}`
     });
   }
 
@@ -246,17 +244,12 @@ export default function BloggSlug() {
           <Link href="/" className="hover:text-blue-600">Hem</Link>
           <span>/</span>
           <Link href="/blogg" className="hover:text-blue-600">Blogg</Link>
-          {post.category && BLOG_CATEGORIES[post.category] && (
+          {post.category && BLOG_CONFIG.categories[post.category as keyof typeof BLOG_CONFIG.categories] && (
             <>
               <span>/</span>
-              <Link
-                href={`/blogg?kategori=${BLOG_CATEGORIES[post.category].parentCategory.toLowerCase()}`}
-                className="hover:text-blue-600"
-              >
-                {BLOG_CATEGORIES[post.category].parentCategory}
-              </Link>
-              <span>/</span>
-              <span className="text-gray-900 font-medium">{BLOG_CATEGORIES[post.category].displayName}</span>
+              <span className="text-gray-900 font-medium">
+                {BLOG_CONFIG.categories[post.category as keyof typeof BLOG_CONFIG.categories].name}
+              </span>
             </>
           )}
         </nav>

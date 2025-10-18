@@ -4,7 +4,6 @@ import { BlogHero } from "@/components/blog/BlogHero";
 import { CategoryTabs } from "@/components/blog/CategoryTabs";
 import { BlogPostCard } from "@/components/blog/BlogPostCard";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
-import { getBlogPostUrl } from "@/lib/blogCategories";
 import { useEffect } from "react";
 import { OrganizationStructuredData } from "@/components/blog/StructuredData";
 
