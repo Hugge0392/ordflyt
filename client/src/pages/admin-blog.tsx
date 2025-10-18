@@ -783,12 +783,11 @@ export default function AdminBlog() {
                   <SelectValue placeholder="Välj kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lasforstaelse">📘 Läsförståelse</SelectItem>
-                  <SelectItem value="grammatik">🔤 Grammatik</SelectItem>
-                  <SelectItem value="skrivande">✍️ Skrivande</SelectItem>
-                  <SelectItem value="kallkritik">💬 Källkritik</SelectItem>
-                  <SelectItem value="pedagogik">💡 Pedagogik</SelectItem>
-                  <SelectItem value="allmant">📄 Allmänt</SelectItem>
+                  {Object.entries(BLOG_CONFIG.categories).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.icon} {config.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
