@@ -1,8 +1,8 @@
 import { Link } from "wouter";
-import { Calendar, User, ArrowRight, Clock } from "lucide-react";
+import { Calendar, ArrowRight, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { sv } from "date-fns/locale";
-import { BLOG_CONFIG, getCategoryConfig } from "@/lib/blogConfig";
+import { BLOG_CONFIG, getCategoryConfig, getCategoryIcon } from "@/lib/blogConfig";
 
 interface BlogPostCardProps {
   id: string;
@@ -70,19 +70,7 @@ export function BlogPostCard({
           )}
 
           <div className="flex-1 flex flex-col p-4 sm:p-6 relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <span
-                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300"
-                style={{
-                  backgroundColor: borderColor,
-                  boxShadow: `0 4px 14px -2px ${borderColor}40`
-                }}
-              >
-                {categoryConfig?.icon} {categoryConfig?.name}
-              </span>
-            </div>
-
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-all duration-300 leading-tight group-hover:tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-all duration-300 leading-tight">
               {title}
             </h2>
 
@@ -92,37 +80,36 @@ export function BlogPostCard({
               </p>
             )}
 
-            <div className="meta mt-auto flex items-center justify-between text-xs sm:text-sm text-gray-500 border-t pt-3 sm:pt-4">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <time dateTime={publishedAt} className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">
-                    {formatDistanceToNow(new Date(publishedAt), {
-                      addSuffix: true,
-                      locale: sv
-                    })}
-                  </span>
-                  <span className="sm:hidden">
-                    {formatDistanceToNow(new Date(publishedAt), {
-                      addSuffix: true,
-                      locale: sv
-                    }).replace(' sedan', '')}
-                  </span>
-                </time>
-                <span className="flex items-center gap-1">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {authorName}
-                </span>
-                <span className="flex items-center gap-1 text-gray-400">
-                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {readingTime} min
-                </span>
-              </div>
-            </div>
+            <div className="meta mt-auto pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                {/* Category Icon - Large and prominent */}
+                <div 
+                  className="flex items-center justify-center w-12 h-12 rounded-full shadow-md transition-all duration-300 group-hover:scale-110"
+                  style={{
+                    backgroundColor: `${borderColor}15`,
+                    color: borderColor
+                  }}
+                >
+                  {getCategoryIcon(category, borderColor)}
+                </div>
 
-            <div className="readmore mt-4 flex items-center gap-2 text-blue-600 font-bold group-hover:gap-4 transition-all duration-300 group-hover:text-blue-700">
-              Läs mer
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                {/* Meta info */}
+                <div className="flex flex-col items-end gap-1 text-xs text-gray-500">
+                  <time dateTime={publishedAt} className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>
+                      {formatDistanceToNow(new Date(publishedAt), {
+                        addSuffix: true,
+                        locale: sv
+                      })}
+                    </span>
+                  </time>
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Clock className="w-3 h-3" />
+                    {readingTime} min läsning
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </article>

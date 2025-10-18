@@ -6,14 +6,14 @@ export function BlogHero() {
   };
 
   return (
-    <header className="hero relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white py-20 overflow-hidden">
+    <header className="hero relative bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 text-white py-20 overflow-hidden">
       {/* Animated gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-purple-500/30 to-pink-500/30 animate-gradient-shift" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 via-cyan-500/30 to-blue-400/30 animate-gradient-shift" />
 
       {/* Floating orbs */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-blue-400/30 rounded-full blur-3xl animate-float-slow" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl animate-float-slower" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-400/20 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-400/30 rounded-full blur-3xl animate-float-slower" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-300/20 rounded-full blur-3xl animate-pulse-slow" />
 
       {/* Background pattern */}
       <div

@@ -1,3 +1,5 @@
+import { BookOpen, Type, PenTool, Search, Lightbulb, FileText } from "lucide-react";
+
 // Blog category configuration with colors and icons
 export const BLOG_CONFIG = {
   categories: {
@@ -49,4 +51,28 @@ export function getCategoryConfig(slug: string) {
 export function getCategoryColorVar(slug: string): string {
   const config = getCategoryConfig(slug);
   return config?.color || BLOG_CONFIG.categories.allmant.color;
+}
+
+// Get category icon component
+export function getCategoryIcon(slug: string, color?: string) {
+  const iconProps = {
+    className: "w-6 h-6",
+    strokeWidth: 2,
+    style: color ? { color } : undefined
+  };
+
+  switch (slug) {
+    case "lasforstaelse":
+      return <BookOpen {...iconProps} />;
+    case "grammatik":
+      return <Type {...iconProps} />;
+    case "skrivande":
+      return <PenTool {...iconProps} />;
+    case "kallkritik":
+      return <Search {...iconProps} />;
+    case "pedagogik":
+      return <Lightbulb {...iconProps} />;
+    default:
+      return <FileText {...iconProps} />;
+  }
 }
