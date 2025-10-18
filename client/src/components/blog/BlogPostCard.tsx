@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import { sv } from "date-fns/locale";
-import { getCategoryConfig } from "@/lib/blogConfig";
+import { getCategoryConfig, getCategoryIcon } from "@/lib/blogConfig";
 
 interface BlogPostCardProps {
   id: string;
@@ -26,14 +26,6 @@ export function BlogPostCard({
   href
 }: BlogPostCardProps) {
   const categoryConfig = getCategoryConfig(category);
-  
-  // Generate author initials for avatar placeholder
-  const authorInitials = authorName
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <article className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -78,20 +70,25 @@ export function BlogPostCard({
               </p>
             )}
 
-            {/* Footer: Author + Arrow */}
+            {/* Footer: Category + Arrow */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              {/* Author */}
+              {/* Category with Icon */}
               <div className="flex items-center gap-3">
-                {/* Avatar - placeholder circle with initials */}
+                {/* Category Icon Circle */}
                 <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                  style={{ backgroundColor: categoryConfig?.color || '#6366f1' }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: `${categoryConfig?.color || '#6366f1'}15`,
+                    color: categoryConfig?.color || '#6366f1'
+                  }}
                 >
-                  {authorInitials}
+                  {getCategoryIcon(category, categoryConfig?.color)}
                 </div>
                 
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{authorName}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {categoryConfig?.name || 'Allmänt'}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {format(new Date(publishedAt), 'd MMM yyyy', { locale: sv })}
                   </p>
