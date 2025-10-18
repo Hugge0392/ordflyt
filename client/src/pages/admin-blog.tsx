@@ -274,7 +274,7 @@ export default function AdminBlog() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/admin">
@@ -285,7 +285,7 @@ export default function AdminBlog() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="w-8 h-8 text-purple-600" />
+              <FileText className="w-8 h-8 text-blue-600" />
               Blogg
             </h1>
             <p className="text-gray-600">Hantera blogginlägg och SEO-optimering</p>
@@ -304,7 +304,7 @@ export default function AdminBlog() {
               <div className="flex gap-2">
                 <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+                    <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
                       <Send className="w-4 h-4 mr-2" />
                       Importera HTML
                     </Button>
