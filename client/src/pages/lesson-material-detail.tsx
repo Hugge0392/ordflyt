@@ -141,6 +141,7 @@ export default function LessonMaterialDetail() {
   const handleNewsletterSubscribe = async () => {
     if (!newsletterEmail) return;
     
+    console.log('📧 Newsletter subscribe clicked:', newsletterEmail);
     setIsSubscribing(true);
     try {
       const response = await fetch('/api/newsletter/subscribe', {
@@ -155,15 +156,19 @@ export default function LessonMaterialDetail() {
         }),
       });
 
+      console.log('📬 Newsletter response status:', response.status);
       const data = await response.json().catch(() => ({ message: "Ett fel uppstod" }));
+      console.log('📬 Newsletter response data:', data);
       
       if (response.ok) {
+        console.log('✅ Newsletter subscription successful, showing toast');
         toast({
           title: "Tack!",
           description: data.message || "Du har prenumererat på nyhetsbrev!"
         });
         setNewsletterEmail("");
       } else {
+        console.log('❌ Newsletter subscription failed, showing error toast');
         toast({
           title: "Ett fel uppstod",
           description: data.message || "Kunde inte prenumerera",
@@ -171,6 +176,7 @@ export default function LessonMaterialDetail() {
         });
       }
     } catch (error) {
+      console.error('❌ Newsletter subscription error:', error);
       toast({
         title: "Ett fel uppstod",
         description: "Kunde inte prenumerera på nyhetsbrev",
@@ -178,6 +184,7 @@ export default function LessonMaterialDetail() {
       });
     } finally {
       setIsSubscribing(false);
+      console.log('📧 Newsletter subscribe finished');
     }
   };
 
