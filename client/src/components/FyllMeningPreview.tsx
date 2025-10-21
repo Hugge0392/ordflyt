@@ -25,10 +25,10 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
   const [sentenceStates, setSentenceStates] = useState<SentenceState[]>([]);
   const [wordBank, setWordBank] = useState<string[]>([]);
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const [dragSource, setDragSource] = useState<{ sentenceId: string; blankIndex: number } | null>(null);
   const [hoveredBlank, setHoveredBlank] = useState<{ sentenceId: string; blankIndex: number } | null>(null);
   const [completedAll, setCompletedAll] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [wasDropped, setWasDropped] = useState(false);
 
   // Initialize sentences and word bank
   useEffect(() => {
@@ -134,19 +134,36 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
 
   const handleDragStart = (word: string, fromSentenceId?: string, fromBlankIndex?: number) => {
     setDraggedWord(word);
-    setWasDropped(false); // Reset flag
     
-    // If dragging from a filled blank, remove it from there
+    // Save where the drag started from (but DON'T remove the word yet)
     if (fromSentenceId !== undefined && fromBlankIndex !== undefined) {
+      setDragSource({ sentenceId: fromSentenceId, blankIndex: fromBlankIndex });
+    } else {
+      setDragSource(null); // Dragging from word bank
+    }
+  };
+
+  const handleDragEnd = () => {
+    // Clean up
+    setDraggedWord(null);
+    setHoveredBlank(null);
+    setDragSource(null);
+  };
+
+  const handleDrop = (sentenceId: string, blankIndex: number) => {
+    if (!draggedWord) return;
+
+    // Step 1: Remove word from source (if dragging from another blank)
+    if (dragSource) {
       setSentenceStates(prev => prev.map(sentence => {
-        if (sentence.id !== fromSentenceId) return sentence;
+        if (sentence.id !== dragSource.sentenceId) return sentence;
 
         const newParts = [...sentence.parts];
         let actualBlankIndex = 0;
 
         for (let i = 0; i < newParts.length; i++) {
           if (newParts[i].type === 'blank') {
-            if (actualBlankIndex === fromBlankIndex) {
+            if (actualBlankIndex === dragSource.blankIndex) {
               newParts[i] = {
                 ...newParts[i],
                 filled: undefined,
@@ -169,32 +186,26 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
           isAllCorrect
         };
       }));
+    } else {
+      // Step 1b: Remove from word bank if dragging from there
+      setWordBank(prev => {
+        const index = prev.indexOf(draggedWord);
+        if (index > -1) {
+          const newBank = [...prev];
+          newBank.splice(index, 1);
+          return newBank;
+        }
+        return prev;
+      });
     }
-  };
 
-  const handleDragEnd = () => {
-    // If word was not dropped in a valid location, return it to word bank
-    if (draggedWord && !wasDropped) {
-      setWordBank(prev => [...prev, draggedWord]);
-    }
-    
-    setDraggedWord(null);
-    setHoveredBlank(null);
-    setWasDropped(false);
-  };
-
-  const handleDrop = (sentenceId: string, blankIndex: number) => {
-    if (!draggedWord) return;
-
-    setWasDropped(true); // Mark that the word was successfully dropped
-
+    // Step 2: Place word in target blank
     setSentenceStates(prev => prev.map(sentence => {
       if (sentence.id !== sentenceId) return sentence;
 
       const newParts = [...sentence.parts];
       let actualBlankIndex = 0;
 
-      // Find the actual blank by counting only blank parts
       for (let i = 0; i < newParts.length; i++) {
         if (newParts[i].type === 'blank') {
           if (actualBlankIndex === blankIndex) {
@@ -212,7 +223,6 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
         }
       }
 
-      // Check if sentence is complete
       const blanks = newParts.filter(p => p.type === 'blank');
       const isComplete = blanks.every(b => b.filled !== undefined);
       const isAllCorrect = blanks.every(b => b.isCorrect === true);
@@ -224,20 +234,6 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
         isAllCorrect
       };
     }));
-
-    // Remove word from word bank (if it came from there)
-    setWordBank(prev => {
-      const index = prev.indexOf(draggedWord);
-      if (index > -1) {
-        const newBank = [...prev];
-        newBank.splice(index, 1);
-        return newBank;
-      }
-      return prev;
-    });
-
-    // Don't clear draggedWord here - let handleDragEnd do it
-    // setDraggedWord(null); 
   };
 
   const handleRemoveWord = (sentenceId: string, blankIndex: number) => {
