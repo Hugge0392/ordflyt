@@ -270,7 +270,9 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
     }));
   };
 
-  const showImmediateFeedback = moment.config?.showImmediateFeedback !== false;
+  // Only show feedback when ALL words are placed
+  const allWordsPlaced = sentenceStates.length > 0 && sentenceStates.every(s => s.isComplete);
+  const showFeedback = allWordsPlaced;
 
   if (!moment?.config?.sentences || moment.config.sentences.length === 0) {
     return (
@@ -292,14 +294,16 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
           {moment.config.instruction || 'Dra rätt ord till luckan i meningen'}
         </p>
         
-        {/* Score */}
-        <div className="flex items-center justify-center gap-3">
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            <span className="font-bold text-green-600">{score.correct}</span>
-            <span className="text-gray-500 mx-1">/</span>
-            <span className="text-gray-700">{score.total}</span>
-          </Badge>
-        </div>
+        {/* Score - only show when all words are placed */}
+        {allWordsPlaced && (
+          <div className="flex items-center justify-center gap-3">
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              <span className="font-bold text-green-600">{score.correct}</span>
+              <span className="text-gray-500 mx-1">/</span>
+              <span className="text-gray-700">{score.total}</span>
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* Word Bank */}
@@ -361,7 +365,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                       } else {
                         const currentBlankIndex = blankCounter++;
                         const isFilled = part.filled !== undefined;
-                        const showCorrectness = showImmediateFeedback && isFilled;
+                        const showCorrectness = showFeedback && isFilled;
                         const isHovered = hoveredBlank?.sentenceId === sentence.id && hoveredBlank?.blankIndex === currentBlankIndex;
                         const showPreview = isHovered && draggedWord && !isFilled;
 
