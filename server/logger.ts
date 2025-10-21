@@ -5,14 +5,50 @@ interface LogEntry {
   level: LogLevel;
   message: string;
   data?: any;
+  environment?: string;
+  vercelUrl?: string;
+  deploymentId?: string;
+  region?: string;
+  requestId?: string;
+}
+
+interface LogContext {
+  requestId?: string;
+  userId?: string;
+  path?: string;
+  method?: string;
+  [key: string]: any;
 }
 
 class Logger {
   private logLevel: LogLevel;
+  private isVercel: boolean;
+  private isProduction: boolean;
+  private context: LogContext = {};
 
   constructor() {
+    // Detect environment
+    this.isVercel = process.env.VERCEL === '1';
+    this.isProduction = process.env.NODE_ENV === 'production';
+    
     // Set log level based on environment
-    this.logLevel = process.env.NODE_ENV === 'production' ? 'warn' : 'debug';
+    // In production, log info and above; in development, log debug and above
+    this.logLevel = this.isProduction ? 'info' : 'debug';
+    
+    // Allow override via environment variable
+    if (process.env.LOG_LEVEL) {
+      this.logLevel = process.env.LOG_LEVEL as LogLevel;
+    }
+  }
+
+  // Set context for all subsequent logs (useful for request tracing)
+  setContext(context: LogContext): void {
+    this.context = { ...this.context, ...context };
+  }
+
+  // Clear context
+  clearContext(): void {
+    this.context = {};
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -27,24 +63,59 @@ class Logger {
   }
 
   private formatLog(level: LogLevel, message: string, data?: any): LogEntry {
-    return {
+    const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
-      ...(data && { data })
+      environment: this.isProduction ? 'production' : 'development',
     };
+
+    // Add Vercel-specific metadata if available
+    if (this.isVercel) {
+      entry.vercelUrl = process.env.VERCEL_URL;
+      entry.deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+      entry.region = process.env.VERCEL_REGION;
+    }
+
+    // Add context if available
+    if (Object.keys(this.context).length > 0) {
+      entry.requestId = this.context.requestId;
+      Object.assign(entry, this.context);
+    }
+
+    // Add additional data if provided
+    if (data) {
+      entry.data = data;
+    }
+
+    return entry;
   }
 
   private output(entry: LogEntry): void {
-    const { timestamp, level, message, data } = entry;
-    const logLine = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-
-    if (level === 'error') {
-      console.error(logLine, data || '');
-    } else if (level === 'warn') {
-      console.warn(logLine, data || '');
+    // In Vercel production, use JSON format for better log analysis
+    if (this.isVercel && this.isProduction) {
+      const logJson = JSON.stringify(entry);
+      
+      if (entry.level === 'error') {
+        console.error(logJson);
+      } else if (entry.level === 'warn') {
+        console.warn(logJson);
+      } else {
+        console.log(logJson);
+      }
     } else {
-      console.log(logLine, data || '');
+      // In development, use human-readable format
+      const { timestamp, level, message, data, requestId } = entry;
+      const reqId = requestId ? ` [${requestId}]` : '';
+      const logLine = `[${timestamp}]${reqId} ${level.toUpperCase()}: ${message}`;
+
+      if (level === 'error') {
+        console.error(logLine, data || '');
+      } else if (level === 'warn') {
+        console.warn(logLine, data || '');
+      } else {
+        console.log(logLine, data || '');
+      }
     }
   }
 
@@ -68,8 +139,36 @@ class Logger {
 
   error(message: string, data?: any): void {
     if (this.shouldLog('error')) {
-      this.output(this.formatLog('error', message, data));
+      // Always log errors with full details
+      const errorData = data instanceof Error 
+        ? {
+            message: data.message,
+            stack: data.stack,
+            name: data.name,
+            ...data
+          }
+        : data;
+      
+      this.output(this.formatLog('error', message, errorData));
     }
+  }
+
+  // Utility method to log HTTP requests
+  logRequest(method: string, path: string, statusCode: number, duration: number, userId?: string): void {
+    this.info(`${method} ${path} ${statusCode}`, {
+      method,
+      path,
+      statusCode,
+      duration,
+      userId
+    });
+  }
+
+  // Utility method to create a child logger with specific context
+  child(context: LogContext): Logger {
+    const childLogger = new Logger();
+    childLogger.context = { ...this.context, ...context };
+    return childLogger;
   }
 }
 

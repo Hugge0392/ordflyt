@@ -53,3 +53,4 @@ ADD COLUMN category VARCHAR(50) DEFAULT 'allmant';
 
 Alla befintliga inlägg får automatiskt `category = 'allmant'`.
 
+

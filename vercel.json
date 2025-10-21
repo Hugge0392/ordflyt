@@ -1,6 +1,15 @@
 {
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "NODE_OPTIONS": "--enable-source-maps"
+  },
   "headers": [
     {
       "source": "/(.*).html",

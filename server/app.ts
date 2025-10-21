@@ -5,9 +5,12 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import authRoutes from "./authRoutes";
 import licenseRoutes from './licenseRoutes';
+import debugRoutes from './routes/debugRoutes';
 import { securityHeaders, apiRateLimit } from "./auth";
 import { initializeDatabase } from "./initDatabase";
 import { startAutomaticBackups } from "./licenseDb";
+import { requestLogger, errorLogger } from './middleware/requestLogger';
+import { logger } from './logger';
 
 let appInstance: express.Application | null = null;
 let initPromise: Promise<express.Application> | null = null;
@@ -26,6 +29,9 @@ export async function getApp(): Promise<express.Application> {
     // Trust proxy for production environment
     app.set('trust proxy', true);
 
+    // Request logging middleware (before everything else)
+    app.use(requestLogger);
+
     // Security headers first
     app.use(securityHeaders);
 
@@ -38,6 +44,9 @@ export async function getApp(): Promise<express.Application> {
 
     // Rate limiting for API endpoints
     app.use('/api/', apiRateLimit);
+
+    // Debug routes (must be after rate limiting but accessible)
+    app.use('/api/debug', debugRoutes);
 
     // Authentication routes (before other routes)
     app.use(authRoutes);
@@ -52,9 +61,9 @@ export async function getApp(): Promise<express.Application> {
     const isServerless = process.env.VERCEL === '1';
     if (!isServerless) {
       startAutomaticBackups();
-      console.log('🔐 Automatic backups enabled');
+      logger.info('🔐 Automatic backups enabled');
     } else {
-      console.log('ℹ️ Automatic backups disabled (serverless environment)');
+      logger.info('ℹ️ Automatic backups disabled (serverless environment)');
     }
 
     // Register all routes
@@ -63,10 +72,23 @@ export async function getApp(): Promise<express.Application> {
     // Serve static files in production
     serveStatic(app);
 
+    // Error logging middleware
+    app.use(errorLogger);
+
     // Error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
+      
+      // Log error if not already logged
+      logger.error('Unhandled error', {
+        status,
+        message,
+        stack: err.stack,
+        url: _req.url,
+        method: _req.method
+      });
+
       res.status(status).json({ message });
     });
 
