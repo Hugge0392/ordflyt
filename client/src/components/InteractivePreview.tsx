@@ -11,6 +11,7 @@ import {
 } from "@/components/GamePreviews";
 import Piratgrav from "@/components/Piratgrav";
 import { Slutdiplom } from "@/components/Slutdiplom";
+import { FyllMeningPreview } from "@/components/FyllMeningPreview";
 import beachBackground from "@assets/backgrounds/beach.webp";
 import TabellenGame from "@/components/TabellenGame";
 
@@ -1004,6 +1005,9 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
             <Button onClick={onNext}>Fortsätt</Button>
           </div>
         );
+
+      case 'fyll-mening':
+        return <FyllMeningPreview moment={moment} onNext={onNext} />;
 
       default:
         return (

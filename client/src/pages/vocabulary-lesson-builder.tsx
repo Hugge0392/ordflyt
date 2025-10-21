@@ -621,42 +621,251 @@ export default function VocabularyLessonBuilder() {
         );
 
       case 'fyll-mening':
+        const addSentence = () => {
+          const sentences = moment.config.sentences || [];
+          const newSentence = {
+            id: `sentence-${Date.now()}`,
+            text: '',
+            blanks: [], // Array of { position: number, correctAnswer: string }
+            order: sentences.length
+          };
+          updateMomentConfig(moment.id, { 
+            ...moment.config, 
+            sentences: [...sentences, newSentence] 
+          });
+        };
+
+        const updateSentence = (sentenceId: string, updates: any) => {
+          const sentences = moment.config.sentences || [];
+          const newSentences = sentences.map((s: any) => 
+            s.id === sentenceId ? { ...s, ...updates } : s
+          );
+          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+        };
+
+        const removeSentence = (sentenceId: string) => {
+          const sentences = moment.config.sentences || [];
+          const newSentences = sentences.filter((s: any) => s.id !== sentenceId);
+          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
+        };
+
+        // Auto-generate word bank from correct answers
+        const autoGenerateWordBank = () => {
+          const sentences = moment.config.sentences || [];
+          const correctWords: string[] = [];
+          
+          sentences.forEach((sentence: any) => {
+            const text = sentence.text || '';
+            // Find words in [...] brackets
+            const matches = text.match(/\[([^\]]+)\]/g);
+            if (matches) {
+              matches.forEach((match: string) => {
+                const word = match.slice(1, -1).trim();
+                if (word && !correctWords.includes(word)) {
+                  correctWords.push(word);
+                }
+              });
+            }
+          });
+
+          return correctWords;
+        };
+
+        const currentWordBank = moment.config.wordBank || autoGenerateWordBank();
+        const distractors = moment.config.distractors || [];
+
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <Label>Instruktion</Label>
               <Input
-                value={moment.config.instruction || 'Fyll i den rätta meningen'}
+                value={moment.config.instruction || 'Dra rätt ord till luckan i meningen'}
                 onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, instruction: e.target.value })}
-                placeholder="Fyll i rätt ord"
+                placeholder="Dra rätt ord till luckan"
               />
             </div>
-            <div>
-              <Label>Mening (använd _ för luckor)</Label>
-              <Textarea
-                value={moment.config.sentence}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, sentence: e.target.value })}
-                placeholder="Hunden _ i skogen. (springer)"
-                className="min-h-[100px]"
-              />
-              <p className="text-sm text-gray-500 mt-1">Tips: Använd understreck (_) där eleven ska fylla i ord</p>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-semibold">Meningar med luckor</Label>
+                <Button size="sm" onClick={addSentence} variant="outline">
+                  + Lägg till mening
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                💡 Skriv ord inom hakparenteser [...] för att skapa luckor. 
+                Exempel: "Jag har [ont] idag" eller "Katten [sitter] på [mattan]"
+              </p>
+
+              {(!moment.config.sentences || moment.config.sentences.length === 0) && (
+                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed">
+                  <p className="text-gray-500 mb-2">Inga meningar ännu</p>
+                  <Button size="sm" onClick={addSentence}>
+                    Skapa första meningen
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {(moment.config.sentences || []).map((sentence: any, index: number) => (
+                  <Card key={sentence.id}>
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <Badge variant="outline">Mening {index + 1}</Badge>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => removeSentence(sentence.id)}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm">Mening med luckor</Label>
+                          <Textarea
+                            value={sentence.text}
+                            onChange={(e) => updateSentence(sentence.id, { text: e.target.value })}
+                            placeholder="Exempel: Jag har [ont] idag, eller: Katten [sitter] på [mattan]"
+                            className="min-h-[80px] font-mono"
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Preview how it will look */}
+                        {sentence.text && (
+                          <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                            <Label className="text-xs text-blue-700 mb-2 block">Förhandsvisning:</Label>
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {sentence.text.split(/(\[[^\]]+\])/).map((part: string, i: number) => {
+                                if (part.match(/\[([^\]]+)\]/)) {
+                                  const word = part.slice(1, -1);
+                                  return (
+                                    <span 
+                                      key={i} 
+                                      className="inline-flex items-center gap-1 px-3 py-1 bg-white border-2 border-dashed border-blue-400 rounded text-blue-700 font-medium"
+                                    >
+                                      <span className="text-xs">📍</span> {word}
+                                    </span>
+                                  );
+                                }
+                                return <span key={i} className="text-gray-700">{part}</span>;
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-            <div>
-              <Label>Rätt svar (separera med komma)</Label>
-              <Input
-                value={moment.config.correctAnswers || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, correctAnswers: e.target.value })}
-                placeholder="springer, äter, leker"
-              />
+
+            {/* Word Bank Configuration */}
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold mb-3 block">Ordbank</Label>
+              
+              {/* Auto-detected correct words */}
+              <div className="mb-4">
+                <Label className="text-sm text-green-700 mb-2 block">✅ Rätt ord (automatiskt funna):</Label>
+                <div className="flex flex-wrap gap-2 p-3 bg-green-50 rounded border border-green-200">
+                  {currentWordBank.length > 0 ? (
+                    currentWordBank.map((word: string) => (
+                      <Badge key={word} className="bg-green-100 text-green-800 border-green-300">
+                        {word}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-500 italic">
+                      Lägg till meningar med ord inom [...] för att generera ordbank
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Distractors */}
+              <div>
+                <Label className="text-sm text-orange-700 mb-2 block">❌ Distraktorer (felaktiga alternativ):</Label>
+                <Input
+                  value={distractors.join(', ')}
+                  onChange={(e) => updateMomentConfig(moment.id, { 
+                    ...moment.config, 
+                    distractors: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) 
+                  })}
+                  placeholder="lätt, snabbt, gärna, aldrig"
+                  className="mb-2"
+                />
+                <p className="text-xs text-gray-500">
+                  Lägg till ord som INTE passar, för att göra övningen svårare
+                </p>
+                
+                {distractors.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-orange-50 rounded border border-orange-200 mt-2">
+                    {distractors.map((word: string) => (
+                      <Badge key={word} className="bg-orange-100 text-orange-800 border-orange-300">
+                        {word}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Complete word bank preview */}
+              {(currentWordBank.length > 0 || distractors.length > 0) && (
+                <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded">
+                  <Label className="text-sm text-purple-700 mb-2 block">
+                    🎯 Komplett ordbank (som eleven ser):
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {[...currentWordBank, ...distractors].sort(() => Math.random() - 0.5).map((word: string, i: number) => (
+                      <span 
+                        key={i}
+                        className="px-3 py-2 bg-white border-2 border-purple-300 rounded font-medium text-gray-700 shadow-sm"
+                      >
+                        {word}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <Label>Ordbanks ord (separera med komma)</Label>
-              <Input
-                value={moment.config.options?.join(', ') || ''}
-                onChange={(e) => updateMomentConfig(moment.id, { ...moment.config, options: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) })}
-                placeholder="springer, går, äter, dricker, leker"
-              />
-              <p className="text-sm text-gray-500 mt-1">Inkludera både rätt och fel alternativ</p>
+
+            {/* Settings */}
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold mb-3 block">Inställningar</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Visa feedback direkt</Label>
+                    <p className="text-xs text-gray-500">Visa om svaret är rätt/fel när eleven drar ordet</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={moment.config.showImmediateFeedback !== false}
+                    onChange={(e) => updateMomentConfig(moment.id, { 
+                      ...moment.config, 
+                      showImmediateFeedback: e.target.checked 
+                    })}
+                    className="w-4 h-4"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Blanda meningarnas ordning</Label>
+                    <p className="text-xs text-gray-500">Visa meningarna i slumpmässig ordning</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={moment.config.shuffleSentences === true}
+                    onChange={(e) => updateMomentConfig(moment.id, { 
+                      ...moment.config, 
+                      shuffleSentences: e.target.checked 
+                    })}
+                    className="w-4 h-4"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         );
