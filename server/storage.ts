@@ -5,6 +5,10 @@ import {
   type ErrorReport,
   type PublishedLesson,
   type LessonDraft,
+  type VocabularyPublishedLesson,
+  type VocabularyLessonDraft,
+  type InsertVocabularyPublishedLesson,
+  type InsertVocabularyLessonDraft,
   type ReadingLesson,
   type Word,
   type InsertSentence,
@@ -80,7 +84,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, and, isNull, isNotNull, gte, lte, sql, or } from "drizzle-orm";
-import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity, vocabularySets, vocabularyWords, vocabularyExercises, vocabularyAttempts, flashcardProgress, flashcardStreaks, flashcardSessions } from "@shared/schema";
+import { wordClasses, sentences, gameProgresses, errorReports, publishedLessons, lessonDrafts, vocabularyPublishedLessons, vocabularyLessonDrafts, readingLessons, klassKampGames, klassKampPlayers, klassKampAnswers, lessonAssignments, studentLessonProgress, teacherFeedback, exportJobs, exportTemplates, exportHistory, teacherClasses, studentAccounts, users, schools, passwordResetTokens, studentProgress, studentActivity, vocabularySets, vocabularyWords, vocabularyExercises, vocabularyAttempts, flashcardProgress, flashcardStreaks, flashcardSessions } from "@shared/schema";
 
 export interface IStorage {
   getWordClasses(): Promise<WordClass[]>;
@@ -123,6 +127,21 @@ export interface IStorage {
   getLessonDraft(id: string): Promise<LessonDraft | undefined>;
   updateLessonDraft(id: string, draft: Partial<InsertLessonDraft>): Promise<LessonDraft>;
   deleteLessonDraft(id: string): Promise<void>;
+
+  // Vocabulary published lesson methods
+  createVocabularyPublishedLesson(lesson: InsertVocabularyPublishedLesson): Promise<VocabularyPublishedLesson>;
+  getVocabularyPublishedLessons(): Promise<VocabularyPublishedLesson[]>;
+  getVocabularyPublishedLesson(id: string): Promise<VocabularyPublishedLesson | undefined>;
+  getVocabularyPublishedLessonsByCategory(category: string): Promise<VocabularyPublishedLesson[]>;
+  updateVocabularyPublishedLesson(id: string, lesson: Partial<InsertVocabularyPublishedLesson>): Promise<VocabularyPublishedLesson>;
+  deleteVocabularyPublishedLesson(id: string): Promise<void>;
+
+  // Vocabulary draft lesson methods
+  createVocabularyLessonDraft(draft: InsertVocabularyLessonDraft): Promise<VocabularyLessonDraft>;
+  getVocabularyLessonDrafts(): Promise<VocabularyLessonDraft[]>;
+  getVocabularyLessonDraft(id: string): Promise<VocabularyLessonDraft | undefined>;
+  updateVocabularyLessonDraft(id: string, draft: Partial<InsertVocabularyLessonDraft>): Promise<VocabularyLessonDraft>;
+  deleteVocabularyLessonDraft(id: string): Promise<void>;
 
   // Reading lesson methods
   createReadingLesson(lesson: InsertReadingLesson): Promise<ReadingLesson>;
@@ -1614,6 +1633,73 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLessonDraft(id: string): Promise<void> {
     await db.delete(lessonDrafts).where(eq(lessonDrafts.id, id));
+  }
+
+  // Vocabulary published lesson methods
+  async createVocabularyPublishedLesson(lesson: InsertVocabularyPublishedLesson): Promise<VocabularyPublishedLesson> {
+    const [newLesson] = await db.insert(vocabularyPublishedLessons).values(lesson).returning();
+    return newLesson;
+  }
+
+  async getVocabularyPublishedLessons(): Promise<VocabularyPublishedLesson[]> {
+    return await db.select().from(vocabularyPublishedLessons);
+  }
+
+  async getVocabularyPublishedLesson(id: string): Promise<VocabularyPublishedLesson | undefined> {
+    const result = await db.select().from(vocabularyPublishedLessons).where(eq(vocabularyPublishedLessons.id, id));
+    return result[0];
+  }
+
+  async getVocabularyPublishedLessonsByCategory(category: string): Promise<VocabularyPublishedLesson[]> {
+    return await db.select().from(vocabularyPublishedLessons).where(eq(vocabularyPublishedLessons.category, category));
+  }
+
+  async updateVocabularyPublishedLesson(id: string, lesson: Partial<InsertVocabularyPublishedLesson>): Promise<VocabularyPublishedLesson> {
+    const [updatedLesson] = await db.update(vocabularyPublishedLessons)
+      .set({ ...lesson, updatedAt: new Date() })
+      .where(eq(vocabularyPublishedLessons.id, id))
+      .returning();
+    return updatedLesson;
+  }
+
+  async deleteVocabularyPublishedLesson(id: string): Promise<void> {
+    await db.delete(vocabularyPublishedLessons).where(eq(vocabularyPublishedLessons.id, id));
+  }
+
+  // Vocabulary draft lesson methods
+  async createVocabularyLessonDraft(draft: InsertVocabularyLessonDraft): Promise<VocabularyLessonDraft> {
+    const draftData = this.convertTimestamps({
+      ...draft,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    const [newDraft] = await db.insert(vocabularyLessonDrafts).values(draftData).returning();
+    return newDraft;
+  }
+
+  async getVocabularyLessonDrafts(): Promise<VocabularyLessonDraft[]> {
+    return await db.select().from(vocabularyLessonDrafts).orderBy(vocabularyLessonDrafts.updatedAt);
+  }
+
+  async getVocabularyLessonDraft(id: string): Promise<VocabularyLessonDraft | undefined> {
+    const [draft] = await db.select().from(vocabularyLessonDrafts).where(eq(vocabularyLessonDrafts.id, id));
+    return draft;
+  }
+
+  async updateVocabularyLessonDraft(id: string, draft: Partial<InsertVocabularyLessonDraft>): Promise<VocabularyLessonDraft> {
+    const updateData = this.convertTimestamps({
+      ...draft,
+      updatedAt: new Date()
+    });
+    const [updatedDraft] = await db.update(vocabularyLessonDrafts)
+      .set(updateData)
+      .where(eq(vocabularyLessonDrafts.id, id))
+      .returning();
+    return updatedDraft;
+  }
+
+  async deleteVocabularyLessonDraft(id: string): Promise<void> {
+    await db.delete(vocabularyLessonDrafts).where(eq(vocabularyLessonDrafts.id, id));
   }
 
   // Reading lesson methods

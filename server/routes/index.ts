@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import gameRoutes from './gameRoutes';
 import sentenceRoutes from './sentenceRoutes';
+import vocabularyLessonRoutes from './vocabularyLessonRoutes';
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -23,6 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register modular routes
   app.use('/api', gameRoutes);
   app.use('/api', sentenceRoutes);
+  app.use('/api', vocabularyLessonRoutes);
 
   // For now, also register the original routes to avoid breaking anything
   // TODO: Remove this once all routes are migrated

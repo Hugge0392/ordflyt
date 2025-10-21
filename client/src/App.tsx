@@ -45,6 +45,7 @@ import AvatarBuilder from "@/pages/avatar-builder";
 import RoomDecorator from "@/pages/room-decorator";
 import PirateCourse from "@/pages/pirate-course";
 import LessonBuilder from "@/pages/lesson-builder";
+import VocabularyLessonBuilder from "@/pages/vocabulary-lesson-builder";
 import LessonPlayer from "@/pages/lesson-player";
 import AssignmentPlayer from "@/pages/assignment-player";
 import PublishedLessonPage from "@/pages/lesson-player-published";
@@ -420,6 +421,11 @@ function Router() {
       <Route path="/lesson-builder">
         <ProtectedRoute allowedRoles={["ADMIN"]}>
           <LessonBuilder />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/vocabulary-lesson-builder">
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <VocabularyLessonBuilder />
         </ProtectedRoute>
       </Route>
       <Route path="/admin/reading/create">

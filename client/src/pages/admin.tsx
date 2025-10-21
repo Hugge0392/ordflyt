@@ -785,6 +785,21 @@ export default function Admin() {
                       </Card>
                     </Link>
 
+                    {/* Vocabulary Lesson Builder */}
+                    <Link href="/vocabulary-lesson-builder">
+                      <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-pink-200 hover:border-pink-300">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col items-center text-center space-y-2">
+                            <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                              <BookOpen className="w-6 h-6 text-pink-600" />
+                            </div>
+                            <h3 className="font-semibold text-sm">Ordkunskap</h3>
+                            <p className="text-xs text-gray-500">Skapa ordkunskapslektioner</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
                     {/* Lesson Builder */}
                     <Link href="/admin/lessons">
                       <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group border-orange-200 hover:border-orange-300">

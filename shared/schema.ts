@@ -585,6 +585,54 @@ export const insertLessonDraftSchema = createInsertSchema(lessonDrafts).omit({
 export type LessonDraft = typeof lessonDrafts.$inferSelect;
 export type InsertLessonDraft = z.infer<typeof insertLessonDraftSchema>;
 
+// Vocabulary lessons - published
+export const vocabularyPublishedLessons = pgTable("vocabulary_published_lessons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: varchar("description"),
+  category: varchar("category"), // e.g., "Djur", "Mat och dryck"
+  difficulty: varchar("difficulty").default("medium"),
+  background: varchar("background").default("beach"),
+  content: jsonb("content").notNull(),
+  fileName: varchar("file_name"),
+  filePath: varchar("file_path"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertVocabularyPublishedLessonSchema = createInsertSchema(vocabularyPublishedLessons).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  fileName: true,
+  filePath: true,
+});
+
+export type VocabularyPublishedLesson = typeof vocabularyPublishedLessons.$inferSelect;
+export type InsertVocabularyPublishedLesson = z.infer<typeof insertVocabularyPublishedLessonSchema>;
+
+// Vocabulary lesson drafts
+export const vocabularyLessonDrafts = pgTable("vocabulary_lesson_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  description: varchar("description"),
+  category: varchar("category"),
+  difficulty: varchar("difficulty").default("medium"),
+  background: varchar("background").default("beach"),
+  content: jsonb("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertVocabularyLessonDraftSchema = createInsertSchema(vocabularyLessonDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type VocabularyLessonDraft = typeof vocabularyLessonDrafts.$inferSelect;
+export type InsertVocabularyLessonDraft = z.infer<typeof insertVocabularyLessonDraftSchema>;
+
 // Rich document types for ProseMirror format
 export interface RichDoc {
   type: string;

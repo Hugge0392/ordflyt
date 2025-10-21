@@ -68,6 +68,28 @@ export default function AdminLessons() {
             </Card>
           </Link>
 
+          <Link href="/vocabulary-lesson-builder">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl">Ordkunskap</CardTitle>
+                <CardDescription>
+                  Skapa lektioner för att utveckla ordförråd
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>• Förklarande texter</div>
+                  <div>• Dialog med figurer</div>
+                  <div>• Fyll-i-övningar</div>
+                  <div>• Fokus på nya ord</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link href="/admin/lesson-templates">
             <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
               <CardHeader className="text-center">
