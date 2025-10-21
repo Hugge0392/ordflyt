@@ -150,7 +150,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
     setDragSource(null);
   };
 
-  const handleDrop = (sentenceId: string, blankIndex: number) => {
+  const handleDropToBlank = (sentenceId: string, blankIndex: number) => {
     if (!draggedWord) return;
 
     // Step 1: Remove word from source (if dragging from another blank)
@@ -236,6 +236,49 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
     }));
   };
 
+  const handleDropToWordBank = () => {
+    if (!draggedWord) return;
+    
+    // Only allow dropping back to word bank if it came from a blank
+    if (!dragSource) return; // Already in word bank
+    
+    // Remove word from the blank it came from
+    setSentenceStates(prev => prev.map(sentence => {
+      if (sentence.id !== dragSource.sentenceId) return sentence;
+
+      const newParts = [...sentence.parts];
+      let actualBlankIndex = 0;
+
+      for (let i = 0; i < newParts.length; i++) {
+        if (newParts[i].type === 'blank') {
+          if (actualBlankIndex === dragSource.blankIndex) {
+            newParts[i] = {
+              ...newParts[i],
+              filled: undefined,
+              isCorrect: undefined
+            };
+            break;
+          }
+          actualBlankIndex++;
+        }
+      }
+
+      const blanks = newParts.filter(p => p.type === 'blank');
+      const isComplete = blanks.every(b => b.filled !== undefined);
+      const isAllCorrect = blanks.every(b => b.isCorrect === true);
+
+      return {
+        ...sentence,
+        parts: newParts,
+        isComplete,
+        isAllCorrect
+      };
+    }));
+    
+    // Add word back to word bank
+    setWordBank(prev => [...prev, draggedWord]);
+  };
+
   const handleRemoveWord = (sentenceId: string, blankIndex: number) => {
     setSentenceStates(prev => prev.map(sentence => {
       if (sentence.id !== sentenceId) return sentence;
@@ -314,7 +357,11 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
       </div>
 
       {/* Word Bank */}
-      <div className="mb-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-6">
+      <div 
+        className="mb-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-6"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDropToWordBank}
+      >
         <div className="text-center mb-4">
           <h3 className="text-lg font-semibold text-purple-800 inline-flex items-center gap-2">
             <span>📚</span> Ordbank
@@ -396,7 +443,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                               }
                             }}
                             onDrop={() => {
-                              handleDrop(sentence.id, currentBlankIndex);
+                              handleDropToBlank(sentence.id, currentBlankIndex);
                               setHoveredBlank(null);
                             }}
                             className={`
