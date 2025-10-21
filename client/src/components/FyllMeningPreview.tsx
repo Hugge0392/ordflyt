@@ -131,12 +131,48 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
 
   }, [sentenceStates]);
 
-  const handleDragStart = (word: string) => {
+  const handleDragStart = (word: string, fromSentenceId?: string, fromBlankIndex?: number) => {
     setDraggedWord(word);
+    
+    // If dragging from a filled blank, remove it from there
+    if (fromSentenceId !== undefined && fromBlankIndex !== undefined) {
+      setSentenceStates(prev => prev.map(sentence => {
+        if (sentence.id !== fromSentenceId) return sentence;
+
+        const newParts = [...sentence.parts];
+        let actualBlankIndex = 0;
+
+        for (let i = 0; i < newParts.length; i++) {
+          if (newParts[i].type === 'blank') {
+            if (actualBlankIndex === fromBlankIndex) {
+              newParts[i] = {
+                ...newParts[i],
+                filled: undefined,
+                isCorrect: undefined
+              };
+              break;
+            }
+            actualBlankIndex++;
+          }
+        }
+
+        const blanks = newParts.filter(p => p.type === 'blank');
+        const isComplete = blanks.every(b => b.filled !== undefined);
+        const isAllCorrect = blanks.every(b => b.isCorrect === true);
+
+        return {
+          ...sentence,
+          parts: newParts,
+          isComplete,
+          isAllCorrect
+        };
+      }));
+    }
   };
 
   const handleDragEnd = () => {
     setDraggedWord(null);
+    setHoveredBlank(null);
   };
 
   const handleDrop = (sentenceId: string, blankIndex: number) => {
@@ -370,7 +406,12 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                             `}
                           >
                             {isFilled ? (
-                              <div className="flex items-center gap-2">
+                              <div 
+                                draggable
+                                onDragStart={() => handleDragStart(part.filled!, sentence.id, currentBlankIndex)}
+                                onDragEnd={handleDragEnd}
+                                className="flex items-center gap-2 cursor-move hover:scale-105 transition-transform"
+                              >
                                 <span className="font-medium text-gray-800">
                                   {part.filled}
                                 </span>
@@ -381,12 +422,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                                     <XCircle className="w-5 h-5 text-red-600" />
                                   )
                                 )}
-                                <button
-                                  onClick={() => handleRemoveWord(sentence.id, currentBlankIndex)}
-                                  className="ml-1 text-gray-400 hover:text-red-600 text-sm font-bold"
-                                >
-                                  ✕
-                                </button>
+                                <span className="text-xs text-gray-400 ml-1">↔️</span>
                               </div>
                             ) : showPreview ? (
                               <div className="flex items-center gap-2">
@@ -488,7 +524,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
       {/* Instructions */}
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>💡 Tips: Dra ord från ordbanken till luckorna i meningarna</p>
-        <p>Klicka på ✕ för att ta bort ett ord och flytta tillbaka det till ordbanken</p>
+        <p>↔️ Du kan dra orden mellan rutorna för att byta plats</p>
       </div>
     </div>
   );
