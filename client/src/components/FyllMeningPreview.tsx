@@ -153,62 +153,31 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
   const handleDropToBlank = (sentenceId: string, blankIndex: number) => {
     if (!draggedWord) return;
 
-    // Step 1: Remove word from source (if dragging from another blank)
-    if (dragSource) {
-      setSentenceStates(prev => prev.map(sentence => {
-        if (sentence.id !== dragSource.sentenceId) return sentence;
-
-        const newParts = [...sentence.parts];
-        let actualBlankIndex = 0;
-
-        for (let i = 0; i < newParts.length; i++) {
-          if (newParts[i].type === 'blank') {
-            if (actualBlankIndex === dragSource.blankIndex) {
-              newParts[i] = {
-                ...newParts[i],
-                filled: undefined,
-                isCorrect: undefined
-              };
-              break;
-            }
-            actualBlankIndex++;
+    // First, check what word is in the target blank (if any)
+    let targetWord: string | undefined = undefined;
+    const targetSentence = sentenceStates.find(s => s.id === sentenceId);
+    if (targetSentence) {
+      let counter = 0;
+      for (const part of targetSentence.parts) {
+        if (part.type === 'blank') {
+          if (counter === blankIndex) {
+            targetWord = part.filled;
+            break;
           }
+          counter++;
         }
-
-        const blanks = newParts.filter(p => p.type === 'blank');
-        const isComplete = blanks.every(b => b.filled !== undefined);
-        const isAllCorrect = blanks.every(b => b.isCorrect === true);
-
-        return {
-          ...sentence,
-          parts: newParts,
-          isComplete,
-          isAllCorrect
-        };
-      }));
-    } else {
-      // Step 1b: Remove from word bank if dragging from there
-      setWordBank(prev => {
-        const index = prev.indexOf(draggedWord);
-        if (index > -1) {
-          const newBank = [...prev];
-          newBank.splice(index, 1);
-          return newBank;
-        }
-        return prev;
-      });
+      }
     }
 
-    // Step 2: Place word in target blank
+    // Update all sentences in one go
     setSentenceStates(prev => prev.map(sentence => {
-      if (sentence.id !== sentenceId) return sentence;
-
       const newParts = [...sentence.parts];
       let actualBlankIndex = 0;
 
       for (let i = 0; i < newParts.length; i++) {
         if (newParts[i].type === 'blank') {
-          if (actualBlankIndex === blankIndex) {
+          // If this is the target blank, place draggedWord here
+          if (sentence.id === sentenceId && actualBlankIndex === blankIndex) {
             const part = newParts[i];
             const isCorrect = part.content === draggedWord;
             
@@ -217,8 +186,29 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
               filled: draggedWord,
               isCorrect
             };
-            break;
           }
+          // If this is the source blank (where draggedWord came from)
+          else if (dragSource && sentence.id === dragSource.sentenceId && actualBlankIndex === dragSource.blankIndex) {
+            const part = newParts[i];
+            
+            if (targetWord) {
+              // SWAP: Place the target word here
+              const isCorrect = part.content === targetWord;
+              newParts[i] = {
+                ...part,
+                filled: targetWord,
+                isCorrect
+              };
+            } else {
+              // No swap, just empty the source
+              newParts[i] = {
+                ...part,
+                filled: undefined,
+                isCorrect: undefined
+              };
+            }
+          }
+          
           actualBlankIndex++;
         }
       }
@@ -234,6 +224,25 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
         isAllCorrect
       };
     }));
+
+    // If dragging from word bank (not from a blank), remove from word bank
+    if (!dragSource) {
+      setWordBank(prev => {
+        const index = prev.indexOf(draggedWord);
+        if (index > -1) {
+          const newBank = [...prev];
+          newBank.splice(index, 1);
+          
+          // If target had a word, add it to word bank
+          if (targetWord) {
+            newBank.push(targetWord);
+          }
+          
+          return newBank;
+        }
+        return prev;
+      });
+    }
   };
 
   const handleDropToWordBank = () => {
@@ -428,7 +437,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                             key={partIndex}
                             onDragOver={(e) => {
                               e.preventDefault();
-                              if (!isFilled && draggedWord) {
+                              if (draggedWord) {
                                 setHoveredBlank({ sentenceId: sentence.id, blankIndex: currentBlankIndex });
                               }
                             }}
@@ -451,14 +460,14 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                               min-w-[120px] px-4 py-2 rounded-lg
                               border-2
                               transition-all duration-200
-                              ${isFilled 
-                                ? showCorrectness
-                                  ? part.isCorrect
-                                    ? 'bg-green-50 border-green-400 border-solid'
-                                    : 'bg-red-50 border-red-400 border-solid'
-                                  : 'bg-blue-50 border-blue-400 border-solid'
-                                : isHovered
-                                  ? 'bg-purple-100 border-purple-500 border-solid shadow-lg scale-105 ring-2 ring-purple-300'
+                              ${isHovered && draggedWord
+                                ? 'bg-yellow-100 border-yellow-500 border-solid shadow-lg scale-105 ring-2 ring-yellow-300'
+                                : isFilled 
+                                  ? showCorrectness
+                                    ? part.isCorrect
+                                      ? 'bg-green-50 border-green-400 border-solid'
+                                      : 'bg-red-50 border-red-400 border-solid'
+                                    : 'bg-blue-50 border-blue-400 border-solid'
                                   : 'bg-gray-50 border-gray-300 border-dashed hover:border-purple-400 hover:bg-purple-50'
                               }
                             `}
@@ -582,7 +591,8 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
       {/* Instructions */}
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>💡 Tips: Dra ord från ordbanken till luckorna i meningarna</p>
-        <p>↔️ Du kan dra orden mellan rutorna för att byta plats</p>
+        <p>🔄 Dra ett ord till en fylld ruta för att byta plats på orden</p>
+        <p>↔️ Dra tillbaka till ordbanken för att ta bort ett ord från en ruta</p>
       </div>
     </div>
   );
