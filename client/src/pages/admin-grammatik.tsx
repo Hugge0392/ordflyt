@@ -24,15 +24,37 @@ export default function AdminGrammatik() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/grammatik">
+          <Link href="/lesson-builder">
             <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
               <CardHeader className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <PenTool className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl">Grammatikövningar</CardTitle>
+                <CardTitle className="text-xl">Skapa Lektioner</CardTitle>
                 <CardDescription>
-                  Ordklassidentifiering och interaktiva grammatikspel
+                  Memory, Piratgräv, Korsord och alla dina grammatikspel
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>• 🃏 Memory-spel</div>
+                  <div>• 🏴‍☠️ Piratgräv</div>
+                  <div>• 🔤 Korsord</div>
+                  <div>• 🐉 Ordklassdrak & mer</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/grammatik">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl">Spela grammatikövningar</CardTitle>
+                <CardDescription>
+                  Testa publicerade lektioner och ordklassträning
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -41,28 +63,6 @@ export default function AdminGrammatik() {
                   <div>• Interaktiva meningar</div>
                   <div>• Progressionssystem</div>
                   <div>• Tidstester och quiz</div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/admin/sentences">
-            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <BookOpen className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl">Hantera meningar</CardTitle>
-                <CardDescription>
-                  Lägg till och redigera övningsmeningar för grammatikspel
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div>• Skapa nya meningar</div>
-                  <div>• Märk upp ordklasser</div>
-                  <div>• Organisera efter svårighetsgrad</div>
-                  <div>• Validera grammatik</div>
                 </div>
               </CardContent>
             </Card>

@@ -247,12 +247,12 @@ export default function Menu() {
         {/* Admin Panel Section */}
         <section className="mb-16">
           <div className="max-w-md mx-auto">
-            <Link href="/admin">
+            <Link href="/lesson-builder">
               <div className="bg-gray-600 hover:bg-gray-700 text-white p-6 rounded-xl shadow-xl transform hover:scale-105 transition-all duration-200 text-center">
-                <div className="text-3xl mb-3">⚙️</div>
-                <h3 className="text-xl font-bold mb-2">Adminpanel</h3>
+                <div className="text-3xl mb-3">🎮</div>
+                <h3 className="text-xl font-bold mb-2">Skapa Lektioner</h3>
                 <p className="text-sm opacity-90">
-                  Hantera meningar och ordklasser
+                  Memory, Piratgräv, Korsord & mer
                 </p>
               </div>
             </Link>
