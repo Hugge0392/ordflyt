@@ -14,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CharacterLibrary } from "@/components/CharacterLibrary";
 import { InteractivePreview } from "@/components/InteractivePreview";
+import { CrosswordBuilder, type CrosswordClue } from "@/components/CrosswordBuilder";
 import { BookOpen, Play, Save, Upload, Download, Plus, Trash2, GripVertical, ArrowLeft } from "lucide-react";
 
 interface VocabularyMoment {
   id: string;
-  type: 'textruta' | 'pratbubbla' | 'fyll-mening';
+  type: 'textruta' | 'pratbubbla' | 'fyll-mening' | 'korsord';
   title: string;
   order: number;
   config: any;
@@ -36,6 +37,7 @@ const MOMENT_TYPES = [
   { id: 'textruta', name: 'Textruta', icon: '📝', description: 'Förklarande text med fortsätt-knapp' },
   { id: 'pratbubbla', name: 'Pratbubbla', icon: '💬', description: 'Dialog med figur och frågor' },
   { id: 'fyll-mening', name: 'Fyll i meningen', icon: '✍️', description: 'Övning där eleven fyller i rätt ord' },
+  { id: 'korsord', name: 'Korsord', icon: '🔤', description: 'Interaktivt korsord med ledtrådar' },
 ];
 
 const VOCABULARY_CATEGORIES = [
@@ -881,6 +883,29 @@ export default function VocabularyLessonBuilder() {
                 </div>
               </div>
             </div>
+          </div>
+        );
+
+      case 'korsord':
+        return (
+          <div className="space-y-4">
+            <CrosswordBuilder
+              clues={moment.config.clues || []}
+              onCluesUpdate={(clues) => {
+                updateMomentConfig(moment.id, {
+                  ...moment.config,
+                  clues
+                });
+              }}
+              initialGrid={moment.config.grid || []}
+              onGridUpdate={(grid) => {
+                updateMomentConfig(moment.id, {
+                  ...moment.config,
+                  grid
+                });
+              }}
+              gridSize={moment.config.gridSize || 15}
+            />
           </div>
         );
 

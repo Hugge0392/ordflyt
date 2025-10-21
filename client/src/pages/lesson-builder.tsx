@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUploader } from "@/components/ImageUploader";
 import { InteractivePreview } from "@/components/InteractivePreview";
-import { CrosswordBuilder } from "@/components/CrosswordBuilder";
+import { CrosswordBuilder, type CrosswordClue } from "@/components/CrosswordBuilder";
 import { CharacterLibrary } from "@/components/CharacterLibrary";
 import { LessonTemplates } from "@/components/LessonTemplates";
 import { LessonValidator } from "@/components/LessonValidator";
@@ -1951,6 +1951,29 @@ export default function LessonBuilder() {
                 <Label className="text-sm">Visa antal rätt och fel svar</Label>
               </div>
             </div>
+          </div>
+        );
+
+      case 'korsord':
+        return (
+          <div className="space-y-4">
+            <CrosswordBuilder
+              clues={moment.config.clues || []}
+              onCluesUpdate={(clues) => {
+                updateMomentConfig(moment.id, {
+                  ...moment.config,
+                  clues
+                });
+              }}
+              initialGrid={moment.config.grid || []}
+              onGridUpdate={(grid) => {
+                updateMomentConfig(moment.id, {
+                  ...moment.config,
+                  grid
+                });
+              }}
+              gridSize={moment.config.gridSize || 15}
+            />
           </div>
         );
 
