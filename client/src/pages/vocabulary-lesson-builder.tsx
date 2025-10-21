@@ -255,16 +255,6 @@ export default function VocabularyLessonBuilder() {
     });
   };
 
-  // Function to update a specific moment's config
-  const updateMomentConfig = (momentId: string, newConfig: any) => {
-    setCurrentLesson({
-      ...currentLesson,
-      moments: (currentLesson.moments || []).map(m => 
-        m.id === momentId ? { ...m, config: newConfig } : m
-      )
-    });
-  };
-
   const saveLesson = () => {
     if (!currentLesson.title.trim()) {
       toast({
