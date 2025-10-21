@@ -236,7 +236,8 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
       return prev;
     });
 
-    setDraggedWord(null);
+    // Don't clear draggedWord here - let handleDragEnd do it
+    // setDraggedWord(null); 
   };
 
   const handleRemoveWord = (sentenceId: string, blankIndex: number) => {
