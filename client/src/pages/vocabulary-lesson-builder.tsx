@@ -377,6 +377,47 @@ export default function VocabularyLessonBuilder() {
     });
   };
 
+  // Helper functions for "fyll-mening" moment type
+  const addSentenceToMoment = (momentId: string) => {
+    const moment = currentLesson.moments.find(m => m.id === momentId);
+    if (!moment) return;
+    
+    const sentences = moment.config.sentences || [];
+    const newSentence = {
+      id: `sentence-${Date.now()}`,
+      text: '',
+      blanks: [],
+      order: sentences.length
+    };
+    
+    updateMomentConfig(momentId, { 
+      ...moment.config, 
+      sentences: [...sentences, newSentence] 
+    });
+  };
+
+  const updateSentenceInMoment = (momentId: string, sentenceId: string, updates: any) => {
+    const moment = currentLesson.moments.find(m => m.id === momentId);
+    if (!moment) return;
+    
+    const sentences = moment.config.sentences || [];
+    const newSentences = sentences.map((s: any) => 
+      s.id === sentenceId ? { ...s, ...updates } : s
+    );
+    
+    updateMomentConfig(momentId, { ...moment.config, sentences: newSentences });
+  };
+
+  const removeSentenceFromMoment = (momentId: string, sentenceId: string) => {
+    const moment = currentLesson.moments.find(m => m.id === momentId);
+    if (!moment) return;
+    
+    const sentences = moment.config.sentences || [];
+    const newSentences = sentences.filter((s: any) => s.id !== sentenceId);
+    
+    updateMomentConfig(momentId, { ...moment.config, sentences: newSentences });
+  };
+
   const renderMomentConfig = (moment: VocabularyMoment) => {
     switch(moment.type) {
       case 'textruta':
@@ -621,33 +662,6 @@ export default function VocabularyLessonBuilder() {
         );
 
       case 'fyll-mening':
-        const addSentence = () => {
-          const sentences = moment.config.sentences || [];
-          const newSentence = {
-            id: `sentence-${Date.now()}`,
-            text: '',
-            blanks: [], // Array of { position: number, correctAnswer: string }
-            order: sentences.length
-          };
-          updateMomentConfig(moment.id, { 
-            ...moment.config, 
-            sentences: [...sentences, newSentence] 
-          });
-        };
-
-        const updateSentence = (sentenceId: string, updates: any) => {
-          const sentences = moment.config.sentences || [];
-          const newSentences = sentences.map((s: any) => 
-            s.id === sentenceId ? { ...s, ...updates } : s
-          );
-          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
-        };
-
-        const removeSentence = (sentenceId: string) => {
-          const sentences = moment.config.sentences || [];
-          const newSentences = sentences.filter((s: any) => s.id !== sentenceId);
-          updateMomentConfig(moment.id, { ...moment.config, sentences: newSentences });
-        };
 
         // Auto-generate word bank from correct answers
         const autoGenerateWordBank = () => {
@@ -688,7 +702,7 @@ export default function VocabularyLessonBuilder() {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-base font-semibold">Meningar med luckor</Label>
-                <Button size="sm" onClick={addSentence} variant="outline">
+                <Button size="sm" onClick={() => addSentenceToMoment(moment.id)} variant="outline">
                   + Lägg till mening
                 </Button>
               </div>
@@ -700,7 +714,7 @@ export default function VocabularyLessonBuilder() {
               {(!moment.config.sentences || moment.config.sentences.length === 0) && (
                 <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed">
                   <p className="text-gray-500 mb-2">Inga meningar ännu</p>
-                  <Button size="sm" onClick={addSentence}>
+                  <Button size="sm" onClick={() => addSentenceToMoment(moment.id)}>
                     Skapa första meningen
                   </Button>
                 </div>
@@ -716,7 +730,7 @@ export default function VocabularyLessonBuilder() {
                           <Button 
                             size="sm" 
                             variant="destructive" 
-                            onClick={() => removeSentence(sentence.id)}
+                            onClick={() => removeSentenceFromMoment(moment.id, sentence.id)}
                           >
                             ×
                           </Button>
@@ -726,7 +740,7 @@ export default function VocabularyLessonBuilder() {
                           <Label className="text-sm">Mening med luckor</Label>
                           <Textarea
                             value={sentence.text}
-                            onChange={(e) => updateSentence(sentence.id, { text: e.target.value })}
+                            onChange={(e) => updateSentenceInMoment(moment.id, sentence.id, { text: e.target.value })}
                             placeholder="Exempel: Jag har [ont] idag, eller: Katten [sitter] på [mattan]"
                             className="min-h-[80px] font-mono"
                             rows={2}
