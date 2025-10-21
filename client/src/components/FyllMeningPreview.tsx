@@ -331,7 +331,6 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
 
   // Only show feedback when ALL words are placed
   const allWordsPlaced = sentenceStates.length > 0 && sentenceStates.every(s => s.isComplete);
-  const showFeedback = allWordsPlaced;
 
   if (!moment?.config?.sentences || moment.config.sentences.length === 0) {
     return (
@@ -428,7 +427,6 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                       } else {
                         const currentBlankIndex = blankCounter++;
                         const isFilled = part.filled !== undefined;
-                        const showCorrectness = showFeedback && isFilled;
                         const isHovered = hoveredBlank?.sentenceId === sentence.id && hoveredBlank?.blankIndex === currentBlankIndex;
                         const showPreview = isHovered && draggedWord && !isFilled;
 
@@ -463,7 +461,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                               ${isHovered && draggedWord
                                 ? 'bg-yellow-100 border-yellow-500 border-solid shadow-lg scale-105 ring-2 ring-yellow-300'
                                 : isFilled 
-                                  ? showCorrectness
+                                  ? allWordsPlaced
                                     ? part.isCorrect
                                       ? 'bg-green-50 border-green-400 border-solid'
                                       : 'bg-red-50 border-red-400 border-solid'
@@ -482,7 +480,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                                 <span className="font-medium text-gray-800">
                                   {part.filled}
                                 </span>
-                                {showCorrectness && (
+                                {allWordsPlaced && (
                                   part.isCorrect ? (
                                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                                   ) : (
@@ -509,8 +507,8 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                     })}
                   </div>
 
-                  {/* Sentence feedback */}
-                  {sentence.isComplete && (
+                  {/* Sentence feedback - only show when ALL words are placed */}
+                  {allWordsPlaced && sentence.isComplete && (
                     <div className={`
                       mt-4 p-3 rounded-lg border-l-4
                       ${sentence.isAllCorrect 
