@@ -28,6 +28,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
   const [hoveredBlank, setHoveredBlank] = useState<{ sentenceId: string; blankIndex: number } | null>(null);
   const [completedAll, setCompletedAll] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [wasDropped, setWasDropped] = useState(false);
 
   // Initialize sentences and word bank
   useEffect(() => {
@@ -133,6 +134,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
 
   const handleDragStart = (word: string, fromSentenceId?: string, fromBlankIndex?: number) => {
     setDraggedWord(word);
+    setWasDropped(false); // Reset flag
     
     // If dragging from a filled blank, remove it from there
     if (fromSentenceId !== undefined && fromBlankIndex !== undefined) {
@@ -171,12 +173,20 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
   };
 
   const handleDragEnd = () => {
+    // If word was not dropped in a valid location, return it to word bank
+    if (draggedWord && !wasDropped) {
+      setWordBank(prev => [...prev, draggedWord]);
+    }
+    
     setDraggedWord(null);
     setHoveredBlank(null);
+    setWasDropped(false);
   };
 
   const handleDrop = (sentenceId: string, blankIndex: number) => {
     if (!draggedWord) return;
+
+    setWasDropped(true); // Mark that the word was successfully dropped
 
     setSentenceStates(prev => prev.map(sentence => {
       if (sentence.id !== sentenceId) return sentence;
@@ -215,7 +225,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
       };
     }));
 
-    // Remove word from word bank
+    // Remove word from word bank (if it came from there)
     setWordBank(prev => {
       const index = prev.indexOf(draggedWord);
       if (index > -1) {
