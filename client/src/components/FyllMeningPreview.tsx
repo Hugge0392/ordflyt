@@ -110,10 +110,13 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
 
   }, [moment]);
 
-  // Check if all sentences are completed
+  // Check if all sentences are completed AND all correct
   useEffect(() => {
     const allComplete = sentenceStates.every(s => s.isComplete);
-    setCompletedAll(allComplete);
+    const allCorrect = sentenceStates.every(s => s.isAllCorrect);
+    
+    // Only allow continuing when EVERYTHING is correct
+    setCompletedAll(allComplete && allCorrect);
 
     // Update score
     let correctCount = 0;
@@ -432,32 +435,52 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
         })}
       </div>
 
-      {/* Continue Button */}
-      {completedAll && (
+      {/* Feedback Messages */}
+      {sentenceStates.length > 0 && sentenceStates.every(s => s.isComplete) && (
         <div className="mt-8 text-center">
-          <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-300">
-            <h3 className="text-2xl font-bold text-green-700 mb-2">
-              🎉 Bra jobbat!
-            </h3>
-            <p className="text-lg text-gray-700">
-              Du fick <span className="font-bold text-green-600">{score.correct}</span> av{' '}
-              <span className="font-bold">{score.total}</span> rätt!
-            </p>
-            {score.correct === score.total && (
-              <p className="text-xl font-bold text-green-600 mt-2">
-                ⭐ Perfekt! Alla rätt! ⭐
+          {completedAll ? (
+            // All correct - show success message and continue button
+            <>
+              <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-300">
+                <h3 className="text-2xl font-bold text-green-700 mb-2">
+                  🎉 Perfekt! Alla rätt!
+                </h3>
+                <p className="text-lg text-gray-700">
+                  Du fick <span className="font-bold text-green-600">{score.correct}</span> av{' '}
+                  <span className="font-bold">{score.total}</span> rätt!
+                </p>
+                <p className="text-xl font-bold text-green-600 mt-2">
+                  ⭐ Du kan gå vidare! ⭐
+                </p>
+              </div>
+              
+              {onNext && (
+                <Button 
+                  onClick={onNext}
+                  size="lg"
+                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-6 text-lg"
+                >
+                  Fortsätt <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              )}
+            </>
+          ) : (
+            // Some wrong - show error message
+            <div className="mb-6 p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-2 border-orange-300">
+              <h3 className="text-2xl font-bold text-orange-700 mb-2">
+                😅 Nästan där!
+              </h3>
+              <p className="text-lg text-gray-700">
+                Du fick <span className="font-bold text-orange-600">{score.correct}</span> av{' '}
+                <span className="font-bold">{score.total}</span> rätt.
               </p>
-            )}
-          </div>
-          
-          {onNext && (
-            <Button 
-              onClick={onNext}
-              size="lg"
-              className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-6 text-lg"
-            >
-              Fortsätt <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
+              <p className="text-md text-orange-800 mt-3 font-medium">
+                ❌ Du måste ha alla rätt för att gå vidare!
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                💡 Tips: Klicka på ✕ vid de röda orden och försök igen
+              </p>
+            </div>
           )}
         </div>
       )}
