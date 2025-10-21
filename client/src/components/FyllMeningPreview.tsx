@@ -329,14 +329,21 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                         return (
                           <div
                             key={partIndex}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDragEnter={() => {
+                            onDragOver={(e) => {
+                              e.preventDefault();
                               if (!isFilled && draggedWord) {
                                 setHoveredBlank({ sentenceId: sentence.id, blankIndex: currentBlankIndex });
                               }
                             }}
-                            onDragLeave={() => {
-                              setHoveredBlank(null);
+                            onDragLeave={(e) => {
+                              // Only clear if we're actually leaving the element (not entering a child)
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const x = e.clientX;
+                              const y = e.clientY;
+                              
+                              if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                                setHoveredBlank(null);
+                              }
                             }}
                             onDrop={() => {
                               handleDrop(sentence.id, currentBlankIndex);
