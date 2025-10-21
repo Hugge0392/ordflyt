@@ -336,6 +336,21 @@ export interface IStorage {
   getFlashcardSessions(studentId: string, setId?: string): Promise<FlashcardSession[]>;
   getFlashcardSession(id: string): Promise<FlashcardSession | undefined>;
   updateFlashcardSession(id: string, session: Partial<InsertFlashcardSession>): Promise<FlashcardSession>;
+
+  // Vocabulary published lesson methods
+  createVocabularyPublishedLesson(lesson: InsertVocabularyPublishedLesson): Promise<VocabularyPublishedLesson>;
+  getVocabularyPublishedLessons(): Promise<VocabularyPublishedLesson[]>;
+  getVocabularyPublishedLesson(id: string): Promise<VocabularyPublishedLesson | undefined>;
+  getVocabularyPublishedLessonsByCategory(category: string): Promise<VocabularyPublishedLesson[]>;
+  updateVocabularyPublishedLesson(id: string, lesson: Partial<InsertVocabularyPublishedLesson>): Promise<VocabularyPublishedLesson>;
+  deleteVocabularyPublishedLesson(id: string): Promise<void>;
+
+  // Vocabulary draft lesson methods
+  createVocabularyLessonDraft(draft: InsertVocabularyLessonDraft): Promise<VocabularyLessonDraft>;
+  getVocabularyLessonDrafts(): Promise<VocabularyLessonDraft[]>;
+  getVocabularyLessonDraft(id: string): Promise<VocabularyLessonDraft | undefined>;
+  updateVocabularyLessonDraft(id: string, draft: Partial<InsertVocabularyLessonDraft>): Promise<VocabularyLessonDraft>;
+  deleteVocabularyLessonDraft(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -345,6 +360,8 @@ export class MemStorage implements IStorage {
   private errorReports: Map<string, ErrorReport> = new Map();
   private publishedLessons: Map<string, PublishedLesson> = new Map();
   private lessonDrafts: Map<string, LessonDraft> = new Map();
+  private vocabularyPublishedLessons: Map<string, VocabularyPublishedLesson> = new Map();
+  private vocabularyLessonDrafts: Map<string, VocabularyLessonDraft> = new Map();
   private readingLessons: Map<string, ReadingLesson> = new Map();
   private klassKampGames: Map<string, KlassKampGame> = new Map();
   private klassKampPlayers: Map<string, KlassKampPlayer> = new Map();
@@ -4117,6 +4134,98 @@ export class DatabaseStorage implements IStorage {
       .from(studentAccounts)
       .where(eq(studentAccounts.classId, classId))
       .orderBy(sql`${studentAccounts.createdAt} DESC`);
+  }
+
+  // ===== VOCABULARY PUBLISHED LESSON METHODS =====
+  
+  async createVocabularyPublishedLesson(lesson: InsertVocabularyPublishedLesson): Promise<VocabularyPublishedLesson> {
+    const [created] = await db
+      .insert(vocabularyPublishedLessons)
+      .values({
+        ...lesson,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async getVocabularyPublishedLessons(): Promise<VocabularyPublishedLesson[]> {
+    return await db
+      .select()
+      .from(vocabularyPublishedLessons)
+      .orderBy(sql`${vocabularyPublishedLessons.createdAt} DESC`);
+  }
+
+  async getVocabularyPublishedLesson(id: string): Promise<VocabularyPublishedLesson | undefined> {
+    const [result] = await db
+      .select()
+      .from(vocabularyPublishedLessons)
+      .where(eq(vocabularyPublishedLessons.id, id));
+    return result;
+  }
+
+  async getVocabularyPublishedLessonsByCategory(category: string): Promise<VocabularyPublishedLesson[]> {
+    return await db
+      .select()
+      .from(vocabularyPublishedLessons)
+      .where(eq(vocabularyPublishedLessons.category, category))
+      .orderBy(sql`${vocabularyPublishedLessons.createdAt} DESC`);
+  }
+
+  async updateVocabularyPublishedLesson(id: string, lesson: Partial<InsertVocabularyPublishedLesson>): Promise<VocabularyPublishedLesson> {
+    const [updated] = await db
+      .update(vocabularyPublishedLessons)
+      .set({ ...lesson, updatedAt: new Date() })
+      .where(eq(vocabularyPublishedLessons.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVocabularyPublishedLesson(id: string): Promise<void> {
+    await db.delete(vocabularyPublishedLessons).where(eq(vocabularyPublishedLessons.id, id));
+  }
+
+  // ===== VOCABULARY LESSON DRAFT METHODS =====
+
+  async createVocabularyLessonDraft(draft: InsertVocabularyLessonDraft): Promise<VocabularyLessonDraft> {
+    const [created] = await db
+      .insert(vocabularyLessonDrafts)
+      .values({
+        ...draft,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async getVocabularyLessonDrafts(): Promise<VocabularyLessonDraft[]> {
+    return await db
+      .select()
+      .from(vocabularyLessonDrafts)
+      .orderBy(sql`${vocabularyLessonDrafts.updatedAt} DESC`);
+  }
+
+  async getVocabularyLessonDraft(id: string): Promise<VocabularyLessonDraft | undefined> {
+    const [result] = await db
+      .select()
+      .from(vocabularyLessonDrafts)
+      .where(eq(vocabularyLessonDrafts.id, id));
+    return result;
+  }
+
+  async updateVocabularyLessonDraft(id: string, draft: Partial<InsertVocabularyLessonDraft>): Promise<VocabularyLessonDraft> {
+    const [updated] = await db
+      .update(vocabularyLessonDrafts)
+      .set({ ...draft, updatedAt: new Date() })
+      .where(eq(vocabularyLessonDrafts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteVocabularyLessonDraft(id: string): Promise<void> {
+    await db.delete(vocabularyLessonDrafts).where(eq(vocabularyLessonDrafts.id, id));
   }
 }
 
