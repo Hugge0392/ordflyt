@@ -25,6 +25,7 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
   const [sentenceStates, setSentenceStates] = useState<SentenceState[]>([]);
   const [wordBank, setWordBank] = useState<string[]>([]);
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const [hoveredBlank, setHoveredBlank] = useState<{ sentenceId: string; blankIndex: number } | null>(null);
   const [completedAll, setCompletedAll] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
 
@@ -322,16 +323,29 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                         const currentBlankIndex = blankCounter++;
                         const isFilled = part.filled !== undefined;
                         const showCorrectness = showImmediateFeedback && isFilled;
+                        const isHovered = hoveredBlank?.sentenceId === sentence.id && hoveredBlank?.blankIndex === currentBlankIndex;
+                        const showPreview = isHovered && draggedWord && !isFilled;
 
                         return (
                           <div
                             key={partIndex}
                             onDragOver={(e) => e.preventDefault()}
-                            onDrop={() => handleDrop(sentence.id, currentBlankIndex)}
+                            onDragEnter={() => {
+                              if (!isFilled && draggedWord) {
+                                setHoveredBlank({ sentenceId: sentence.id, blankIndex: currentBlankIndex });
+                              }
+                            }}
+                            onDragLeave={() => {
+                              setHoveredBlank(null);
+                            }}
+                            onDrop={() => {
+                              handleDrop(sentence.id, currentBlankIndex);
+                              setHoveredBlank(null);
+                            }}
                             className={`
                               relative inline-flex items-center justify-center
                               min-w-[120px] px-4 py-2 rounded-lg
-                              border-2 border-dashed
+                              border-2
                               transition-all duration-200
                               ${isFilled 
                                 ? showCorrectness
@@ -339,7 +353,9 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                                     ? 'bg-green-50 border-green-400 border-solid'
                                     : 'bg-red-50 border-red-400 border-solid'
                                   : 'bg-blue-50 border-blue-400 border-solid'
-                                : 'bg-gray-50 border-gray-300 hover:border-purple-400 hover:bg-purple-50'
+                                : isHovered
+                                  ? 'bg-purple-100 border-purple-500 border-solid shadow-lg scale-105 ring-2 ring-purple-300'
+                                  : 'bg-gray-50 border-gray-300 border-dashed hover:border-purple-400 hover:bg-purple-50'
                               }
                             `}
                           >
@@ -361,6 +377,13 @@ export function FyllMeningPreview({ moment, onNext }: FyllMeningPreviewProps) {
                                 >
                                   ✕
                                 </button>
+                              </div>
+                            ) : showPreview ? (
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-purple-700 animate-pulse">
+                                  {draggedWord}
+                                </span>
+                                <span className="text-xs text-purple-600">↓ Släpp här</span>
                               </div>
                             ) : (
                               <span className="text-gray-400 text-sm">
