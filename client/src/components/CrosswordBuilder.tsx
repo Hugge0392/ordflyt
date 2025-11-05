@@ -263,6 +263,12 @@ export function CrosswordBuilder({
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Word input for generating custom prompt
+  const [wordsInput, setWordsInput] = useState("");
+  const [cluesInput, setCluesInput] = useState("");
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [promptCopied, setPromptCopied] = useState(false);
 
   // Reset import dialog state when opening
   useEffect(() => {
@@ -270,6 +276,7 @@ export function CrosswordBuilder({
       setImportError(null);
       setImportSuccess(false);
       setCopied(false);
+      setPromptCopied(false);
     }
   }, [showImportDialog]);
 
@@ -797,17 +804,45 @@ export function CrosswordBuilder({
     }, 1500);
   };
 
-  const copyPromptToClipboard = () => {
-    const prompt = `Skapa ett enkelt svenskt korsord med 7-8 ord för årskurs 4-6.
-Orden ska vara [ANGE TEMA/ÄMNESOMRÅDE HÄR].
+  const generateCustomPrompt = () => {
+    // Parse words from input
+    const words = wordsInput
+      .split(/[,\n]+/)
+      .map(w => w.trim())
+      .filter(w => w.length > 0);
+    
+    if (words.length === 0) {
+      setImportError("Skriv in minst ett ord");
+      return;
+    }
+    
+    // Parse clues if provided (one per line or comma-separated)
+    const cluesArray = cluesInput
+      .split(/\n/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+    
+    // Build word list for prompt
+    let wordList = "";
+    if (cluesArray.length === words.length) {
+      // We have clues for each word
+      wordList = words.map((word, i) => `  - ${word}: ${cluesArray[i]}`).join('\n');
+    } else {
+      // No clues or mismatched, just list words
+      wordList = words.map(w => `  - ${w}`).join('\n');
+    }
+    
+    const prompt = `Skapa ett svenskt korsord med dessa ord:
+
+${wordList}
 
 Använd detta exakta JSON-format:
 {
-  "gridSize": 10,
+  "gridSize": 12,
   "words": [
     {
       "word": "ORD",
-      "clue": "Ledtråd här",
+      "clue": "Förklaring av ordet",
       "startX": 0,
       "startY": 0,
       "direction": "across"
@@ -816,16 +851,22 @@ Använd detta exakta JSON-format:
 }
 
 Regler:
-- Ord ska vara 3-8 bokstäver
-- Korsa minst 2-3 ord med varandra
-- Använd samma bokstav där ord korsas
+- Använd EXAKT de ord jag angett ovan
+- Skapa pedagogiska ledtrådar för varje ord (om jag inte redan angett dem)
+- Korsa minst 2-3 ord med varandra där samma bokstav finns
 - startX och startY börjar från 0
 - direction är antingen "across" eller "down"
-- Ge endast JSON-svaret, ingen annan text`;
+- Placera orden så de bildar ett kompakt korsord
+- Ge ENDAST JSON-svaret, ingen annan text före eller efter`;
 
-    navigator.clipboard.writeText(prompt).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    setGeneratedPrompt(prompt);
+    setImportError(null);
+  };
+
+  const copyGeneratedPrompt = () => {
+    navigator.clipboard.writeText(generatedPrompt).then(() => {
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 2000);
     });
   };
 
@@ -909,7 +950,7 @@ Regler:
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-3">
-              Använd ChatGPT eller annan AI för att skapa korsordet. Kopiera prompten, få JSON-svar, och klistra in här.
+              Skriv in dina ord, generera en prompt, använd ChatGPT för att få ett färdigt korsord!
             </p>
             <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
               <DialogTrigger asChild>
@@ -928,56 +969,79 @@ Regler:
                 
                 <Tabs defaultValue="step1" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="step1">1. Kopiera Prompt</TabsTrigger>
+                    <TabsTrigger value="step1">1. Ange Ord</TabsTrigger>
                     <TabsTrigger value="step2">2. Använd AI</TabsTrigger>
                     <TabsTrigger value="step3">3. Importera</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="step1" className="space-y-3">
                     <div>
-                      <h3 className="font-semibold mb-2">Steg 1: Kopiera prompt till AI</h3>
+                      <h3 className="font-semibold mb-2">Steg 1: Ange ord och ledtrådar</h3>
                       <p className="text-sm text-gray-600 mb-3">
-                        Klicka på knappen nedan för att kopiera prompten. Klistra sedan in den i ChatGPT, Claude eller annan AI.
+                        Skriv in de ord som ska vara med i korsordet (ett per rad eller kommaseparerat)
                       </p>
-                      <div className="bg-gray-100 p-3 rounded border text-xs font-mono whitespace-pre-wrap mb-3 max-h-64 overflow-y-auto">
-{`Skapa ett enkelt svenskt korsord med 7-8 ord för årskurs 4-6.
-Orden ska vara [ANGE TEMA/ÄMNESOMRÅDE HÄR].
-
-Använd detta exakta JSON-format:
-{
-  "gridSize": 10,
-  "words": [
-    {
-      "word": "ORD",
-      "clue": "Ledtråd här",
-      "startX": 0,
-      "startY": 0,
-      "direction": "across"
-    }
-  ]
-}
-
-Regler:
-- Ord ska vara 3-8 bokstäver
-- Korsa minst 2-3 ord med varandra
-- Använd samma bokstav där ord korsas
-- startX och startY börjar från 0
-- direction är antingen "across" eller "down"
-- Ge endast JSON-svaret, ingen annan text`}
-                      </div>
-                      <Button onClick={copyPromptToClipboard} className="w-full">
-                        {copied ? (
-                          <>
-                            <Check className="mr-2 h-4 w-4" />
-                            Kopierad!
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Kopiera Prompt
-                          </>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="words-input">Ord (obligatoriskt)</Label>
+                          <Textarea
+                            id="words-input"
+                            value={wordsInput}
+                            onChange={(e) => setWordsInput(e.target.value)}
+                            placeholder={"katt, hund, häst\neller\nkatt\nhund\nhäst"}
+                            className="min-h-[100px]"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Skriv ett ord per rad, eller separera med komma
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="clues-input">Ledtrådar (valfritt)</Label>
+                          <Textarea
+                            id="clues-input"
+                            value={cluesInput}
+                            onChange={(e) => setCluesInput(e.target.value)}
+                            placeholder={"Djur som säger mjau\nDjur som skäller\nDjur som galopperar"}
+                            className="min-h-[100px]"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            En ledtråd per rad. Om du lämnar tomt kommer AI:n att skapa ledtrådar själv.
+                          </p>
+                        </div>
+                        
+                        <Button 
+                          onClick={generateCustomPrompt}
+                          disabled={!wordsInput.trim()}
+                          className="w-full"
+                          variant="default"
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generera Prompt
+                        </Button>
+                        
+                        {generatedPrompt && (
+                          <div className="space-y-2">
+                            <Label>Din färdiga prompt:</Label>
+                            <div className="bg-gray-100 p-3 rounded border text-xs font-mono whitespace-pre-wrap max-h-64 overflow-y-auto">
+                              {generatedPrompt}
+                            </div>
+                            <Button onClick={copyGeneratedPrompt} className="w-full" variant="outline">
+                              {promptCopied ? (
+                                <>
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Kopierad!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Kopiera Prompt
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         )}
-                      </Button>
+                      </div>
                     </div>
                   </TabsContent>
                   
@@ -985,15 +1049,31 @@ Regler:
                     <div>
                       <h3 className="font-semibold mb-2">Steg 2: Använd AI</h3>
                       <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                        <li>Öppna ChatGPT (chatgpt.com) eller annan AI</li>
-                        <li>Klistra in prompten du kopierade</li>
-                        <li>Ändra [ANGE TEMA/ÄMNESOMRÅDE HÄR] till ditt tema (t.ex. "djur", "mat", "geografi")</li>
+                        <li>Öppna ChatGPT (chatgpt.com), Claude (claude.ai) eller annan AI</li>
+                        <li>Klistra in den genererade prompten från Steg 1</li>
                         <li>Skicka meddelandet till AI:n</li>
-                        <li>AI:n kommer att generera ett JSON-svar med korsordets struktur</li>
+                        <li>AI:n kommer att generera ett JSON-svar med ditt korsord</li>
                         <li>Kopiera hela JSON-svaret (från {"{"} till {"}"})</li>
                       </ol>
                       <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-sm">
                         <strong>Tips:</strong> Om AI:n ger text innan eller efter JSON, kopiera bara JSON-delen (det som börjar med {"{"} och slutar med {"}"})
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded p-3 mt-3 text-sm">
+                        <strong>Exempel på JSON-svar:</strong>
+                        <pre className="mt-2 text-xs overflow-x-auto">
+{`{
+  "gridSize": 12,
+  "words": [
+    {
+      "word": "KATT",
+      "clue": "Djur som säger mjau",
+      "startX": 0,
+      "startY": 0,
+      "direction": "across"
+    }
+  ]
+}`}
+                        </pre>
                       </div>
                     </div>
                   </TabsContent>
