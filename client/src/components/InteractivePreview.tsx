@@ -865,7 +865,11 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
 
       case 'korsord':
         const crosswordGrid = moment.config.grid || [];
+        const crosswordClues = moment.config.clues || [];
         const gridSize = 15;
+        
+        console.log('Crossword preview - Grid:', crosswordGrid.length, 'Clues:', crosswordClues.length);
+        console.log('Crossword clues:', crosswordClues);
         
         const handleCellChange = (x: number, y: number, value: string) => {
           const key = `${x}-${y}`;
@@ -925,19 +929,24 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
               {/* Clues */}
               <div className="text-left">
                 <h4 className="font-semibold mb-4">Ledtrådar:</h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {(moment.config.clues || []).map((clue: any, i: number) => (
-                    <div key={i} className="p-2 border rounded hover:bg-gray-50">
-                      <div className="font-medium">
-                        {i + 1}. {clue.question}
+                {crosswordClues.length > 0 ? (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {crosswordClues.map((clue: any, i: number) => (
+                      <div key={i} className="p-2 border rounded hover:bg-gray-50">
+                        <div className="font-medium">
+                          {i + 1}. {clue.question}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          ({clue.answer?.length || 0} bokstäver)
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        ({clue.answer.length} bokstäver)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm italic p-4 bg-gray-50 rounded">
+                    Inga ledtrådar finns ännu. Lägg till ord och ledtrådar i redigeraren.
+                  </div>
+                )}
             </div>
             
             <Button onClick={onNext} className="mt-6">Fortsätt</Button>
