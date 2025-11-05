@@ -48,6 +48,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
   const [categories, setCategories] = useState<{[key: string]: string[]}>({});
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [crosswordAnswers, setCrosswordAnswers] = useState<Record<string, string>>({});
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
@@ -866,6 +867,14 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
         const crosswordGrid = moment.config.grid || [];
         const gridSize = 15;
         
+        const handleCellChange = (x: number, y: number, value: string) => {
+          const key = `${x}-${y}`;
+          setCrosswordAnswers(prev => ({
+            ...prev,
+            [key]: value.toUpperCase().slice(0, 1)
+          }));
+        };
+        
         return (
           <div className="max-w-4xl mx-auto text-center">
             <h3 className="text-xl font-bold mb-6">Korsord</h3>
@@ -878,17 +887,32 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                     const x = index % gridSize;
                     const y = Math.floor(index / gridSize);
                     const cell = crosswordGrid.find((c: any) => c.x === x && c.y === y);
+                    const key = `${x}-${y}`;
+                    const userValue = crosswordAnswers[key] || '';
+                    
+                    if (!cell) {
+                      return (
+                        <div
+                          key={key}
+                          className="w-6 h-6 bg-gray-300"
+                        />
+                      );
+                    }
                     
                     return (
                       <div
-                        key={`${x}-${y}`}
-                        className={`w-6 h-6 border border-gray-300 text-xs flex items-center justify-center relative ${
-                          cell ? 'bg-white font-bold' : 'bg-gray-200'
-                        }`}
+                        key={key}
+                        className="w-6 h-6 border border-gray-400 text-xs flex items-center justify-center relative bg-white"
                       >
-                        {cell?.letter}
+                        <input
+                          type="text"
+                          value={userValue}
+                          onChange={(e) => handleCellChange(x, y, e.target.value)}
+                          maxLength={1}
+                          className="w-full h-full text-center uppercase font-bold text-xs border-0 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
                         {cell?.number && (
-                          <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 leading-none">
+                          <div className="absolute top-0 left-0 text-[8px] font-bold text-blue-600 leading-none pointer-events-none">
                             {cell.number}
                           </div>
                         )}
@@ -903,7 +927,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                 <h4 className="font-semibold mb-4">Ledtrådar:</h4>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {(moment.config.clues || []).map((clue: any, i: number) => (
-                    <div key={i} className="p-2 border rounded">
+                    <div key={i} className="p-2 border rounded hover:bg-gray-50">
                       <div className="font-medium">
                         {i + 1}. {clue.question}
                       </div>
