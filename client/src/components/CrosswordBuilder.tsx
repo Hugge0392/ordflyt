@@ -990,10 +990,10 @@ Regler:
                         <li>Ändra [ANGE TEMA/ÄMNESOMRÅDE HÄR] till ditt tema (t.ex. "djur", "mat", "geografi")</li>
                         <li>Skicka meddelandet till AI:n</li>
                         <li>AI:n kommer att generera ett JSON-svar med korsordets struktur</li>
-                        <li>Kopiera hela JSON-svaret (från { till })</li>
+                        <li>Kopiera hela JSON-svaret (från {"{"} till {"}"})</li>
                       </ol>
                       <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-sm">
-                        <strong>Tips:</strong> Om AI:n ger text innan eller efter JSON, kopiera bara JSON-delen (det som börjar med { och slutar med })
+                        <strong>Tips:</strong> Om AI:n ger text innan eller efter JSON, kopiera bara JSON-delen (det som börjar med {"{"} och slutar med {"}"})
                       </div>
                     </div>
                   </TabsContent>
