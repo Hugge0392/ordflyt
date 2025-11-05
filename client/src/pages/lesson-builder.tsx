@@ -2122,7 +2122,30 @@ export default function LessonBuilder() {
 
       case 'korsord':
         const gridData = moment.config.grid || [];
-        const gridSize = 15;
+        
+        // Calculate actual grid bounds to remove empty space
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        
+        gridData.forEach((cell: any) => {
+          minX = Math.min(minX, cell.x);
+          maxX = Math.max(maxX, cell.x);
+          minY = Math.min(minY, cell.y);
+          maxY = Math.max(maxY, cell.y);
+        });
+        
+        // Add padding of 1 cell on each side if grid has data
+        if (gridData.length > 0) {
+          minX = Math.max(0, minX - 1);
+          minY = Math.max(0, minY - 1);
+          maxX = maxX + 1;
+          maxY = maxY + 1;
+        } else {
+          minX = 0; minY = 0; maxX = 10; maxY = 10;
+        }
+        
+        const gridWidth = maxX - minX + 1;
+        const gridHeight = maxY - minY + 1;
         
         const getCellData = (x: number, y: number) => {
           return gridData.find((cell: any) => cell.x === x && cell.y === y);
@@ -2132,21 +2155,19 @@ export default function LessonBuilder() {
           <div className="max-w-4xl mx-auto text-center">
             <h3 className="text-xl font-bold mb-6">Korsord</h3>
             <div className="bg-white border rounded-lg p-6">
-              <div className="grid gap-1 mb-6 max-w-2xl mx-auto" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
-                {Array.from({length: gridSize * gridSize}).map((_, index) => {
-                  const x = index % gridSize;
-                  const y = Math.floor(index / gridSize);
+              <div className="grid gap-1 mb-6 mx-auto" style={{gridTemplateColumns: `repeat(${gridWidth}, 1fr)`, maxWidth: `${gridWidth * 2.5}rem`}}>
+                {Array.from({length: gridWidth * gridHeight}).map((_, index) => {
+                  const x = (index % gridWidth) + minX;
+                  const y = Math.floor(index / gridWidth) + minY;
                   const cellData = getCellData(x, y);
                   
                   return (
                     <div key={`${x}-${y}`} className="relative">
-                      {cellData?.isInputBox ? (
+                      {cellData ? (
                         <div className="w-8 h-8 border-2 border-gray-800 bg-white relative flex items-center justify-center">
-                          <Input
-                            className="w-full h-full p-0 text-center text-lg font-bold border-0 bg-transparent focus:ring-0 focus:border-0"
-                            maxLength={1}
-                            style={{ fontSize: '16px' }}
-                          />
+                          <div className="text-xs font-semibold text-gray-400">
+                            {/* Empty - user fills in */}
+                          </div>
                           {cellData?.number && (
                             <div className="absolute top-0 left-0 text-xs font-bold text-blue-600 pointer-events-none bg-white px-1">
                               {cellData.number}
@@ -2154,7 +2175,7 @@ export default function LessonBuilder() {
                           )}
                         </div>
                       ) : (
-                        <div className="w-8 h-8 border border-gray-300 bg-gray-100"></div>
+                        <div className="w-8 h-8 bg-gray-200"></div>
                       )}
                     </div>
                   );

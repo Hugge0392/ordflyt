@@ -866,10 +866,26 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
       case 'korsord':
         const crosswordGrid = moment.config.grid || [];
         const crosswordClues = moment.config.clues || [];
-        const gridSize = 15;
         
-        console.log('Crossword preview - Grid:', crosswordGrid.length, 'Clues:', crosswordClues.length);
-        console.log('Crossword clues:', crosswordClues);
+        // Calculate actual grid bounds to remove empty space
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        
+        crosswordGrid.forEach((cell: any) => {
+          minX = Math.min(minX, cell.x);
+          maxX = Math.max(maxX, cell.x);
+          minY = Math.min(minY, cell.y);
+          maxY = Math.max(maxY, cell.y);
+        });
+        
+        // Add padding of 1 cell on each side
+        minX = Math.max(0, minX - 1);
+        minY = Math.max(0, minY - 1);
+        maxX = maxX + 1;
+        maxY = maxY + 1;
+        
+        const gridWidth = maxX - minX + 1;
+        const gridHeight = maxY - minY + 1;
         
         const handleCellChange = (x: number, y: number, value: string) => {
           const key = `${x}-${y}`;
@@ -886,10 +902,10 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Grid */}
               <div className="flex justify-center">
-                <div className="grid gap-0.5 max-w-md" style={{gridTemplateColumns: 'repeat(15, 1fr)'}}>
-                  {Array.from({ length: gridSize * gridSize }).map((_, index) => {
-                    const x = index % gridSize;
-                    const y = Math.floor(index / gridSize);
+                <div className="grid gap-0.5" style={{gridTemplateColumns: `repeat(${gridWidth}, 1fr)`}}>
+                  {Array.from({ length: gridWidth * gridHeight }).map((_, index) => {
+                    const x = (index % gridWidth) + minX;
+                    const y = Math.floor(index / gridWidth) + minY;
                     const cell = crosswordGrid.find((c: any) => c.x === x && c.y === y);
                     const key = `${x}-${y}`;
                     const userValue = crosswordAnswers[key] || '';
@@ -898,7 +914,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                       return (
                         <div
                           key={key}
-                          className="w-6 h-6 bg-gray-300"
+                          className="w-8 h-8 bg-gray-200"
                         />
                       );
                     }
@@ -906,17 +922,17 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                     return (
                       <div
                         key={key}
-                        className="w-6 h-6 border border-gray-400 text-xs flex items-center justify-center relative bg-white"
+                        className="w-8 h-8 border border-gray-400 text-sm flex items-center justify-center relative bg-white"
                       >
                         <input
                           type="text"
                           value={userValue}
                           onChange={(e) => handleCellChange(x, y, e.target.value)}
                           maxLength={1}
-                          className="w-full h-full text-center uppercase font-bold text-xs border-0 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full h-full text-center uppercase font-bold text-sm border-0 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                         {cell?.number && (
-                          <div className="absolute top-0 left-0 text-[8px] font-bold text-blue-600 leading-none pointer-events-none">
+                          <div className="absolute top-0 left-0 text-[10px] font-bold text-blue-600 leading-none pointer-events-none">
                             {cell.number}
                           </div>
                         )}

@@ -796,6 +796,9 @@ export function CrosswordBuilder({
     setGridMap(newGridMap);
     setImportSuccess(true);
     
+    // Explicitly trigger onCluesUpdate to ensure parent component gets the data
+    onCluesUpdate?.(newClues);
+    
     // Close dialog after a short delay
     setTimeout(() => {
       setShowImportDialog(false);
