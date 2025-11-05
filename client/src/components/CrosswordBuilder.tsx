@@ -25,6 +25,9 @@ import {
   Edit2,
   HelpCircle,
   Sparkles,
+  Upload,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   Tooltip,
@@ -32,6 +35,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 /*****
  * CrosswordBuilder – förbättrad version
@@ -141,6 +158,70 @@ function normalizeAnswer(s: string) {
     .replace(/[^A-Z]/g, "");
 }
 
+// AI Crossword Import types
+interface AICrosswordWord {
+  word: string;
+  clue: string;
+  startX: number;
+  startY: number;
+  direction: "across" | "down";
+}
+
+interface AICrosswordData {
+  gridSize?: number;
+  words: AICrosswordWord[];
+}
+
+// Parser function for AI-generated crosswords
+function parseAICrossword(input: string): { success: true; data: AICrosswordData } | { success: false; error: string } {
+  try {
+    // Try to extract JSON from markdown code blocks if present
+    let jsonStr = input.trim();
+    const codeBlockMatch = jsonStr.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (codeBlockMatch) {
+      jsonStr = codeBlockMatch[1];
+    }
+    
+    const data = JSON.parse(jsonStr) as AICrosswordData;
+    
+    // Validate structure
+    if (!data.words || !Array.isArray(data.words)) {
+      return { success: false, error: "JSON måste innehålla en 'words' array" };
+    }
+    
+    if (data.words.length === 0) {
+      return { success: false, error: "Minst ett ord måste finnas i 'words' arrayen" };
+    }
+    
+    // Validate each word
+    for (let i = 0; i < data.words.length; i++) {
+      const word = data.words[i];
+      if (!word.word || typeof word.word !== 'string') {
+        return { success: false, error: `Ord ${i + 1}: 'word' saknas eller är inte en sträng` };
+      }
+      if (!word.clue || typeof word.clue !== 'string') {
+        return { success: false, error: `Ord ${i + 1}: 'clue' saknas eller är inte en sträng` };
+      }
+      if (typeof word.startX !== 'number' || word.startX < 0) {
+        return { success: false, error: `Ord ${i + 1}: 'startX' måste vara ett positivt nummer` };
+      }
+      if (typeof word.startY !== 'number' || word.startY < 0) {
+        return { success: false, error: `Ord ${i + 1}: 'startY' måste vara ett positivt nummer` };
+      }
+      if (word.direction !== 'across' && word.direction !== 'down') {
+        return { success: false, error: `Ord ${i + 1}: 'direction' måste vara 'across' eller 'down'` };
+      }
+    }
+    
+    return { success: true, data };
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      return { success: false, error: "Ogiltig JSON-format. Kontrollera att JSON är korrekt formaterad." };
+    }
+    return { success: false, error: `Fel vid parsing: ${(e as Error).message}` };
+  }
+}
+
 export function CrosswordBuilder({
   clues: propClues = [],
   onCluesUpdate,
@@ -175,6 +256,22 @@ export function CrosswordBuilder({
   const [busy, setBusy] = useState(false);
   const [autoPlaceProgress, setAutoPlaceProgress] = useState<string>("");
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  
+  // AI Import state
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importInput, setImportInput] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Reset import dialog state when opening
+  useEffect(() => {
+    if (showImportDialog) {
+      setImportError(null);
+      setImportSuccess(false);
+      setCopied(false);
+    }
+  }, [showImportDialog]);
 
   // Synka clues uppåt
   useEffect(() => {
@@ -641,6 +738,97 @@ export function CrosswordBuilder({
     return -area + gridMap.size * 0.5;
   };
 
+  // AI Import handler
+  const handleImportAICrossword = () => {
+    setImportError(null);
+    setImportSuccess(false);
+    
+    const result = parseAICrossword(importInput);
+    
+    if (!result.success) {
+      setImportError(result.error);
+      return;
+    }
+    
+    const { data } = result;
+    
+    // Create clues from imported data
+    const newClues: CrosswordClue[] = data.words.map((word, idx) => ({
+      id: `clue-${Date.now()}-${idx}`,
+      question: word.clue,
+      answer: word.word,
+    }));
+    
+    // Create grid from imported data
+    const newGridMap = new Map<string, CellKeyed>();
+    
+    data.words.forEach((word, clueIndex) => {
+      const answer = normalizeAnswer(word.word);
+      const dir = word.direction;
+      
+      for (const [cx, cy, i] of Array.from(iterWord(
+        word.startX,
+        word.startY,
+        answer.length,
+        dir,
+      ))) {
+        const key = k(cx, cy);
+        newGridMap.set(key, {
+          x: cx,
+          y: cy,
+          key,
+          letter: answer[i],
+          clueIndex,
+          direction: dir,
+        });
+      }
+    });
+    
+    // Update state
+    setClues(newClues);
+    setGridMap(newGridMap);
+    setImportSuccess(true);
+    
+    // Close dialog after a short delay
+    setTimeout(() => {
+      setShowImportDialog(false);
+      setImportInput("");
+      setImportSuccess(false);
+    }, 1500);
+  };
+
+  const copyPromptToClipboard = () => {
+    const prompt = `Skapa ett enkelt svenskt korsord med 7-8 ord för årskurs 4-6.
+Orden ska vara [ANGE TEMA/ÄMNESOMRÅDE HÄR].
+
+Använd detta exakta JSON-format:
+{
+  "gridSize": 10,
+  "words": [
+    {
+      "word": "ORD",
+      "clue": "Ledtråd här",
+      "startX": 0,
+      "startY": 0,
+      "direction": "across"
+    }
+  ]
+}
+
+Regler:
+- Ord ska vara 3-8 bokstäver
+- Korsa minst 2-3 ord med varandra
+- Använd samma bokstav där ord korsas
+- startX och startY börjar från 0
+- direction är antingen "across" eller "down"
+- Ge endast JSON-svaret, ingen annan text`;
+
+    navigator.clipboard.writeText(prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
 
   // Render
   return (
@@ -710,6 +898,147 @@ export function CrosswordBuilder({
             <span>{autoPlaceProgress}</span>
           </div>
         )}
+
+        {/* AI Import Section - Triggered reload */}
+        <Card className="border-2 border-purple-300 bg-purple-50">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              Importera från AI (ChatGPT)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-3">
+              Använd ChatGPT eller annan AI för att skapa korsordet. Kopiera prompten, få JSON-svar, och klistra in här.
+            </p>
+            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full border-purple-400 hover:bg-purple-100">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Öppna Import-guide
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Importera korsord från AI</DialogTitle>
+                  <DialogDescription>
+                    Följ stegen nedan för att skapa ett korsord med hjälp av AI
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Tabs defaultValue="step1" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="step1">1. Kopiera Prompt</TabsTrigger>
+                    <TabsTrigger value="step2">2. Använd AI</TabsTrigger>
+                    <TabsTrigger value="step3">3. Importera</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="step1" className="space-y-3">
+                    <div>
+                      <h3 className="font-semibold mb-2">Steg 1: Kopiera prompt till AI</h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Klicka på knappen nedan för att kopiera prompten. Klistra sedan in den i ChatGPT, Claude eller annan AI.
+                      </p>
+                      <div className="bg-gray-100 p-3 rounded border text-xs font-mono whitespace-pre-wrap mb-3 max-h-64 overflow-y-auto">
+{`Skapa ett enkelt svenskt korsord med 7-8 ord för årskurs 4-6.
+Orden ska vara [ANGE TEMA/ÄMNESOMRÅDE HÄR].
+
+Använd detta exakta JSON-format:
+{
+  "gridSize": 10,
+  "words": [
+    {
+      "word": "ORD",
+      "clue": "Ledtråd här",
+      "startX": 0,
+      "startY": 0,
+      "direction": "across"
+    }
+  ]
+}
+
+Regler:
+- Ord ska vara 3-8 bokstäver
+- Korsa minst 2-3 ord med varandra
+- Använd samma bokstav där ord korsas
+- startX och startY börjar från 0
+- direction är antingen "across" eller "down"
+- Ge endast JSON-svaret, ingen annan text`}
+                      </div>
+                      <Button onClick={copyPromptToClipboard} className="w-full">
+                        {copied ? (
+                          <>
+                            <Check className="mr-2 h-4 w-4" />
+                            Kopierad!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Kopiera Prompt
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="step2" className="space-y-3">
+                    <div>
+                      <h3 className="font-semibold mb-2">Steg 2: Använd AI</h3>
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                        <li>Öppna ChatGPT (chatgpt.com) eller annan AI</li>
+                        <li>Klistra in prompten du kopierade</li>
+                        <li>Ändra [ANGE TEMA/ÄMNESOMRÅDE HÄR] till ditt tema (t.ex. "djur", "mat", "geografi")</li>
+                        <li>Skicka meddelandet till AI:n</li>
+                        <li>AI:n kommer att generera ett JSON-svar med korsordets struktur</li>
+                        <li>Kopiera hela JSON-svaret (från { till })</li>
+                      </ol>
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-sm">
+                        <strong>Tips:</strong> Om AI:n ger text innan eller efter JSON, kopiera bara JSON-delen (det som börjar med { och slutar med })
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="step3" className="space-y-3">
+                    <div>
+                      <h3 className="font-semibold mb-2">Steg 3: Importera JSON</h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Klistra in JSON-svaret från AI:n här:
+                      </p>
+                      <Textarea
+                        value={importInput}
+                        onChange={(e) => setImportInput(e.target.value)}
+                        placeholder='{"gridSize": 10, "words": [...]}'
+                        className="min-h-[200px] font-mono text-xs"
+                      />
+                      
+                      {importError && (
+                        <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+                          <strong>Fel:</strong> {importError}
+                        </div>
+                      )}
+                      
+                      {importSuccess && (
+                        <div className="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800 flex items-center gap-2">
+                          <Check className="h-4 w-4" />
+                          <span>Korsord importerat! Stänger...</span>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        onClick={handleImportAICrossword}
+                        disabled={!importInput.trim() || importSuccess}
+                        className="w-full"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Importera Korsord
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
 
         {/* Add new word section */}
         <Card className="border-2 border-dashed border-gray-300">
