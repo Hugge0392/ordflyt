@@ -791,9 +791,36 @@ export function CrosswordBuilder({
       }
     });
     
-    // Update state - these will trigger useEffect that calls onCluesUpdate
+    // Update state
     setClues(newClues);
     setGridMap(newGridMap);
+    
+    // CRITICAL: Call onCluesUpdate immediately with newClues (not clues which is stale)
+    // This ensures parent component gets the data before any re-renders
+    if (onCluesUpdate) {
+      onCluesUpdate(newClues);
+    }
+    if (onGridUpdate) {
+      // Calculate numbers for the grid
+      const numbers = computeNumbers(newGridMap, gridSize);
+      
+      // Convert Map to array for parent with computed numbers
+      const gridArray = Array.from(newGridMap.values()).map(cell => {
+        const number = numbers.get(k(cell.x, cell.y));
+        return {
+          x: cell.x,
+          y: cell.y,
+          letter: cell.letter,
+          number,
+          isStart: number !== undefined,
+          direction: cell.direction,
+          clueIndex: cell.clueIndex,
+          isBlocked: cell.isBlocked,
+        };
+      });
+      onGridUpdate(gridArray);
+    }
+    
     setImportSuccess(true);
     
     // Close dialog after a short delay
