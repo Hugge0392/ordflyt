@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -1960,16 +1960,30 @@ export default function LessonBuilder() {
             <CrosswordBuilder
               clues={moment.config.clues || []}
               onCluesUpdate={(clues) => {
-                updateMomentConfig(moment.id, {
-                  ...moment.config,
-                  clues
+                console.log('[LessonBuilder] onCluesUpdate called with', clues);
+                setCurrentLesson(prevLesson => {
+                  const updatedLesson = {
+                    ...prevLesson,
+                    moments: (prevLesson.moments || []).map(m => 
+                      m.id === moment.id ? { ...m, config: { ...m.config, clues } } : m
+                    )
+                  };
+                  console.log('[LessonBuilder] Updated lesson:', updatedLesson);
+                  return updatedLesson;
                 });
               }}
               initialGrid={moment.config.grid || []}
               onGridUpdate={(grid) => {
-                updateMomentConfig(moment.id, {
-                  ...moment.config,
-                  grid
+                console.log('[LessonBuilder] onGridUpdate called with', grid);
+                setCurrentLesson(prevLesson => {
+                  const updatedLesson = {
+                    ...prevLesson,
+                    moments: (prevLesson.moments || []).map(m => 
+                      m.id === moment.id ? { ...m, config: { ...m.config, grid } } : m
+                    )
+                  };
+                  console.log('[LessonBuilder] Updated lesson with grid:', updatedLesson);
+                  return updatedLesson;
                 });
               }}
               gridSize={moment.config.gridSize || 15}
