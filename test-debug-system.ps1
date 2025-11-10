@@ -52,3 +52,5 @@ Write-Host "För produktion, använd:" -ForegroundColor Yellow
 Write-Host '  $headers = @{"X-Debug-Token"="YOUR_TOKEN"}' -ForegroundColor Gray
 Write-Host '  Invoke-RestMethod -Uri "https://your-app.vercel.app/api/debug/health" -Headers $headers' -ForegroundColor Gray
 
+
+

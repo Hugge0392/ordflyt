@@ -34,3 +34,5 @@ echo ""
 echo "För produktion, använd:"
 echo "  curl -H 'X-Debug-Token: YOUR_TOKEN' https://your-app.vercel.app/api/debug/health"
 
+
+

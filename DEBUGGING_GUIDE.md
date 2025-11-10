@@ -336,3 +336,5 @@ Om du behöver hjälp med debugging:
 - ✅ Source maps för läsbara stack traces
 - ✅ JSON-format för enkel parsing
 
+
+

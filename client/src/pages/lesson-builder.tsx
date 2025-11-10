@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -656,14 +656,14 @@ export default function LessonBuilder() {
     URL.revokeObjectURL(url);
   };
 
-  const updateMomentConfig = (momentId: string, config: any) => {
-    setCurrentLesson({
-      ...currentLesson,
-      moments: (currentLesson.moments || []).map(m => 
+  const updateMomentConfig = useCallback((momentId: string, config: any) => {
+    setCurrentLesson(prevLesson => ({
+      ...prevLesson,
+      moments: (prevLesson.moments || []).map(m => 
         m.id === momentId ? { ...m, config } : m
       )
-    });
-  };
+    }));
+  }, []);
 
   const renderMomentConfig = (moment: LessonMoment) => {
     switch(moment.type) {
