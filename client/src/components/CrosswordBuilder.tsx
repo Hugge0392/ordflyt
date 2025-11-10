@@ -243,6 +243,31 @@ export function CrosswordBuilder({
     }
     return m;
   });
+  
+  // Synka props till state när de ändras (viktigt för att behålla data när man navigerar tillbaka)
+  const propCluesStr = useMemo(() => JSON.stringify(propClues), [propClues]);
+  const cluesStr = useMemo(() => JSON.stringify(clues), [clues]);
+  
+  useEffect(() => {
+    // Kolla om props faktiskt är olika (förhindra oändlig loop)
+    if (propCluesStr !== cluesStr) {
+      console.log('[CrosswordBuilder] Props changed, syncing clues from', clues.length, 'to', propClues.length);
+      setClues(propClues);
+    }
+  }, [propCluesStr, cluesStr, propClues]);
+  
+  useEffect(() => {
+    // Kolla om grid faktiskt är olika
+    if (initialGrid.length > 0 && initialGrid.length !== gridMap.size) {
+      console.log('[CrosswordBuilder] initialGrid changed, syncing grid:', initialGrid.length, 'cells');
+      const m = new Map<string, CellKeyed>();
+      for (const c of initialGrid) {
+        const key = k(c.x, c.y);
+        m.set(key, { ...c, key });
+      }
+      setGridMap(m);
+    }
+  }, [initialGrid, gridMap.size]);
 
   const [selectedClue, setSelectedClue] = useState<number | null>(null);
   const [direction, setDirection] = useState<Direction>("across");
