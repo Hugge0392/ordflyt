@@ -963,6 +963,7 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
                     Inga ledtrådar finns ännu. Lägg till ord och ledtrådar i redigeraren.
                   </div>
                 )}
+              </div>
             </div>
             
             <Button onClick={onNext} className="mt-6">Fortsätt</Button>
