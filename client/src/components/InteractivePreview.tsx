@@ -1060,43 +1060,6 @@ export function InteractivePreview({ moment, onNext, lesson }: InteractivePrevie
       case 'fyll-mening':
         return <FyllMeningPreview moment={moment} onNext={onNext} />;
 
-      case 'korsord':
-        // Transform clues to the format CrosswordPlayer expects
-        const transformedClues: CrosswordPlayerClue[] = (moment.config.clues || []).map((clue: any, index: number) => {
-          // Find the first cell of this word in the grid
-          const wordCells = (moment.config.grid || []).filter((cell: CrosswordCell) => cell.clueIndex === index);
-          if (wordCells.length === 0) {
-            return null;
-          }
-          
-          // Sort cells to find start position
-          const sortedCells = wordCells.sort((a: CrosswordCell, b: CrosswordCell) => {
-            if (a.y === b.y) return a.x - b.x; // Same row, sort by x
-            return a.y - b.y; // Sort by y
-          });
-          
-          const startCell = sortedCells[0];
-          const direction = startCell.direction || 'across';
-          
-          return {
-            id: clue.id,
-            number: startCell.number || index + 1,
-            question: clue.question,
-            answer: clue.answer,
-            direction,
-            startX: startCell.x,
-            startY: startCell.y,
-          } as CrosswordPlayerClue;
-        }).filter((clue: CrosswordPlayerClue | null) => clue !== null);
-
-        return (
-          <CrosswordPlayer 
-            clues={transformedClues}
-            grid={moment.config.grid || []}
-            onComplete={() => onNext?.()}
-          />
-        );
-
       default:
         return (
           <div className="text-center text-gray-500">
