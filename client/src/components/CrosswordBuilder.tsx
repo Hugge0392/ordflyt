@@ -397,6 +397,9 @@ export function CrosswordBuilder({
     wordPlacements.forEach((placement, clueIndex) => {
       if (!clues[clueIndex]) return; // Ord finns inte längre
       
+      // Skippa om position inte är komplett
+      if (!placement.startRow || !placement.startCol) return;
+      
       const answer = normalizeAnswer(clues[clueIndex].answer);
       if (!answer) return;
       
@@ -448,11 +451,11 @@ export function CrosswordBuilder({
         current.direction = value as Direction;
       }
       
-      // Bara uppdatera om båda rad och kolumn är ifyllda
-      if (current.startRow && current.startCol) {
+      // Spara alltid (även om bara ett fält är ifyllt) så användaren kan se vad de skrivit
+      if (current.startRow || current.startCol) {
         next.set(clueIndex, current);
-      } else if (!current.startRow && !current.startCol) {
-        // Ta bort om båda är tomma
+      } else {
+        // Ta bort bara om båda är tomma
         next.delete(clueIndex);
       }
       
