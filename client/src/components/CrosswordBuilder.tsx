@@ -28,6 +28,9 @@ import {
   Upload,
   Copy,
   Check,
+  CheckCircle2,
+  Circle,
+  RotateCw,
 } from "lucide-react";
 import {
   Tooltip,
@@ -922,44 +925,29 @@ Regler:
     });
   };
 
+  // Check if a word is placed in the grid
+  const isWordPlaced = (clueIndex: number): boolean => {
+    return Array.from(gridMap.values()).some(cell => cell.clueIndex === clueIndex);
+  };
+
+  // Get placement info for a word
+  const getWordPlacement = (clueIndex: number): { x: number; y: number; dir: Direction } | null => {
+    for (const cell of gridMap.values()) {
+      if (cell.clueIndex === clueIndex && cell.direction) {
+        return { x: cell.x, y: cell.y, dir: cell.direction };
+      }
+    }
+    return null;
+  };
 
   // Render
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {/* Header with actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold">Korsords-redigerare</h3>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <HelpCircle className="h-4 w-4 text-gray-500" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Lägg till ord och ledtrådar, placera dem i gridet manuellt eller använd auto-placering. Alt+Klick för att blockera rutor.</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Toggle
-              pressed={direction === "across"}
-              onPressedChange={() =>
-                setDirection(direction === "across" ? "down" : "across")
-              }
-              className="gap-2"
-              aria-label="Växla riktning"
-            >
-              {direction === "across" ? (
-                <ArrowLeftRight className="h-4 w-4" />
-              ) : (
-                <ArrowUpDown className="h-4 w-4" />
-              )}
-              {direction === "across" ? "Vågrät" : "Lodrät"}
-            </Toggle>
-            <Tooltip>
-              <TooltipTrigger asChild>
+      <div className="space-y-4">
+        {/* Compact header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Skapa korsord</h3>
+          <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -973,13 +961,8 @@ Regler:
                   )}
                   Auto-placera
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Placera alla ord automatiskt med smart algoritm</p>
-              </TooltipContent>
-            </Tooltip>
             <Button variant="outline" size="sm" onClick={clearGrid}>
-              <Eraser className="mr-2 h-4 w-4" /> Rensa grid
+              <Eraser className="mr-2 h-4 w-4" /> Rensa
             </Button>
           </div>
         </div>
@@ -992,26 +975,181 @@ Regler:
           </div>
         )}
 
-        {/* AI Import Section - Triggered reload */}
-        <Card className="border-2 border-purple-300 bg-purple-50">
+        {/* Main 2-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+          
+          {/* LEFT COLUMN: Grid */}
+          <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              Importera från AI (ChatGPT)
-            </CardTitle>
+              <CardTitle className="text-base">Korsordsgrid</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-3">
-              Skriv in dina ord, generera en prompt, använd ChatGPT för att få ett färdigt korsord!
-            </p>
-            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="w-full border-purple-400 hover:bg-purple-100">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Öppna Import-guide
+            <div
+              className="grid gap-0.5 mx-auto"
+              style={{ gridTemplateColumns: `repeat(${gridSize}, 2rem)` }}
+            >
+              {Array.from({ length: gridSize * gridSize }).map((_, index) => {
+                const x = index % gridSize;
+                const y = Math.floor(index / gridSize);
+                const key = k(x, y);
+                const cell = gridMap.get(key);
+                const active = activeWord?.positions?.includes(key);
+
+                const showPreview =
+                  hoverPreview &&
+                  selectedClue !== null &&
+                  (() => {
+                    const ans = normalizeAnswer(clues[selectedClue].answer);
+                    const endX =
+                      direction === "across"
+                        ? hoverPreview.x + ans.length - 1
+                        : hoverPreview.x;
+                    const endY =
+                      direction === "down"
+                        ? hoverPreview.y + ans.length - 1
+                        : hoverPreview.y;
+                    const inRect =
+                      x >= hoverPreview.x &&
+                      y >= hoverPreview.y &&
+                      x <= endX &&
+                      y <= endY;
+                    if (!inRect) return false;
+                    const i =
+                      direction === "across"
+                        ? x - hoverPreview.x
+                        : y - hoverPreview.y;
+                    return i >= 0 && i < ans.length;
+                  })();
+
+                return (
+                  <div
+                    key={key}
+                    className={cn(
+                      "relative w-8 h-8 border text-xs flex items-center justify-center cursor-pointer select-none",
+                      cell?.isBlocked
+                        ? "bg-black border-gray-600"
+                        : "bg-white border-gray-300",
+                      active && !cell?.isBlocked && "ring-2 ring-blue-500",
+                      showPreview &&
+                        "outline outline-2 outline-dashed outline-blue-400",
+                    )}
+                    onClick={(e) => handleCellClick(x, y, e)}
+                    onDragOver={(e) => handleDragOver(e, x, y)}
+                    onDrop={(e) => handleDrop(e, x, y)}
+                  >
+                    {!cell?.isBlocked && (
+                      <Input
+                        ref={(el) => (inputsRef.current[key] = el)}
+                        className={cn(
+                          "absolute inset-0 p-0 text-center text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:border-0",
+                          cell?.letter ? "font-semibold" : "",
+                        )}
+                        value={cell?.letter ?? ""}
+                        onChange={(e) =>
+                          handleInputChange(x, y, e.target.value)
+                        }
+                        onKeyDown={(e) => handleKeyDown(x, y, e)}
+                        maxLength={1}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                    {(() => {
+                      const numbers = computeNumbers(gridMap, gridSize);
+                      const num = numbers.get(key);
+                      if (!cell?.isBlocked && num) {
+                        return (
+                          <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-blue-700 pointer-events-none">
+                            {num}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                );
+              })}
+            </div>
+              <div className="text-xs text-gray-500 mt-3 space-y-1">
+                <p><strong>Tips:</strong></p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  <li>Klicka på ett ord till höger, sedan klicka i gridet för att placera</li>
+                  <li>Alt+Klick på en ruta för att blockera den (svart)</li>
+                  <li>Dra ord från listan till gridet för snabb placering</li>
+                </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+          {/* RIGHT COLUMN: Word list & controls */}
+          <div className="space-y-4">
+            
+            {/* Add word section */}
+            <Card className="border-2 border-blue-300 bg-blue-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Lägg till ord
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div>
+                  <Input
+                    value={newClue.answer}
+                    onChange={(e) => setNewClue({ ...newClue, answer: e.target.value })}
+                    placeholder="Ord (t.ex. KATT)"
+                    className="uppercase"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newClue.answer && newClue.question) {
+                        addClue();
+                      }
+                    }}
+                  />
+            </div>
+                <div>
+                  <Input
+                    value={newClue.question}
+                    onChange={(e) => setNewClue({ ...newClue, question: e.target.value })}
+                    placeholder="Ledtråd (t.ex. Djur som säger mjau)"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newClue.answer && newClue.question) {
+                        addClue();
+                      }
+                    }}
+                  />
+                </div>
+                <Button 
+                  onClick={addClue} 
+                  disabled={!newClue.question.trim() || !newClue.answer.trim()}
+                  className="w-full"
+                  size="sm"
+                >
+                  <Plus className="mr-2 h-3 w-3" />
+                  Lägg till
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              </CardContent>
+            </Card>
+
+            {/* AI Import - Collapsed */}
+            <Card className="border-purple-300 bg-purple-50">
+              <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowImportDialog(!showImportDialog)}>
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-600" />
+                    AI Import (ChatGPT)
+                  </span>
+                  <span className="text-xs text-purple-600">{showImportDialog ? "▲" : "▼"}</span>
+                </CardTitle>
+          </CardHeader>
+              {showImportDialog && (
+                <CardContent className="pt-0">
+                  <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full border-purple-400 hover:bg-purple-100">
+                        <Upload className="mr-2 h-3 w-3" />
+                        Öppna Import-guide
+                      </Button>
+                    </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Importera korsord från AI</DialogTitle>
                   <DialogDescription>
@@ -1169,180 +1307,35 @@ Regler:
                 </Tabs>
               </DialogContent>
             </Dialog>
-          </CardContent>
-        </Card>
+                </CardContent>
+              )}
+            </Card>
 
-        {/* Add new word section */}
-        <Card className="border-2 border-dashed border-gray-300">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Lägg till ord och ledtråd
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="new-answer">Ord (svar)</Label>
-                <Input
-                  id="new-answer"
-                  value={newClue.answer}
-                  onChange={(e) => setNewClue({ ...newClue, answer: e.target.value })}
-                  placeholder="T.ex. KATT"
-                  className="uppercase"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newClue.question && newClue.answer) {
-                      addClue();
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="new-question">Ledtråd (fråga)</Label>
-                <Input
-                  id="new-question"
-                  value={newClue.question}
-                  onChange={(e) => setNewClue({ ...newClue, question: e.target.value })}
-                  placeholder="T.ex. Djur som säger mjau"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newClue.question && newClue.answer) {
-                      addClue();
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <Button 
-              onClick={addClue} 
-              disabled={!newClue.question.trim() || !newClue.answer.trim()}
-              className="w-full"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Lägg till ord
-            </Button>
-          </CardContent>
-        </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Grid */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Korsordsgrid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className="grid gap-0.5 mx-auto"
-              style={{ gridTemplateColumns: `repeat(${gridSize}, 2rem)` }}
-            >
-              {Array.from({ length: gridSize * gridSize }).map((_, index) => {
-                const x = index % gridSize;
-                const y = Math.floor(index / gridSize);
-                const key = k(x, y);
-                const cell = gridMap.get(key);
-                const active = activeWord?.positions?.includes(key);
-
-                const showPreview =
-                  hoverPreview &&
-                  selectedClue !== null &&
-                  (() => {
-                    const ans = normalizeAnswer(clues[selectedClue].answer);
-                    const endX =
-                      direction === "across"
-                        ? hoverPreview.x + ans.length - 1
-                        : hoverPreview.x;
-                    const endY =
-                      direction === "down"
-                        ? hoverPreview.y + ans.length - 1
-                        : hoverPreview.y;
-                    const inRect =
-                      x >= hoverPreview.x &&
-                      y >= hoverPreview.y &&
-                      x <= endX &&
-                      y <= endY;
-                    if (!inRect) return false;
-                    // beräkna exakt position i ordet
-                    const i =
-                      direction === "across"
-                        ? x - hoverPreview.x
-                        : y - hoverPreview.y;
-                    return i >= 0 && i < ans.length;
-                  })();
-
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      "relative w-8 h-8 border text-xs flex items-center justify-center cursor-pointer select-none",
-                      cell?.isBlocked
-                        ? "bg-black border-gray-600"
-                        : "bg-white border-gray-300",
-                      active && !cell?.isBlocked && "ring-2 ring-blue-500",
-                      showPreview &&
-                        "outline outline-2 outline-dashed outline-blue-400",
-                    )}
-                    onClick={(e) => handleCellClick(x, y, e)}
-                    onDragOver={(e) => handleDragOver(e, x, y)}
-                    onDrop={(e) => handleDrop(e, x, y)}
-                  >
-                    {!cell?.isBlocked && (
-                      <Input
-                        ref={(el) => (inputsRef.current[key] = el)}
-                        className={cn(
-                          "absolute inset-0 p-0 text-center text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:border-0",
-                          cell?.letter ? "font-semibold" : "",
-                        )}
-                        value={cell?.letter ?? ""}
-                        onChange={(e) =>
-                          handleInputChange(x, y, e.target.value)
-                        }
-                        onKeyDown={(e) => handleKeyDown(x, y, e)}
-                        maxLength={1}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                    {/* Nummer (autonumrerat) */}
-                    {(() => {
-                      const numbers = computeNumbers(gridMap, gridSize);
-                      const num = numbers.get(key);
-                      if (!cell?.isBlocked && num) {
-                        return (
-                          <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-blue-700 pointer-events-none">
-                            {num}
-                          </div>
-                        );
+            {/* Word list */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Ord ({clues.length})</CardTitle>
+                  <div className="flex items-center gap-2 text-xs">
+                    <label className="text-gray-600">Riktning:</label>
+                    <Toggle
+                      pressed={direction === "across"}
+                      onPressedChange={() =>
+                        setDirection(direction === "across" ? "down" : "across")
                       }
-                      return null;
-                    })()}
+                      size="sm"
+                      className="h-7"
+                    >
+                      {direction === "across" ? (
+                        <><ArrowLeftRight className="h-3 w-3 mr-1" /> Vågrät</>
+                      ) : (
+                        <><ArrowUpDown className="h-3 w-3 mr-1" /> Lodrät</>
+                      )}
+                    </Toggle>
                   </div>
-                );
-              })}
-            </div>
-            <div className="text-xs text-gray-500 mt-2">
-              Tips: Alt+Klick på en ruta för att växla block (svart). Dra en
-              ledtråd till en start‑ruta för att placera. Klicka utan vald
-              ledtråd för att välja ord och skriva in direkt.
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Clues */}
-        <Card>
-          <CardHeader className="flex flex-col gap-3">
-            <CardTitle>Ord och ledtrådar ({clues.length})</CardTitle>
-            <div className="flex items-center gap-3">
-              <Switch
-                id="dir"
-                checked={direction === "down"}
-                onCheckedChange={(v) => setDirection(v ? "down" : "across")}
-              />
-              <label htmlFor="dir" className="text-sm">
-                {direction === "across"
-                  ? "Placera vågrätt"
-                  : "Placera lodrätt"}
-              </label>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-96 overflow-y-auto">
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {clues.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>Inga ord tillagda ännu</p>
@@ -1387,25 +1380,54 @@ Regler:
                       onClick={() =>
                         setSelectedClue(selectedClue === index ? null : index)
                       }
-                      className="p-3 cursor-pointer"
+                      className="p-2 cursor-pointer"
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        {/* Status indicator */}
+                        <div className="mt-0.5">
+                          {isWordPlaced(index) ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-gray-300" />
+                          )}
+                        </div>
+                        
+                        {/* Word info */}
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">
-                            {index + 1}. {clue.question}
+                          <div className="font-medium text-sm flex items-center gap-2">
+                            <span>{clue.question}</span>
                           </div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            Svar: {normalizeAnswer(clue.answer).toUpperCase()} (
-                            {normalizeAnswer(clue.answer).length} bokstäver)
+                          <div className="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
+                            <span className="font-mono font-semibold">{normalizeAnswer(clue.answer).toUpperCase()}</span>
+                            <span className="text-gray-400">•</span>
+                            <span>{normalizeAnswer(clue.answer).length} bokstäver</span>
+                            {isWordPlaced(index) && (() => {
+                              const placement = getWordPlacement(index);
+                              if (placement) {
+                                return (
+                                  <span className="text-blue-600 flex items-center gap-1">
+                                    {placement.dir === "across" ? (
+                                      <ArrowLeftRight className="h-3 w-3" />
+                                    ) : (
+                                      <ArrowUpDown className="h-3 w-3" />
+                                    )}
+                                    {placement.dir === "across" ? "Vågrät" : "Lodrät"}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        
+                        {/* Action buttons */}
+                        <div className="flex gap-0.5">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0"
+                                className="h-6 w-6 p-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setEditingClue(clue.id);
@@ -1421,7 +1443,7 @@ Regler:
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (confirm(`Ta bort "${clue.answer}"?`)) {
@@ -1437,9 +1459,9 @@ Regler:
                         </div>
                       </div>
                       {selectedClue === index && (
-                        <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
-                          <span>↓</span>
-                          <span>Klicka i gridet för att placera</span>
+                        <div className="text-xs text-blue-600 mt-2 ml-6 flex items-center gap-1 bg-blue-50 p-1.5 rounded">
+                          <span>→</span>
+                          <span>Klicka i gridet för att placera {direction === "across" ? "vågrätt" : "lodrätt"}</span>
                         </div>
                       )}
                     </div>
@@ -1449,24 +1471,11 @@ Regler:
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Tips section */}
-      <Card className="bg-gray-50">
-        <CardContent className="pt-6">
-          <div className="text-sm text-gray-600 space-y-2">
-            <p className="font-semibold text-gray-800">Tips för att skapa bra korsord:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Lägg till 5-10 ord för ett bra korsord</li>
-              <li>Använd ord av olika längder</li>
-              <li>Klicka på en ledtråd och sedan i gridet för att placera manuellt</li>
-              <li>Eller använd "Auto-placera" för automatisk placering</li>
-              <li>Alt+Klick på en ruta för att blockera den (svart ruta)</li>
-              <li>Skriv tydliga och pedagogiska ledtrådar</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+          
+          </div> {/* End RIGHT COLUMN */}
+        
+        </div> {/* End 2-column layout */}
+        
     </div>
     </TooltipProvider>
   );

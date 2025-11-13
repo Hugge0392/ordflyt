@@ -187,3 +187,4 @@ Om du har problem med import-funktionen, kontrollera:
 
 Vid återkommande problem, använd den manuella metoden: "Lägg till ord och ledtråd" + "Auto-placera".
 
+
