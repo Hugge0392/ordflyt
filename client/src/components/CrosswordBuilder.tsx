@@ -392,6 +392,26 @@ export function CrosswordBuilder({
     onGridUpdate?.(flatGrid);
   }, [flatGrid, onGridUpdate]);
 
+  // Helper function to remove a word from the grid
+  const removeWordFromGrid = useCallback((clueIndex: number) => {
+    setGridMap((prev) => {
+      const next = new Map(prev);
+      // Find and remove all cells with this clueIndex
+      for (const [key, cell] of next.entries()) {
+        if (cell.clueIndex === clueIndex) {
+          // Check if this cell is shared with another word
+          const otherWords = Array.from(next.values()).filter(
+            c => c.x === cell.x && c.y === cell.y && c.clueIndex !== clueIndex
+          );
+          if (otherWords.length === 0) {
+            next.delete(key);
+          }
+        }
+      }
+      return next;
+    });
+  }, []);
+
   const placeClue = useCallback(
     (clueIndex: number, startX: number, startY: number, dir: Direction) => {
       const answer = normalizeAnswer(clues[clueIndex].answer);
@@ -415,15 +435,25 @@ export function CrosswordBuilder({
         if (existing?.isBlocked)
           return { ok: false, reason: "Blockerad ruta" } as const;
         const ch = answer[i];
-        if (existing && existing.letter && existing.letter !== ch) {
+        // Ignore conflicts with the same word we're moving
+        if (existing && existing.letter && existing.letter !== ch && existing.clueIndex !== clueIndex) {
           return { ok: false, reason: "Krock: annan bokstav" } as const;
         }
-        if (existing && existing.letter === ch) crossings++;
+        if (existing && existing.letter === ch && existing.clueIndex !== clueIndex) crossings++;
       }
 
-      // Skriv in
+      // VIKTIGT: Ta bort ordet från sin gamla position först (om det redan är placerat)
       setGridMap((prev) => {
         const next = new Map(prev);
+        
+        // Steg 1: Ta bort alla celler för detta ord
+        for (const [key, cell] of Array.from(next.entries())) {
+          if (cell.clueIndex === clueIndex) {
+            next.delete(key);
+          }
+        }
+        
+        // Steg 2: Lägg till på nya positionen
         for (const [cx, cy, i] of Array.from(iterWord(
           startX,
           startY,
@@ -431,7 +461,6 @@ export function CrosswordBuilder({
           dir,
         ))) {
           const key = k(cx, cy);
-          const prevCell = next.get(key);
           next.set(key, {
             x: cx,
             y: cy,
@@ -524,15 +553,30 @@ export function CrosswordBuilder({
 
   // Drag & drop för ledtrådar
   const [draggedClue, setDraggedClue] = useState<number | null>(null);
-  const handleDragStart = (clueIndex: number) => setDraggedClue(clueIndex);
+  const handleDragStart = (clueIndex: number) => {
+    setDraggedClue(clueIndex);
+    // Sätt vald ledtråd om den inte redan är vald
+    if (selectedClue !== clueIndex) {
+      setSelectedClue(clueIndex);
+    }
+  };
   const handleDragOver = (e: React.DragEvent, x: number, y: number) => {
     e.preventDefault();
-    setHoverPreview({ x, y });
+    if (draggedClue !== null) {
+      setHoverPreview({ x, y });
+    }
   };
   const handleDrop = (e: React.DragEvent, x: number, y: number) => {
     e.preventDefault();
     if (draggedClue !== null) {
-      placeClue(draggedClue, x, y, direction);
+      const result = placeClue(draggedClue, x, y, direction);
+      if (result.ok) {
+        // Succé!
+        console.log(`Ord placerat/flyttat till (${x}, ${y})`);
+      } else {
+        // Visa varför det inte gick
+        console.warn(`Kunde inte placera ord: ${result.reason}`);
+      }
       setDraggedClue(null);
       setHoverPreview(null);
     }
@@ -1348,7 +1392,8 @@ Regler:
                   className={cn(
                     "group border rounded-lg transition-all",
                     selectedClue === index && "bg-blue-50 border-blue-300 shadow-sm",
-                    selectedClue !== index && "hover:bg-gray-50 hover:border-gray-400"
+                    selectedClue !== index && "hover:bg-gray-50 hover:border-gray-400",
+                    draggedClue === index && "opacity-50 border-dashed"
                   )}
                 >
                   {editingClue === clue.id ? (
@@ -1380,7 +1425,8 @@ Regler:
                       onClick={() =>
                         setSelectedClue(selectedClue === index ? null : index)
                       }
-                      className="p-2 cursor-pointer"
+                      className="p-2 cursor-move hover:shadow-md transition-shadow"
+                      title="Dra för att placera eller flytta i gridet"
                     >
                       <div className="flex items-start gap-2">
                         {/* Status indicator */}
@@ -1405,14 +1451,18 @@ Regler:
                               const placement = getWordPlacement(index);
                               if (placement) {
                                 return (
-                                  <span className="text-blue-600 flex items-center gap-1">
-                                    {placement.dir === "across" ? (
-                                      <ArrowLeftRight className="h-3 w-3" />
-                                    ) : (
-                                      <ArrowUpDown className="h-3 w-3" />
-                                    )}
-                                    {placement.dir === "across" ? "Vågrät" : "Lodrät"}
-                                  </span>
+                                  <>
+                                    <span className="text-blue-600 flex items-center gap-1">
+                                      {placement.dir === "across" ? (
+                                        <ArrowLeftRight className="h-3 w-3" />
+                                      ) : (
+                                        <ArrowUpDown className="h-3 w-3" />
+                                      )}
+                                      {placement.dir === "across" ? "Vågrät" : "Lodrät"}
+                                    </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-green-600 text-xs">Placerat</span>
+                                  </>
                                 );
                               }
                               return null;
