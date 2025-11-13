@@ -285,6 +285,9 @@ export function CrosswordBuilder({
   const [autoPlaceProgress, setAutoPlaceProgress] = useState<string>("");
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
   
+  // Track placed words separately to handle overlaps
+  const [placedWords, setPlacedWords] = useState<Map<number, { x: number; y: number; dir: Direction }>>(new Map());
+  
   // AI Import state
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importInput, setImportInput] = useState("");
@@ -332,18 +335,40 @@ export function CrosswordBuilder({
   };
 
   const deleteClue = (id: string) => {
+    const clueIndex = clues.findIndex(c => c.id === id);
+    
     setClues(clues.filter(c => c.id !== id));
-    // Also remove from grid
-    setGridMap((prev) => {
-      const next = new Map(prev);
-      const clueIndex = clues.findIndex(c => c.id === id);
-      for (const [key, cell] of next.entries()) {
-        if (cell.clueIndex === clueIndex) {
-          next.delete(key);
-        }
+    
+    // Remove from grid
+    if (clueIndex >= 0) {
+      const placement = placedWords.get(clueIndex);
+      if (placement) {
+        const answer = normalizeAnswer(clues[clueIndex].answer);
+        setGridMap((prev) => {
+          const next = new Map(prev);
+          for (const [ox, oy, _] of Array.from(iterWord(
+            placement.x,
+            placement.y,
+            answer.length,
+            placement.dir
+          ))) {
+            const oldKey = k(ox, oy);
+            const cell = next.get(oldKey);
+            if (cell?.clueIndex === clueIndex) {
+              next.delete(oldKey);
+            }
+          }
+          return next;
+        });
+        
+        // Remove from placedWords
+        setPlacedWords(prev => {
+          const next = new Map(prev);
+          next.delete(clueIndex);
+          return next;
+        });
       }
-      return next;
-    });
+    }
   };
 
   // Hjälpfunktion: lägg till / uppdatera cell
@@ -443,13 +468,26 @@ export function CrosswordBuilder({
       }
 
       // VIKTIGT: Ta bort ordet från sin gamla position först (om det redan är placerat)
+      const oldPlacement = placedWords.get(clueIndex);
+      
       setGridMap((prev) => {
         const next = new Map(prev);
         
-        // Steg 1: Ta bort alla celler för detta ord
-        for (const [key, cell] of Array.from(next.entries())) {
-          if (cell.clueIndex === clueIndex) {
-            next.delete(key);
+        // Steg 1: Ta bort gamla ordet om det finns
+        if (oldPlacement) {
+          const oldAnswer = normalizeAnswer(clues[clueIndex].answer);
+          for (const [ox, oy, _] of Array.from(iterWord(
+            oldPlacement.x,
+            oldPlacement.y,
+            oldAnswer.length,
+            oldPlacement.dir
+          ))) {
+            const oldKey = k(ox, oy);
+            // Endast ta bort om cellen tillhör detta ordet
+            const cell = next.get(oldKey);
+            if (cell?.clueIndex === clueIndex) {
+              next.delete(oldKey);
+            }
           }
         }
         
@@ -461,15 +499,32 @@ export function CrosswordBuilder({
           dir,
         ))) {
           const key = k(cx, cy);
-          next.set(key, {
-            x: cx,
-            y: cy,
-            key,
-            letter: answer[i],
-            clueIndex,
-            direction: dir,
-          });
+          const existingCell = next.get(key);
+          
+          // Om cellen redan finns och har rätt bokstav, behåll den (korsning)
+          // men uppdatera bara clueIndex om det är vår cell
+          if (existingCell && existingCell.letter === answer[i]) {
+            // Korsning - behåll cellen men lägg inte till clueIndex
+            // Detta är ok eftersom vi har placedWords för att spåra
+          } else {
+            // Ny cell eller tom cell
+            next.set(key, {
+              x: cx,
+              y: cy,
+              key,
+              letter: answer[i],
+              clueIndex,
+              direction: dir,
+            });
+          }
         }
+        return next;
+      });
+      
+      // Uppdatera placedWords tracking
+      setPlacedWords(prev => {
+        const next = new Map(prev);
+        next.set(clueIndex, { x: startX, y: startY, dir });
         return next;
       });
 
@@ -482,7 +537,7 @@ export function CrosswordBuilder({
       setSelectedClue(null);
       return { ok: true, crossings } as const;
     },
-    [clues, gridMap, gridSize],
+    [clues, gridMap, gridSize, placedWords],
   );
 
   const handleCellClick = (x: number, y: number, e?: React.MouseEvent) => {
@@ -620,7 +675,10 @@ export function CrosswordBuilder({
     else if (keyName === "ArrowUp") move(0, -1);
   };
 
-  const clearGrid = () => setGridMap(new Map());
+  const clearGrid = () => {
+    setGridMap(new Map());
+    setPlacedWords(new Map());
+  };
 
   const focusFirstOfActiveWord = () => {
     const fk = activeWord?.positions?.[0];
@@ -971,17 +1029,12 @@ Regler:
 
   // Check if a word is placed in the grid
   const isWordPlaced = (clueIndex: number): boolean => {
-    return Array.from(gridMap.values()).some(cell => cell.clueIndex === clueIndex);
+    return placedWords.has(clueIndex);
   };
 
   // Get placement info for a word
   const getWordPlacement = (clueIndex: number): { x: number; y: number; dir: Direction } | null => {
-    for (const cell of gridMap.values()) {
-      if (cell.clueIndex === clueIndex && cell.direction) {
-        return { x: cell.x, y: cell.y, dir: cell.direction };
-      }
-    }
-    return null;
+    return placedWords.get(clueIndex) || null;
   };
 
   // Render
