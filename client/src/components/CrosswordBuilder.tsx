@@ -101,6 +101,13 @@ interface CellKeyed extends CrosswordCell {
   key: string; // "x-y"
 }
 
+// Enkel placeringsstruktur - varje ord har explicit position
+interface WordPlacement {
+  startRow: string;    // "1"-"15" (synligt för användare)
+  startCol: string;    // "A"-"O" (synligt för användare)
+  direction: Direction;
+}
+
 function k(x: number, y: number) {
   return `${x}-${y}`;
 }
@@ -272,21 +279,9 @@ export function CrosswordBuilder({
     }
   }, [initialGrid, gridMap.size]);
 
-  const [selectedClue, setSelectedClue] = useState<number | null>(null);
-  const [direction, setDirection] = useState<Direction>("across");
-  const [hoverPreview, setHoverPreview] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [activeWord, setActiveWord] = useState<{ positions: string[] } | null>(
-    null,
-  );
   const [busy, setBusy] = useState(false);
   const [autoPlaceProgress, setAutoPlaceProgress] = useState<string>("");
-  const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
-  
-  // Track placed words separately to handle overlaps
-  const [placedWords, setPlacedWords] = useState<Map<number, { x: number; y: number; dir: Direction }>>(new Map());
+  const [wordPlacements, setWordPlacements] = useState<Map<number, WordPlacement>>(new Map());
   
   // AI Import state
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -339,35 +334,13 @@ export function CrosswordBuilder({
     
     setClues(clues.filter(c => c.id !== id));
     
-    // Remove from grid
+    // Remove from wordPlacements
     if (clueIndex >= 0) {
-      const placement = placedWords.get(clueIndex);
-      if (placement) {
-        const answer = normalizeAnswer(clues[clueIndex].answer);
-        setGridMap((prev) => {
-          const next = new Map(prev);
-          for (const [ox, oy, _] of Array.from(iterWord(
-            placement.x,
-            placement.y,
-            answer.length,
-            placement.dir
-          ))) {
-            const oldKey = k(ox, oy);
-            const cell = next.get(oldKey);
-            if (cell?.clueIndex === clueIndex) {
-              next.delete(oldKey);
-            }
-          }
-          return next;
-        });
-        
-        // Remove from placedWords
-        setPlacedWords(prev => {
-          const next = new Map(prev);
-          next.delete(clueIndex);
-          return next;
-        });
-      }
+      setWordPlacements(prev => {
+        const next = new Map(prev);
+        next.delete(clueIndex);
+        return next;
+      });
     }
   };
 
@@ -417,272 +390,79 @@ export function CrosswordBuilder({
     onGridUpdate?.(flatGrid);
   }, [flatGrid, onGridUpdate]);
 
-  // Helper function to remove a word from the grid
-  const removeWordFromGrid = useCallback((clueIndex: number) => {
-    setGridMap((prev) => {
-      const next = new Map(prev);
-      // Find and remove all cells with this clueIndex
-      for (const [key, cell] of next.entries()) {
-        if (cell.clueIndex === clueIndex) {
-          // Check if this cell is shared with another word
-          const otherWords = Array.from(next.values()).filter(
-            c => c.x === cell.x && c.y === cell.y && c.clueIndex !== clueIndex
-          );
-          if (otherWords.length === 0) {
-            next.delete(key);
-          }
-        }
+  // Enkel funktion för att placera alla ord på gridet
+  const placeAllWords = useCallback(() => {
+    const newGridMap = new Map<string, CellKeyed>();
+    
+    wordPlacements.forEach((placement, clueIndex) => {
+      if (!clues[clueIndex]) return; // Ord finns inte längre
+      
+      const answer = normalizeAnswer(clues[clueIndex].answer);
+      if (!answer) return;
+      
+      const startX = colToX(placement.startCol);
+      const startY = rowToY(placement.startRow);
+      
+      // Validera position
+      if (startX < 0 || startY < 0 || startX >= gridSize || startY >= gridSize) return;
+      
+      const endX = placement.direction === "across" ? startX + answer.length - 1 : startX;
+      const endY = placement.direction === "down" ? startY + answer.length - 1 : startY;
+      
+      // Kolla bounds
+      if (endX >= gridSize || endY >= gridSize) return;
+      
+      // Placera ordet
+      for (const [cx, cy, i] of Array.from(iterWord(startX, startY, answer.length, placement.direction))) {
+        const key = k(cx, cy);
+        newGridMap.set(key, {
+          x: cx,
+          y: cy,
+          key,
+          letter: answer[i],
+          clueIndex,
+          direction: placement.direction,
+        });
       }
+    });
+    
+    setGridMap(newGridMap);
+  }, [clues, wordPlacements, gridSize]);
+
+  // Auto-uppdatera grid när wordPlacements ändras
+  useEffect(() => {
+    placeAllWords();
+  }, [wordPlacements, placeAllWords]);
+
+  // Funktion för att uppdatera placering för ett ord
+  const updatePlacement = (clueIndex: number, field: 'row' | 'col' | 'dir', value: string) => {
+    setWordPlacements(prev => {
+      const next = new Map(prev);
+      const current = next.get(clueIndex) || { startRow: '', startCol: '', direction: 'across' as Direction };
+      
+      if (field === 'row') {
+        current.startRow = value;
+      } else if (field === 'col') {
+        current.startCol = value.toUpperCase();
+      } else if (field === 'dir') {
+        current.direction = value as Direction;
+      }
+      
+      // Bara uppdatera om båda rad och kolumn är ifyllda
+      if (current.startRow && current.startCol) {
+        next.set(clueIndex, current);
+      } else if (!current.startRow && !current.startCol) {
+        // Ta bort om båda är tomma
+        next.delete(clueIndex);
+      }
+      
       return next;
     });
-  }, []);
-
-  const placeClue = useCallback(
-    (clueIndex: number, startX: number, startY: number, dir: Direction) => {
-      const answer = normalizeAnswer(clues[clueIndex].answer);
-      if (!answer) return { ok: false, reason: "Tomt svar" } as const;
-
-      // Bounds check i förväg
-      const endX = dir === "across" ? startX + answer.length - 1 : startX;
-      const endY = dir === "down" ? startY + answer.length - 1 : startY;
-      if (
-        !inBounds(startX, startY, gridSize) ||
-        !inBounds(endX, endY, gridSize)
-      ) {
-        return { ok: false, reason: "Utanför grid" } as const;
-      }
-
-      // Kolla konflikter och räkna korsningar
-      let crossings = 0;
-      for (const [cx, cy, i] of Array.from(iterWord(startX, startY, answer.length, dir))) {
-        const key = k(cx, cy);
-        const existing = gridMap.get(key);
-        if (existing?.isBlocked)
-          return { ok: false, reason: "Blockerad ruta" } as const;
-        const ch = answer[i];
-        // Ignore conflicts with the same word we're moving
-        if (existing && existing.letter && existing.letter !== ch && existing.clueIndex !== clueIndex) {
-          return { ok: false, reason: "Krock: annan bokstav" } as const;
-        }
-        if (existing && existing.letter === ch && existing.clueIndex !== clueIndex) crossings++;
-      }
-
-      // VIKTIGT: Ta bort ordet från sin gamla position först (om det redan är placerat)
-      const oldPlacement = placedWords.get(clueIndex);
-      
-      setGridMap((prev) => {
-        const next = new Map(prev);
-        
-        // Steg 1: Ta bort gamla ordet om det finns
-        if (oldPlacement) {
-          const oldAnswer = normalizeAnswer(clues[clueIndex].answer);
-          for (const [ox, oy, _] of Array.from(iterWord(
-            oldPlacement.x,
-            oldPlacement.y,
-            oldAnswer.length,
-            oldPlacement.dir
-          ))) {
-            const oldKey = k(ox, oy);
-            // Endast ta bort om cellen tillhör detta ordet
-            const cell = next.get(oldKey);
-            if (cell?.clueIndex === clueIndex) {
-              next.delete(oldKey);
-            }
-          }
-        }
-        
-        // Steg 2: Lägg till på nya positionen
-        for (const [cx, cy, i] of Array.from(iterWord(
-          startX,
-          startY,
-          answer.length,
-          dir,
-        ))) {
-          const key = k(cx, cy);
-          const existingCell = next.get(key);
-          
-          // Om cellen redan finns och har rätt bokstav, behåll den (korsning)
-          // men uppdatera bara clueIndex om det är vår cell
-          if (existingCell && existingCell.letter === answer[i]) {
-            // Korsning - behåll cellen men lägg inte till clueIndex
-            // Detta är ok eftersom vi har placedWords för att spåra
-          } else {
-            // Ny cell eller tom cell
-            next.set(key, {
-              x: cx,
-              y: cy,
-              key,
-              letter: answer[i],
-              clueIndex,
-              direction: dir,
-            });
-          }
-        }
-        return next;
-      });
-      
-      // Uppdatera placedWords tracking
-      setPlacedWords(prev => {
-        const next = new Map(prev);
-        next.set(clueIndex, { x: startX, y: startY, dir });
-        return next;
-      });
-
-      // Markera aktivt ord
-      setActiveWord({
-        positions: Array.from(iterWord(startX, startY, answer.length, dir)).map(
-          ([cx, cy]) => k(cx, cy),
-        ),
-      });
-      setSelectedClue(null);
-      return { ok: true, crossings } as const;
-    },
-    [clues, gridMap, gridSize, placedWords],
-  );
-
-  const handleCellClick = (x: number, y: number, e?: React.MouseEvent) => {
-    if (e?.altKey) {
-      // Toggle block
-      const key = k(x, y);
-      const existing = gridMap.get(key);
-      if (existing?.isBlocked) {
-        // Avblockera
-        deleteCell(x, y);
-      } else {
-        upsertCell(x, y, { isBlocked: true, letter: "" });
-      }
-      return;
-    }
-
-    if (selectedClue !== null) {
-      const res = placeClue(selectedClue, x, y, direction);
-      if ((res as any)?.ok) focusFirstOfActiveWord();
-    } else {
-      // Klick i grid utan vald ledtråd: sätt aktivt ord kring cellen beroende på riktning
-      const positions: string[] = [];
-      let startX = x,
-        startY = y;
-      // gå bakåt tills start
-      if (direction === "across") {
-        while (
-          startX - 1 >= 0 &&
-          gridMap.get(k(startX - 1, y))?.letter &&
-          !gridMap.get(k(startX - 1, y))?.isBlocked
-        ) {
-          startX--;
-        }
-        // samla framåt
-        let cx = startX;
-        while (
-          cx < gridSize &&
-          gridMap.get(k(cx, y))?.letter &&
-          !gridMap.get(k(cx, y))?.isBlocked
-        ) {
-          positions.push(k(cx, y));
-          cx++;
-        }
-      } else {
-        while (
-          startY - 1 >= 0 &&
-          gridMap.get(k(x, startY - 1))?.letter &&
-          !gridMap.get(k(x, startY - 1))?.isBlocked
-        ) {
-          startY--;
-        }
-        let cy = startY;
-        while (
-          cy < gridSize &&
-          gridMap.get(k(x, cy))?.letter &&
-          !gridMap.get(k(x, cy))?.isBlocked
-        ) {
-          positions.push(k(x, cy));
-          cy++;
-        }
-      }
-      if (positions.length) setActiveWord({ positions });
-      // Fokusera klickad cell om den finns i inputsRef
-      const ref = inputsRef.current[k(x, y)];
-      ref?.focus();
-    }
-  };
-
-  // Drag & drop för ledtrådar
-  const [draggedClue, setDraggedClue] = useState<number | null>(null);
-  const handleDragStart = (clueIndex: number) => {
-    setDraggedClue(clueIndex);
-    // Sätt vald ledtråd om den inte redan är vald
-    if (selectedClue !== clueIndex) {
-      setSelectedClue(clueIndex);
-    }
-  };
-  const handleDragOver = (e: React.DragEvent, x: number, y: number) => {
-    e.preventDefault();
-    if (draggedClue !== null) {
-      setHoverPreview({ x, y });
-    }
-  };
-  const handleDrop = (e: React.DragEvent, x: number, y: number) => {
-    e.preventDefault();
-    if (draggedClue !== null) {
-      const result = placeClue(draggedClue, x, y, direction);
-      if (result.ok) {
-        // Succé!
-        console.log(`Ord placerat/flyttat till (${x}, ${y})`);
-      } else {
-        // Visa varför det inte gick
-        console.warn(`Kunde inte placera ord: ${result.reason}`);
-      }
-      setDraggedClue(null);
-      setHoverPreview(null);
-    }
-  };
-
-  // Inputhantering
-  const handleInputChange = (x: number, y: number, value: string) => {
-    const v = normalizeAnswer(value).slice(0, 1);
-    if (!v) return; // ignorera tom
-    upsertCell(x, y, { letter: v, isBlocked: false });
-
-    // flytta fokus vidare i aktivt ord
-    if (activeWord?.positions) {
-      const idx = activeWord.positions.indexOf(k(x, y));
-      const nextKey = activeWord.positions[idx + 1];
-      if (nextKey) inputsRef.current[nextKey]?.focus();
-    }
-  };
-
-  const handleKeyDown = (
-    x: number,
-    y: number,
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    const keyName = e.key;
-    const move = (dx: number, dy: number) => {
-      const nk = k(x + dx, y + dy);
-      inputsRef.current[nk]?.focus();
-    };
-    if (keyName === "Backspace") {
-      upsertCell(x, y, { letter: "" });
-      // gå bakåt i ordet
-      if (activeWord) {
-        const idx = activeWord.positions.indexOf(k(x, y));
-        const prevKey = activeWord.positions[idx - 1];
-        if (prevKey) inputsRef.current[prevKey]?.focus();
-      }
-    } else if (keyName === "ArrowRight") move(1, 0);
-    else if (keyName === "ArrowLeft") move(-1, 0);
-    else if (keyName === "ArrowDown") move(0, 1);
-    else if (keyName === "ArrowUp") move(0, -1);
   };
 
   const clearGrid = () => {
     setGridMap(new Map());
-    setPlacedWords(new Map());
-  };
-
-  const focusFirstOfActiveWord = () => {
-    const fk = activeWord?.positions?.[0];
-    if (fk) inputsRef.current[fk]?.focus();
+    setWordPlacements(new Map());
   };
 
   // Förbättrad auto-placering med backtracking
@@ -749,6 +529,55 @@ export function CrosswordBuilder({
 
       if (bestSolution) {
         setGridMap(bestSolution);
+        
+        // Extrahera wordPlacements från bestSolution
+        const newPlacements = new Map<number, WordPlacement>();
+        const processedClues = new Set<number>();
+        const solution: Map<string, CellKeyed> = bestSolution;
+        
+        for (const cell of solution.values()) {
+          if (cell.clueIndex !== undefined && !processedClues.has(cell.clueIndex)) {
+            // Hitta startposition för detta ord
+            const clueAnswer = normalizeAnswer(clues[cell.clueIndex].answer);
+            let startX = cell.x;
+            let startY = cell.y;
+            const dir = cell.direction;
+            
+            // Hitta verklig startposition (första bokstaven)
+            if (dir === "across") {
+              // Gå bakåt tills vi hittar starten
+              while (startX > 0) {
+                const prevKey = k(startX - 1, startY);
+                const prevCell = solution.get(prevKey);
+                if (prevCell?.clueIndex === cell.clueIndex) {
+                  startX--;
+                } else {
+                  break;
+                }
+              }
+            } else if (dir === "down") {
+              while (startY > 0) {
+                const prevKey = k(startX, startY - 1);
+                const prevCell = solution.get(prevKey);
+                if (prevCell?.clueIndex === cell.clueIndex) {
+                  startY--;
+                } else {
+                  break;
+                }
+              }
+            }
+            
+            newPlacements.set(cell.clueIndex, {
+              startRow: yToRow(startY),
+              startCol: xToCol(startX),
+              direction: dir || 'across',
+            });
+            
+            processedClues.add(cell.clueIndex);
+          }
+        }
+        
+        setWordPlacements(newPlacements);
         setAutoPlaceProgress("Klar! ✓");
         setTimeout(() => setAutoPlaceProgress(""), 2000);
       } else {
@@ -1027,14 +856,34 @@ Regler:
     });
   };
 
+  // Konverteringsfunktioner mellan användar-synliga positioner och grid-koordinater
+  const colToX = (col: string): number => {
+    if (!col) return -1;
+    return col.toUpperCase().charCodeAt(0) - 65; // 'A' = 0, 'B' = 1, etc.
+  };
+  
+  const rowToY = (row: string): number => {
+    const num = parseInt(row);
+    if (isNaN(num)) return -1;
+    return num - 1; // Rad 1 = y:0, Rad 2 = y:1, etc.
+  };
+  
+  const xToCol = (x: number): string => {
+    return String.fromCharCode(65 + x); // 0 = 'A', 1 = 'B', etc.
+  };
+  
+  const yToRow = (y: number): string => {
+    return String(y + 1); // y:0 = "1", y:1 = "2", etc.
+  };
+
   // Check if a word is placed in the grid
   const isWordPlaced = (clueIndex: number): boolean => {
-    return placedWords.has(clueIndex);
+    return wordPlacements.has(clueIndex);
   };
 
   // Get placement info for a word
-  const getWordPlacement = (clueIndex: number): { x: number; y: number; dir: Direction } | null => {
-    return placedWords.get(clueIndex) || null;
+  const getWordPlacement = (clueIndex: number) => {
+    return wordPlacements.get(clueIndex) || null;
   };
 
   // Render
@@ -1081,98 +930,79 @@ Regler:
               <CardTitle className="text-base">Korsordsgrid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div
-              className="grid gap-0.5 mx-auto"
-              style={{ gridTemplateColumns: `repeat(${gridSize}, 2rem)` }}
-            >
-              {Array.from({ length: gridSize * gridSize }).map((_, index) => {
-                const x = index % gridSize;
-                const y = Math.floor(index / gridSize);
-                const key = k(x, y);
-                const cell = gridMap.get(key);
-                const active = activeWord?.positions?.includes(key);
-
-                const showPreview =
-                  hoverPreview &&
-                  selectedClue !== null &&
-                  (() => {
-                    const ans = normalizeAnswer(clues[selectedClue].answer);
-                    const endX =
-                      direction === "across"
-                        ? hoverPreview.x + ans.length - 1
-                        : hoverPreview.x;
-                    const endY =
-                      direction === "down"
-                        ? hoverPreview.y + ans.length - 1
-                        : hoverPreview.y;
-                    const inRect =
-                      x >= hoverPreview.x &&
-                      y >= hoverPreview.y &&
-                      x <= endX &&
-                      y <= endY;
-                    if (!inRect) return false;
-                    const i =
-                      direction === "across"
-                        ? x - hoverPreview.x
-                        : y - hoverPreview.y;
-                    return i >= 0 && i < ans.length;
-                  })();
-
-                return (
-                  <div
-                    key={key}
-                    className={cn(
-                      "relative w-8 h-8 border text-xs flex items-center justify-center cursor-pointer select-none",
-                      cell?.isBlocked
-                        ? "bg-black border-gray-600"
-                        : "bg-white border-gray-300",
-                      active && !cell?.isBlocked && "ring-2 ring-blue-500",
-                      showPreview &&
-                        "outline outline-2 outline-dashed outline-blue-400",
-                    )}
-                    onClick={(e) => handleCellClick(x, y, e)}
-                    onDragOver={(e) => handleDragOver(e, x, y)}
-                    onDrop={(e) => handleDrop(e, x, y)}
-                  >
-                    {!cell?.isBlocked && (
-                      <Input
-                        ref={(el) => (inputsRef.current[key] = el)}
-                        className={cn(
-                          "absolute inset-0 p-0 text-center text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:border-0",
-                          cell?.letter ? "font-semibold" : "",
-                        )}
-                        value={cell?.letter ?? ""}
-                        onChange={(e) =>
-                          handleInputChange(x, y, e.target.value)
-                        }
-                        onKeyDown={(e) => handleKeyDown(x, y, e)}
-                        maxLength={1}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
-                    {(() => {
-                      const numbers = computeNumbers(gridMap, gridSize);
-                      const num = numbers.get(key);
-                      if (!cell?.isBlocked && num) {
-                        return (
-                          <div className="absolute top-0.5 left-0.5 text-[10px] font-bold text-blue-700 pointer-events-none">
-                            {num}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
+            <div className="flex gap-0">
+              {/* Kolumn-labels (A-O) */}
+              <div className="flex flex-col">
+                <div className="w-6 h-6"></div> {/* Tom cell för hörnet */}
+                {Array.from({ length: gridSize }).map((_, i) => (
+                  <div key={`row-${i}`} className="w-6 h-8 flex items-center justify-center text-xs font-medium text-gray-600">
+                    {i + 1}
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              
+              <div>
+                {/* Kolumn-labels topp */}
+                <div className="flex gap-0.5 mb-0">
+                  {Array.from({ length: gridSize }).map((_, i) => (
+                    <div key={`col-${i}`} className="w-8 h-6 flex items-center justify-center text-xs font-medium text-gray-600">
+                      {String.fromCharCode(65 + i)}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Grid */}
+                <div
+                  className="grid gap-0.5"
+                  style={{ gridTemplateColumns: `repeat(${gridSize}, 2rem)` }}
+                >
+                  {Array.from({ length: gridSize * gridSize }).map((_, index) => {
+                    const x = index % gridSize;
+                    const y = Math.floor(index / gridSize);
+                    const key = k(x, y);
+                    const cell = gridMap.get(key);
+
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "relative w-8 h-8 border text-sm flex items-center justify-center select-none font-semibold",
+                          cell?.isBlocked
+                            ? "bg-black border-gray-600"
+                            : cell?.letter 
+                              ? "bg-blue-50 border-blue-300"
+                              : "bg-gray-50 border-gray-300",
+                        )}
+                      >
+                        {cell?.letter && !cell.isBlocked && (
+                          <span className="text-gray-900">{cell.letter}</span>
+                        )}
+                        {(() => {
+                          const numbers = computeNumbers(gridMap, gridSize);
+                          const num = numbers.get(key);
+                          if (!cell?.isBlocked && num) {
+                            return (
+                              <div className="absolute top-0.5 left-0.5 text-[9px] font-bold text-blue-600 pointer-events-none">
+                                {num}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-              <div className="text-xs text-gray-500 mt-3 space-y-1">
-                <p><strong>Tips:</strong></p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>Klicka på ett ord till höger, sedan klicka i gridet för att placera</li>
-                  <li>Alt+Klick på en ruta för att blockera den (svart)</li>
-                  <li>Dra ord från listan till gridet för snabb placering</li>
-                </ul>
+            
+            <div className="text-xs text-gray-500 mt-3 space-y-1">
+              <p><strong>Tips:</strong></p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>Fyll i position (rad + kolumn) och riktning för varje ord till höger</li>
+                <li>Gridet uppdateras automatiskt när du fyller i positioner</li>
+                <li>Använd "Auto-placera" för automatisk placering</li>
+              </ul>
             </div>
           </CardContent>
         </Card>
@@ -1411,26 +1241,7 @@ Regler:
             {/* Word list */}
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm">Ord ({clues.length})</CardTitle>
-                  <div className="flex items-center gap-2 text-xs">
-                    <label className="text-gray-600">Riktning:</label>
-                    <Toggle
-                      pressed={direction === "across"}
-                      onPressedChange={() =>
-                        setDirection(direction === "across" ? "down" : "across")
-                      }
-                      size="sm"
-                      className="h-7"
-                    >
-                      {direction === "across" ? (
-                        <><ArrowLeftRight className="h-3 w-3 mr-1" /> Vågrät</>
-                      ) : (
-                        <><ArrowUpDown className="h-3 w-3 mr-1" /> Lodrät</>
-                      )}
-                    </Toggle>
-                  </div>
-                </div>
+                <CardTitle className="text-sm">Ord ({clues.length})</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {clues.length === 0 ? (
@@ -1442,12 +1253,7 @@ Regler:
               clues.map((clue, index) => (
                 <div
                   key={clue.id}
-                  className={cn(
-                    "group border rounded-lg transition-all",
-                    selectedClue === index && "bg-blue-50 border-blue-300 shadow-sm",
-                    selectedClue !== index && "hover:bg-gray-50 hover:border-gray-400",
-                    draggedClue === index && "opacity-50 border-dashed"
-                  )}
+                  className="group border rounded-lg transition-all hover:bg-gray-50 hover:border-gray-400"
                 >
                   {editingClue === clue.id ? (
                     <div className="p-3 space-y-2">
@@ -1472,54 +1278,14 @@ Regler:
                       </div>
                     </div>
                   ) : (
-                    <div
-                      draggable
-                      onDragStart={() => handleDragStart(index)}
-                      onClick={() =>
-                        setSelectedClue(selectedClue === index ? null : index)
-                      }
-                      className="p-2 cursor-move hover:shadow-md transition-shadow"
-                      title="Dra för att placera eller flytta i gridet"
-                    >
-                      <div className="flex items-start gap-2">
-                        {/* Status indicator */}
-                        <div className="mt-0.5">
-                          {isWordPlaced(index) ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-gray-300" />
-                          )}
-                        </div>
-                        
-                        {/* Word info */}
+                    <div className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm flex items-center gap-2">
-                            <span>{clue.question}</span>
-                          </div>
-                          <div className="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
+                          <div className="font-medium text-sm">{clue.question}</div>
+                          <div className="text-xs text-gray-600 mt-0.5">
                             <span className="font-mono font-semibold">{normalizeAnswer(clue.answer).toUpperCase()}</span>
-                            <span className="text-gray-400">•</span>
+                            <span className="text-gray-400"> • </span>
                             <span>{normalizeAnswer(clue.answer).length} bokstäver</span>
-                            {isWordPlaced(index) && (() => {
-                              const placement = getWordPlacement(index);
-                              if (placement) {
-                                return (
-                                  <>
-                                    <span className="text-blue-600 flex items-center gap-1">
-                                      {placement.dir === "across" ? (
-                                        <ArrowLeftRight className="h-3 w-3" />
-                                      ) : (
-                                        <ArrowUpDown className="h-3 w-3" />
-                                      )}
-                                      {placement.dir === "across" ? "Vågrät" : "Lodrät"}
-                                    </span>
-                                    <span className="text-gray-400">•</span>
-                                    <span className="text-green-600 text-xs">Placerat</span>
-                                  </>
-                                );
-                              }
-                              return null;
-                            })()}
                           </div>
                         </div>
                         
@@ -1561,10 +1327,48 @@ Regler:
                           </Tooltip>
                         </div>
                       </div>
-                      {selectedClue === index && (
-                        <div className="text-xs text-blue-600 mt-2 ml-6 flex items-center gap-1 bg-blue-50 p-1.5 rounded">
-                          <span>→</span>
-                          <span>Klicka i gridet för att placera {direction === "across" ? "vågrätt" : "lodrätt"}</span>
+                      
+                      {/* Position inputs */}
+                      <div className="grid grid-cols-3 gap-2 bg-gray-50 p-2 rounded">
+                        <div>
+                          <Label className="text-[10px] text-gray-600">Rad (1-15)</Label>
+                          <Input
+                            type="text"
+                            placeholder="5"
+                            maxLength={2}
+                            value={getWordPlacement(index)?.startRow || ''}
+                            onChange={(e) => updatePlacement(index, 'row', e.target.value)}
+                            className="h-8 text-center"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-gray-600">Kol (A-O)</Label>
+                          <Input
+                            type="text"
+                            placeholder="A"
+                            maxLength={1}
+                            value={getWordPlacement(index)?.startCol || ''}
+                            onChange={(e) => updatePlacement(index, 'col', e.target.value)}
+                            className="h-8 text-center uppercase"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-gray-600">Riktning</Label>
+                          <select
+                            value={getWordPlacement(index)?.direction || 'across'}
+                            onChange={(e) => updatePlacement(index, 'dir', e.target.value)}
+                            className="h-8 w-full text-xs border rounded px-1"
+                          >
+                            <option value="across">→ Horisontell</option>
+                            <option value="down">↓ Vertikal</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {isWordPlaced(index) && (
+                        <div className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Placerat i gridet</span>
                         </div>
                       )}
                     </div>
